@@ -92,7 +92,7 @@ bool TreeFeature::isReplaceableAt(WorldGenRegion& world, const BlockPos& pos) {
         return false;
     }
 
-    const BlockState* state = world.getBlock(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
     if (state == nullptr || state->isAir()) {
         return true;
     }
@@ -135,7 +135,7 @@ bool TreeFeature::isAirOrLeavesAt(WorldGenRegion& world, const BlockPos& pos) {
         return false;
     }
 
-    const BlockState* state = world.getBlock(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
     if (state == nullptr || state->isAir()) {
         return true;
     }
@@ -158,7 +158,7 @@ bool TreeFeature::isDirtOrFarmlandAt(WorldGenRegion& world, const BlockPos& pos)
         return false;
     }
 
-    const BlockState* state = world.getBlock(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
     if (state == nullptr) {
         return false;
     }
@@ -176,7 +176,7 @@ bool TreeFeature::isWaterAt(WorldGenRegion& world, const BlockPos& pos) {
         return false;
     }
 
-    const BlockState* state = world.getBlock(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
     if (state == nullptr) {
         return false;
     }
@@ -289,13 +289,13 @@ void TreeFeature::setFoliageDistance(
         // 限制距离在 [1, 7] 范围内（DISTANCE_1_7 属性范围）
         dist = std::max(1, std::min(7, dist));
 
-        const BlockState* currentState = world.getBlock(pos);
+        const BlockState* currentState = world.getBlockState(pos);
         if (currentState != nullptr &&
             currentState->hasProperty(BlockStateProperties::DISTANCE_1_7())) {
             const BlockState& newState = currentState->with(
                 BlockStateProperties::DISTANCE_1_7(), dist
             );
-            world.setBlock(pos, &newState);
+            world.setBlockState(pos, &newState);
         }
     }
 }

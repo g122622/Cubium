@@ -527,7 +527,7 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
                                 const BlockState* blockState = getBlockForDensity(static_cast<f32>(density), worldY);
 
                                 if (blockState) {
-                                    chunk.setBlock(localBlockX, worldY, localBlockZ, blockState);
+                                    chunk.setBlockState(localBlockX, worldY, localBlockZ, blockState);
 
                                     // 更新高度图
                                     chunk.updateHeightmap(HeightmapType::WorldSurfaceWG, localBlockX, worldY, localBlockZ, blockState);
@@ -925,7 +925,7 @@ void NoiseChunkGenerator::buildSurfaceForColumn(
     const i32 clampedStartHeight = std::min(startHeight, m_settings.noise.height - 1);
 
     for (i32 y = clampedStartHeight; y >= 0; --y) {
-        const BlockState* state = chunk.getBlock(x, y, z);
+        const BlockState* state = chunk.getBlockState(x, y, z);
 
         if (state == nullptr || state->isAir()) {
             currentDepth = -1;
@@ -956,18 +956,18 @@ void NoiseChunkGenerator::buildSurfaceForColumn(
             currentDepth = surfaceDepth;
             if (y >= seaLevel - 1) {
                 if (topState != nullptr) {
-                    chunk.setBlock(x, y, z, topState);
+                    chunk.setBlockState(x, y, z, topState);
                 }
             } else if (y < seaLevel - 7 - surfaceDepth) {
                 topState = airState;
                 middleState = m_settings.defaultBlock;
                 if (underWaterState != nullptr) {
-                    chunk.setBlock(x, y, z, underWaterState);
+                    chunk.setBlockState(x, y, z, underWaterState);
                 } else if (middleState != nullptr) {
-                    chunk.setBlock(x, y, z, middleState);
+                    chunk.setBlockState(x, y, z, middleState);
                 }
             } else if (middleState != nullptr) {
-                chunk.setBlock(x, y, z, middleState);
+                chunk.setBlockState(x, y, z, middleState);
             }
             continue;
         }
@@ -975,7 +975,7 @@ void NoiseChunkGenerator::buildSurfaceForColumn(
         if (currentDepth > 0) {
             --currentDepth;
             if (middleState != nullptr) {
-                chunk.setBlock(x, y, z, middleState);
+                chunk.setBlockState(x, y, z, middleState);
             }
 
             const bool isSandLayer =
@@ -1022,7 +1022,7 @@ void NoiseChunkGenerator::applyBedrock(ChunkPrimer& chunk, math::Random& random)
                     if (offset <= random.nextInt(5)) {
                         const i32 y = floorAnchor + offset;
                         if (y >= 0 && y < noiseHeight) {
-                            chunk.setBlock(localX, y, localZ, bedrockState);
+                            chunk.setBlockState(localX, y, localZ, bedrockState);
                         }
                     }
                 }
@@ -1033,7 +1033,7 @@ void NoiseChunkGenerator::applyBedrock(ChunkPrimer& chunk, math::Random& random)
                     if (offset <= random.nextInt(5)) {
                         const i32 y = roofAnchor - offset;
                         if (y >= 0 && y < noiseHeight) {
-                            chunk.setBlock(localX, y, localZ, bedrockState);
+                            chunk.setBlockState(localX, y, localZ, bedrockState);
                         }
                     }
                 }

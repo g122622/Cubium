@@ -80,7 +80,7 @@ public:
     explicit ServerWorld(const ServerWorldConfig& config);
     ~ServerWorld() override;
 
-    using IWorld::setBlock;
+    using IWorld::setBlockState;
     using IWorld::getBlockState;
     using IWorld::getFluidState;
     using IWorld::getBlockLight;
@@ -144,7 +144,7 @@ public:
 
     // ========== 方块操作 ==========
 
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override;
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override;
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override;
 
     // ========== 更新循环 ==========

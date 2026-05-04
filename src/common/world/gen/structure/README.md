@@ -618,7 +618,7 @@ graph LR
 | 输出项 | 类型 | 目标 | 说明 |
 |--------|------|------|------|
 | 结构起点 | `StructureStart` | 区块数据 | 结构实例引用 |
-| 方块放置 | `setBlock()` | IWorldWriter | 实际世界方块 |
+| 方块放置 | `setBlockState()` | IWorldWriter | 实际世界方块 |
 | 结构边界 | `StructureBoundingBox` | 区块数据 | 用于跨区块检测 |
 
 ### 依赖项

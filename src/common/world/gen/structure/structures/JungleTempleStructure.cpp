@@ -102,7 +102,7 @@ void JungleTempleStructure::generateTemple(
     for (i32 y = 0; y < 2; ++y) {
         for (i32 x = 0; x < width; ++x) {
             for (i32 z = 0; z < length; ++z) {
-                world.setBlock(baseX + x, baseY + y, baseZ + z, randomCobble(), 18);
+                world.setBlockState(baseX + x, baseY + y, baseZ + z, randomCobble(), 18);
             }
         }
     }
@@ -111,64 +111,64 @@ void JungleTempleStructure::generateTemple(
     for (i32 y = 2; y < height; ++y) {
         for (i32 x = 0; x < width; ++x) {
             // 前后墙
-            world.setBlock(baseX + x, baseY + y, baseZ, randomBrick(), 18);
-            world.setBlock(baseX + x, baseY + y, baseZ + length - 1, randomBrick(), 18);
+            world.setBlockState(baseX + x, baseY + y, baseZ, randomBrick(), 18);
+            world.setBlockState(baseX + x, baseY + y, baseZ + length - 1, randomBrick(), 18);
         }
         for (i32 z = 0; z < length; ++z) {
             // 左右墙
-            world.setBlock(baseX, baseY + y, baseZ + z, randomBrick(), 18);
-            world.setBlock(baseX + width - 1, baseY + y, baseZ + z, randomBrick(), 18);
+            world.setBlockState(baseX, baseY + y, baseZ + z, randomBrick(), 18);
+            world.setBlockState(baseX + width - 1, baseY + y, baseZ + z, randomBrick(), 18);
         }
     }
 
     // 生成入口（南面中央）
     i32 entranceX = width / 2;
     for (i32 y = 2; y < 5; ++y) {
-        world.setBlock(baseX + entranceX - 1, baseY + y, baseZ, air, 18);
-        world.setBlock(baseX + entranceX, baseY + y, baseZ, air, 18);
-        world.setBlock(baseX + entranceX + 1, baseY + y, baseZ, air, 18);
+        world.setBlockState(baseX + entranceX - 1, baseY + y, baseZ, air, 18);
+        world.setBlockState(baseX + entranceX, baseY + y, baseZ, air, 18);
+        world.setBlockState(baseX + entranceX + 1, baseY + y, baseZ, air, 18);
     }
 
     // 入口台阶
     for (i32 step = 0; step < 3; ++step) {
         for (i32 x = entranceX - 1; x <= entranceX + 1; ++x) {
-            world.setBlock(baseX + x, baseY + 2 - step, baseZ - step - 1, cobblestone, 18);
+            world.setBlockState(baseX + x, baseY + 2 - step, baseZ - step - 1, cobblestone, 18);
         }
     }
 
     // 内部地板
     for (i32 x = 1; x < width - 1; ++x) {
         for (i32 z = 1; z < length - 1; ++z) {
-            world.setBlock(baseX + x, baseY + 2, baseZ + z, stoneBricks, 18);
+            world.setBlockState(baseX + x, baseY + 2, baseZ + z, stoneBricks, 18);
         }
     }
 
     // 中央走廊 - 被墙分隔
     i32 corridorZ = length / 2;
     for (i32 x = 1; x < width - 1; ++x) {
-        world.setBlock(baseX + x, baseY + 3, baseZ + corridorZ, stoneBricks, 18);
-        world.setBlock(baseX + x, baseY + 4, baseZ + corridorZ, stoneBricks, 18);
+        world.setBlockState(baseX + x, baseY + 3, baseZ + corridorZ, stoneBricks, 18);
+        world.setBlockState(baseX + x, baseY + 4, baseZ + corridorZ, stoneBricks, 18);
     }
 
     // 走廊门洞
-    world.setBlock(baseX + entranceX, baseY + 3, baseZ + corridorZ, air, 18);
-    world.setBlock(baseX + entranceX, baseY + 4, baseZ + corridorZ, air, 18);
+    world.setBlockState(baseX + entranceX, baseY + 3, baseZ + corridorZ, air, 18);
+    world.setBlockState(baseX + entranceX, baseY + 4, baseZ + corridorZ, air, 18);
 
     // 拉杆谜题房间（西侧）
     i32 puzzleX = 2;
     i32 puzzleZ = 3;
     // 隐藏机关墙
     for (i32 y = 3; y < 6; ++y) {
-        world.setBlock(baseX + puzzleX, baseY + y, baseZ + puzzleZ, chiseledStoneBricks, 18);
-        world.setBlock(baseX + puzzleX + 1, baseY + y, baseZ + puzzleZ, chiseledStoneBricks, 18);
+        world.setBlockState(baseX + puzzleX, baseY + y, baseZ + puzzleZ, chiseledStoneBricks, 18);
+        world.setBlockState(baseX + puzzleX + 1, baseY + y, baseZ + puzzleZ, chiseledStoneBricks, 18);
     }
 
     // 箭矢陷阱走廊（东侧）
     // 陷阱房间
     i32 trapX = width - 3;
     for (i32 z = 2; z < 6; ++z) {
-        world.setBlock(baseX + trapX, baseY + 3, baseZ + z, air, 18);
-        world.setBlock(baseX + trapX + 1, baseY + 3, baseZ + z, air, 18);
+        world.setBlockState(baseX + trapX, baseY + 3, baseZ + z, air, 18);
+        world.setBlockState(baseX + trapX + 1, baseY + 3, baseZ + z, air, 18);
     }
 
     // 宝箱房间（北侧，隐藏）
@@ -177,15 +177,15 @@ void JungleTempleStructure::generateTemple(
 
     // 宝箱房间入口（需要机关开启）
     for (i32 y = 3; y < 6; ++y) {
-        world.setBlock(baseX + chestX - 1, baseY + y, baseZ + chestZ, mossyStoneBricks, 18);
-        world.setBlock(baseX + chestX, baseY + y, baseZ + chestZ, mossyStoneBricks, 18);
-        world.setBlock(baseX + chestX + 1, baseY + y, baseZ + chestZ, mossyStoneBricks, 18);
+        world.setBlockState(baseX + chestX - 1, baseY + y, baseZ + chestZ, mossyStoneBricks, 18);
+        world.setBlockState(baseX + chestX, baseY + y, baseZ + chestZ, mossyStoneBricks, 18);
+        world.setBlockState(baseX + chestX + 1, baseY + y, baseZ + chestZ, mossyStoneBricks, 18);
     }
 
     // 宝箱房间内部
     for (i32 x = chestX - 1; x <= chestX + 1; ++x) {
         for (i32 z = chestZ + 1; z < length - 1; ++z) {
-            world.setBlock(baseX + x, baseY + 3, baseZ + z, stoneBricks, 18);
+            world.setBlockState(baseX + x, baseY + 3, baseZ + z, stoneBricks, 18);
         }
     }
 
@@ -193,7 +193,7 @@ void JungleTempleStructure::generateTemple(
     if (rng.nextInt(100) < 70) {
         // 宝箱位置暂时用金块标记（实际应该放置宝箱）
         const BlockState* goldBlock = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
-        world.setBlock(baseX + chestX, baseY + 3, baseZ + chestZ + 2, goldBlock, 18);
+        world.setBlockState(baseX + chestX, baseY + 3, baseZ + chestZ + 2, goldBlock, 18);
     }
 
     // 三层塔楼（四角）
@@ -203,17 +203,17 @@ void JungleTempleStructure::generateTemple(
 
         // 塔楼高度额外增加 4 格
         for (i32 y = height; y < height + 4; ++y) {
-            world.setBlock(baseX + cx, baseY + y, baseZ + cz, randomBrick(), 18);
+            world.setBlockState(baseX + cx, baseY + y, baseZ + cz, randomBrick(), 18);
         }
 
         // 塔楼顶部装饰
-        world.setBlock(baseX + cx, baseY + height + 4, baseZ + cz, chiseledStoneBricks, 18);
+        world.setBlockState(baseX + cx, baseY + height + 4, baseZ + cz, chiseledStoneBricks, 18);
     }
 
     // 屋顶平台
     for (i32 x = 1; x < width - 1; ++x) {
         for (i32 z = 1; z < length - 1; ++z) {
-            world.setBlock(baseX + x, baseY + height, baseZ + z, stoneBricks, 18);
+            world.setBlockState(baseX + x, baseY + height, baseZ + z, stoneBricks, 18);
         }
     }
 
@@ -233,7 +233,7 @@ void JungleTempleStructure::generateTemple(
 
         // 放置藤蔓
         if (rng.nextInt(100) < 40) {
-            world.setBlock(baseX + wx, baseY + vy, baseZ + wz, vine, 18);
+            world.setBlockState(baseX + wx, baseY + vy, baseZ + wz, vine, 18);
         }
     }
 }

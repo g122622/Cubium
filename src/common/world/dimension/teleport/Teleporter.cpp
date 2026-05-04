@@ -76,7 +76,7 @@ std::vector<BlockPos> Teleporter::searchPortalBlocks(
             for (i32 y = world::MIN_BUILD_HEIGHT; y < world::MAX_BUILD_HEIGHT; ++y) {
                 for (i32 z = 0; z < 16; ++z) {
                     for (i32 x = 0; x < 16; ++x) {
-                        const BlockState* state = chunk->getBlock(x, y, z);
+                        const BlockState* state = chunk->getBlockState(x, y, z);
                         if (state == portalState) {
                             // 转换为世界坐标
                             BlockPos worldPos(cx * 16 + x, y, cz * 16 + z);
@@ -129,7 +129,7 @@ void Teleporter::placePortalBlocks(
                 pos.y += h;
             }
 
-            world.setBlock(pos, portalState);
+            world.setBlockState(pos, portalState);
         }
     }
 }
@@ -305,14 +305,14 @@ void NetherTeleporter::placeObsidianFrame(
         } else {
             pos.z += w;
         }
-        world.setBlock(pos, obsidian);
+        world.setBlockState(pos, obsidian);
     }
 
     // 左边框架
     for (i32 h = 1; h <= height; ++h) {
         BlockPos pos = corner;
         pos.y += h;
-        world.setBlock(pos, obsidian);
+        world.setBlockState(pos, obsidian);
     }
 
     // 右边框架
@@ -325,7 +325,7 @@ void NetherTeleporter::placeObsidianFrame(
     for (i32 h = 1; h <= height; ++h) {
         BlockPos pos = rightBottom;
         pos.y += h;
-        world.setBlock(pos, obsidian);
+        world.setBlockState(pos, obsidian);
     }
 
     // 顶部框架
@@ -338,7 +338,7 @@ void NetherTeleporter::placeObsidianFrame(
         } else {
             pos.z += w;
         }
-        world.setBlock(pos, obsidian);
+        world.setBlockState(pos, obsidian);
     }
 }
 
@@ -409,7 +409,7 @@ void EndTeleporter::createEndSpawnPlatform(IWorld& world) {
     for (i32 x = -2; x <= 2; ++x) {
         for (i32 z = -2; z <= 2; ++z) {
             BlockPos pos(100 + x, 49, 0 + z);
-            world.setBlock(pos, obsidian);
+            world.setBlockState(pos, obsidian);
         }
     }
 
@@ -419,7 +419,7 @@ void EndTeleporter::createEndSpawnPlatform(IWorld& world) {
         for (i32 z = -2; z <= 2; ++z) {
             for (i32 y = 50; y <= 53; ++y) {
                 BlockPos pos(100 + x, y, 0 + z);
-                world.setBlock(pos, nullptr);
+                world.setBlockState(pos, nullptr);
             }
         }
     }

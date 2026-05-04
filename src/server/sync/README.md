@@ -101,7 +101,7 @@ static constexpr f32 ROTATION_THRESHOLD = 1.0f;   // 旋转变化阈值（度）
 
 ### BlockUpdateSyncManager.hpp/cpp
 
-方块更新同步管理器，负责把 `ServerWorld::setBlock()` 产生的方块变化缓存到 pending 表，在服务器 tick 末统一发送给追踪该区块的玩家。
+方块更新同步管理器，负责把 `ServerWorld::setBlockState()` 产生的方块变化缓存到 pending 表，在服务器 tick 末统一发送给追踪该区块的玩家。
 
 #### 职责
 
@@ -114,8 +114,8 @@ static constexpr f32 ROTATION_THRESHOLD = 1.0f;   // 旋转变化阈值（度）
 #### 与 ServerWorld / ChunkLoadTicketManager 协同工作
 
 ```cpp
-ServerWorld::setBlock()
-    → chunk->setBlock()
+ServerWorld::setBlockState()
+    → chunk->setBlockState()
     → setOnBlockChanged 回调
     → BlockUpdateSyncManager.queueBlockUpdate()
 
@@ -415,7 +415,7 @@ if (!holder->shouldLoad() && !ticketManager.hasTrackingPlayers(key)) {
 
 测试服务端世界的方块变化回调：
 
-- **SetBlockInvokesBlockChangedCallback**：`ServerWorld::setBlock()` 会触发方块变化回调，并传递最终 stateId
+- **SetBlockInvokesBlockChangedCallback**：`ServerWorld::setBlockState()` 会触发方块变化回调，并传递最终 stateId
 
 #### 测试数量统计
 
@@ -483,7 +483,7 @@ if (!holder->shouldLoad() && !ticketManager.hasTrackingPlayers(key)) {
 **方块更新路径**：
 
 ```
-ServerWorld::setBlock() → setOnBlockChanged() → BlockUpdateSyncManager.queueBlockUpdate()
+ServerWorld::setBlockState() → setOnBlockChanged() → BlockUpdateSyncManager.queueBlockUpdate()
 → MinecraftServer::tick() 末 flushPendingUpdates() → BlockUpdatePacket → 客户端
 ```
 
@@ -525,7 +525,7 @@ sync 模块的初始化有严格的顺序要求：
 
 ```mermaid
 flowchart LR
-    world["ServerWorld::setBlock"] --> callback["setOnBlockChanged"]
+    world["ServerWorld::setBlockState"] --> callback["setOnBlockChanged"]
     callback --> manager["BlockUpdateSyncManager"]
     manager --> ticket["ChunkLoadTicketManager"]
     ticket --> players["追踪该区块的玩家"]

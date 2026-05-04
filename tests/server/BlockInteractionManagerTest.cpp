@@ -96,7 +96,7 @@ protected:
 };
 
 TEST_F(BlockInteractionManagerPlacementTest, RejectsPlacementWhenBlockIntersectsPlayer) {
-    m_world->setBlock(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
     setHeldBlockItem(*VanillaBlocks::STONE, 16);
 
     auto result = m_blockInteractionManager->handleBlockPlacement(
@@ -128,7 +128,7 @@ TEST_F(BlockInteractionManagerPlacementTest, RejectsPlacementWhenBlockIntersects
 }
 
 TEST_F(BlockInteractionManagerPlacementTest, PlacesBlockWhenNoPlayerCollision) {
-    m_world->setBlock(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
     setHeldBlockItem(*VanillaBlocks::STONE, 16);
 
     m_player->x = 3.5f;

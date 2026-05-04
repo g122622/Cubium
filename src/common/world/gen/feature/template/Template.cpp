@@ -602,7 +602,7 @@ bool Template::place(
         }
 
         // 放置方块
-        world.setBlock(processedBlock.pos.x, processedBlock.pos.y, processedBlock.pos.z, transformedState, static_cast<i32>(flags));
+        world.setBlockState(processedBlock.pos.x, processedBlock.pos.y, processedBlock.pos.z, transformedState, static_cast<i32>(flags));
 
         // 方块实体数据由 placeInWorld 方法处理
         // 此处仅负责方块状态放置

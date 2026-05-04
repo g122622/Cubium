@@ -47,7 +47,7 @@ bool HugeFungusFeature::canPlaceAt(
     FungusType type) const
 {
     // 检查底部方块是否为菌岩
-    const BlockState* groundState = world.getBlock(pos.x, pos.y - 1, pos.z);
+    const BlockState* groundState = world.getBlockState(pos.x, pos.y - 1, pos.z);
     if (!groundState) {
         return false;
     }
@@ -61,7 +61,7 @@ bool HugeFungusFeature::canPlaceAt(
 
     // 检查上方是否有足够空间
     for (i32 y = 0; y < 15; ++y) {
-        const BlockState* state = world.getBlock(pos.x, pos.y + y, pos.z);
+        const BlockState* state = world.getBlockState(pos.x, pos.y + y, pos.z);
         if (state && !state->isAir()) {
             return false;
         }
@@ -94,7 +94,7 @@ void HugeFungusFeature::generateStem(
 
     // 生成菌柄
     for (i32 y = 0; y < height; ++y) {
-        world.setBlock(pos.x, pos.y + y, pos.z, stem);
+        world.setBlockState(pos.x, pos.y + y, pos.z, stem);
     }
 }
 
@@ -140,7 +140,7 @@ void HugeFungusFeature::generateCap(
                     if (distSq >= (layerRadius - 1) * (layerRadius - 1) && random.nextInt(3) == 0) {
                         continue;
                     }
-                    world.setBlock(topPos.x + x, layerY, topPos.z + z, cap);
+                    world.setBlockState(topPos.x + x, layerY, topPos.z + z, cap);
                 }
             }
         }
@@ -174,9 +174,9 @@ void HugeFungusFeature::generateVines(
 
         for (i32 y = 0; y < vineLength; ++y) {
             BlockPos vinePos(capPos.x + offsetX, capPos.y - y - 1, capPos.z + offsetZ);
-            const BlockState* existing = world.getBlock(vinePos);
+            const BlockState* existing = world.getBlockState(vinePos);
             if (existing && existing->isAir()) {
-                world.setBlock(vinePos, vine);
+                world.setBlockState(vinePos, vine);
             } else {
                 break;
             }
@@ -212,10 +212,10 @@ void HugeFungusFeature::generateShroomlights(
         i32 offsetY = random.nextInt(2);
 
         // 只替换菌盖方块（非空气方块）
-        const BlockState* existing = world.getBlock(capPos.x + offsetX, capPos.y + offsetY, capPos.z + offsetZ);
+        const BlockState* existing = world.getBlockState(capPos.x + offsetX, capPos.y + offsetY, capPos.z + offsetZ);
         if (existing && !existing->isAir() &&
             &existing->getBlock() != VanillaBlocks::AIR) {
-            world.setBlock(capPos.x + offsetX, capPos.y + offsetY, capPos.z + offsetZ, shroomlight);
+            world.setBlockState(capPos.x + offsetX, capPos.y + offsetY, capPos.z + offsetZ, shroomlight);
         }
     }
 }

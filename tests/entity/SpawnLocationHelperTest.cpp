@@ -26,14 +26,14 @@ public:
             return getAirState();
         }
 
-        const BlockState* state = chunk->getBlock(x & 15, y, z & 15);
+        const BlockState* state = chunk->getBlockState(x & 15, y, z & 15);
         return state != nullptr ? state : getAirState();
     }
 
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
     {
         ChunkData& chunk = ensureChunk(x >> 4, z >> 4);
-        chunk.setBlock(x & 15, y, z & 15, state);
+        chunk.setBlockState(x & 15, y, z & 15, state);
         return true;
     }
 
@@ -62,7 +62,7 @@ public:
         }
 
         for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
-            const BlockState* state = chunk->getBlock(x & 15, y, z & 15);
+            const BlockState* state = chunk->getBlockState(x & 15, y, z & 15);
             if (state != nullptr && !state->isAir()) {
                 return y;
             }
@@ -151,8 +151,8 @@ TEST_F(SpawnLocationHelperTest, FindsPlainsSurfaceSpawnLikeVanilla)
     ChunkData& chunk = world.ensureChunk(0, 0);
     world.fillBiome(chunk, Biomes::Plains);
 
-    world.setBlock(1, 63, 1, &VanillaBlocks::DIRT->defaultState());
-    world.setBlock(1, 64, 1, &VanillaBlocks::GRASS_BLOCK->defaultState());
+    world.setBlockState(1, 63, 1, &VanillaBlocks::DIRT->defaultState());
+    world.setBlockState(1, 64, 1, &VanillaBlocks::GRASS_BLOCK->defaultState());
 
     const auto spawnPos = SpawnLocationHelper::findSpawnLocation(world, 1, 1, true);
 
@@ -166,9 +166,9 @@ TEST_F(SpawnLocationHelperTest, RejectsOceanColumnsCoveredByWater)
     ChunkData& chunk = world.ensureChunk(0, 0);
     world.fillBiome(chunk, Biomes::Plains);
 
-    world.setBlock(2, 62, 2, &VanillaBlocks::DIRT->defaultState());
-    world.setBlock(2, 63, 2, &VanillaBlocks::GRASS_BLOCK->defaultState());
-    world.setBlock(2, 64, 2, &VanillaBlocks::WATER->defaultState());
+    world.setBlockState(2, 62, 2, &VanillaBlocks::DIRT->defaultState());
+    world.setBlockState(2, 63, 2, &VanillaBlocks::GRASS_BLOCK->defaultState());
+    world.setBlockState(2, 64, 2, &VanillaBlocks::WATER->defaultState());
 
     const auto spawnPos = SpawnLocationHelper::findSpawnLocation(world, 2, 2, true);
 
@@ -181,7 +181,7 @@ TEST_F(SpawnLocationHelperTest, ScansChunkInVanillaOrder)
     ChunkData& chunk = world.ensureChunk(0, 0);
     world.fillBiome(chunk, Biomes::Plains);
 
-    world.setBlock(5, 70, 7, &VanillaBlocks::GRASS_BLOCK->defaultState());
+    world.setBlockState(5, 70, 7, &VanillaBlocks::GRASS_BLOCK->defaultState());
 
     const auto spawnPos = SpawnLocationHelper::findSpawnLocationInChunk(world, ChunkPos(0, 0), true);
 
@@ -201,8 +201,8 @@ TEST_F(SpawnLocationHelperTest, HonorsBiomeSurfaceBlockMatch)
     ChunkData& chunk = world.ensureChunk(0, 0);
     world.fillBiome(chunk, CUSTOM_BIOME_ID);
 
-    world.setBlock(3, 63, 3, &VanillaBlocks::DIRT->defaultState());
-    world.setBlock(3, 64, 3, &VanillaBlocks::GRASS_BLOCK->defaultState());
+    world.setBlockState(3, 63, 3, &VanillaBlocks::DIRT->defaultState());
+    world.setBlockState(3, 64, 3, &VanillaBlocks::GRASS_BLOCK->defaultState());
 
     const auto spawnPos = SpawnLocationHelper::findSpawnLocation(world, 3, 3, false);
 

@@ -31,7 +31,7 @@ public:
         return &m_state;
     }
 
-    bool setBlock(i32, i32, i32, const BlockState* state) override {
+    bool setBlockState(i32, i32, i32, const BlockState* state) override {
         if (state == nullptr) {
             return false;
         }

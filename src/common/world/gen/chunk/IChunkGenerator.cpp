@@ -48,7 +48,7 @@ const IChunk* WorldGenRegion::getChunkAt(i32 relX, i32 relZ) const
     return m_chunks[index];
 }
 
-const BlockState* WorldGenRegion::getBlock(i32 x, i32 y, i32 z) const
+const BlockState* WorldGenRegion::getBlockState(i32 x, i32 y, i32 z) const
 {
     // 检查 Y 边界
     if (y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
@@ -68,10 +68,10 @@ const BlockState* WorldGenRegion::getBlock(i32 x, i32 y, i32 z) const
 
     const i32 localX = world::toLocalCoord(x);
     const i32 localZ = world::toLocalCoord(z);
-    return chunk->getBlock(localX, y, localZ);
+    return chunk->getBlockState(localX, y, localZ);
 }
 
-bool WorldGenRegion::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
+bool WorldGenRegion::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
 {
     // 检查 Y 边界
     if (y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
@@ -91,7 +91,7 @@ bool WorldGenRegion::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 
     const i32 localX = world::toLocalCoord(x);
     const i32 localZ = world::toLocalCoord(z);
-    chunk->setBlock(localX, y, localZ, state);
+    chunk->setBlockState(localX, y, localZ, state);
     return true;
 }
 

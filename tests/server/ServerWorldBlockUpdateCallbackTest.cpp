@@ -48,8 +48,8 @@ TEST_F(ServerWorldBlockUpdateCallbackTest, SetBlockInvokesBlockChangedCallback) 
     });
 
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
-    m_world->setBlock(0, 64, 0, stoneState);
-    m_world->setBlock(0, 64, 0, nullptr);
+    m_world->setBlockState(0, 64, 0, stoneState);
+    m_world->setBlockState(0, 64, 0, nullptr);
 
     ASSERT_EQ(blockUpdates.size(), 2u);
     EXPECT_EQ(blockUpdates[0].first, BlockPos(0, 64, 0));
@@ -61,14 +61,14 @@ TEST_F(ServerWorldBlockUpdateCallbackTest, SetBlockInvokesBlockChangedCallback) 
 TEST_F(ServerWorldBlockUpdateCallbackTest, BreakingIceAboveSolidTurnsIntoWater) {
     std::vector<std::pair<BlockPos, u32>> blockUpdates;
 
-    m_world->setBlock(0, 63, 0, &VanillaBlocks::STONE->defaultState());
-    m_world->setBlock(0, 64, 0, &VanillaBlocks::ICE->defaultState());
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    m_world->setBlockState(0, 64, 0, &VanillaBlocks::ICE->defaultState());
 
     m_world->setOnBlockChanged([&blockUpdates](const BlockPos& pos, u32 blockStateId) {
         blockUpdates.emplace_back(pos, blockStateId);
     });
 
-    ASSERT_TRUE(m_world->setBlock(0, 64, 0, nullptr));
+    ASSERT_TRUE(m_world->setBlockState(0, 64, 0, nullptr));
 
     const BlockState* finalState = m_world->getBlockState(0, 64, 0);
     ASSERT_NE(finalState, nullptr);
@@ -82,14 +82,14 @@ TEST_F(ServerWorldBlockUpdateCallbackTest, BreakingIceAboveSolidTurnsIntoWater) 
 TEST_F(ServerWorldBlockUpdateCallbackTest, BreakingIceWithoutSupportTurnsIntoAir) {
     std::vector<std::pair<BlockPos, u32>> blockUpdates;
 
-    m_world->setBlock(0, 63, 0, nullptr);
-    m_world->setBlock(0, 64, 0, &VanillaBlocks::ICE->defaultState());
+    m_world->setBlockState(0, 63, 0, nullptr);
+    m_world->setBlockState(0, 64, 0, &VanillaBlocks::ICE->defaultState());
 
     m_world->setOnBlockChanged([&blockUpdates](const BlockPos& pos, u32 blockStateId) {
         blockUpdates.emplace_back(pos, blockStateId);
     });
 
-    ASSERT_TRUE(m_world->setBlock(0, 64, 0, nullptr));
+    ASSERT_TRUE(m_world->setBlockState(0, 64, 0, nullptr));
 
     const BlockState* finalState = m_world->getBlockState(0, 64, 0);
     ASSERT_NE(finalState, nullptr);

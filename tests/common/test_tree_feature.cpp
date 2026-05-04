@@ -291,7 +291,7 @@ protected:
                 const BlockState* ground = &VanillaBlocks::GRASS_BLOCK->defaultState();
                 for (i32 x = 0; x < 16; ++x) {
                     for (i32 z = 0; z < 16; ++z) {
-                        chunk->setBlock(x, 0, z, ground);
+                        chunk->setBlockState(x, 0, z, ground);
                     }
                 }
 
@@ -318,7 +318,7 @@ protected:
     }
 
     void setWorldBlock(i32 x, i32 y, i32 z, const BlockState* state) {
-        ASSERT_TRUE(m_region->setBlock(x, y, z, state));
+        ASSERT_TRUE(m_region->setBlockState(x, y, z, state));
     }
 
     std::array<IChunk*, 9> m_chunks{};

@@ -26,7 +26,7 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }

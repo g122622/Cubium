@@ -68,7 +68,7 @@ public:
         return it == m_blocks.end() ? nullptr : &it->second;
     }
 
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
         return setBlockState(x, y, z, state, 0);
     }
 

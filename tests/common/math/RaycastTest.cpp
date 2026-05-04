@@ -37,7 +37,7 @@ public:
     }
 
     // IWorld 接口存根实现
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
         m_blocks[key(x, y, z)] = state;
         return true;
     }
@@ -139,7 +139,7 @@ TEST_F(RaycastTest, NoHit) {
  * @brief 测试射线直接命中前方方块
  */
 TEST_F(RaycastTest, HitBlockDirectly) {
-    world.setBlock(2, 64, 0, getStoneState());  // 在 (2, 64, 0) 放置石头
+    world.setBlockState(2, 64, 0, getStoneState());  // 在 (2, 64, 0) 放置石头
 
     // 从原点向X正方向射击
     Ray ray(Vector3(0.0f, 64.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
@@ -156,7 +156,7 @@ TEST_F(RaycastTest, HitBlockDirectly) {
  * @brief 测试射线穿过空方块命中后方方块
  */
 TEST_F(RaycastTest, HitBlockThroughAir) {
-    world.setBlock(3, 64, 0, getStoneState());  // 在 (3, 64, 0) 放置石头
+    world.setBlockState(3, 64, 0, getStoneState());  // 在 (3, 64, 0) 放置石头
     // (1, 64, 0) 和 (2, 64, 0) 是空气
 
     // 从原点向X正方向射击
@@ -176,8 +176,8 @@ TEST_F(RaycastTest, HitBlockThroughAir) {
  * 这是测试修复的关键用例：确保射线检测返回第一个碰到的方块
  */
 TEST_F(RaycastTest, HitFirstBlockNotSecond) {
-    world.setBlock(2, 64, 0, getStoneState());  // 第一个方块
-    world.setBlock(3, 64, 0, getStoneState());  // 第二个方块
+    world.setBlockState(2, 64, 0, getStoneState());  // 第一个方块
+    world.setBlockState(3, 64, 0, getStoneState());  // 第二个方块
 
     // 从原点向X正方向射击
     Ray ray(Vector3(0.0f, 64.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
@@ -194,7 +194,7 @@ TEST_F(RaycastTest, HitFirstBlockNotSecond) {
  * @brief 测试从不同方向命中方块
  */
 TEST_F(RaycastTest, HitFromDifferentDirections) {
-    world.setBlock(0, 64, 0, getStoneState());
+    world.setBlockState(0, 64, 0, getStoneState());
 
     // 从东边射击
     {
@@ -245,7 +245,7 @@ TEST_F(RaycastTest, HitFromDifferentDirections) {
  * @brief 测试对角线方向命中
  */
 TEST_F(RaycastTest, HitDiagonal) {
-    world.setBlock(2, 64, 2, getStoneState());
+    world.setBlockState(2, 64, 2, getStoneState());
 
     // 从(0, 64.5, 0)向(1, 0, 1)方向射击
     Vector3 dir(1.0f, 0.0f, 1.0f);
@@ -263,7 +263,7 @@ TEST_F(RaycastTest, HitDiagonal) {
  * @brief 测试起点在方块内部
  */
 TEST_F(RaycastTest, StartInsideBlock) {
-    world.setBlock(0, 64, 0, getStoneState());
+    world.setBlockState(0, 64, 0, getStoneState());
 
     // 起点在方块内部
     Ray ray(Vector3(0.5f, 64.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
@@ -280,7 +280,7 @@ TEST_F(RaycastTest, StartInsideBlock) {
  * @brief 测试超出最大距离
  */
 TEST_F(RaycastTest, ExceedMaxDistance) {
-    world.setBlock(10, 64, 0, getStoneState());  // 在距离10的地方放方块
+    world.setBlockState(10, 64, 0, getStoneState());  // 在距离10的地方放方块
 
     // 最大距离5
     Ray ray(Vector3(0.0f, 64.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
@@ -295,8 +295,8 @@ TEST_F(RaycastTest, ExceedMaxDistance) {
  * @brief 测试斜向射线命中第一个方块
  */
 TEST_F(RaycastTest, DiagonalHitFirstBlock) {
-    world.setBlock(2, 64, 2, getStoneState());
-    world.setBlock(3, 64, 3, getStoneState());
+    world.setBlockState(2, 64, 2, getStoneState());
+    world.setBlockState(3, 64, 3, getStoneState());
 
     // 从(0, 64.5, 0)向XZ对角线方向射击
     Vector3 dir(1.0f, 0.0f, 1.0f);
@@ -314,7 +314,7 @@ TEST_F(RaycastTest, DiagonalHitFirstBlock) {
  * @brief 测试负方向射线
  */
 TEST_F(RaycastTest, NegativeDirection) {
-    world.setBlock(-3, 64, 0, getStoneState());
+    world.setBlockState(-3, 64, 0, getStoneState());
 
     // 向X负方向射击
     Ray ray(Vector3(0.0f, 64.5f, 0.5f), Vector3(-1.0f, 0.0f, 0.0f));
@@ -331,7 +331,7 @@ TEST_F(RaycastTest, NegativeDirection) {
  * @brief 测试边界情况：射线正好穿过方块边缘
  */
 TEST_F(RaycastTest, EdgeCase_ExactBoundary) {
-    world.setBlock(2, 64, 0, getStoneState());
+    world.setBlockState(2, 64, 0, getStoneState());
 
     // 射线从 y=64.0（方块底部边缘）穿过
     Ray ray(Vector3(0.0f, 64.0f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
@@ -353,7 +353,7 @@ TEST_F(RaycastTest, EdgeCase_ExactBoundary) {
  * @brief 测试近距离命中
  */
 TEST_F(RaycastTest, CloseRange) {
-    world.setBlock(1, 64, 0, getStoneState());  // 紧邻的方块
+    world.setBlockState(1, 64, 0, getStoneState());  // 紧邻的方块
 
     Ray ray(Vector3(0.5f, 64.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
     RaycastContext context(ray, 5.0f);
@@ -372,7 +372,7 @@ TEST_F(RaycastTest, HitShortGrassBlock) {
     const BlockState* shortGrass = getShortGrassState();
     ASSERT_NE(shortGrass, nullptr);
 
-    world.setBlock(2, 64, 0, shortGrass);
+    world.setBlockState(2, 64, 0, shortGrass);
 
     Ray ray(Vector3(0.0f, 64.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
     RaycastContext context(ray, 5.0f);
@@ -390,7 +390,7 @@ TEST_F(RaycastTest, HitFlowerBlock) {
     const BlockState* flower = getDandelionState();
     ASSERT_NE(flower, nullptr);
 
-    world.setBlock(2, 64, 0, flower);
+    world.setBlockState(2, 64, 0, flower);
 
     // 花朵高度较低，使用较低射线高度确保穿过其形状。
     Ray ray(Vector3(0.0f, 64.2f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
@@ -409,7 +409,7 @@ TEST_F(RaycastTest, HitSugarCaneBlock) {
     const BlockState* sugarCane = getSugarCaneState();
     ASSERT_NE(sugarCane, nullptr);
 
-    world.setBlock(2, 64, 0, sugarCane);
+    world.setBlockState(2, 64, 0, sugarCane);
 
     Ray ray(Vector3(0.0f, 64.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
     RaycastContext context(ray, 5.0f);

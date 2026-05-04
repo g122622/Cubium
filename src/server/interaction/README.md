@@ -236,7 +236,7 @@ struct OpenContainer {
        ↓
    BlockItem.tryPlace() → BlockItemUseContext
        ↓
-   ServerWorld.setBlock()
+   ServerWorld.setBlockState()
        ↓
    InventoryManager 消耗物品（非创造模式）
        ↓

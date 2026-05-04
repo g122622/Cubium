@@ -771,7 +771,7 @@ const BlockState* StarLightEngine::getBlockState(i32 worldX, i32 worldY, i32 wor
         return nullptr;
     }
 
-    return chunk->getBlock(worldX & 15, worldY, worldZ & 15);
+    return chunk->getBlockState(worldX & 15, worldY, worldZ & 15);
 }
 
 const BlockState* StarLightEngine::getBlockState(i32 sectionIndex, i32 localIndex) const {
@@ -789,7 +789,7 @@ const BlockState* StarLightEngine::getBlockState(i32 sectionIndex, i32 localInde
     i32 z = (localIndex >> 4) & 15;
     i32 y = (localIndex >> 8) & 15;
 
-    return section->getBlock(x, y, z);
+    return section->getBlockState(x, y, z);
 }
 
 i32 StarLightEngine::getLightLevel(i32 worldX, i32 worldY, i32 worldZ) const {

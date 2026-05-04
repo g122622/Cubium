@@ -40,7 +40,7 @@ bool GrassFeature::place(
         // 向下寻找第一个非空气方块
         for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT + 1; --y) {
             BlockPos checkPos(pos.x, y, pos.z);
-            const BlockState* state = world.getBlock(checkPos);
+            const BlockState* state = world.getBlockState(checkPos);
             if (state && !state->isAir()) {
                 basePos = BlockPos(pos.x, y + 1, pos.z);
                 break;
@@ -60,7 +60,7 @@ bool GrassFeature::place(
         if (canPlaceAt(world, placePos, config)) {
             const BlockState* state = config.getRandomState(random);
             if (state) {
-                world.setBlock(placePos, state);
+                world.setBlockState(placePos, state);
                 ++placedCount;
             }
         }
@@ -74,7 +74,7 @@ bool GrassFeature::canPlaceAt(
     const BlockPos& pos,
     const GrassFeatureConfig& config) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
 
     // 检查位置是否为空或可替换
     if (state) {
@@ -95,7 +95,7 @@ bool GrassFeature::canPlaceAt(
         for (i32 dx = -4; dx <= 4; ++dx) {
             for (i32 dz = -4; dz <= 4; ++dz) {
                 BlockPos waterPos(belowPos.x + dx, belowPos.y, belowPos.z + dz);
-                const BlockState* waterState = world.getBlock(waterPos);
+                const BlockState* waterState = world.getBlockState(waterPos);
                 if (waterState && waterState->blockId() == VanillaBlocks::WATER->blockId()) {
                     hasWater = true;
                     break;
@@ -111,7 +111,7 @@ bool GrassFeature::canPlaceAt(
 
 bool GrassFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) return false;
 
     u32 blockId = state->blockId();

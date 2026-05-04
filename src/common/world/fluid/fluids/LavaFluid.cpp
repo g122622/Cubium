@@ -143,7 +143,7 @@ void LavaFluid::randomTick(IWorld& world, const BlockPos& pos,
             if (blockState->isAir()) {
                 // 检查周围是否有可燃方块
                 if (isSurroundingBlockFlammable(world, checkPos)) {
-                    world.setBlock(checkPos, &VanillaBlocks::FIRE->defaultState());
+                    world.setBlockState(checkPos, &VanillaBlocks::FIRE->defaultState());
                     return;
                 }
             } else if (blockState->owner().material().blocksMovement()) {
@@ -176,7 +176,7 @@ void LavaFluid::randomTick(IWorld& world, const BlockPos& pos,
 
             const BlockState* aboveState = world.getBlockState(abovePos);
             if (aboveState != nullptr && aboveState->isAir() && isBlockFlammable(world, checkPos)) {
-                world.setBlock(abovePos, &VanillaBlocks::FIRE->defaultState());
+                world.setBlockState(abovePos, &VanillaBlocks::FIRE->defaultState());
             }
         }
     }

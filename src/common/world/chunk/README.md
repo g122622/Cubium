@@ -64,7 +64,7 @@ pos.chebyshevDistance(other);      // 计算距离
   - 等 7 种类型
 - `IChunk` - 区块接口（抽象类）
   - 位置信息（x, z, pos）
-  - 方块访问（getBlock, setBlock）
+  - 方块访问（getBlock, setBlockState）
   - 区块段访问（getSection, createSection）
   - 生物群系访问
   - 高度图操作

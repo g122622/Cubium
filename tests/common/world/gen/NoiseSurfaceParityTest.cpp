@@ -44,10 +44,10 @@ protected:
         for (i32 x = 0; x < 16; ++x) {
             for (i32 z = 0; z < 16; ++z) {
                 for (i32 y = 0; y <= 63; ++y) {
-                    chunk.setBlock(x, y, z, stone);
+                    chunk.setBlockState(x, y, z, stone);
                 }
                 for (i32 y = 64; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
-                    chunk.setBlock(x, y, z, air);
+                    chunk.setBlockState(x, y, z, air);
                 }
             }
         }
@@ -91,13 +91,13 @@ TEST_F(NoiseSurfaceParityTest, PlainsSurfaceUsesDirtUnderTopLayer) {
                 continue;
             }
 
-            const BlockState* topState = chunkData->getBlock(x, topY, z);
+            const BlockState* topState = chunkData->getBlockState(x, topY, z);
             if (topState == nullptr || !topState->is(VanillaBlocks::GRASS_BLOCK)) {
                 continue;
             }
 
             ++checkedColumns;
-            const BlockState* belowTop = chunkData->getBlock(x, topY - 1, z);
+            const BlockState* belowTop = chunkData->getBlockState(x, topY - 1, z);
             ASSERT_NE(belowTop, nullptr);
             EXPECT_TRUE(belowTop->is(VanillaBlocks::DIRT));
         }

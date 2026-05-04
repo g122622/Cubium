@@ -155,12 +155,12 @@ void MineshaftPiece::generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, i
 
     // 生成原木柱（代替栅栏柱）
     for (i32 dy = 0; dy < height; ++dy) {
-        world.setBlock(x, y + dy, z, fenceState);
+        world.setBlockState(x, y + dy, z, fenceState);
     }
 
     // 顶部放置木板
     if (rng.nextFloat() < 0.7f) {
-        world.setBlock(x, y + height, z, planksState);
+        world.setBlockState(x, y + height, z, planksState);
     }
 }
 
@@ -200,7 +200,7 @@ void MineshaftRoom::generate(IWorldWriter& world, math::Random& rng,
     for (i32 x = minX(); x <= maxX(); ++x) {
         for (i32 z = minZ(); z <= maxZ(); ++z) {
             if (chunkBounds.contains(x, minY(), z)) {
-                world.setBlock(x, minY(), z, planksState);
+                world.setBlockState(x, minY(), z, planksState);
             }
         }
     }
@@ -221,7 +221,7 @@ void MineshaftRoom::generate(IWorldWriter& world, math::Random& rng,
         i32 x = minX() + 1 + rng.nextInt(6);
         i32 z = minZ() + 1 + rng.nextInt(6);
         if (chunkBounds.contains(x, minY() + 1, z)) {
-            world.setBlock(x, minY() + 1, z, fenceState);
+            world.setBlockState(x, minY() + 1, z, fenceState);
         }
     }
 }
@@ -351,10 +351,10 @@ void MineshaftCorridor::generateFloor(IWorldWriter& world, i32 x1, i32 z1, i32 x
 
                 // 70% 概率放置地板，模拟损坏效果
                 if (rng.nextInt(100) < 70) {
-                    world.setBlock(x, minY(), z, floorState);
+                    world.setBlockState(x, minY(), z, floorState);
                 } else {
                     // 使用圆石作为损坏的地板
-                    world.setBlock(x, minY(), z, cobblestoneState);
+                    world.setBlockState(x, minY(), z, cobblestoneState);
                 }
             }
         }
@@ -373,7 +373,7 @@ void MineshaftCorridor::generateCeiling(IWorldWriter& world, i32 x1, i32 z1, i32
                     const BlockState* ceilingState = (m_mineshaftType == MineshaftType::Mesa)
                         ? VanillaBlocks::getState(VanillaBlocks::DARK_OAK_PLANKS)
                         : planksState;
-                    world.setBlock(x, maxY(), z, ceilingState);
+                    world.setBlockState(x, maxY(), z, ceilingState);
                 }
             }
         }
@@ -425,7 +425,7 @@ void MineshaftCorridor::generateRails(IWorldWriter& world, math::Random& /*rng*/
         i32 centerX = (minX() + maxX()) / 2;
         for (i32 z = minZ(); z <= maxZ(); ++z) {
             if (chunkBounds.contains(centerX, minY() + 1, z)) {
-                world.setBlock(centerX, minY() + 1, z, railState);
+                world.setBlockState(centerX, minY() + 1, z, railState);
             }
         }
     } else {
@@ -433,7 +433,7 @@ void MineshaftCorridor::generateRails(IWorldWriter& world, math::Random& /*rng*/
         i32 centerZ = (minZ() + maxZ()) / 2;
         for (i32 x = minX(); x <= maxX(); ++x) {
             if (chunkBounds.contains(x, minY() + 1, centerZ)) {
-                world.setBlock(x, minY() + 1, centerZ, railState);
+                world.setBlockState(x, minY() + 1, centerZ, railState);
             }
         }
     }
@@ -448,7 +448,7 @@ void MineshaftCorridor::generateSpawner(IWorldWriter& world, i32 x, i32 y, i32 z
         centerState = VanillaBlocks::getState(VanillaBlocks::MOSSY_COBBLESTONE);
     }
     if (centerState) {
-        world.setBlock(x, y, z, centerState);
+        world.setBlockState(x, y, z, centerState);
     }
 
     const BlockState* webState = VanillaBlocks::getState(VanillaBlocks::COBWEB);
@@ -458,7 +458,7 @@ void MineshaftCorridor::generateSpawner(IWorldWriter& world, i32 x, i32 y, i32 z
                 if ((dx == 0 && dz == 0) || !chunkBounds.contains(x + dx, y, z + dz)) {
                     continue;
                 }
-                world.setBlock(x + dx, y, z + dz, webState, 18);
+                world.setBlockState(x + dx, y, z + dz, webState, 18);
             }
         }
     }
@@ -473,10 +473,10 @@ void MineshaftCorridor::generateChestMinecart(IWorldWriter& world, i32 x, i32 y,
     const BlockState* lootMarker = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
 
     if (railState) {
-        world.setBlock(x, y, z, railState, 18);
+        world.setBlockState(x, y, z, railState, 18);
     }
     if (lootMarker) {
-        world.setBlock(x, y + 1, z, lootMarker, 18);
+        world.setBlockState(x, y + 1, z, lootMarker, 18);
     }
 }
 
@@ -543,7 +543,7 @@ void MineshaftCross::generate(IWorldWriter& world, math::Random& rng,
                     ? VanillaBlocks::getState(VanillaBlocks::DARK_OAK_PLANKS)
                     : planksState;
                 if (rng.nextInt(10) < 7) {  // 70% 概率
-                    world.setBlock(x, minY(), z, floorState);
+                    world.setBlockState(x, minY(), z, floorState);
                 }
             }
         }
@@ -649,7 +649,7 @@ void MineshaftStairs::generate(IWorldWriter& world, math::Random& rng,
                         ? VanillaBlocks::getState(VanillaBlocks::DARK_OAK_PLANKS)
                         : planksState;
                     if (rng.nextInt(10) < 7) {
-                        world.setBlock(bx, stepY, bz, floorState);
+                        world.setBlockState(bx, stepY, bz, floorState);
                     }
                 }
             }

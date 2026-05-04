@@ -29,7 +29,7 @@ void SpreadableSnowyDirtBlock::randomTick(
         // 不满足条件，退化成泥土
         const BlockState* dirtState = &VanillaBlocks::DIRT->defaultState();
         if (dirtState != nullptr) {
-            world.setBlock(pos, dirtState);
+            world.setBlockState(pos, dirtState);
         }
     } else {
         // 满足条件，尝试向周围蔓延
@@ -71,7 +71,7 @@ void SpreadableSnowyDirtBlock::randomTick(
                     // TODO: 当添加 SNOWY 属性支持时更新这里
                     // newState = defaultState->with(SNOWY, hasSnow);
 
-                    world.setBlock(targetPos, newState);
+                    world.setBlockState(targetPos, newState);
                 }
             }
         }

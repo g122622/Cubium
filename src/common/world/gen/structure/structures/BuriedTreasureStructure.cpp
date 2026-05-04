@@ -35,7 +35,7 @@ void BuriedTreasurePiece::generate(IWorldWriter& world, math::Random& rng,
     if (isInBounds(centerX, centerY, centerZ, chunkBounds)) {
         // 放置金块作为宝藏占位符（箱子方块尚未实现）
         if (goldState) {
-            world.setBlock(centerX, centerY, centerZ, goldState);
+            world.setBlockState(centerX, centerY, centerZ, goldState);
         }
     }
 
@@ -49,7 +49,7 @@ void BuriedTreasurePiece::generate(IWorldWriter& world, math::Random& rng,
             i32 z = centerZ + dz;
 
             if (isInBounds(x, y, z, chunkBounds)) {
-                world.setBlock(x, y, z, stoneState ? stoneState : sandState);
+                world.setBlockState(x, y, z, stoneState ? stoneState : sandState);
             }
         }
     }

@@ -41,7 +41,7 @@ void TrunkPlacer::placeBlock(
     }
 
     // 设置方块
-    world.setBlock(pos, trunkBlock);
+    world.setBlockState(pos, trunkBlock);
 
     // 记录树干方块位置
     trunkBlocks.insert(pos);
@@ -54,7 +54,7 @@ bool TrunkPlacer::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) {
     }
 
     // 获取当前位置的方块
-    const BlockState* state = world.getBlock(pos.x, pos.y, pos.z);
+    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
     if (state == nullptr || state->isAir()) {
         return true;  // 空气或其他可替换方块
     }
@@ -80,7 +80,7 @@ void TrunkPlacer::placeDirtUnder(WorldGenRegion& world, const BlockPos& pos) {
     }
 
     // 获取下方方块
-    const BlockState* state = world.getBlock(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* state = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
     if (state == nullptr) {
         return;
     }
@@ -88,7 +88,7 @@ void TrunkPlacer::placeDirtUnder(WorldGenRegion& world, const BlockPos& pos) {
     // 如果不是草方块或泥土，放置泥土
     if (!state->is(VanillaBlocks::GRASS_BLOCK) && !state->is(VanillaBlocks::DIRT)) {
         if (VanillaBlocks::DIRT) {
-            world.setBlock(belowPos.x, belowPos.y, belowPos.z, &VanillaBlocks::DIRT->defaultState());
+            world.setBlockState(belowPos.x, belowPos.y, belowPos.z, &VanillaBlocks::DIRT->defaultState());
         }
     }
 }

@@ -285,7 +285,7 @@ bool UnderwaterCaveCarver::carveEllipsoidUnderwater(
                 }
 
                 // 获取当前方块
-                const BlockState* state = chunk.getBlock(lx, y, lz);
+                const BlockState* state = chunk.getBlockState(lx, y, lz);
                 if (!state) {
                     continue;
                 }
@@ -321,7 +321,7 @@ bool UnderwaterCaveCarver::carveEllipsoidUnderwater(
                 }
 
                 if (fillBlock) {
-                    chunk.setBlock(lx, y, lz, fillBlock);
+                    chunk.setBlockState(lx, y, lz, fillBlock);
                 }
 
                 carved = true;

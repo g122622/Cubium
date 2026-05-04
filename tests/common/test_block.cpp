@@ -130,7 +130,7 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
         m_blocks[packPos(x, y, z)] = state;
         return true;
     }
@@ -1019,14 +1019,14 @@ TEST(AgriculturalBehaviorTest, SugarCaneRequiresAdjacentWater) {
     ASSERT_NE(sugarCaneBlock, nullptr);
 
     BlockRulesTestWorld world;
-    world.setBlock(0, 63, 0, &VanillaBlocks::SAND->defaultState());
+    world.setBlockState(0, 63, 0, &VanillaBlocks::SAND->defaultState());
 
     const BlockPos canePos(0, 64, 0);
     const BlockState& caneState = VanillaBlocks::SUGAR_CANE->defaultState();
 
     EXPECT_FALSE(sugarCaneBlock->isValidPosition(caneState, world, canePos));
 
-    world.setBlock(1, 63, 0, &VanillaBlocks::WATER->defaultState());
+    world.setBlockState(1, 63, 0, &VanillaBlocks::WATER->defaultState());
     EXPECT_TRUE(sugarCaneBlock->isValidPosition(caneState, world, canePos));
 }
 
@@ -1039,7 +1039,7 @@ TEST(AgriculturalBehaviorTest, DryFarmlandWithoutCropsTurnsToDirt) {
 
     BlockRulesTestWorld world;
     const BlockPos farmlandPos(0, 64, 0);
-    world.setBlock(farmlandPos.x, farmlandPos.y, farmlandPos.z, &VanillaBlocks::FARMLAND->defaultState());
+    world.setBlockState(farmlandPos.x, farmlandPos.y, farmlandPos.z, &VanillaBlocks::FARMLAND->defaultState());
 
     BlockState farmlandState = VanillaBlocks::FARMLAND->defaultState();
     math::Random random(123456);
@@ -1063,7 +1063,7 @@ TEST(AgriculturalBehaviorTest, FarmlandRehydratesWhenRaining) {
 
     const BlockPos farmlandPos(2, 64, 2);
     BlockState farmlandState = VanillaBlocks::FARMLAND->defaultState();
-    world.setBlock(farmlandPos.x, farmlandPos.y, farmlandPos.z, &farmlandState);
+    world.setBlockState(farmlandPos.x, farmlandPos.y, farmlandPos.z, &farmlandState);
 
     math::Random random(123456);
     farmlandBlock->randomTick(world, farmlandPos, farmlandState, random);
@@ -1083,7 +1083,7 @@ TEST(AgriculturalBehaviorTest, CropRequiresLightToStayValid) {
     BlockRulesTestWorld world;
     const BlockPos cropPos(4, 65, 4);
 
-    world.setBlock(cropPos.x, cropPos.y - 1, cropPos.z, &VanillaBlocks::FARMLAND->defaultState());
+    world.setBlockState(cropPos.x, cropPos.y - 1, cropPos.z, &VanillaBlocks::FARMLAND->defaultState());
     // 光照检查的是作物位置本身的光照
     // MC 1.16.5: max(blockLight, skyLight) >= 8 或 canSeeSky
     world.setSkyLightAt(cropPos, 7);
@@ -1104,7 +1104,7 @@ TEST(AgriculturalBehaviorTest, CropBonemealGrowthUsesWorldSeedAndPosition) {
     const BlockState& cropState = crop.defaultState();
 
     world.setSeed(123456789ULL);
-    world.setBlock(cropPos.x, cropPos.y, cropPos.z, &cropState);
+    world.setBlockState(cropPos.x, cropPos.y, cropPos.z, &cropState);
     crop.grow(world, cropPos, cropState);
 
     const BlockState* firstResult = world.getBlockState(cropPos.x, cropPos.y, cropPos.z);
@@ -1113,7 +1113,7 @@ TEST(AgriculturalBehaviorTest, CropBonemealGrowthUsesWorldSeedAndPosition) {
     EXPECT_GE(firstAge, 2);
     EXPECT_LE(firstAge, 5);
 
-    world.setBlock(cropPos.x, cropPos.y, cropPos.z, &cropState);
+    world.setBlockState(cropPos.x, cropPos.y, cropPos.z, &cropState);
     crop.grow(world, cropPos, cropState);
 
     const BlockState* secondResult = world.getBlockState(cropPos.x, cropPos.y, cropPos.z);
@@ -1128,7 +1128,7 @@ TEST(AgriculturalBehaviorTest, StemBonemealGrowthUsesWorldSeedAndPosition) {
     const BlockState& stemState = stem.defaultState();
 
     world.setSeed(987654321ULL);
-    world.setBlock(stemPos.x, stemPos.y, stemPos.z, &stemState);
+    world.setBlockState(stemPos.x, stemPos.y, stemPos.z, &stemState);
     stem.grow(world, stemPos, stemState);
 
     const BlockState* firstResult = world.getBlockState(stemPos.x, stemPos.y, stemPos.z);
@@ -1137,7 +1137,7 @@ TEST(AgriculturalBehaviorTest, StemBonemealGrowthUsesWorldSeedAndPosition) {
     EXPECT_GE(firstAge, 2);
     EXPECT_LE(firstAge, 5);
 
-    world.setBlock(stemPos.x, stemPos.y, stemPos.z, &stemState);
+    world.setBlockState(stemPos.x, stemPos.y, stemPos.z, &stemState);
     stem.grow(world, stemPos, stemState);
 
     const BlockState* secondResult = world.getBlockState(stemPos.x, stemPos.y, stemPos.z);
@@ -1158,7 +1158,7 @@ TEST(CoralBehaviorTest, CoralBlockUsesSourceWaterAndFallsBackToDeadBlock) {
 
     BlockRulesTestWorld wetWorld;
     const BlockPos wetPos(12, 64, 12);
-    wetWorld.setBlock(wetPos.x, wetPos.y, wetPos.z, &VanillaBlocks::WATER->defaultState());
+    wetWorld.setBlockState(wetPos.x, wetPos.y, wetPos.z, &VanillaBlocks::WATER->defaultState());
 
     auto wetContext = makePlacementContext(wetWorld, wetPos, Direction::North, 180.0f);
     BlockState wetState = coral.getStateForPlacement(wetContext);
@@ -1184,7 +1184,7 @@ TEST(CoralBehaviorTest, CoralFanUsesSourceWaterAndFallsBackToDeadBlock) {
 
     BlockRulesTestWorld wetWorld;
     const BlockPos wetPos(16, 64, 16);
-    wetWorld.setBlock(wetPos.x, wetPos.y, wetPos.z, &VanillaBlocks::WATER->defaultState());
+    wetWorld.setBlockState(wetPos.x, wetPos.y, wetPos.z, &VanillaBlocks::WATER->defaultState());
 
     auto wetContext = makePlacementContext(wetWorld, wetPos, Direction::North, 180.0f);
     BlockState wetState = coralFan.getStateForPlacement(wetContext);
@@ -1210,7 +1210,7 @@ TEST(CoralBehaviorTest, CoralWallFanUsesSourceWaterAndFallsBackToDeadBlock) {
 
     BlockRulesTestWorld wetWorld;
     const BlockPos wetPos(20, 64, 20);
-    wetWorld.setBlock(wetPos.x, wetPos.y, wetPos.z, &VanillaBlocks::WATER->defaultState());
+    wetWorld.setBlockState(wetPos.x, wetPos.y, wetPos.z, &VanillaBlocks::WATER->defaultState());
 
     auto wetContext = makePlacementContext(wetWorld, wetPos, Direction::North, 180.0f);
     BlockState wetState = coralWallFan.getStateForPlacement(wetContext);
@@ -1234,7 +1234,7 @@ TEST(FallingBlockBehaviorTest, UnsupportedSandSpawnsFallingEntity) {
     world.setSpawnEntityResult(1);
 
     const BlockPos sandPos(0, 70, 0);
-    world.setBlock(sandPos.x, sandPos.y, sandPos.z, &VanillaBlocks::SAND->defaultState());
+    world.setBlockState(sandPos.x, sandPos.y, sandPos.z, &VanillaBlocks::SAND->defaultState());
 
     BlockState sandState = VanillaBlocks::SAND->defaultState();
     fallingSand->tick(world, sandPos, sandState, world.getRandom());

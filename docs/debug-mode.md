@@ -79,7 +79,7 @@ i32 index = abs(gridX * GRID_WIDTH + gridZ);
 When `ServerWorld::isDebugWorld()` is true:
 
 1. **Block modification disabled**:
-   - `ServerWorld::setBlock()` returns false
+   - `ServerWorld::setBlockState()` returns false
    - `BlockInteractionManager::handleBlockPlacement()` returns error
    - `BlockInteractionManager::handleBlockBreak()` returns error
 

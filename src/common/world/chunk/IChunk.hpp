@@ -59,8 +59,8 @@ public:
     [[nodiscard]] virtual ChunkPos pos() const = 0;
 
     // === 方块访问 ===
-    [[nodiscard]] virtual const BlockState* getBlock(BlockCoord x, BlockCoord y, BlockCoord z) const = 0;
-    virtual void setBlock(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) = 0;
+    [[nodiscard]] virtual const BlockState* getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const = 0;
+    virtual void setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) = 0;
     [[nodiscard]] virtual u32 getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const = 0;
     virtual void setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId) = 0;
 

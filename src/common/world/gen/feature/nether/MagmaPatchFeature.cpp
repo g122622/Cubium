@@ -54,14 +54,14 @@ bool MagmaPatchFeature::place(
 
             // 替换为岩浆块
             if (random.nextFloat() < config.magmaChance) {
-                world.setBlock(placePos, magma);
+                world.setBlockState(placePos, magma);
 
                 // 在岩浆块上生成火焰
                 if (fire && random.nextFloat() < config.fireChance) {
                     BlockPos firePos(placePos.x, placePos.y + 1, placePos.z);
-                    const BlockState* aboveState = world.getBlock(firePos);
+                    const BlockState* aboveState = world.getBlockState(firePos);
                     if (!aboveState || aboveState->isAir()) {
-                        world.setBlock(firePos, fire);
+                        world.setBlockState(firePos, fire);
                     }
                 }
             }
@@ -69,13 +69,13 @@ bool MagmaPatchFeature::place(
             // 向下挖掘
             for (i32 d = 1; d <= depth; ++d) {
                 BlockPos deepPos(placePos.x, placePos.y - d, placePos.z);
-                const BlockState* deepState = world.getBlock(deepPos);
+                const BlockState* deepState = world.getBlockState(deepPos);
                 if (deepState && deepState->is(VanillaBlocks::NETHERRACK)) {
                     // 底部有时有熔岩
                     if (d == depth && lava && random.nextFloat() < 0.3f) {
-                        world.setBlock(deepPos, lava);
+                        world.setBlockState(deepPos, lava);
                     } else if (random.nextFloat() < config.magmaChance * 0.5f) {
-                        world.setBlock(deepPos, magma);
+                        world.setBlockState(deepPos, magma);
                     }
                 }
             }
@@ -88,13 +88,13 @@ bool MagmaPatchFeature::place(
 bool MagmaPatchFeature::isValidLocation(WorldGenRegion& world, const BlockPos& pos) const
 {
     // 检查当前位置是否为下界岩
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (!state || !state->is(VanillaBlocks::NETHERRACK)) {
         return false;
     }
 
     // 检查上方是否有空间
-    const BlockState* aboveState = world.getBlock(pos.up());
+    const BlockState* aboveState = world.getBlockState(pos.up());
     return !aboveState || aboveState->isAir();
 }
 
@@ -192,19 +192,19 @@ bool NetherFireFeature::place(
         BlockPos firePos(pos.x + dx, pos.y, pos.z + dz);
 
         // 检查位置是否有效（在下界岩上）
-        const BlockState* belowState = world.getBlock(firePos.x, firePos.y - 1, firePos.z);
+        const BlockState* belowState = world.getBlockState(firePos.x, firePos.y - 1, firePos.z);
         if (!belowState || !belowState->is(VanillaBlocks::NETHERRACK)) {
             continue;
         }
 
         // 检查上方是否有空间
-        const BlockState* current = world.getBlock(firePos);
+        const BlockState* current = world.getBlockState(firePos);
         if (current && !current->isAir()) {
             continue;
         }
 
         // 放置火焰
-        world.setBlock(firePos, fire);
+        world.setBlockState(firePos, fire);
         placed = true;
     }
 

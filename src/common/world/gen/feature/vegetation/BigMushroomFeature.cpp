@@ -48,7 +48,7 @@ void BigMushroomFeature::generateStem(
         BlockPos stemPos(pos.x, pos.y + y, pos.z);
 
         // 检查是否可以放置（可被原木替换）
-        const BlockState* currentState = world.getBlock(stemPos);
+        const BlockState* currentState = world.getBlockState(stemPos);
         if (currentState && !currentState->isAir()) {
             // 蘑菇柄可以替换树叶方块
             if (currentState->is(VanillaBlocks::OAK_LEAVES) ||
@@ -64,7 +64,7 @@ void BigMushroomFeature::generateStem(
         }
 
         if (config.stemState) {
-            world.setBlock(stemPos, config.stemState);
+            world.setBlockState(stemPos, config.stemState);
         }
     }
 }
@@ -95,7 +95,7 @@ bool BigMushroomFeature::canPlaceAt(
     }
 
     // 检查下方方块是否为土壤
-    const BlockState* belowState = world.getBlock(BlockPos(pos.x, pos.y - 1, pos.z));
+    const BlockState* belowState = world.getBlockState(BlockPos(pos.x, pos.y - 1, pos.z));
     if (!belowState) {
         return false;
     }
@@ -119,7 +119,7 @@ bool BigMushroomFeature::canPlaceAt(
         for (i32 dx = -radius; dx <= radius; ++dx) {
             for (i32 dz = -radius; dz <= radius; ++dz) {
                 BlockPos checkPos(pos.x + dx, pos.y + y, pos.z + dz);
-                const BlockState* state = world.getBlock(checkPos);
+                const BlockState* state = world.getBlockState(checkPos);
 
                 // 必须为空气或树叶
                 if (state && !state->isAir()) {
@@ -183,7 +183,7 @@ void BigBrownMushroomFeature::generateCap(
             BlockPos capPos(pos.x + dx, pos.y + height, pos.z + dz);
 
             // 检查是否可以放置
-            const BlockState* currentState = world.getBlock(capPos);
+            const BlockState* currentState = world.getBlockState(capPos);
             if (currentState && !currentState->isAir()) {
                 continue;
             }
@@ -192,7 +192,7 @@ void BigBrownMushroomFeature::generateCap(
             // 参考 MC 的 west/east/north/south 属性
             // 当前实现直接放置蘑菇盖状态
             if (config.capState) {
-                world.setBlock(capPos, config.capState);
+                world.setBlockState(capPos, config.capState);
             }
         }
     }
@@ -247,7 +247,7 @@ void BigRedMushroomFeature::generateCap(
                     BlockPos capPos(pos.x + dx, pos.y + y, pos.z + dz);
 
                     // 检查是否可以放置
-                    const BlockState* currentState = world.getBlock(capPos);
+                    const BlockState* currentState = world.getBlockState(capPos);
                     if (currentState && !currentState->isAir()) {
                         continue;
                     }
@@ -257,7 +257,7 @@ void BigRedMushroomFeature::generateCap(
 
                     // 放置蘑菇盖
                     if (config.capState) {
-                        world.setBlock(capPos, config.capState);
+                        world.setBlockState(capPos, config.capState);
                     }
                 }
             }

@@ -24,7 +24,7 @@ namespace {
 class WeaponTestWorld final : public IWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
-    bool setBlock(i32, i32, i32, const BlockState*) override { return false; }
+    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override {
         return fluid::Fluid::getFluidState(0);
     }

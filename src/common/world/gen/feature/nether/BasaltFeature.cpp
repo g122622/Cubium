@@ -41,7 +41,7 @@ bool BasaltColumnFeature::place(
     // 生成玄武岩柱
     for (i32 y = 0; y < height; ++y) {
         BlockPos columnPos(pos.x, pos.y + y, pos.z);
-        world.setBlock(columnPos, basalt);
+        world.setBlockState(columnPos, basalt);
     }
 
     return true;
@@ -50,10 +50,10 @@ bool BasaltColumnFeature::place(
 bool BasaltColumnFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
     // 检查当前方块是否为可替换方块
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (!state || state->isAir()) {
         // 检查下方是否有支撑
-        const BlockState* belowState = world.getBlock(pos.x, pos.y - 1, pos.z);
+        const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
         return belowState && !belowState->isAir();
     }
     return false;
@@ -67,7 +67,7 @@ i32 BasaltColumnFeature::getColumnHeight(
     // 计算到天花板的距离
     i32 spaceAbove = 0;
     for (i32 y = pos.y; y < 128; ++y) {
-        const BlockState* state = world.getBlock(pos.x, y, pos.z);
+        const BlockState* state = world.getBlockState(pos.x, y, pos.z);
         if (!state || state->isAir()) {
             ++spaceAbove;
         } else {
@@ -184,7 +184,7 @@ bool BasaltDeltaFeature::place(
             BlockPos placePos(pos.x + dx, pos.y, pos.z + dz);
 
             // 检查当前位置
-            const BlockState* currentState = world.getBlock(placePos);
+            const BlockState* currentState = world.getBlockState(placePos);
             if (!currentState || !currentState->is(VanillaBlocks::NETHERRACK)) {
                 continue;
             }
@@ -195,14 +195,14 @@ bool BasaltDeltaFeature::place(
                 toPlace = magma;
             }
 
-            world.setBlock(placePos, toPlace);
+            world.setBlockState(placePos, toPlace);
 
             // 有时候向下替换一层
             if (random.nextFloat() < 0.3f) {
                 BlockPos belowPos(placePos.x, placePos.y - 1, placePos.z);
-                const BlockState* belowState = world.getBlock(belowPos);
+                const BlockState* belowState = world.getBlockState(belowPos);
                 if (belowState && belowState->is(VanillaBlocks::NETHERRACK)) {
-                    world.setBlock(belowPos, toPlace);
+                    world.setBlockState(belowPos, toPlace);
                 }
             }
         }

@@ -141,9 +141,9 @@ void StructurePiece::setBlockState(IWorldWriter& world, const BlockState* state,
             transformedState = &transformedState->getBlock().rotate(*transformedState, m_rotation);
         }
 
-        world.setBlock(worldX, worldY, worldZ, transformedState, 2);
+        world.setBlockState(worldX, worldY, worldZ, transformedState, 2);
     } else {
-        world.setBlock(worldX, worldY, worldZ, state, 2);
+        world.setBlockState(worldX, worldY, worldZ, state, 2);
     }
 }
 

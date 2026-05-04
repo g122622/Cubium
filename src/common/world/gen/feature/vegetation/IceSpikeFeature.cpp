@@ -25,7 +25,7 @@ bool IceSpikeFeature::place(
 
     for (i32 y = pos.y; y >= 1 && !foundSnowBlock; --y) {
         BlockPos checkPos(pos.x, y, pos.z);
-        const BlockState* state = world.getBlock(checkPos);
+        const BlockState* state = world.getBlockState(checkPos);
 
         // MC第23行检查SNOW_BLOCK
         if (state && VanillaBlocks::SNOW_BLOCK && state->is(VanillaBlocks::SNOW_BLOCK)) {
@@ -69,7 +69,7 @@ bool IceSpikeFeature::place(
 
 bool IceSpikeFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (!state || !state->isAir()) {
         return false;
     }
@@ -77,7 +77,7 @@ bool IceSpikeFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) con
     // 检查下方是否为雪块
     // 参考 MC IceSpikeFeature.java 第23行：SNOW_BLOCK
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlock(belowPos);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     return belowState && VanillaBlocks::SNOW_BLOCK && belowState->is(VanillaBlocks::SNOW_BLOCK);
 }
@@ -117,28 +117,28 @@ void IceSpikeFeature::generateSpike(
 
                 // 放置向上的冰刺
                 BlockPos spikePos(basePos.x + dx, basePos.y + y, basePos.z + dz);
-                const BlockState* currentState = world.getBlock(spikePos);
+                const BlockState* currentState = world.getBlockState(spikePos);
 
                 if (currentState && (currentState->isAir() ||
                     currentState->blockId() == VanillaBlocks::DIRT->blockId() ||
                     currentState->blockId() == VanillaBlocks::SNOW->blockId() ||
                     currentState->blockId() == VanillaBlocks::ICE->blockId())) {
                     if (VanillaBlocks::PACKED_ICE) {
-                        world.setBlock(spikePos, &VanillaBlocks::PACKED_ICE->defaultState());
+                        world.setBlockState(spikePos, &VanillaBlocks::PACKED_ICE->defaultState());
                     }
                 }
 
                 // 向下也生成（形成尖顶）
                 if (y != 0 && baseRadius > 1) {
                     BlockPos downPos(basePos.x + dx, basePos.y - y, basePos.z + dz);
-                    const BlockState* downState = world.getBlock(downPos);
+                    const BlockState* downState = world.getBlockState(downPos);
 
                     if (downState && (downState->isAir() ||
                         downState->blockId() == VanillaBlocks::DIRT->blockId() ||
                         downState->blockId() == VanillaBlocks::SNOW->blockId() ||
                         downState->blockId() == VanillaBlocks::ICE->blockId())) {
                         if (VanillaBlocks::PACKED_ICE) {
-                            world.setBlock(downPos, &VanillaBlocks::PACKED_ICE->defaultState());
+                            world.setBlockState(downPos, &VanillaBlocks::PACKED_ICE->defaultState());
                         }
                     }
                 }
@@ -163,7 +163,7 @@ void IceSpikeFeature::generateSpike(
             }
 
             while (downPos.y > 50 && depth > 0) {
-                const BlockState* state = world.getBlock(downPos);
+                const BlockState* state = world.getBlockState(downPos);
 
                 if (state && !state->isAir() &&
                     state->blockId() != VanillaBlocks::DIRT->blockId() &&
@@ -174,7 +174,7 @@ void IceSpikeFeature::generateSpike(
                 }
 
                 if (VanillaBlocks::PACKED_ICE) {
-                    world.setBlock(downPos, &VanillaBlocks::PACKED_ICE->defaultState());
+                    world.setBlockState(downPos, &VanillaBlocks::PACKED_ICE->defaultState());
                 }
 
                 downPos = BlockPos(downPos.x, downPos.y - 1, downPos.z);
@@ -211,7 +211,7 @@ void IceSpikeFeature::generateIceberg(
                 }
 
                 BlockPos icebergPos(basePos.x + dx, basePos.y + y, basePos.z + dz);
-                const BlockState* currentState = world.getBlock(icebergPos);
+                const BlockState* currentState = world.getBlockState(icebergPos);
 
                 if (currentState && (currentState->isAir() ||
                     currentState->blockId() == VanillaBlocks::SNOW->blockId() ||
@@ -219,11 +219,11 @@ void IceSpikeFeature::generateIceberg(
                     // 随机使用冰或浮冰
                     if (random.nextFloat() < 0.3f) {
                         if (VanillaBlocks::PACKED_ICE) {
-                            world.setBlock(icebergPos, &VanillaBlocks::PACKED_ICE->defaultState());
+                            world.setBlockState(icebergPos, &VanillaBlocks::PACKED_ICE->defaultState());
                         }
                     } else {
                         if (VanillaBlocks::ICE) {
-                            world.setBlock(icebergPos, &VanillaBlocks::ICE->defaultState());
+                            world.setBlockState(icebergPos, &VanillaBlocks::ICE->defaultState());
                         }
                     }
                 }

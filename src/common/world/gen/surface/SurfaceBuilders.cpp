@@ -205,7 +205,7 @@ void SurfaceBuilder::buildDefaultSurface(
     i32 currentDepth = -1;
 
     for (i32 y = startHeight; y >= 0; --y) {
-        const BlockState* currentState = chunk.getBlock(x, y, z);
+        const BlockState* currentState = chunk.getBlockState(x, y, z);
 
         if (!currentState || currentState->isAir()) {
             // 空气，重置深度
@@ -244,26 +244,26 @@ void SurfaceBuilder::buildDefaultSurface(
                 if (y >= seaLevel - 1) {
                     // 水面或以上
                     if (blockstate != nullptr) {
-                        chunk.setBlock(x, y, z, blockstate);
+                        chunk.setBlockState(x, y, z, blockstate);
                     }
                 } else if (y < seaLevel - 7 - j) {
                     // MC第57-60行：深层水下底板
                     blockstate = nullptr;  // AIR
                     blockstate1 = defaultBlock;
                     if (bottom != nullptr) {
-                        chunk.setBlock(x, y, z, bottom);
+                        chunk.setBlockState(x, y, z, bottom);
                     }
                 } else {
                     // 次层
                     if (blockstate1 != nullptr) {
-                        chunk.setBlock(x, y, z, blockstate1);
+                        chunk.setBlockState(x, y, z, blockstate1);
                     }
                 }
             } else if (currentDepth > 0) {
                 // 继续填充次层
                 --currentDepth;
                 if (blockstate1 != nullptr) {
-                    chunk.setBlock(x, y, z, blockstate1);
+                    chunk.setBlockState(x, y, z, blockstate1);
                 }
 
                 // MC第67-70行：砂岩替换逻辑
@@ -507,12 +507,12 @@ void SwampSurfaceBuilder::buildSurface(
     if (infoNoiseValue > 0.0) {
         // 在水面附近查找空气方块下的方块
         for (i32 y = startHeight; y >= 0; --y) {
-            const BlockState* state = chunk.getBlock(localX, y, localZ);
+            const BlockState* state = chunk.getBlockState(localX, y, localZ);
             if (!state || !state->isAir()) {
                 // 找到非空气方块，检查是否在海平面(62)且不是水
                 if (y == 62 && state->blockId() != defaultFluid->blockId()) {
                     // 替换为水
-                    chunk.setBlock(localX, y, localZ, defaultFluid);
+                    chunk.setBlockState(localX, y, localZ, defaultFluid);
                 }
                 break;
             }
@@ -624,17 +624,17 @@ void FrozenOceanSurfaceBuilder::buildSurface(
     const i32 startY = std::max(startHeight, static_cast<i32>(icebergHeight) + 1);
 
     for (i32 y = startY; y >= 0; --y) {
-        const BlockState* currentState = chunk.getBlock(localX, y, localZ);
+        const BlockState* currentState = chunk.getBlockState(localX, y, localZ);
 
         // 冰山生成（MC 第72-76行）
         if ((!currentState || currentState->isAir()) && y < static_cast<i32>(icebergHeight)) {
             if (random.nextDouble() > 0.01) {
-                chunk.setBlock(localX, y, localZ, packedIceState);
+                chunk.setBlockState(localX, y, localZ, packedIceState);
             }
         } else if (currentState && currentState->isLiquid() &&
                    y > static_cast<i32>(icebergBase) && y < seaLevel && icebergBase != 0.0) {
             if (random.nextDouble() > 0.15) {
-                chunk.setBlock(localX, y, localZ, packedIceState);
+                chunk.setBlockState(localX, y, localZ, packedIceState);
             }
         }
 
@@ -665,17 +665,17 @@ void FrozenOceanSurfaceBuilder::buildSurface(
                 currentDepth = depth;
 
                 if (y >= seaLevel - 1) {
-                    chunk.setBlock(localX, y, localZ, topState);
+                    chunk.setBlockState(localX, y, localZ, topState);
                 } else if (y < seaLevel - 7 - depth) {
                     topState = nullptr;  // AIR
                     underState = defaultBlock;
-                    chunk.setBlock(localX, y, localZ, gravelState);
+                    chunk.setBlockState(localX, y, localZ, gravelState);
                 } else {
-                    chunk.setBlock(localX, y, localZ, underState);
+                    chunk.setBlockState(localX, y, localZ, underState);
                 }
             } else if (currentDepth > 0) {
                 --currentDepth;
-                chunk.setBlock(localX, y, localZ, underState);
+                chunk.setBlockState(localX, y, localZ, underState);
 
                 // 砂岩替换
                 if (currentDepth == 0 && underState != nullptr && depth > 1) {
@@ -693,7 +693,7 @@ void FrozenOceanSurfaceBuilder::buildSurface(
         } else if (packedIceState && currentState->blockId() == packedIceState->blockId()) {
             // 浮冰转换为雪块（MC 第82-84行）
             if (packedIceCount <= maxPackedIce && y > snowThreshold) {
-                chunk.setBlock(localX, y, localZ, snowBlockState);
+                chunk.setBlockState(localX, y, localZ, snowBlockState);
                 ++packedIceCount;
             }
         }
@@ -767,7 +767,7 @@ void BadlandsSurfaceBuilder::buildSurface(
             break;
         }
 
-        const BlockState* currentState = chunk.getBlock(localX, y, localZ);
+        const BlockState* currentState = chunk.getBlockState(localX, y, localZ);
 
         if (!currentState || currentState->isAir()) {
             currentDepth = -1;
@@ -801,22 +801,22 @@ void BadlandsSurfaceBuilder::buildSurface(
                             layerState = orangeTerracottaState;
                         }
                         if (layerState) {
-                            chunk.setBlock(localX, y, localZ, layerState);
+                            chunk.setBlockState(localX, y, localZ, layerState);
                         }
                     } else {
                         // 地表使用红沙
                         const BlockState* redSandState = getStateOrNull(VanillaBlocks::RED_SAND);
-                        chunk.setBlock(localX, y, localZ, redSandState ? redSandState : topState);
+                        chunk.setBlockState(localX, y, localZ, redSandState ? redSandState : topState);
                         useOrangeLayer = true;
                     }
                 } else {
                     // 水下方块
                     const BlockState* underState = config.underBlock;
-                    chunk.setBlock(localX, y, localZ, underState);
+                    chunk.setBlockState(localX, y, localZ, underState);
 
                     // 如果是陶瓦颜色，替换为橙色陶瓦（MC 第93-95行）
                     if (underState && isTerracottaColor(underState)) {
-                        chunk.setBlock(localX, y, localZ, orangeTerracottaState);
+                        chunk.setBlockState(localX, y, localZ, orangeTerracottaState);
                     }
                 }
             } else if (currentDepth > 0) {
@@ -824,12 +824,12 @@ void BadlandsSurfaceBuilder::buildSurface(
 
                 if (useOrangeLayer) {
                     if (orangeTerracottaState) {
-                        chunk.setBlock(localX, y, localZ, orangeTerracottaState);
+                        chunk.setBlockState(localX, y, localZ, orangeTerracottaState);
                     }
                 } else {
                     const BlockState* layerState = getTerracottaLayer(x, y, z);
                     if (layerState) {
-                        chunk.setBlock(localX, y, localZ, layerState);
+                        chunk.setBlockState(localX, y, localZ, layerState);
                     }
                 }
             }
@@ -1139,7 +1139,7 @@ void NetherForestsSurfaceBuilder::buildSurface(
 
     // 下界高度从127开始向下
     for (i32 y = 127; y >= 0; --y) {
-        const BlockState* currentState = chunk.getBlock(localX, y, localZ);
+        const BlockState* currentState = chunk.getBlockState(localX, y, localZ);
 
         if (!currentState || currentState->isAir()) {
             currentDepth = -1;
@@ -1168,20 +1168,20 @@ void NetherForestsSurfaceBuilder::buildSurface(
                 if (y >= seaLevel - 1) {
                     if (forceUnder && y < seaLevel) {
                         // 水下使用默认流体
-                        chunk.setBlock(localX, y, localZ, defaultFluid);
+                        chunk.setBlockState(localX, y, localZ, defaultFluid);
                     } else {
-                        chunk.setBlock(localX, y, localZ, surfaceTop);
+                        chunk.setBlockState(localX, y, localZ, surfaceTop);
                     }
                 } else {
-                    chunk.setBlock(localX, y, localZ, underState);
+                    chunk.setBlockState(localX, y, localZ, underState);
                 }
             } else if (currentDepth > 0) {
                 --currentDepth;
                 // 下层使用下界岩
                 if (netherrackState) {
-                    chunk.setBlock(localX, y, localZ, netherrackState);
+                    chunk.setBlockState(localX, y, localZ, netherrackState);
                 } else {
-                    chunk.setBlock(localX, y, localZ, underState);
+                    chunk.setBlockState(localX, y, localZ, underState);
                 }
             }
         }
@@ -1239,7 +1239,7 @@ void SoulSandValleySurfaceBuilder::buildSurface(
     i32 currentDepth = -1;
 
     for (i32 y = startHeight; y >= 0; --y) {
-        const BlockState* currentState = chunk.getBlock(x, y, z);
+        const BlockState* currentState = chunk.getBlockState(x, y, z);
 
         if (!currentState || currentState->isAir()) {
             currentDepth = -1;
@@ -1250,19 +1250,19 @@ void SoulSandValleySurfaceBuilder::buildSurface(
             if (currentDepth == -1) {
                 // 灵魂沙峡谷表层使用灵魂沙
                 if (soulSandState) {
-                    chunk.setBlock(x, y, z, soulSandState);
+                    chunk.setBlockState(x, y, z, soulSandState);
                 } else {
-                    chunk.setBlock(x, y, z, topState);
+                    chunk.setBlockState(x, y, z, topState);
                 }
                 currentDepth = depth;
             } else if (currentDepth > 0) {
                 // 次层使用灵魂土
                 if (soulSoilState) {
-                    chunk.setBlock(x, y, z, soulSoilState);
+                    chunk.setBlockState(x, y, z, soulSoilState);
                 } else if (soulSandState) {
-                    chunk.setBlock(x, y, z, soulSandState);
+                    chunk.setBlockState(x, y, z, soulSandState);
                 } else {
-                    chunk.setBlock(x, y, z, underState);
+                    chunk.setBlockState(x, y, z, underState);
                 }
                 --currentDepth;
             }
@@ -1304,7 +1304,7 @@ void BasaltDeltasSurfaceBuilder::buildSurface(
     i32 currentDepth = -1;
 
     for (i32 y = startHeight; y >= 0; --y) {
-        const BlockState* currentState = chunk.getBlock(x, y, z);
+        const BlockState* currentState = chunk.getBlockState(x, y, z);
 
         if (!currentState || currentState->isAir()) {
             currentDepth = -1;
@@ -1314,14 +1314,14 @@ void BasaltDeltasSurfaceBuilder::buildSurface(
         if (currentState->blockId() == static_cast<u32>(defaultBlock->blockId())) {
             if (currentDepth == -1) {
                 // 玄武岩三角洲表层使用玄武岩
-                chunk.setBlock(x, y, z, basaltState);
+                chunk.setBlockState(x, y, z, basaltState);
                 currentDepth = depth;
             } else if (currentDepth > 0) {
                 // 次层使用黑石
                 if (blackstoneState) {
-                    chunk.setBlock(x, y, z, blackstoneState);
+                    chunk.setBlockState(x, y, z, blackstoneState);
                 } else {
-                    chunk.setBlock(x, y, z, basaltState);
+                    chunk.setBlockState(x, y, z, basaltState);
                 }
                 --currentDepth;
             }

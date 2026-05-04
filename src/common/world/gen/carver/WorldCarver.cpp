@@ -212,13 +212,13 @@ bool WorldCarver<Config>::carveEllipsoid(
                 }
 
                 // 获取当前方块
-                const BlockState* state = chunk.getBlock(lx, y, lz);
+                const BlockState* state = chunk.getBlockState(lx, y, lz);
                 if (!state) {
                     continue;
                 }
 
                 // 获取上方方块
-                const BlockState* aboveState = (y < world::MAX_BUILD_HEIGHT - 1) ? chunk.getBlock(lx, y + 1, lz) : nullptr;
+                const BlockState* aboveState = (y < world::MAX_BUILD_HEIGHT - 1) ? chunk.getBlockState(lx, y + 1, lz) : nullptr;
 
                 // 检查是否可以雕刻
                 if (!canCarveBlock(state, aboveState)) {
@@ -236,19 +236,19 @@ bool WorldCarver<Config>::carveEllipsoid(
                 if (y < lavaLevel) {
                     const BlockState* lava = VanillaBlocks::getState(VanillaBlocks::LAVA);
                     if (lava) {
-                        chunk.setBlock(lx, y, lz, lava);
+                        chunk.setBlockState(lx, y, lz, lava);
                     }
                 } else {
                     const BlockState* air = getCaveAirState();
                     if (air) {
-                        chunk.setBlock(lx, y, lz, air);
+                        chunk.setBlockState(lx, y, lz, air);
                     }
 
                     // 如果上方有草地，替换为泥土
                     if (hasGrassAbove && y < world::MAX_BUILD_HEIGHT - 1) {
                         const BlockState* dirt = VanillaBlocks::getState(VanillaBlocks::DIRT);
                         if (dirt) {
-                            chunk.setBlock(lx, y + 1, lz, dirt);
+                            chunk.setBlockState(lx, y + 1, lz, dirt);
                         }
                     }
                 }
@@ -298,7 +298,7 @@ bool WorldCarver<Config>::checkAreaForFluid(
                     continue;
                 }
 
-                const BlockState* state = chunk.getBlock(lx, y, lz);
+                const BlockState* state = chunk.getBlockState(lx, y, lz);
                 if (state) {
                     // 检查是否是水或熔岩
                     if (state->is(VanillaBlocks::WATER) || state->is(VanillaBlocks::LAVA)) {

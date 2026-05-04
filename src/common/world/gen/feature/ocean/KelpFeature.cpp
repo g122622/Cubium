@@ -22,7 +22,7 @@ namespace {
     // 某些测试场景会直接写方块而不更新高度图，回退到显式扫描。
     // 正常情况下不会走到下面的代码路径。
     for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT + 1; --y) {
-        const BlockState* state = world.getBlock(x, y, z);
+        const BlockState* state = world.getBlockState(x, y, z);
         if (state == nullptr || state->isAir()) {
             continue;
         }
@@ -80,24 +80,24 @@ bool KelpFeature::place(
             if (canGrowHere) {
                 if (y == height) {
                     const i32 age = random.nextInt(4) + 20;
-                    world.setBlock(
+                    world.setBlockState(
                         currentPos,
                         &config.kelpTopState->with(BlockStateProperties::AGE_0_25(), age));
                     placedAny = true;
                 } else {
-                    world.setBlock(currentPos, config.kelpState);
+                    world.setBlockState(currentPos, config.kelpState);
                 }
             } else if (y > 0) {
                 const BlockPos belowPos = currentPos.down();
                 const BlockPos belowBelowPos = belowPos.down();
-                const BlockState* belowBelowState = world.getBlock(belowBelowPos);
+                const BlockState* belowBelowState = world.getBlockState(belowBelowPos);
 
                 const bool belowHasKelp =
                     (VanillaBlocks::KELP != nullptr && belowBelowState != nullptr && belowBelowState->is(VanillaBlocks::KELP));
 
                 if (canPlaceAt(world, belowPos) && !belowHasKelp) {
                     const i32 age = random.nextInt(4) + 20;
-                    world.setBlock(
+                    world.setBlockState(
                         belowPos,
                         &config.kelpTopState->with(BlockStateProperties::AGE_0_25(), age));
                     placedAny = true;
@@ -114,7 +114,7 @@ bool KelpFeature::place(
 
 bool KelpFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
-    const BlockState* belowState = world.getBlock(pos.down());
+    const BlockState* belowState = world.getBlockState(pos.down());
 
     MC_ASSERT_RELEASE(belowState);
 
@@ -130,7 +130,7 @@ bool KelpFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 
 bool KelpFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return false;
     }

@@ -173,7 +173,7 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
                             if (airState != nullptr) {
                                 const BlockState* currentState = world->getBlockState(x, y, z);
                                 if (currentState == nullptr || !currentState->isAir()) {
-                                    world->setBlock(x, y, z, airState);
+                                    world->setBlockState(x, y, z, airState);
                                     blocksModified++;
                                 }
                             }
@@ -198,7 +198,7 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
                 }
 
                 if (shouldFill) {
-                    if (world->setBlock(x, y, z, fillState)) {
+                    if (world->setBlockState(x, y, z, fillState)) {
                         blocksModified++;
                     }
                 }

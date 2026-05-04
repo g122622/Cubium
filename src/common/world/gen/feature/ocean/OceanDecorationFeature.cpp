@@ -47,7 +47,7 @@ bool OceanDecorationFeature::place(
 
 bool OceanDecorationFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (state == nullptr || VanillaBlocks::WATER == nullptr) {
         return false;
     }
@@ -57,7 +57,7 @@ bool OceanDecorationFeature::isWater(WorldGenRegion& world, const BlockPos& pos)
 
 bool OceanDecorationFeature::hasSolidSupport(WorldGenRegion& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     return state != nullptr && !state->isAir() && state->owner().isSolid(*state);
 }
 
@@ -69,7 +69,7 @@ i32 OceanDecorationFeature::findOceanFloorY(WorldGenRegion& world, i32 x, i32 z)
     }
 
     for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT + 1; --y) {
-        const BlockState* state = world.getBlock(x, y, z);
+        const BlockState* state = world.getBlockState(x, y, z);
         if (state == nullptr || state->isAir()) {
             continue;
         }
@@ -94,12 +94,12 @@ bool OceanDecorationFeature::placeSingleDecoration(
 
     const BlockPos floorPos = centerPos.down();
     if (config.prismarineState != nullptr) {
-        world.setBlock(floorPos, config.prismarineState);
+        world.setBlockState(floorPos, config.prismarineState);
         placed = true;
     }
 
     if (config.conduitState != nullptr && isWater(world, centerPos)) {
-        world.setBlock(centerPos, config.conduitState);
+        world.setBlockState(centerPos, config.conduitState);
         placed = true;
     }
 
@@ -111,13 +111,13 @@ bool OceanDecorationFeature::placeSingleDecoration(
         }
 
         if (config.prismarineStairsState != nullptr && random.nextBoolean()) {
-            world.setBlock(ringPos, config.prismarineStairsState);
+            world.setBlockState(ringPos, config.prismarineStairsState);
             placed = true;
             continue;
         }
 
         if (config.prismarineSlabState != nullptr) {
-            world.setBlock(ringPos, config.prismarineSlabState);
+            world.setBlockState(ringPos, config.prismarineSlabState);
             placed = true;
         }
     }
@@ -132,7 +132,7 @@ bool OceanDecorationFeature::placeSingleDecoration(
             continue;
         }
 
-        world.setBlock(kelpPos, config.driedKelpBlockState);
+        world.setBlockState(kelpPos, config.driedKelpBlockState);
         placed = true;
     }
 
@@ -142,12 +142,12 @@ bool OceanDecorationFeature::placeSingleDecoration(
 
         if (hasSolidSupport(world, nestPos.down())) {
             if (config.sandState != nullptr) {
-                world.setBlock(nestPos.down(), config.sandState);
+                world.setBlockState(nestPos.down(), config.sandState);
             }
 
             const i32 eggs = random.nextInt(4) + 1;
             const BlockState* eggState = &config.turtleEggState->with(BlockStateProperties::EGGS_1_4(), eggs);
-            world.setBlock(nestPos, eggState);
+            world.setBlockState(nestPos, eggState);
             placed = true;
         }
     }
@@ -156,7 +156,7 @@ bool OceanDecorationFeature::placeSingleDecoration(
         const Direction ventDirection = directions[static_cast<size_t>(random.nextInt(4))];
         const BlockPos ventSourcePos = centerPos.offset(ventDirection, 2).down();
         if (hasSolidSupport(world, ventSourcePos)) {
-            world.setBlock(ventSourcePos, config.magmaState);
+            world.setBlockState(ventSourcePos, config.magmaState);
 
             const i32 maxColumnHeight = std::max(1, config.bubbleColumnMaxHeight);
             for (i32 yOffset = 1; yOffset <= maxColumnHeight; ++yOffset) {
@@ -165,7 +165,7 @@ bool OceanDecorationFeature::placeSingleDecoration(
                     break;
                 }
 
-                world.setBlock(bubblePos, config.bubbleColumnState);
+                world.setBlockState(bubblePos, config.bubbleColumnState);
                 placed = true;
             }
         }

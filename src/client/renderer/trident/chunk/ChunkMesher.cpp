@@ -316,7 +316,7 @@ struct FaceLayerRenderData {
         return nullptr;
     }
 
-    return sampleChunk->getBlock(localX, y, localZ);
+    return sampleChunk->getBlockState(localX, y, localZ);
 }
 
 [[nodiscard]] const fluid::FluidState* getMeshFluidStateAt(
@@ -1692,7 +1692,7 @@ void ChunkMesher::simpleMeshSection(
         const i32 nz = z + dir[2];
 
         if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE && nz >= 0 && nz < SIZE) {
-            return section->getBlock(nx, ny, nz);
+            return section->getBlockState(nx, ny, nz);
         }
 
         const i32 worldX = nx;
@@ -1705,7 +1705,7 @@ void ChunkMesher::simpleMeshSection(
 
         if (worldX >= 0 && worldX < world::CHUNK_WIDTH &&
             worldZ >= 0 && worldZ < world::CHUNK_WIDTH) {
-            return chunk.getBlock(worldX, worldY, worldZ);
+            return chunk.getBlockState(worldX, worldY, worldZ);
         }
 
         if (!neighborChunks) {
@@ -1729,7 +1729,7 @@ void ChunkMesher::simpleMeshSection(
 
         const i32 lx = (worldX + SIZE) % SIZE;
         const i32 lz = (worldZ + SIZE) % SIZE;
-        return neighborChunks[neighborIdx]->getBlock(lx, worldY, lz);
+        return neighborChunks[neighborIdx]->getBlockState(lx, worldY, lz);
     };
 
     // 遍历段内所有方块
@@ -1746,7 +1746,7 @@ void ChunkMesher::simpleMeshSection(
                     return;
                 }
 
-                const BlockState* block = section->getBlock(x, y, z);
+                const BlockState* block = section->getBlockState(x, y, z);
                 if (!shouldRenderBlock(block)) {
                     continue;
                 }
@@ -1928,7 +1928,7 @@ void ChunkMesher::greedyMeshSection(
                     return;
                 }
 
-                const BlockState* block = section->getBlock(x, y, z);
+                const BlockState* block = section->getBlockState(x, y, z);
                 if (!shouldRenderBlock(block)) {
                     continue;
                 }
@@ -2022,7 +2022,7 @@ void ChunkMesher::greedyMeshSection(
         const i32 nz = z + dir[2];
 
         if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE && nz >= 0 && nz < SIZE) {
-            return section->getBlock(nx, ny, nz);
+            return section->getBlockState(nx, ny, nz);
         }
 
         const i32 worldX = nx;
@@ -2035,7 +2035,7 @@ void ChunkMesher::greedyMeshSection(
 
         if (worldX >= 0 && worldX < world::CHUNK_WIDTH &&
             worldZ >= 0 && worldZ < world::CHUNK_WIDTH) {
-            return chunk.getBlock(worldX, worldY, worldZ);
+            return chunk.getBlockState(worldX, worldY, worldZ);
         }
 
         if (!neighborChunks) {
@@ -2059,13 +2059,13 @@ void ChunkMesher::greedyMeshSection(
 
         const i32 lx = (worldX + SIZE) % SIZE;
         const i32 lz = (worldZ + SIZE) % SIZE;
-        return neighborChunks[neighborIdx]->getBlock(lx, worldY, lz);
+        return neighborChunks[neighborIdx]->getBlockState(lx, worldY, lz);
     };
 
     const auto buildCellData = [&](Face face, i32 x, i32 y, i32 z) -> FaceCellData {
         FaceCellData cell;
 
-        const BlockState* block = section->getBlock(x, y, z);
+        const BlockState* block = section->getBlockState(x, y, z);
         if (!shouldRenderBlock(block)) {
             return cell;
         }

@@ -29,7 +29,7 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
         m_blocks[packPos(x, y, z)] = state;
         return true;
     }
@@ -150,8 +150,8 @@ TEST(FluidStateTest, ActualHeightBecomesFullWhenSameFluidAbove) {
     const BlockPos pos(0, 64, 0);
     const BlockState& shallowWater = VanillaBlocks::WATER->defaultState()
         .with(BlockStateProperties::LEVEL_0_15(), 7);
-    world.setBlock(pos.x, pos.y, pos.z, &shallowWater);
-    world.setBlock(pos.x, pos.y + 1, pos.z, &VanillaBlocks::WATER->defaultState());
+    world.setBlockState(pos.x, pos.y, pos.z, &shallowWater);
+    world.setBlockState(pos.x, pos.y + 1, pos.z, &VanillaBlocks::WATER->defaultState());
 
     const FluidState* fluidState = world.getFluidState(pos.x, pos.y, pos.z);
     ASSERT_NE(fluidState, nullptr);
@@ -245,7 +245,7 @@ TEST(FluidFlowBehaviorTest, SourceWaterFlowsDownwardIntoAir) {
 
     FlowingFluidTestWorld world;
     const BlockPos sourcePos(0, 64, 0);
-    world.setBlock(sourcePos.x, sourcePos.y, sourcePos.z, &VanillaBlocks::WATER->defaultState());
+    world.setBlockState(sourcePos.x, sourcePos.y, sourcePos.z, &VanillaBlocks::WATER->defaultState());
 
     const FluidState* sourceStatePtr = world.getFluidState(sourcePos.x, sourcePos.y, sourcePos.z);
     ASSERT_NE(sourceStatePtr, nullptr);
@@ -268,12 +268,12 @@ TEST(FluidFlowBehaviorTest, SourceWaterSpreadsHorizontallyAsFlowingNotSource) {
     const BlockPos sourcePos(0, 64, 0);
     const BlockPos targetPos(1, 64, 0);
 
-    world.setBlock(sourcePos.x, sourcePos.y, sourcePos.z, &VanillaBlocks::WATER->defaultState());
-    world.setBlock(sourcePos.x, sourcePos.y - 1, sourcePos.z, &VanillaBlocks::STONE->defaultState());
-    world.setBlock(targetPos.x, targetPos.y - 1, targetPos.z, &VanillaBlocks::STONE->defaultState());
-    world.setBlock(sourcePos.x - 1, sourcePos.y, sourcePos.z, &VanillaBlocks::STONE->defaultState());
-    world.setBlock(sourcePos.x, sourcePos.y, sourcePos.z - 1, &VanillaBlocks::STONE->defaultState());
-    world.setBlock(sourcePos.x, sourcePos.y, sourcePos.z + 1, &VanillaBlocks::STONE->defaultState());
+    world.setBlockState(sourcePos.x, sourcePos.y, sourcePos.z, &VanillaBlocks::WATER->defaultState());
+    world.setBlockState(sourcePos.x, sourcePos.y - 1, sourcePos.z, &VanillaBlocks::STONE->defaultState());
+    world.setBlockState(targetPos.x, targetPos.y - 1, targetPos.z, &VanillaBlocks::STONE->defaultState());
+    world.setBlockState(sourcePos.x - 1, sourcePos.y, sourcePos.z, &VanillaBlocks::STONE->defaultState());
+    world.setBlockState(sourcePos.x, sourcePos.y, sourcePos.z - 1, &VanillaBlocks::STONE->defaultState());
+    world.setBlockState(sourcePos.x, sourcePos.y, sourcePos.z + 1, &VanillaBlocks::STONE->defaultState());
 
     const FluidState* sourceStatePtr = world.getFluidState(sourcePos.x, sourcePos.y, sourcePos.z);
     ASSERT_NE(sourceStatePtr, nullptr);

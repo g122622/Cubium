@@ -1510,7 +1510,7 @@ ActionResult CauldronBlock::onUse(
     if (heldItem.getItem() == Items::WATER_BUCKET && level < 3) {
         // 填充炼药锅
         state = state.with(LEVEL_0_3(), 3);
-        world.setBlock(pos, state);
+        world.setBlockState(pos, state);
         player.setHeldItem(ItemStack(Items::BUCKET));
         return ActionResult::SUCCESS;
     }
@@ -1518,7 +1518,7 @@ ActionResult CauldronBlock::onUse(
     // 玻璃瓶交互
     if (heldItem.getItem() == Items::GLASS_BOTTLE && level > 0) {
         state = state.with(LEVEL_0_3(), level - 1);
-        world.setBlock(pos, state);
+        world.setBlockState(pos, state);
         player.setHeldItem(ItemStack(Items::POTION)); // 水瓶
         return ActionResult::SUCCESS;
     }

@@ -24,7 +24,7 @@ bool CactusFeature::place(
     BlockPos placePos = pos;
     for (i32 y = pos.y; y >= 1; --y) {
         BlockPos checkPos(pos.x, y, pos.z);
-        const BlockState* state = world.getBlock(checkPos);
+        const BlockState* state = world.getBlockState(checkPos);
 
         if (state && !state->isAir()) {
             placePos = BlockPos(pos.x, y + 1, pos.z);
@@ -43,7 +43,7 @@ bool CactusFeature::place(
     // 检查是否有足够空间
     for (i32 y = 0; y < height; ++y) {
         BlockPos checkPos(placePos.x, placePos.y + y, placePos.z);
-        const BlockState* state = world.getBlock(checkPos);
+        const BlockState* state = world.getBlockState(checkPos);
         if (state && !state->isAir()) {
             height = y;
             break;
@@ -63,7 +63,7 @@ bool CactusFeature::place(
     // 放置仙人掌
     for (i32 y = 0; y < height; ++y) {
         BlockPos cactusPos(placePos.x, placePos.y + y, placePos.z);
-        world.setBlock(cactusPos, config.state);
+        world.setBlockState(cactusPos, config.state);
     }
 
     return true;
@@ -72,7 +72,7 @@ bool CactusFeature::place(
 bool CactusFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
     // 检查位置是否为空气
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (state && !state->isAir()) {
         return false;
     }
@@ -94,7 +94,7 @@ bool CactusFeature::hasValidSpace(WorldGenRegion& world, const BlockPos& pos) co
 
     for (i32 i = 0; i < 4; ++i) {
         BlockPos neighborPos(pos.x + directions[i][0], pos.y, pos.z + directions[i][1]);
-        const BlockState* neighborState = world.getBlock(neighborPos);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
 
         if (neighborState && !neighborState->isAir()) {
             // 仙人掌旁边可以有水
@@ -110,7 +110,7 @@ bool CactusFeature::hasValidSpace(WorldGenRegion& world, const BlockPos& pos) co
 
 bool CactusFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return false;
     }

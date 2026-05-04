@@ -525,7 +525,7 @@ flowchart LR
     sync --> block["BlockUpdateSyncManager"]
     sync --> chunk["ChunkSendManager"]
     sync --> light["LightSyncManager"]
-    world["ServerWorld::setBlock"] --> callback["setOnBlockChanged"]
+    world["ServerWorld::setBlockState"] --> callback["setOnBlockChanged"]
     callback --> block
     block --> flush["tick 末 flushPendingUpdates()"]
     flush --> packet["BlockUpdatePacket"]

@@ -271,7 +271,7 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onBlockUpdate = [this](i32 x, i32 y, i32 z, u32 blockStateId) {
-        m_world.setBlock(x, y, z, BlockRegistry::instance().getBlockState(blockStateId));
+        m_world.setBlockState(x, y, z, BlockRegistry::instance().getBlockState(blockStateId));
     };
 
     callbacks.onChatMessage = [this](const String& message, PlayerId senderId) {

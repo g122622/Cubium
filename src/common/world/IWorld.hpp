@@ -63,7 +63,7 @@ class IWorld : public IWorldWriter {
 public:
     virtual ~IWorld() = default;
 
-    // IWorldWriter 的 setBlock 方法已提供基础写入能力
+    // IWorldWriter 的 setBlockState 方法已提供基础写入能力
     // IWorld 额外提供读取能力
 
     // ========== 方块访问 ==========
@@ -84,31 +84,21 @@ public:
         return getBlockState(pos.x, pos.y, pos.z);
     }
 
-    // 注意：setBlock 方法已从 IWorldWriter 继承
+    // 注意：setBlockState 方法已从 IWorldWriter 继承
 
     /**
-     * @brief 设置方块状态（带标志）
-     * @param x, y, z 方块坐标
-     * @param state 方块状态
-     * @param flags 更新标志（2=通知邻居，3=通知邻居+更新客户端）
-     * @return 是否成功
-     */
-    virtual bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) {
-        // TODO: 处理标志（目前直接调用不带标志的 setBlock）
-        (void)flags;
-        return setBlock(x, y, z, state);
-    }
-
-    /**
-     * @brief 设置方块状态（使用 BlockPos）
+     * @brief 设置方块状态（使用 BlockPos，带标志）
      * @param pos 方块位置
      * @param state 方块状态
      * @param flags 更新标志
      * @return 是否成功
      */
-    virtual bool setBlockState(const BlockPos& pos, const BlockState* state, i32 flags) {
+    bool setBlockState(const BlockPos& pos, const BlockState* state, i32 flags) {
         return setBlockState(pos.x, pos.y, pos.z, state, flags);
     }
+
+    // 使用基类的 setBlockState(const BlockPos&, const BlockState*) 非虚函数
+    using IWorldWriter::setBlockState;
 
     /**
      * @brief 获取方块实体

@@ -43,7 +43,7 @@ protected:
         for (i32 x = 0; x < 16; ++x) {
             for (i32 z = 0; z < 16; ++z) {
                 for (i32 y = 0; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
-                    chunk.setBlock(x, y, z, stone);
+                    chunk.setBlockState(x, y, z, stone);
                 }
             }
         }
@@ -86,7 +86,7 @@ protected:
         for (i32 x = 0; x < 16; ++x) {
             for (i32 z = 0; z < 16; ++z) {
                 for (i32 y = 0; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
-                    const BlockState* state = chunk.getBlock(x, y, z);
+                    const BlockState* state = chunk.getBlockState(x, y, z);
                     if (state != stone) {
                         ++count;
                     }
@@ -115,8 +115,8 @@ protected:
         for (i32 x = 0; x < 16; ++x) {
             for (i32 z = 0; z < 16; ++z) {
                 for (i32 y = 0; y < mc::world::MAX_BUILD_HEIGHT; ++y) {
-                    const BlockState* l = lhs.getBlock(x, y, z);
-                    const BlockState* r = rhs.getBlock(x, y, z);
+                    const BlockState* l = lhs.getBlockState(x, y, z);
+                    const BlockState* r = rhs.getBlockState(x, y, z);
                     EXPECT_EQ(l, r) << "Block mismatch at (" << x << ", " << y << ", " << z << ")";
                 }
             }

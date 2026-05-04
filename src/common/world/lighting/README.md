@@ -257,7 +257,7 @@ u8 blockLight = chunkData->getBlockLight(x, y, z);
 
 ### 14. 测试未初始化世界
 
-**问题**：测试 `ServerWorld::setBlock()` 时，未初始化的世界会触发光照更新断言路径（`MC_ASSERT_RELEASE(false)`），因为 `m_lightManager` 为 null。
+**问题**：测试 `ServerWorld::setBlockState()` 时，未初始化的世界会触发光照更新断言路径（`MC_ASSERT_RELEASE(false)`），因为 `m_lightManager` 为 null。
 
 **解决**：测试前先初始化世界。
 

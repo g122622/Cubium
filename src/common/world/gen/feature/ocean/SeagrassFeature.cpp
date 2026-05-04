@@ -20,7 +20,7 @@ namespace {
 
     // 某些测试会绕过高度图更新，回退到显式扫描。
     for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT + 1; --y) {
-        const BlockState* state = world.getBlock(x, y, z);
+        const BlockState* state = world.getBlockState(x, y, z);
         if (state == nullptr || state->isAir()) {
             continue;
         }
@@ -113,7 +113,7 @@ bool SeagrassFeature::place(
             }
         }
 
-        world.setBlock(placePos, config.seagrassState);
+        world.setBlockState(placePos, config.seagrassState);
         placedAny = true;
     }
 
@@ -132,13 +132,13 @@ bool SeagrassFeature::canPlaceAt(
     }
 
     const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlock(belowPos);
+    const BlockState* belowState = world.getBlockState(belowPos);
     return belowState != nullptr && belowState->isSolid();
 }
 
 bool SeagrassFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return false;
     }
@@ -157,11 +157,11 @@ bool SeagrassFeature::placeTallSeagrass(
     const SeagrassFeatureConfig& config) const
 {
     // 放置下半部分
-    world.setBlock(pos, config.tallSeagrassLowerState);
+    world.setBlockState(pos, config.tallSeagrassLowerState);
 
     // 放置上半部分
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    world.setBlock(abovePos, config.tallSeagrassUpperState);
+    world.setBlockState(abovePos, config.tallSeagrassUpperState);
 
     return true;
 }

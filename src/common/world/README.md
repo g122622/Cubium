@@ -178,7 +178,7 @@ class IWorld {
 public:
     // Block access
     virtual const BlockState* getBlockState(i32 x, i32 y, i32 z) const = 0;
-    virtual bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) = 0;
+    virtual bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) = 0;
 
     // Fluid access
     virtual const FluidState* getFluidState(i32 x, i32 y, i32 z) const = 0;
@@ -548,11 +548,11 @@ ticketManager.processUpdates();
 ```cpp
 // BAD
 ChunkData* chunk = getChunk(x, z);
-chunk->getBlock(localX, y, localZ);  // May crash if chunk not loaded
+chunk->getBlockState(localX, y, localZ);  // May crash if chunk not loaded
 
 // GOOD
 if (chunk && chunk->getStatus() == ChunkLoadStatus::Full) {
-    chunk->getBlock(localX, y, localZ);
+    chunk->getBlockState(localX, y, localZ);
 }
 ```
 
@@ -616,9 +616,9 @@ i32 localX = world::toLocalCoord(x);
 
 **解决方案**：`IWorld` 现在暴露了 `BlockPos` 重载用于方块位置语义，只要调用者已有 `BlockPos` 就应优先使用，并通过 `using IWorld::...` 重导出重载集。但是 `ISpawnWorldReader`、`ClientWorld` 和光照/生成辅助类不属于该 `IWorld` 契约，保持这些接口使用原生 xyz 签名，不要仅仅为了镜像 `IWorld` 而在非 `IWorld` 读取器上强制添加 `BlockPos` 重载。
 
-### 10. ServerWorld setBlock Tests
+### 10. ServerWorld setBlockState Tests
 
-**问题**：测试 `ServerWorld::setBlock()` 时，未初始化的世界会触发光照更新断言路径。
+**问题**：测试 `ServerWorld::setBlockState()` 时，未初始化的世界会触发光照更新断言路径。
 
 **解决方案**：测试前先初始化世界，否则 `m_lightManager` 为 null 会触发 `MC_ASSERT_RELEASE(false)` 断言。
 

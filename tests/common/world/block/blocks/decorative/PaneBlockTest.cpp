@@ -45,13 +45,13 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
         m_blocks[packPos(x, y, z)] = state;
         return true;
     }
 
-    bool setBlock(const BlockPos& pos, const BlockState* state) {
-        return setBlock(pos.x, pos.y, pos.z, state);
+    bool setBlockState(const BlockPos& pos, const BlockState* state) {
+        return setBlockState(pos.x, pos.y, pos.z, state);
     }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
@@ -171,10 +171,10 @@ TEST_F(PaneBlockTestFixture, Placement_ConnectsToSolidPaneAndWallAndWaterlogs) {
     PaneTestWorld world;
     const BlockPos pos(8, 64, 8);
 
-    world.setBlock(pos.north(), &pane.defaultState());
-    world.setBlock(pos.east(), &wall.defaultState());
-    world.setBlock(pos.south(), &solid.defaultState());
-    world.setBlock(pos, &VanillaBlocks::WATER->defaultState());
+    world.setBlockState(pos.north(), &pane.defaultState());
+    world.setBlockState(pos.east(), &wall.defaultState());
+    world.setBlockState(pos.south(), &solid.defaultState());
+    world.setBlockState(pos, &VanillaBlocks::WATER->defaultState());
 
     BlockItemUseContext context = makePlacementContext(world, pos, Direction::Up, 0.0f);
     const BlockState state = pane.getStateForPlacement(context);

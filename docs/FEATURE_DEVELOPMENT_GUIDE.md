@@ -249,13 +249,13 @@ bool MyFeature::place(
     }
 
     // 检查是否可以替换
-    const BlockState* state = region.getBlock(pos.x, pos.y, pos.z);
+    const BlockState* state = region.getBlockState(pos.x, pos.y, pos.z);
     if (state && !state->isAir()) {
         return false;
     }
 
     // 放置方块
-    region.setBlock(pos.x, pos.y, pos.z, BlockState(config.blockToPlace));
+    region.setBlockState(pos.x, pos.y, pos.z, BlockState(config.blockToPlace));
     return true;
 }
 
@@ -590,7 +590,7 @@ auto config = HeightRangePlacementConfig(0, 0, 128);  // 范围是 [0, 128)
 bool MyFeature::place(...) {
     // ❌ 可能越界：WorldGenRegion 只包含当前区块和 8 个邻居
     for (int y = 0; y < 300; ++y) {  // Y 可能超出高度限制
-        region.getBlock(pos.x, y, pos.z);
+        region.getBlockState(pos.x, y, pos.z);
     }
 
     // ✅ 正确：检查边界
@@ -598,7 +598,7 @@ bool MyFeature::place(...) {
     constexpr i32 MAX_Y = 255;
 
     for (i32 y = MIN_Y; y <= MAX_Y; ++y) {
-        const BlockState* state = region.getBlock(pos.x, y, pos.z);
+        const BlockState* state = region.getBlockState(pos.x, y, pos.z);
         // ...
     }
 }

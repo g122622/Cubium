@@ -320,7 +320,7 @@ std::vector<BlockPos> BlockStarLightEngine::getSources(StarLightLightingProvider
         i32 offY = sectionY << 4;
 
         for (i32 index = 0; index < 4096; ++index) {
-            const BlockState* state = section->getBlock(
+            const BlockState* state = section->getBlockState(
                 index & 15,           // x
                 (index >> 8) & 15,    // y
                 (index >> 4) & 15     // z

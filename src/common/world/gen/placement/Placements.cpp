@@ -161,7 +161,7 @@ std::vector<BlockPos> TopSolidPlacement::getPositions(
     // 找到最高固体方块
     i32 topY = world::MAX_BUILD_HEIGHT - 1;
     for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
-        const BlockState* state = region.getBlock(basePos.x, y, basePos.z);
+        const BlockState* state = region.getBlockState(basePos.x, y, basePos.z);
         if (state && state->isSolid()) {
             topY = y;
             break;
@@ -246,7 +246,7 @@ std::vector<BlockPos> WaterDepthThresholdPlacement::getPositions(
     // 检查水深
     i32 waterDepth = 0;
     for (i32 y = basePos.y; y > 0; --y) {
-        const BlockState* state = region.getBlock(basePos.x, y, basePos.z);
+        const BlockState* state = region.getBlockState(basePos.x, y, basePos.z);
         if (state && state->isLiquid()) {
             ++waterDepth;
         } else if (state && state->isSolid()) {

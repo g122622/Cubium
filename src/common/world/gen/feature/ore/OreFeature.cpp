@@ -210,13 +210,13 @@ void OreFeature::generateSphere(
                     processed[static_cast<size_t>(index)] = true;
 
                     // 获取当前方块并检查是否可以替换
-                    const BlockState* currentState = chunk.getBlock(
+                    const BlockState* currentState = chunk.getBlockState(
                         static_cast<BlockCoord>(bx & 15),
                         static_cast<BlockCoord>(by),
                         static_cast<BlockCoord>(bz & 15));
 
                     if (currentState && config.target->test(*currentState, random)) {
-                        chunk.setBlock(
+                        chunk.setBlockState(
                             static_cast<BlockCoord>(bx & 15),
                             static_cast<BlockCoord>(by),
                             static_cast<BlockCoord>(bz & 15),

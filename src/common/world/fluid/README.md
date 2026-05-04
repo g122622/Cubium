@@ -374,7 +374,7 @@ void World::tickFluids() {
 
 **问题**：岩浆时序硬编码会导致主世界和下界行为不一致。
 
-**解决方案**：岩浆时序是世界相关的。`ServerWorld::setBlock()` 和流体 tick 调度要继续使用 `fluid.getTickDelay(*this)`，不要把主世界/下界差异重新硬编码回固定常量。
+**解决方案**：岩浆时序是世界相关的。`ServerWorld::setBlockState()` 和流体 tick 调度要继续使用 `fluid.getTickDelay(*this)`，不要把主世界/下界差异重新硬编码回固定常量。
 
 ## 涉及的测试用例
 

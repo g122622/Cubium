@@ -638,9 +638,9 @@ if (checkAreaForFluid(chunk, chunkX, chunkZ, minX, maxX, minY, maxY, minZ, maxZ)
 
 ```cpp
 if (y < 11) {
-    chunk.setBlock(lx, y, lz, VanillaBlocks::LAVA);
+    chunk.setBlockState(lx, y, lz, VanillaBlocks::LAVA);
 } else {
-    chunk.setBlock(lx, y, lz, VanillaBlocks::AIR);
+    chunk.setBlockState(lx, y, lz, VanillaBlocks::AIR);
 }
 ```
 

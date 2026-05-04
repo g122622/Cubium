@@ -113,7 +113,7 @@ T_{duration} = t_{exit} - t_{enter}
 
 \textbf{帧渲染追踪}：在主循环中，使用作用域事件追踪帧渲染的各个阶段。每个阶段可以添加键值对参数，如\texttt{"phase", "handle\_events"}。
 
-\textbf{方块设置追踪}：在\texttt{ServerWorld::setBlock}中，记录坐标参数，并使用Flow关联后续的光照更新和网格重建事件。
+\textbf{方块设置追踪}：在\texttt{ServerWorld::setBlockState}中，记录坐标参数，并使用Flow关联后续的光照更新和网格重建事件。
 
 \textbf{工作线程追踪}：在任务执行前后记录任务类型、描述和优先级，用于分析线程池利用率。
 

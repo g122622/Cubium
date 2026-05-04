@@ -232,7 +232,7 @@ void JigsawManager::placeFallbackBlocks(
                     z == box.minZ() || z == box.maxZ()) {
                     // 添加一些随机性，避免过于规则
                     if (rng.nextInt(100) < 80) {
-                        world.setBlock(x, y, z, markerBlock, 18);
+                        world.setBlockState(x, y, z, markerBlock, 18);
                     }
                 }
             }

@@ -94,7 +94,7 @@ structure.setTemplateManager(&templateManager);
   - IChunkGenerator 提供高度/生物群系查询
   - VanillaBlocks 提供方块状态
   - TemplateManager 提供模板加载和缓存
-- 下游输出: 通过 IWorldWriter::setBlock 写入世界，或将结果挂入 StructureStart
+- 下游输出: 通过 IWorldWriter::setBlockState 写入世界，或将结果挂入 StructureStart
 
 ## 5. 整体职责
 

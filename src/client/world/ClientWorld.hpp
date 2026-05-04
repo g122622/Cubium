@@ -67,7 +67,7 @@ public:
     [[nodiscard]] const Biome* getBiomeAtBlock(i32 x, i32 y, i32 z) const;
     [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const;
     [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const;
-    void setBlock(i32 x, i32 y, i32 z, const BlockState* state);
+    void setBlockState(i32 x, i32 y, i32 z, const BlockState* state);
 
     [[nodiscard]] bool isWithinWorldBounds(i32 /*x*/, i32 y, i32 /*z*/) const override {
         return y >= m_minBuildHeight && y < m_maxBuildHeight;

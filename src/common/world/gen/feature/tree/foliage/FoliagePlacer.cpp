@@ -65,7 +65,7 @@ void FoliagePlacer::placeFoliage(
             continue;
         }
 
-        const BlockState* state = world.getBlock(pos.x, pos.y, pos.z);
+        const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
         if (state == nullptr || state->isAir() ||
             state->is(VanillaBlocks::OAK_LEAVES) ||
             state->is(VanillaBlocks::SPRUCE_LEAVES) ||
@@ -73,7 +73,7 @@ void FoliagePlacer::placeFoliage(
             state->is(VanillaBlocks::JUNGLE_LEAVES) ||
             state->is(VanillaBlocks::ACACIA_LEAVES) ||
             state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
-            world.setBlock(pos, foliageBlock);
+            world.setBlockState(pos, foliageBlock);
         }
     }
 }
@@ -109,7 +109,7 @@ void FoliagePlacer::placeFoliageLayer(
             }
 
             // 检查是否可以放置树叶
-            const BlockState* state = world.getBlock(pos.x, pos.y, pos.z);
+            const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
             if (state == nullptr || state->isAir()) {
                 // 空气可以放置
             } else if (state->is(VanillaBlocks::OAK_LEAVES) ||
@@ -125,7 +125,7 @@ void FoliagePlacer::placeFoliageLayer(
 
             // 放置树叶
             if (foliageBlock != nullptr) {
-                world.setBlock(pos, foliageBlock);
+                world.setBlockState(pos, foliageBlock);
                 foliageBlocks.insert(pos);
             }
         }

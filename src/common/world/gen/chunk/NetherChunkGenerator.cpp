@@ -225,7 +225,7 @@ void NetherChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& ch
 
                             const i32 localBlockX = worldX & 15;
                             const i32 localBlockZ = worldZ & 15;
-                            chunk.setBlock(localBlockX, worldY, localBlockZ, blockState);
+                            chunk.setBlockState(localBlockX, worldY, localBlockZ, blockState);
 
                             chunk.updateHeightmap(HeightmapType::WorldSurfaceWG, localBlockX, worldY, localBlockZ, blockState);
                             if (blockState->isSolid()) {
@@ -264,9 +264,9 @@ void NetherChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chu
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
             for (i32 y = 0; y <= m_lavaLevel; ++y) {
-                const BlockState* current = chunk.getBlock(x, y, z);
+                const BlockState* current = chunk.getBlockState(x, y, z);
                 if (current == nullptr || current == &VanillaBlocks::AIR->getDefaultState()) {
-                    chunk.setBlock(x, y, z, lava);
+                    chunk.setBlockState(x, y, z, lava);
                 }
             }
         }
@@ -498,7 +498,7 @@ void NetherChunkGenerator::generateBedrock(ChunkPrimer& chunk, i32 x, i32 z, mat
             if (offset <= random.nextInt(5)) {
                 const i32 y = m_bedrockFloor + offset;
                 if (y >= NETHER_MIN_Y && y < NETHER_HEIGHT) {
-                    chunk.setBlock(x, y, z, bedrock);
+                    chunk.setBlockState(x, y, z, bedrock);
                 }
             }
         }
@@ -509,7 +509,7 @@ void NetherChunkGenerator::generateBedrock(ChunkPrimer& chunk, i32 x, i32 z, mat
             if (offset <= random.nextInt(5)) {
                 const i32 y = m_bedrockCeiling - offset;
                 if (y >= NETHER_MIN_Y && y < NETHER_HEIGHT) {
-                    chunk.setBlock(x, y, z, bedrock);
+                    chunk.setBlockState(x, y, z, bedrock);
                 }
             }
         }

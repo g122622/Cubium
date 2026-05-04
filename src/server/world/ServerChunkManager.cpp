@@ -24,13 +24,13 @@ public:
     [[nodiscard]] ChunkCoord z() const override { return m_chunk ? m_chunk->z() : 0; }
     [[nodiscard]] ChunkPos pos() const override { return m_chunk ? m_chunk->pos() : ChunkPos(0, 0); }
 
-    [[nodiscard]] const BlockState* getBlock(BlockCoord x, BlockCoord y, BlockCoord z) const override {
-        return m_chunk ? m_chunk->getBlock(x, y, z) : nullptr;
+    [[nodiscard]] const BlockState* getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const override {
+        return m_chunk ? m_chunk->getBlockState(x, y, z) : nullptr;
     }
 
-    void setBlock(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override {
+    void setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override {
         if (m_chunk) {
-            m_chunk->setBlock(x, y, z, state);
+            m_chunk->setBlockState(x, y, z, state);
         }
     }
 

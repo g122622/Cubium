@@ -41,7 +41,7 @@ public:
         return nullptr;
     }
 
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
         const BlockPos pos(x, y, z);
         if (state == nullptr || state->isAir()) {
             m_blocks.erase(pos);
@@ -84,7 +84,7 @@ public:
     void setSeed(u64 seed) { m_seed = seed; }
 
     void setBlockAt(const BlockPos& pos, const BlockState* state) {
-        (void)setBlock(pos.x, pos.y, pos.z, state);
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
     }
 
     void setSkyLightAt(const BlockPos& pos, u8 light) {

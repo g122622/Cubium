@@ -45,7 +45,7 @@ public:
     }
 
     [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
-    bool setBlock(i32, i32, i32, const BlockState*) override { return false; }
+    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }

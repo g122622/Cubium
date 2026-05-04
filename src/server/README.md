@@ -260,7 +260,7 @@ TCP 网络通信实现。
 
 4. **方块更新同步**：
     ```
-    ServerWorld::setBlock() → setOnBlockChanged() → BlockUpdateSyncManager
+    ServerWorld::setBlockState() → setOnBlockChanged() → BlockUpdateSyncManager
     → tick 末 flushPendingUpdates() → BlockUpdatePacket → 追踪该区块的客户端
     ```
 

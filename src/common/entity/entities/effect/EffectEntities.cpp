@@ -214,7 +214,7 @@ void LightningBoltEntity::igniteBlocks(i32 extraIgnitions) {
     if (currentState != nullptr && currentState->isAir()) {
         // TODO: AbstractFireBlock.getFireForPlacement() - 检查火焰是否可以放置在当前位置
         // 目前直接放置普通火焰
-        m_world->setBlock(blockPos, fireState);
+        m_world->setBlockState(blockPos, fireState);
     }
 
     // MC 1.16.5: 额外点燃周围方块
@@ -232,7 +232,7 @@ void LightningBoltEntity::igniteBlocks(i32 extraIgnitions) {
             const BlockState* stateAtPos = m_world->getBlockState(firePos);
             if (stateAtPos != nullptr && stateAtPos->isAir()) {
                 // TODO: AbstractFireBlock.getFireForPlacement() - 检查火焰是否可以放置
-                m_world->setBlock(firePos, fireState);
+                m_world->setBlockState(firePos, fireState);
             }
         }
     }

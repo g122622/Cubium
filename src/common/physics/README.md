@@ -192,7 +192,7 @@ if (!boxes) {
 }
 
 // 方块更新时使缓存失效
-world->setBlock(x, y, z, newState);
+world->setBlockState(x, y, z, newState);
 cache.invalidateChunkAndNeighbors(chunkX, chunkZ, 1);
 ```
 
@@ -369,11 +369,11 @@ f32 overlapPushUp = resolveInitialOverlaps(entityBox, boxes);
 
 ```cpp
 // 错误：忘记使缓存失效
-world->setBlock(pos, newState);
+world->setBlockState(pos, newState);
 // 物理引擎仍使用旧缓存！
 
 // 正确：
-world->setBlock(pos, newState);
+world->setBlockState(pos, newState);
 cache.invalidateChunkAndNeighbors(pos.x >> 4, pos.z >> 4, 1);
 ```
 

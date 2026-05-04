@@ -585,7 +585,7 @@ hash ^= static_cast<u64>(seed);
 
 ```cpp
 // 可能返回 nullptr
-const BlockState* state = region.getBlock(basePos.x, y, basePos.z);
+const BlockState* state = region.getBlockState(basePos.x, y, basePos.z);
 if (state == nullptr) {
     return {};  // 正确处理
 }

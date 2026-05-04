@@ -32,7 +32,7 @@ bool SugarCaneFeature::place(
         // 向下寻找地面
         for (i32 y = 128; y >= 1; --y) {
             BlockPos checkPos(placePos.x, y, placePos.z);
-            const BlockState* state = world.getBlock(checkPos);
+            const BlockState* state = world.getBlockState(checkPos);
 
             if (state && !state->isAir()) {
                 placePos = BlockPos(placePos.x, y + 1, placePos.z);
@@ -52,7 +52,7 @@ bool SugarCaneFeature::place(
         bool hasSpace = true;
         for (i32 y = 0; y < height; ++y) {
             BlockPos checkPos(placePos.x, placePos.y + y, placePos.z);
-            const BlockState* state = world.getBlock(checkPos);
+            const BlockState* state = world.getBlockState(checkPos);
             if (state && !state->isAir()) {
                 height = y;
                 break;
@@ -66,7 +66,7 @@ bool SugarCaneFeature::place(
         // 放置甘蔗
         for (i32 y = 0; y < height; ++y) {
             BlockPos canePos(placePos.x, placePos.y + y, placePos.z);
-            world.setBlock(canePos, config.state);
+            world.setBlockState(canePos, config.state);
         }
 
         ++placedCount;
@@ -78,7 +78,7 @@ bool SugarCaneFeature::place(
 bool SugarCaneFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
     // 检查位置是否为空气
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (state && !state->isAir()) {
         return false;
     }
@@ -100,7 +100,7 @@ bool SugarCaneFeature::hasWaterNearby(WorldGenRegion& world, const BlockPos& pos
 
     for (i32 i = 0; i < 4; ++i) {
         BlockPos waterPos(pos.x + directions[i][0], pos.y, pos.z + directions[i][1]);
-        const BlockState* state = world.getBlock(waterPos);
+        const BlockState* state = world.getBlockState(waterPos);
 
         if (state && state->blockId() == VanillaBlocks::WATER->blockId()) {
             return true;
@@ -112,7 +112,7 @@ bool SugarCaneFeature::hasWaterNearby(WorldGenRegion& world, const BlockPos& pos
 
 bool SugarCaneFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return false;
     }

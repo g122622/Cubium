@@ -842,7 +842,7 @@ FeatureRegistry::initialize();         // 4. 初始化特征
 
 **问题**：将临时 `BlockState` 副本传递给世界写入 API 可能导致状态 ID 不一致。
 
-**解决**：优先使用 `state.with(...)` / `defaultState()` 返回的规范引用；`ServerWorld::setBlock` 现在通过 `stateId` 规范化作为安全网。
+**解决**：优先使用 `state.with(...)` / `defaultState()` 返回的规范引用；`ServerWorld::setBlockState` 现在通过 `stateId` 规范化作为安全网。
 
 ### 12. 海洋特征注册顺序
 

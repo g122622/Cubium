@@ -39,8 +39,8 @@ public:
     void setBlockStateId(i32 x, i32 y, i32 z, u32 stateId);
 
     // 方块访问 (使用 BlockState 指针)
-    [[nodiscard]] const BlockState* getBlock(i32 x, i32 y, i32 z) const;
-    void setBlock(i32 x, i32 y, i32 z, const BlockState* state);
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const;
+    void setBlockState(i32 x, i32 y, i32 z, const BlockState* state);
 
     // 快速访问 (无边界检查)
     [[nodiscard]] u32 getBlockStateIdFast(i32 index) const {
@@ -155,8 +155,8 @@ public:
     [[nodiscard]] ChunkPos pos() const override { return ChunkPos(m_x, m_z); }
 
     // 方块访问 (IChunk 接口 - 使用 BlockState 指针)
-    [[nodiscard]] const BlockState* getBlock(BlockCoord x, BlockCoord y, BlockCoord z) const override;
-    void setBlock(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override;
+    [[nodiscard]] const BlockState* getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const override;
+    void setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override;
 
     // 方块访问 (IChunk 接口 - 使用状态ID，更高效)
     [[nodiscard]] u32 getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const override;

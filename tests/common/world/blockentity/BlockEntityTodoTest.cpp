@@ -47,7 +47,7 @@ public:
         return m_state;
     }
 
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
         const BlockPos pos(x, y, z);
         m_statesByPos[pos] = state;
         m_state = state;
@@ -231,7 +231,7 @@ TEST(BlockEntityTodoTest, FurnaceInventoryInputAndFuelSlotsAcceptItems) {
 TEST_F(BlockEntityTodoTestHelper, BarrelEntityTickResetsSyncCounterAndPersistsOpenCount) {
     blockentity::BarrelEntity barrel(BlockPos(1, 2, 3));
     DummyWorld world;
-    world.setBlock(1, 2, 3, makeBarrelOpenState());
+    world.setBlockState(1, 2, 3, makeBarrelOpenState());
 
     barrel.setWorld(&world);
     barrel.openContainer(nullptr);
@@ -358,7 +358,7 @@ TEST(BlockEntityTodoTest, ShulkerBoxCanOpenReturnsTrueWhenTopSpaceIsClear) {
 
 TEST_F(BlockEntityTodoTestHelper, ChestEntityOpenCloseBroadcastsWhenWorldAttached) {
     DummyWorld world;
-    world.setBlock(0, 0, 0, makeChestState());
+    world.setBlockState(0, 0, 0, makeChestState());
 
     blockentity::ChestEntity chest(BlockPos(0, 0, 0));
     chest.setWorld(&world);
@@ -372,7 +372,7 @@ TEST_F(BlockEntityTodoTestHelper, ChestEntityOpenCloseBroadcastsWhenWorldAttache
 
 TEST_F(BlockEntityTodoTestHelper, ChestEntityTickPerformsPeriodicStateSync) {
     DummyWorld world;
-    world.setBlock(0, 0, 0, makeChestState());
+    world.setBlockState(0, 0, 0, makeChestState());
 
     blockentity::ChestEntity chest(BlockPos(0, 0, 0));
     chest.setWorld(&world);
@@ -386,7 +386,7 @@ TEST_F(BlockEntityTodoTestHelper, ChestEntityTickPerformsPeriodicStateSync) {
 
 TEST_F(BlockEntityTodoTestHelper, TrappedChestOpenCloseTriggersNeighborUpdatePath) {
     DummyWorld world;
-    world.setBlock(4, 5, 6, makeTrappedChestState());
+    world.setBlockState(4, 5, 6, makeTrappedChestState());
 
     blockentity::TrappedChestEntity trapped(BlockPos(4, 5, 6));
     trapped.setWorld(&world);
@@ -406,7 +406,7 @@ TEST_F(BlockEntityTodoTestHelper, TrappedChestOpenCloseTriggersNeighborUpdatePat
 TEST_F(BlockEntityTodoTestHelper, HopperTickSkipsTransferWhenDisabledByState) {
     blockentity::HopperEntity hopper(BlockPos(10, 20, 30));
     DummyWorld world;
-    world.setBlock(10, 20, 30, makeHopperDisabledState());
+    world.setBlockState(10, 20, 30, makeHopperDisabledState());
 
     hopper.tick(world);
 
@@ -416,7 +416,7 @@ TEST_F(BlockEntityTodoTestHelper, HopperTickSkipsTransferWhenDisabledByState) {
 TEST_F(BlockEntityTodoTestHelper, HopperTickResetsCooldownWhenEnabledByState) {
     blockentity::HopperEntity hopper(BlockPos(10, 20, 30));
     DummyWorld world;
-    world.setBlock(10, 20, 30, makeHopperEnabledState());
+    world.setBlockState(10, 20, 30, makeHopperEnabledState());
 
     hopper.tick(world);
 
@@ -501,12 +501,12 @@ TEST(BlockEntityTodoTest, BeaconDetectsThreeLevelPyramidWithoutSkyCheck) {
         const int y = beaconPos.y - level;
         for (int dx = -level; dx <= level; ++dx) {
             for (int dz = -level; dz <= level; ++dz) {
-                world.setBlock(beaconPos.x + dx, y, beaconPos.z + dz, baseState);
+                world.setBlockState(beaconPos.x + dx, y, beaconPos.z + dz, baseState);
             }
         }
     }
 
-    world.setBlock(beaconPos.x, beaconPos.y + 1, beaconPos.z, &VanillaBlocks::AIR->defaultState());
+    world.setBlockState(beaconPos.x, beaconPos.y + 1, beaconPos.z, &VanillaBlocks::AIR->defaultState());
 
     for (int i = 0; i < 80; ++i) {
         beacon.tick(world);
@@ -517,7 +517,7 @@ TEST(BlockEntityTodoTest, BeaconDetectsThreeLevelPyramidWithoutSkyCheck) {
     // Placing a block above the beacon should NOT affect pyramid level
     const BlockState* blocking = VanillaBlocks::getState(VanillaBlocks::STONE);
     ASSERT_NE(blocking, nullptr);
-    world.setBlock(beaconPos.x, beaconPos.y + 1, beaconPos.z, blocking);
+    world.setBlockState(beaconPos.x, beaconPos.y + 1, beaconPos.z, blocking);
 
     for (int i = 0; i < 80; ++i) {
         beacon.tick(world);

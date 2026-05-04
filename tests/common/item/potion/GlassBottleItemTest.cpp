@@ -28,7 +28,7 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
         m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         return true;
     }
@@ -92,7 +92,7 @@ protected:
 };
 
 TEST_F(GlassBottleItemTest, OnItemRightClick_OnWaterSource_ReturnsWaterBottle) {
-    m_world.setBlock(0, 65, 3, &VanillaBlocks::WATER->defaultState());
+    m_world.setBlockState(0, 65, 3, &VanillaBlocks::WATER->defaultState());
 
     item::GlassBottleItem item(ItemProperties().maxStackSize(64));
     Player player(1, "BottleTester");
@@ -111,7 +111,7 @@ TEST_F(GlassBottleItemTest, OnItemRightClick_OnWaterSource_ReturnsWaterBottle) {
 TEST_F(GlassBottleItemTest, OnItemRightClick_OnFilledCauldron_ReturnsWaterBottle) {
     const BlockState filledCauldron =
         VanillaBlocks::CAULDRON->defaultState().with(BlockStateProperties::LEVEL_0_3(), 2);
-    m_world.setBlock(0, 65, 3, &filledCauldron);
+    m_world.setBlockState(0, 65, 3, &filledCauldron);
 
     item::GlassBottleItem item(ItemProperties().maxStackSize(64));
     Player player(1, "BottleTester");

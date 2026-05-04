@@ -30,9 +30,9 @@ protected:
                 // 构建海底测试场景：y=40 为地面，y=41..62 为水层。
                 for (i32 x = 0; x < 16; ++x) {
                     for (i32 z = 0; z < 16; ++z) {
-                        chunk->setBlock(x, 40, z, &VanillaBlocks::SAND->defaultState());
+                        chunk->setBlockState(x, 40, z, &VanillaBlocks::SAND->defaultState());
                         for (i32 y = 41; y <= 62; ++y) {
-                            chunk->setBlock(x, y, z, &VanillaBlocks::WATER->defaultState());
+                            chunk->setBlockState(x, y, z, &VanillaBlocks::WATER->defaultState());
                         }
                     }
                 }
@@ -46,11 +46,11 @@ protected:
     }
 
     void setWorldBlock(i32 x, i32 y, i32 z, const BlockState* state) {
-        ASSERT_TRUE(m_region->setBlock(x, y, z, state));
+        ASSERT_TRUE(m_region->setBlockState(x, y, z, state));
     }
 
     [[nodiscard]] const BlockState* getWorldBlock(i32 x, i32 y, i32 z) const {
-        return m_region->getBlock(x, y, z);
+        return m_region->getBlockState(x, y, z);
     }
 
     std::array<IChunk*, 9> m_chunks{};

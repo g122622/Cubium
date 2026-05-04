@@ -121,7 +121,7 @@ void ChunkSection::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId) {
     m_needsRecalculate = true;
 }
 
-const BlockState* ChunkSection::getBlock(i32 x, i32 y, i32 z) const {
+const BlockState* ChunkSection::getBlockState(i32 x, i32 y, i32 z) const {
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return nullptr;
     }
@@ -151,7 +151,7 @@ void ChunkSection::rebuildTickCounters() {
     }
 }
 
-void ChunkSection::setBlock(i32 x, i32 y, i32 z, const BlockState* state) {
+void ChunkSection::setBlockState(i32 x, i32 y, i32 z, const BlockState* state) {
     u32 stateId = state ? state->stateId() : 0;
     setBlockStateId(x, y, z, stateId);
 }
@@ -287,7 +287,7 @@ ChunkData::ChunkData(ChunkCoord x, ChunkCoord z)
     initLightData();
 }
 
-const BlockState* ChunkData::getBlock(BlockCoord x, BlockCoord y, BlockCoord z) const {
+const BlockState* ChunkData::getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const {
     if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 || z >= world::CHUNK_WIDTH) {
         return nullptr;  // 空气
     }
@@ -300,10 +300,10 @@ const BlockState* ChunkData::getBlock(BlockCoord x, BlockCoord y, BlockCoord z) 
     }
 
     i32 localY = (y - world::MIN_BUILD_HEIGHT) % world::CHUNK_SECTION_HEIGHT;
-    return section->getBlock(x, localY, z);
+    return section->getBlockState(x, localY, z);
 }
 
-void ChunkData::setBlock(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) {
+void ChunkData::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) {
     if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 || z >= world::CHUNK_WIDTH) {
         return;
     }
@@ -319,7 +319,7 @@ void ChunkData::setBlock(BlockCoord x, BlockCoord y, BlockCoord z, const BlockSt
     }
 
     i32 localY = (y - world::MIN_BUILD_HEIGHT) % world::CHUNK_SECTION_HEIGHT;
-    section->setBlock(x, localY, z, state);
+    section->setBlockState(x, localY, z, state);
     m_dirty = true;
 
     // 更新高度图
@@ -422,7 +422,7 @@ BiomeId ChunkData::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) con
 void ChunkData::updateHeightMap(BlockCoord x, BlockCoord z) {
     // 从上向下查找最高的非空气方块
     for (BlockCoord y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
-        const BlockState* state = getBlock(x, y, z);
+        const BlockState* state = getBlockState(x, y, z);
         if (state && !state->isAir()) {
             m_heightMap[x * world::CHUNK_WIDTH + z] = y;
             return;

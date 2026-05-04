@@ -185,7 +185,7 @@ TEST_F(ServerWorldTest, SetBlock_CreatesChunk) {
     ASSERT_TRUE(world->initialize().success());
 
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
-    world->setBlock(0, 64, 0, stoneState);
+    world->setBlockState(0, 64, 0, stoneState);
 
     EXPECT_TRUE(world->hasChunk(0, 0));
 }
@@ -194,7 +194,7 @@ TEST_F(ServerWorldTest, SetBlock_GetBlock) {
     ASSERT_TRUE(world->initialize().success());
 
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
-    world->setBlock(10, 50, 20, stoneState);
+    world->setBlockState(10, 50, 20, stoneState);
 
     const BlockState* block = world->getBlockState(10, 50, 20);
     ASSERT_NE(block, nullptr);
@@ -211,7 +211,7 @@ TEST_F(ServerWorldTest, SetBlock_NegativeCoordinates) {
     ASSERT_TRUE(world->initialize().success());
 
     const BlockState* grassState = &VanillaBlocks::GRASS_BLOCK->defaultState();
-    world->setBlock(-10, 64, -20, grassState);
+    world->setBlockState(-10, 64, -20, grassState);
 
     const BlockState* block = world->getBlockState(-10, 64, -20);
     ASSERT_NE(block, nullptr);
@@ -225,9 +225,9 @@ TEST_F(ServerWorldTest, SetBlock_MultipleBlocks) {
     const BlockState* dirtState = &VanillaBlocks::DIRT->defaultState();
     const BlockState* grassState = &VanillaBlocks::GRASS_BLOCK->defaultState();
 
-    world->setBlock(0, 64, 0, stoneState);
-    world->setBlock(1, 64, 0, dirtState);
-    world->setBlock(0, 65, 0, grassState);
+    world->setBlockState(0, 64, 0, stoneState);
+    world->setBlockState(1, 64, 0, dirtState);
+    world->setBlockState(0, 65, 0, grassState);
 
     const BlockState* block0 = world->getBlockState(0, 64, 0);
     const BlockState* block1 = world->getBlockState(1, 64, 0);

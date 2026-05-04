@@ -56,7 +56,7 @@ public:
         if (pos.chunkX() != m_chunk->x() || pos.chunkZ() != m_chunk->z()) {
             return nullptr;
         }
-        return m_chunk->getBlock(pos.x & 0xF, pos.y, pos.z & 0xF);
+        return m_chunk->getBlockState(pos.x & 0xF, pos.y, pos.z & 0xF);
     }
 
     mc::IWorld* getWorld() override {
@@ -103,7 +103,7 @@ TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight) {
     mc::SkyStarLightEngine engine(&provider);
 
     const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
-    chunk.setBlock(8, 70, 8, stoneState);
+    chunk.setBlockState(8, 70, 8, stoneState);
 
     const mc::SectionPos sectionPos(0, 4, 0);
     engine.updateSectionStatus(sectionPos, false);
@@ -173,7 +173,7 @@ TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15) {
     // 在 section=4 顶层铺满石头，封闭下方空间。
     for (int z = 0; z < 16; ++z) {
         for (int x = 0; x < 16; ++x) {
-            chunk.setBlock(x, 79, z, stoneState);
+            chunk.setBlockState(x, 79, z, stoneState);
         }
     }
 
@@ -212,7 +212,7 @@ TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight) {
 
     for (int z = 0; z < 16; ++z) {
         for (int x = 0; x < 16; ++x) {
-            chunk.setBlock(x, 79, z, stoneState);
+            chunk.setBlockState(x, 79, z, stoneState);
         }
     }
 
@@ -233,7 +233,7 @@ TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight) {
     EXPECT_LT(before, static_cast<mc::u8>(15));
 
     // 打开一个洞
-    chunk.setBlock(8, 79, 8, airState);
+    chunk.setBlockState(8, 79, 8, airState);
 
     // 重新运行光照检查
     engine.light(&provider, &chunk, false);
@@ -252,7 +252,7 @@ TEST(SkyLightRegressionTest, CheckBlockMatchesCheckBlock) {
 
     mc::SkyStarLightEngine engine(&provider);
     const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
-    chunk.setBlock(8, 70, 8, stoneState);
+    chunk.setBlockState(8, 70, 8, stoneState);
 
     const mc::SectionPos sectionPos(0, 4, 0);
     engine.updateSectionStatus(sectionPos, false);

@@ -94,7 +94,7 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
                 // 设置为空气
                 Block* airBlock = Block::getBlock(ResourceLocation("minecraft:air"));
                 if (airBlock) {
-                    m_world.setBlock(pos, &airBlock->defaultState());
+                    m_world.setBlockState(pos, &airBlock->defaultState());
 
                     if (m_onBlockBreak) {
                         m_onBlockBreak(playerId, pos, *state);
@@ -322,7 +322,7 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(
     u32 newBlockStateId = airBlock ? airBlock->defaultState().stateId() : 0;
 
     if (airBlock) {
-        m_world.setBlock(pos, &airBlock->defaultState());
+        m_world.setBlockState(pos, &airBlock->defaultState());
 
         if (m_onBlockBreak) {
             m_onBlockBreak(playerId, pos, oldState);

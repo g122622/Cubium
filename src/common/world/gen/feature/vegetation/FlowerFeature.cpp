@@ -44,7 +44,7 @@ bool FlowerFeature::place(
         // 寻找有效的Y坐标
         for (i32 y = 128; y >= 1; --y) {
             BlockPos checkPos(placePos.x, y, placePos.z);
-            const BlockState* state = world.getBlock(checkPos);
+            const BlockState* state = world.getBlockState(checkPos);
 
             if (!state || state->isAir()) {
                 placePos = checkPos;
@@ -56,7 +56,7 @@ bool FlowerFeature::place(
         if (canPlaceAt(world, placePos, config)) {
             const BlockState* flower = config.getRandomFlower(random);
             if (flower) {
-                world.setBlock(placePos, flower);
+                world.setBlockState(placePos, flower);
                 ++placedCount;
             }
         }
@@ -70,7 +70,7 @@ bool FlowerFeature::canPlaceAt(
     const BlockPos& pos,
     const FlowerFeatureConfig& config) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (state && !state->isAir()) {
         return false;
     }
@@ -87,7 +87,7 @@ bool FlowerFeature::canPlaceAt(
         for (i32 dx = -4; dx <= 4; ++dx) {
             for (i32 dz = -4; dz <= 4; ++dz) {
                 BlockPos waterPos(pos.x + dx, pos.y - 1, pos.z + dz);
-                const BlockState* waterState = world.getBlock(waterPos);
+                const BlockState* waterState = world.getBlockState(waterPos);
                 if (waterState && waterState->blockId() == VanillaBlocks::WATER->blockId()) {
                     hasWater = true;
                     break;
@@ -103,7 +103,7 @@ bool FlowerFeature::canPlaceAt(
 
 bool FlowerFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) return false;
 
     u32 blockId = state->blockId();

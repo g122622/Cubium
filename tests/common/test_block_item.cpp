@@ -30,7 +30,7 @@ public:
     }
 
     // IWorld 接口实现 - 同时作为测试辅助方法
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
         m_blocks[key(x, y, z)] = state;
         return true;
     }
@@ -115,7 +115,7 @@ TEST_F(BlockItemTest, CreativeInventoryGetsRegisteredBlockItems) {
 
 TEST_F(BlockItemTest, PlacementContextUsesAdjacentPosForSolidBlock) {
     TestBlockReader world;
-    world.setBlock(0, 64, 0, &VanillaBlocks::STONE->defaultState());
+    world.setBlockState(0, 64, 0, &VanillaBlocks::STONE->defaultState());
 
     const BlockItem* stoneItem = BlockItemRegistry::instance().getBlockItem(VanillaBlocks::STONE->blockId());
     ASSERT_NE(stoneItem, nullptr);

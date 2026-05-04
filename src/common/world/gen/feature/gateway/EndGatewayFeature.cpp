@@ -60,7 +60,7 @@ bool EndGatewayFeature::canPlaceAt(
 
     for (i32 x = -1; x <= 1; ++x) {
         for (i32 z = -1; z <= 1; ++z) {
-            const BlockState* state = world.getBlock(pos.x + x, pos.y - 1, pos.z + z);
+            const BlockState* state = world.getBlockState(pos.x + x, pos.y - 1, pos.z + z);
             if (!state || state->isAir()) {
                 return false;
             }
@@ -92,7 +92,7 @@ void EndGatewayFeature::generateGateway(
     // 底层基岩平台 (5x5)
     for (i32 x = -2; x <= 2; ++x) {
         for (i32 z = -2; z <= 2; ++z) {
-            world.setBlock(pos.x + x, pos.y, pos.z + z, bedrock);
+            world.setBlockState(pos.x + x, pos.y, pos.z + z, bedrock);
         }
     }
 
@@ -100,27 +100,27 @@ void EndGatewayFeature::generateGateway(
     for (i32 y = 1; y <= 3; ++y) {
         // 边缘是基岩
         for (i32 x = -1; x <= 1; ++x) {
-            world.setBlock(pos.x + x, pos.y + y, pos.z - 1, bedrock);
-            world.setBlock(pos.x + x, pos.y + y, pos.z + 1, bedrock);
+            world.setBlockState(pos.x + x, pos.y + y, pos.z - 1, bedrock);
+            world.setBlockState(pos.x + x, pos.y + y, pos.z + 1, bedrock);
         }
         for (i32 z = -1; z <= 1; ++z) {
-            world.setBlock(pos.x - 1, pos.y + y, pos.z + z, bedrock);
-            world.setBlock(pos.x + 1, pos.y + y, pos.z + z, bedrock);
+            world.setBlockState(pos.x - 1, pos.y + y, pos.z + z, bedrock);
+            world.setBlockState(pos.x + 1, pos.y + y, pos.z + z, bedrock);
         }
     }
 
     // 中间是空气（除了折跃门方块位置）
     for (i32 y = 1; y <= 2; ++y) {
-        world.setBlock(pos.x, pos.y + y, pos.z, air);
+        world.setBlockState(pos.x, pos.y + y, pos.z, air);
     }
 
     // 折跃门方块（在中心，Y=3）
-    world.setBlock(pos.x, pos.y + 3, pos.z, endGateway);
+    world.setBlockState(pos.x, pos.y + 3, pos.z, endGateway);
 
     // 顶层基岩覆盖 (3x3)
     for (i32 x = -1; x <= 1; ++x) {
         for (i32 z = -1; z <= 1; ++z) {
-            world.setBlock(pos.x + x, pos.y + 4, pos.z + z, bedrock);
+            world.setBlockState(pos.x + x, pos.y + 4, pos.z + z, bedrock);
         }
     }
 }

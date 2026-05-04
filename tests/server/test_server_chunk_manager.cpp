@@ -350,7 +350,7 @@ TEST_F(ServerChunkManagerTest, GeneratedChunkHasBlocks) {
     for (int y = 0; y < world::CHUNK_HEIGHT && !hasNonAirBlocks; ++y) {
         for (int z = 0; z < 16 && !hasNonAirBlocks; ++z) {
             for (int x = 0; x < 16; ++x) {
-                const BlockState* state = chunk->getBlock(x, y, z);
+                const BlockState* state = chunk->getBlockState(x, y, z);
                 if (state && !state->isAir()) {
                     hasNonAirBlocks = true;
                     break;

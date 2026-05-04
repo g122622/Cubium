@@ -85,7 +85,7 @@ TEST_F(ServerWorldCollisionTest, HasBlockCollisionWithGround) {
     i32 groundY = 0;
 
     for (i32 y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {
-        const BlockState* state = chunk->getBlock(8, y, 8);
+        const BlockState* state = chunk->getBlockState(8, y, 8);
         if (state && !state->isAir()) {
             groundY = y;
             foundGround = true;
@@ -197,7 +197,7 @@ TEST_F(ServerWorldCollisionTest, PhysicsEngineIsOnGround) {
     i32 groundY = 0;
 
     for (i32 y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {
-        const BlockState* state = chunk->getBlock(8, y, 8);
+        const BlockState* state = chunk->getBlockState(8, y, 8);
         if (state && !state->isAir()) {
             groundY = y;
             foundGround = true;

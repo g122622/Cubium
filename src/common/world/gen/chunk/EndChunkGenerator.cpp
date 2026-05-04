@@ -443,7 +443,7 @@ void EndChunkGenerator::generateMainIsland(ChunkPrimer& chunk) {
                         );
 
                         if (globalY < height - 5 || noise > -0.3f) {
-                            section->setBlock(lx, ly, lz, endStone);
+                            section->setBlockState(lx, ly, lz, endStone);
                         }
                     }
                 }
@@ -493,7 +493,7 @@ void EndChunkGenerator::generateOuterIslands(ChunkPrimer& chunk) {
                     const i32 globalY = worldY + ly;
 
                     if (globalY >= bottomY && globalY <= topY) {
-                        section->setBlock(lx, ly, lz, endStone);
+                        section->setBlockState(lx, ly, lz, endStone);
                     }
                 }
             }
@@ -553,9 +553,9 @@ void EndChunkGenerator::generateObsidianPillars(ChunkPrimer& chunk) {
                             if (globalY <= pillarHeight) {
                                 // 顶部是基岩（用于水晶）
                                 if (globalY == pillarHeight) {
-                                    section->setBlock(lx, ly, lz, bedrock);
+                                    section->setBlockState(lx, ly, lz, bedrock);
                                 } else {
-                                    section->setBlock(lx, ly, lz, obsidian);
+                                    section->setBlockState(lx, ly, lz, obsidian);
                                 }
                             }
                         }

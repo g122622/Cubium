@@ -157,12 +157,12 @@ void DebugChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
             i32 worldZ = (chunkZ << 4) + localZ;
 
             // Y=60: 屏障基座
-            region.setBlock(worldX, 60, worldZ, s_barrierState);
+            region.setBlockState(worldX, 60, worldZ, s_barrierState);
 
             // Y=70: 方块状态网格
             const BlockState* state = getBlockStateFor(worldX, worldZ);
             if (state && !state->isAir()) {
-                region.setBlock(worldX, 70, worldZ, state);
+                region.setBlockState(worldX, 70, worldZ, state);
             }
         }
     }

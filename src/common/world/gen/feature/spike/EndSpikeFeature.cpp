@@ -105,7 +105,7 @@ bool EndSpikeFeature::place(
                     for (i32 z = -spike.radius; z <= spike.radius; ++z) {
                         // 圆形截面
                         if (x * x + z * z <= spike.radius * spike.radius) {
-                            world.setBlock(
+                            world.setBlockState(
                                 pos.x + spike.centerX + x,
                                 y,
                                 pos.z + spike.centerZ + z,
@@ -136,7 +136,7 @@ bool EndSpikeFeature::canPlaceAt(
     const BlockPos& pos) const
 {
     // 检查位置是否在末地石上
-    const BlockState* state = world.getBlock(pos.x, pos.y - 1, pos.z);
+    const BlockState* state = world.getBlockState(pos.x, pos.y - 1, pos.z);
     return state && &state->getBlock() == VanillaBlocks::END_STONE;
 }
 
@@ -161,7 +161,7 @@ void EndSpikeFeature::generateSpike(
                 // 检查是否在圆形范围内
                 i32 distSq = x * x + z * z;
                 if (distSq <= radius * radius) {
-                    world.setBlock(baseX + x, y, baseZ + z, obsidian);
+                    world.setBlockState(baseX + x, y, baseZ + z, obsidian);
                 }
             }
         }
@@ -199,7 +199,7 @@ void EndSpikeFeature::generateCage(
 
                 // 边缘栏杆
                 if (isEdge) {
-                    world.setBlock(topPos.x + x, topPos.y + y, topPos.z + z, cageBlock);
+                    world.setBlockState(topPos.x + x, topPos.y + y, topPos.z + z, cageBlock);
                 }
             }
         }
@@ -210,7 +210,7 @@ void EndSpikeFeature::generateCage(
         for (i32 z = -cageRadius; z <= cageRadius; ++z) {
             i32 distSq = x * x + z * z;
             if (distSq <= cageRadius * cageRadius) {
-                world.setBlock(topPos.x + x, topPos.y + cageHeight, topPos.z + z, cageBlock);
+                world.setBlockState(topPos.x + x, topPos.y + cageHeight, topPos.z + z, cageBlock);
             }
         }
     }

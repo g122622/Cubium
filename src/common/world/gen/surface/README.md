@@ -134,11 +134,11 @@ for (i32 y = startHeight; y >= 0; --y) {
     if (currentState->blockId() == defaultBlock->blockId()) {
         if (currentDepth == -1) {
             // 到达地表，放置表层
-            chunk.setBlock(x, y, z, topBlock);
+            chunk.setBlockState(x, y, z, topBlock);
             currentDepth = depth;
         } else if (currentDepth > 0) {
             // 放置次层
-            chunk.setBlock(x, y, z, underBlock);
+            chunk.setBlockState(x, y, z, underBlock);
             --currentDepth;
         }
     }
@@ -364,7 +364,7 @@ TEST_F(DefaultSurfaceBuilderTest, BuildSurfaceBasic) {
     for (int y = 0; y < 64; ++y) {
         for (int x = 0; x < 16; ++x) {
             for (int z = 0; z < 16; ++z) {
-                chunk->setBlock(x, y, z, stone);
+                chunk->setBlockState(x, y, z, stone);
             }
         }
     }
@@ -374,8 +374,8 @@ TEST_F(DefaultSurfaceBuilderTest, BuildSurfaceBasic) {
     builder->buildSurface(*random, *chunk, biome, 8, 8, 63, 0.5, stone, water, 63, config);
 
     // 验证结果
-    EXPECT_TRUE(chunk->getBlock(8, 63, 8)->is(VanillaBlocks::GRASS_BLOCK));  // 表层
-    EXPECT_TRUE(chunk->getBlock(8, 62, 8)->is(VanillaBlocks::DIRT));         // 次层
+    EXPECT_TRUE(chunk->getBlockState(8, 63, 8)->is(VanillaBlocks::GRASS_BLOCK));  // 表层
+    EXPECT_TRUE(chunk->getBlockState(8, 62, 8)->is(VanillaBlocks::DIRT));         // 次层
 }
 ```
 

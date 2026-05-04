@@ -85,7 +85,7 @@ void DesertPyramidStructure::generatePyramid(
     // 生成基础平台
     for (i32 x = 0; x < size; ++x) {
         for (i32 z = 0; z < size; ++z) {
-            world.setBlock(baseX + x, baseY, baseZ + z, sandstone, 18);
+            world.setBlockState(baseX + x, baseY, baseZ + z, sandstone, 18);
         }
     }
 
@@ -98,7 +98,7 @@ void DesertPyramidStructure::generatePyramid(
             for (i32 z = 0; z < layerSize; ++z) {
                 // 只生成边缘
                 if (x == 0 || x == layerSize - 1 || z == 0 || z == layerSize - 1) {
-                    world.setBlock(baseX + offset + x, baseY + layer, baseZ + offset + z, sandstone, 18);
+                    world.setBlockState(baseX + offset + x, baseY + layer, baseZ + offset + z, sandstone, 18);
                 }
             }
         }
@@ -117,13 +117,13 @@ void DesertPyramidStructure::generatePyramid(
                         // 内部空心
                         continue;
                     }
-                    world.setBlock(baseX + tx + x, baseY + y, baseZ + tz + z, sandstone, 18);
+                    world.setBlockState(baseX + tx + x, baseY + y, baseZ + tz + z, sandstone, 18);
                 }
             }
         }
 
         // 塔顶装饰
-        world.setBlock(baseX + tx + 1, baseY + 7, baseZ + tz + 1, chiseledSandstone, 18);
+        world.setBlockState(baseX + tx + 1, baseY + 7, baseZ + tz + 1, chiseledSandstone, 18);
     }
 
     // 生成入口（南面中央）
@@ -132,9 +132,9 @@ void DesertPyramidStructure::generatePyramid(
 
     // 入口台阶
     for (i32 step = 0; step < 3; ++step) {
-        world.setBlock(baseX + entranceX - 1, baseY + step, baseZ + entranceZ + step + 1, sandstone, 18);
-        world.setBlock(baseX + entranceX, baseY + step, baseZ + entranceZ + step + 1, sandstone, 18);
-        world.setBlock(baseX + entranceX + 1, baseY + step, baseZ + entranceZ + step + 1, sandstone, 18);
+        world.setBlockState(baseX + entranceX - 1, baseY + step, baseZ + entranceZ + step + 1, sandstone, 18);
+        world.setBlockState(baseX + entranceX, baseY + step, baseZ + entranceZ + step + 1, sandstone, 18);
+        world.setBlockState(baseX + entranceX + 1, baseY + step, baseZ + entranceZ + step + 1, sandstone, 18);
     }
 
     // 生成地下宝藏室
@@ -145,26 +145,26 @@ void DesertPyramidStructure::generatePyramid(
     // 宝藏室地板
     for (i32 x = 0; x < 7; ++x) {
         for (i32 z = 0; z < 7; ++z) {
-            world.setBlock(chamberX + x, chamberY, chamberZ + z, sandstone, 18);
+            world.setBlockState(chamberX + x, chamberY, chamberZ + z, sandstone, 18);
         }
     }
 
     // 宝藏室墙壁
     for (i32 y = 1; y <= 4; ++y) {
         for (i32 x = 0; x < 7; ++x) {
-            world.setBlock(chamberX + x, chamberY + y, chamberZ, sandstone, 18);
-            world.setBlock(chamberX + x, chamberY + y, chamberZ + 6, sandstone, 18);
+            world.setBlockState(chamberX + x, chamberY + y, chamberZ, sandstone, 18);
+            world.setBlockState(chamberX + x, chamberY + y, chamberZ + 6, sandstone, 18);
         }
         for (i32 z = 0; z < 7; ++z) {
-            world.setBlock(chamberX, chamberY + y, chamberZ + z, sandstone, 18);
-            world.setBlock(chamberX + 6, chamberY + y, chamberZ + z, sandstone, 18);
+            world.setBlockState(chamberX, chamberY + y, chamberZ + z, sandstone, 18);
+            world.setBlockState(chamberX + 6, chamberY + y, chamberZ + z, sandstone, 18);
         }
     }
 
     // 宝藏室天花板
     for (i32 x = 0; x < 7; ++x) {
         for (i32 z = 0; z < 7; ++z) {
-            world.setBlock(chamberX + x, chamberY + 5, chamberZ + z, sandstone, 18);
+            world.setBlockState(chamberX + x, chamberY + 5, chamberZ + z, sandstone, 18);
         }
     }
 
@@ -176,11 +176,11 @@ void DesertPyramidStructure::generatePyramid(
 
         // TNT（使用 TNT 方块）
         if (tnt) {
-            world.setBlock(trapX, chamberY + 1, trapZ, tnt, 18);
+            world.setBlockState(trapX, chamberY + 1, trapZ, tnt, 18);
         }
         // 压力板（使用金块作为占位符，压力板方块尚未实现）
         if (goldBlock) {
-            world.setBlock(trapX, chamberY + 2, trapZ, goldBlock, 18);
+            world.setBlockState(trapX, chamberY + 2, trapZ, goldBlock, 18);
         }
     }
 
@@ -189,7 +189,7 @@ void DesertPyramidStructure::generatePyramid(
         i32 chestX = chamberX + 3;
         i32 chestZ = chamberZ + 3;
         if (goldBlock) {
-            world.setBlock(chestX, chamberY + 1, chestZ, goldBlock, 18);
+            world.setBlockState(chestX, chamberY + 1, chestZ, goldBlock, 18);
         }
     }
 }

@@ -571,7 +571,7 @@ void MinecraftServer::setupWorldCallbacks()
             // 发送方块更新给所有追踪该区块的玩家
             if (m_chunkSendManager) {
                 // 广播方块更新给所有玩家（他们会收到区块更新）
-                // 注意：方块更新已经通过 m_world.setBlock 触发
+                // 注意：方块更新已经通过 m_world.setBlockState 触发
             }
         });
 

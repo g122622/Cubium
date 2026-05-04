@@ -119,19 +119,19 @@ void FortressStructure::generateFallbackFortress(
     for (i32 z = 0; z < 19; ++z) {
         // 桥面
         for (i32 x = 0; x < 5; ++x) {
-            world.setBlock(baseX + x, baseY, baseZ + z, netherBricks, 18);
+            world.setBlockState(baseX + x, baseY, baseZ + z, netherBricks, 18);
         }
         // 围栏
-        world.setBlock(baseX, baseY + 1, baseZ + z, netherBricks, 18);
-        world.setBlock(baseX + 4, baseY + 1, baseZ + z, netherBricks, 18);
-        world.setBlock(baseX, baseY + 2, baseZ + z, netherBricks, 18);
-        world.setBlock(baseX + 4, baseY + 2, baseZ + z, netherBricks, 18);
+        world.setBlockState(baseX, baseY + 1, baseZ + z, netherBricks, 18);
+        world.setBlockState(baseX + 4, baseY + 1, baseZ + z, netherBricks, 18);
+        world.setBlockState(baseX, baseY + 2, baseZ + z, netherBricks, 18);
+        world.setBlockState(baseX + 4, baseY + 2, baseZ + z, netherBricks, 18);
 
         // 中间是空气
         for (i32 y = 1; y <= 8; ++y) {
-            world.setBlock(baseX + 1, baseY + y, baseZ + z, air, 18);
-            world.setBlock(baseX + 2, baseY + y, baseZ + z, air, 18);
-            world.setBlock(baseX + 3, baseY + y, baseZ + z, air, 18);
+            world.setBlockState(baseX + 1, baseY + y, baseZ + z, air, 18);
+            world.setBlockState(baseX + 2, baseY + y, baseZ + z, air, 18);
+            world.setBlockState(baseX + 3, baseY + y, baseZ + z, air, 18);
         }
     }
 
@@ -144,32 +144,32 @@ void FortressStructure::generateFallbackFortress(
     // 地板
     for (i32 x = 0; x < 7; ++x) {
         for (i32 z = 0; z < 9; ++z) {
-            world.setBlock(throneX + x, throneY, throneZ + z, netherBricks, 18);
+            world.setBlockState(throneX + x, throneY, throneZ + z, netherBricks, 18);
         }
     }
 
     // 墙壁
     for (i32 y = 1; y <= 7; ++y) {
         for (i32 x = 0; x < 7; ++x) {
-            world.setBlock(throneX + x, throneY + y, throneZ, netherBricks, 18);
-            world.setBlock(throneX + x, throneY + y, throneZ + 8, netherBricks, 18);
+            world.setBlockState(throneX + x, throneY + y, throneZ, netherBricks, 18);
+            world.setBlockState(throneX + x, throneY + y, throneZ + 8, netherBricks, 18);
         }
         for (i32 z = 0; z < 9; ++z) {
-            world.setBlock(throneX, throneY + y, throneZ + z, netherBricks, 18);
-            world.setBlock(throneX + 6, throneY + y, throneZ + z, netherBricks, 18);
+            world.setBlockState(throneX, throneY + y, throneZ + z, netherBricks, 18);
+            world.setBlockState(throneX + 6, throneY + y, throneZ + z, netherBricks, 18);
         }
     }
 
     // 天花板
     for (i32 x = 0; x < 7; ++x) {
         for (i32 z = 0; z < 9; ++z) {
-            world.setBlock(throneX + x, throneY + 8, throneZ + z, netherBricks, 18);
+            world.setBlockState(throneX + x, throneY + 8, throneZ + z, netherBricks, 18);
         }
     }
 
     // 烈焰人刷怪点标记（中心偏移）
     BlockPos spawnerPos(throneX + 3, throneY + 5, throneZ + 4);
-    world.setBlock(
+    world.setBlockState(
         spawnerPos.x,
         spawnerPos.y,
         spawnerPos.z,
@@ -185,26 +185,26 @@ void FortressStructure::generateFallbackFortress(
     // 地板（灵魂沙）
     for (i32 x = 0; x < 13; ++x) {
         for (i32 z = 0; z < 13; ++z) {
-            world.setBlock(wartRoomX + x, wartRoomY, wartRoomZ + z, soulSand, 18);
+            world.setBlockState(wartRoomX + x, wartRoomY, wartRoomZ + z, soulSand, 18);
         }
     }
 
     // 墙壁
     for (i32 y = 1; y <= 13; ++y) {
         for (i32 x = 0; x < 13; ++x) {
-            world.setBlock(wartRoomX + x, wartRoomY + y, wartRoomZ, netherBricks, 18);
-            world.setBlock(wartRoomX + x, wartRoomY + y, wartRoomZ + 12, netherBricks, 18);
+            world.setBlockState(wartRoomX + x, wartRoomY + y, wartRoomZ, netherBricks, 18);
+            world.setBlockState(wartRoomX + x, wartRoomY + y, wartRoomZ + 12, netherBricks, 18);
         }
         for (i32 z = 0; z < 13; ++z) {
-            world.setBlock(wartRoomX, wartRoomY + y, wartRoomZ + z, netherBricks, 18);
-            world.setBlock(wartRoomX + 12, wartRoomY + y, wartRoomZ + z, netherBricks, 18);
+            world.setBlockState(wartRoomX, wartRoomY + y, wartRoomZ + z, netherBricks, 18);
+            world.setBlockState(wartRoomX + 12, wartRoomY + y, wartRoomZ + z, netherBricks, 18);
         }
     }
 
     // 天花板
     for (i32 x = 0; x < 13; ++x) {
         for (i32 z = 0; z < 13; ++z) {
-            world.setBlock(wartRoomX + x, wartRoomY + 14, wartRoomZ + z, netherBricks, 18);
+            world.setBlockState(wartRoomX + x, wartRoomY + 14, wartRoomZ + z, netherBricks, 18);
         }
     }
 
@@ -213,14 +213,14 @@ void FortressStructure::generateFallbackFortress(
     for (i32 x = 3; x <= 4; ++x) {
         for (i32 z = 4; z <= 8; ++z) {
             if (netherWart) {
-                world.setBlock(wartRoomX + x, wartRoomY + 1, wartRoomZ + z, netherWart, 18);
+                world.setBlockState(wartRoomX + x, wartRoomY + 1, wartRoomZ + z, netherWart, 18);
             }
         }
     }
     for (i32 x = 8; x <= 9; ++x) {
         for (i32 z = 4; z <= 8; ++z) {
             if (netherWart) {
-                world.setBlock(wartRoomX + x, wartRoomY + 1, wartRoomZ + z, netherWart, 18);
+                world.setBlockState(wartRoomX + x, wartRoomY + 1, wartRoomZ + z, netherWart, 18);
             }
         }
     }
@@ -234,7 +234,7 @@ void FortressStructure::generateFallbackFortress(
     // 简化入口：岩浆坑
     for (i32 x = 0; x < 5; ++x) {
         for (i32 z = 0; z < 5; ++z) {
-            world.setBlock(entranceX + x, entranceY - 1, entranceZ + z, lava, 18);
+            world.setBlockState(entranceX + x, entranceY - 1, entranceZ + z, lava, 18);
         }
     }
 }

@@ -47,11 +47,11 @@ bool LakeFeature::place(IWorldWriter& world, math::Random& rng, i32 x, i32 y, i3
 
                 if (dist <= 1.0f) {
                     // 内部填充流体
-                    world.setBlock(x + dx, y + dy, z + dz, m_config.fluidState);
+                    world.setBlockState(x + dx, y + dy, z + dz, m_config.fluidState);
                 } else if (dist <= 1.25f && dy <= 0) {
                     // 边界区域
                     if (m_config.borderState) {
-                        world.setBlock(x + dx, y + dy, z + dz, m_config.borderState);
+                        world.setBlockState(x + dx, y + dy, z + dz, m_config.borderState);
                     }
                 }
             }
@@ -70,7 +70,7 @@ bool LakeFeature::place(IWorldWriter& world, math::Random& rng, i32 x, i32 y, i3
                        static_cast<f32>(dz * dz) / static_cast<f32>(RADIUS_Z * RADIUS_Z);
 
             if (dist <= 1.25f) {
-                world.setBlock(x + dx, y + dy - 1, z + dz, m_config.borderState);
+                world.setBlockState(x + dx, y + dy - 1, z + dz, m_config.borderState);
             }
         }
     }
@@ -105,7 +105,7 @@ bool LakeFeature::canPlaceAt(IWorldWriter& world, i32 x, i32 y, i32 z) const {
                 }
 
                 ++sampleCount;
-                const BlockState* state = region->getBlock(x + dx, y + dy, z + dz);
+                const BlockState* state = region->getBlockState(x + dx, y + dy, z + dz);
                 if (state && (state->isSolid() || state->isLiquid())) {
                     ++solidCount;
                 }

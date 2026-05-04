@@ -156,7 +156,7 @@ void OceanMonumentStructure::generateMonument(
     // ========================================================================
     for (i32 x = 0; x < width; ++x) {
         for (i32 z = 0; z < depth; ++z) {
-            world.setBlock(baseX + x, baseY, baseZ + z, prismarine, 18);
+            world.setBlockState(baseX + x, baseY, baseZ + z, prismarine, 18);
         }
     }
 
@@ -166,12 +166,12 @@ void OceanMonumentStructure::generateMonument(
     i32 wallHeight = 10;
     for (i32 y = 1; y <= wallHeight; ++y) {
         for (i32 x = 0; x < width; ++x) {
-            world.setBlock(baseX + x, baseY + y, baseZ, randomPrismarine(), 18);
-            world.setBlock(baseX + x, baseY + y, baseZ + depth - 1, randomPrismarine(), 18);
+            world.setBlockState(baseX + x, baseY + y, baseZ, randomPrismarine(), 18);
+            world.setBlockState(baseX + x, baseY + y, baseZ + depth - 1, randomPrismarine(), 18);
         }
         for (i32 z = 0; z < depth; ++z) {
-            world.setBlock(baseX, baseY + y, baseZ + z, randomPrismarine(), 18);
-            world.setBlock(baseX + width - 1, baseY + y, baseZ + z, randomPrismarine(), 18);
+            world.setBlockState(baseX, baseY + y, baseZ + z, randomPrismarine(), 18);
+            world.setBlockState(baseX + width - 1, baseY + y, baseZ + z, randomPrismarine(), 18);
         }
     }
 
@@ -190,7 +190,7 @@ void OceanMonumentStructure::generateMonument(
                     i32 px = tx + dx;
                     i32 pz = tz + dz;
                     if (px >= 0 && px < width && pz >= 0 && pz < depth) {
-                        world.setBlock(baseX + px, baseY + y, baseZ + pz, prismarineBricks, 18);
+                        world.setBlockState(baseX + px, baseY + y, baseZ + pz, prismarineBricks, 18);
                     }
                 }
             }
@@ -204,7 +204,7 @@ void OceanMonumentStructure::generateMonument(
                     i32 pz = tz + dz;
                     if (corner % 2 == 1) px = tx - 1 + dx;
                     if (corner >= 2) pz = tz - 1 + dz;
-                    world.setBlock(baseX + px, baseY + y, baseZ + pz, prismarineBricks, 18);
+                    world.setBlockState(baseX + px, baseY + y, baseZ + pz, prismarineBricks, 18);
                 }
             }
         }
@@ -213,7 +213,7 @@ void OceanMonumentStructure::generateMonument(
         i32 tipY = height;
         i32 tipX = (corner % 2 == 0) ? tx : tx - 1;
         i32 tipZ = (corner < 2) ? tz : tz - 1;
-        world.setBlock(baseX + tipX, baseY + tipY, baseZ + tipZ, seaLantern, 18);
+        world.setBlockState(baseX + tipX, baseY + tipY, baseZ + tipZ, seaLantern, 18);
     }
 
     // ========================================================================
@@ -229,12 +229,12 @@ void OceanMonumentStructure::generateMonument(
     // 主体墙壁
     for (i32 y = 1; y <= wallHeight + 5; ++y) {
         for (i32 x = mainX; x < mainX + mainWidth; ++x) {
-            world.setBlock(baseX + x, baseY + y, baseZ + mainZ, prismarineBricks, 18);
-            world.setBlock(baseX + x, baseY + y, baseZ + mainZ + mainDepth - 1, prismarineBricks, 18);
+            world.setBlockState(baseX + x, baseY + y, baseZ + mainZ, prismarineBricks, 18);
+            world.setBlockState(baseX + x, baseY + y, baseZ + mainZ + mainDepth - 1, prismarineBricks, 18);
         }
         for (i32 z = mainZ; z < mainZ + mainDepth; ++z) {
-            world.setBlock(baseX + mainX, baseY + y, baseZ + z, prismarineBricks, 18);
-            world.setBlock(baseX + mainX + mainWidth - 1, baseY + y, baseZ + z, prismarineBricks, 18);
+            world.setBlockState(baseX + mainX, baseY + y, baseZ + z, prismarineBricks, 18);
+            world.setBlockState(baseX + mainX + mainWidth - 1, baseY + y, baseZ + z, prismarineBricks, 18);
         }
     }
 
@@ -247,7 +247,7 @@ void OceanMonumentStructure::generateMonument(
     i32 spongeRoomY = baseY + wallHeight + 6;
     for (i32 x = mainX + 2; x < mainX + mainWidth - 2; ++x) {
         for (i32 z = mainZ + 2; z < mainZ + mainDepth - 2; ++z) {
-            world.setBlock(baseX + x, spongeRoomY, baseZ + z, prismarineBricks, 18);
+            world.setBlockState(baseX + x, spongeRoomY, baseZ + z, prismarineBricks, 18);
         }
     }
 
@@ -256,14 +256,14 @@ void OceanMonumentStructure::generateMonument(
         for (i32 z = mainZ + 4; z < mainZ + mainDepth - 4; ++z) {
             // 随机放置海绵
             if (rng.nextInt(100) < 60) {
-                world.setBlock(baseX + x, spongeRoomY + 1, baseZ + z,
+                world.setBlockState(baseX + x, spongeRoomY + 1, baseZ + z,
                     rng.nextInt(100) < 50 ? sponge : wetSponge, 18);
             }
         }
     }
 
     // 金块（中心）
-    world.setBlock(baseX + centerX, spongeRoomY + 1, baseZ + centerZ, goldBlock, 18);
+    world.setBlockState(baseX + centerX, spongeRoomY + 1, baseZ + centerZ, goldBlock, 18);
 
     // ========================================================================
     // 生成左右翼楼
@@ -290,28 +290,28 @@ void OceanMonumentStructure::generateMonument(
     // 顶部平台
     for (i32 x = mainX - 2; x < mainX + mainWidth + 2; ++x) {
         for (i32 z = mainZ - 2; z < mainZ + mainDepth + 2; ++z) {
-            world.setBlock(baseX + x, topY, baseZ + z, darkPrismarine, 18);
+            world.setBlockState(baseX + x, topY, baseZ + z, darkPrismarine, 18);
         }
     }
 
     // 顶部中央结构
     for (i32 y = topY + 1; y < topY + 5; ++y) {
         for (i32 x = mainX + 2; x < mainX + mainWidth - 2; ++x) {
-            world.setBlock(baseX + x, y, baseZ + mainZ + 2, prismarineBricks, 18);
-            world.setBlock(baseX + x, y, baseZ + mainZ + mainDepth - 3, prismarineBricks, 18);
+            world.setBlockState(baseX + x, y, baseZ + mainZ + 2, prismarineBricks, 18);
+            world.setBlockState(baseX + x, y, baseZ + mainZ + mainDepth - 3, prismarineBricks, 18);
         }
         for (i32 z = mainZ + 2; z < mainZ + mainDepth - 2; ++z) {
-            world.setBlock(baseX + mainX + 2, y, baseZ + z, prismarineBricks, 18);
-            world.setBlock(baseX + mainX + mainWidth - 3, y, baseZ + z, prismarineBricks, 18);
+            world.setBlockState(baseX + mainX + 2, y, baseZ + z, prismarineBricks, 18);
+            world.setBlockState(baseX + mainX + mainWidth - 3, y, baseZ + z, prismarineBricks, 18);
         }
     }
 
     // 顶部海晶灯装饰
-    world.setBlock(baseX + centerX, topY + 5, baseZ + centerZ, seaLantern, 18);
-    world.setBlock(baseX + centerX - 2, topY + 3, baseZ + centerZ, seaLantern, 18);
-    world.setBlock(baseX + centerX + 2, topY + 3, baseZ + centerZ, seaLantern, 18);
-    world.setBlock(baseX + centerX, topY + 3, baseZ + centerZ - 2, seaLantern, 18);
-    world.setBlock(baseX + centerX, topY + 3, baseZ + centerZ + 2, seaLantern, 18);
+    world.setBlockState(baseX + centerX, topY + 5, baseZ + centerZ, seaLantern, 18);
+    world.setBlockState(baseX + centerX - 2, topY + 3, baseZ + centerZ, seaLantern, 18);
+    world.setBlockState(baseX + centerX + 2, topY + 3, baseZ + centerZ, seaLantern, 18);
+    world.setBlockState(baseX + centerX, topY + 3, baseZ + centerZ - 2, seaLantern, 18);
+    world.setBlockState(baseX + centerX, topY + 3, baseZ + centerZ + 2, seaLantern, 18);
 
     // ========================================================================
     // 添加海晶灯装饰
@@ -324,9 +324,9 @@ void OceanMonumentStructure::generateMonument(
 
         // 选择最近的墙
         if (lx < width / 2) {
-            world.setBlock(baseX + 1, baseY + ly, baseZ + lz, seaLantern, 18);
+            world.setBlockState(baseX + 1, baseY + ly, baseZ + lz, seaLantern, 18);
         } else {
-            world.setBlock(baseX + width - 2, baseY + ly, baseZ + lz, seaLantern, 18);
+            world.setBlockState(baseX + width - 2, baseY + ly, baseZ + lz, seaLantern, 18);
         }
     }
 }
@@ -343,19 +343,19 @@ void OceanMonumentStructure::generateWing(
     // 翼楼墙壁
     for (i32 y = 0; y < height; ++y) {
         for (i32 x = 0; x < width; ++x) {
-            world.setBlock(baseX + x, baseY + y, baseZ, prismarine, 18);
-            world.setBlock(baseX + x, baseY + y, baseZ + depth - 1, prismarine, 18);
+            world.setBlockState(baseX + x, baseY + y, baseZ, prismarine, 18);
+            world.setBlockState(baseX + x, baseY + y, baseZ + depth - 1, prismarine, 18);
         }
         for (i32 z = 0; z < depth; ++z) {
-            world.setBlock(baseX, baseY + y, baseZ + z, prismarine, 18);
-            world.setBlock(baseX + width - 1, baseY + y, baseZ + z, prismarine, 18);
+            world.setBlockState(baseX, baseY + y, baseZ + z, prismarine, 18);
+            world.setBlockState(baseX + width - 1, baseY + y, baseZ + z, prismarine, 18);
         }
     }
 
     // 翼楼地板
     for (i32 x = 1; x < width - 1; ++x) {
         for (i32 z = 1; z < depth - 1; ++z) {
-            world.setBlock(baseX + x, baseY, baseZ + z, darkPrismarine, 18);
+            world.setBlockState(baseX + x, baseY, baseZ + z, darkPrismarine, 18);
         }
     }
 
@@ -364,9 +364,9 @@ void OceanMonumentStructure::generateWing(
 
     // 海晶灯装饰
     i32 midZ = depth / 2;
-    world.setBlock(baseX + width / 2, baseY + height / 2, baseZ + midZ, seaLantern, 18);
-    world.setBlock(baseX + width / 2, baseY + height / 2, baseZ + midZ + 5, seaLantern, 18);
-    world.setBlock(baseX + width / 2, baseY + height / 2, baseZ + midZ - 5, seaLantern, 18);
+    world.setBlockState(baseX + width / 2, baseY + height / 2, baseZ + midZ, seaLantern, 18);
+    world.setBlockState(baseX + width / 2, baseY + height / 2, baseZ + midZ + 5, seaLantern, 18);
+    world.setBlockState(baseX + width / 2, baseY + height / 2, baseZ + midZ - 5, seaLantern, 18);
 }
 
 void OceanMonumentStructure::generateRoom(
@@ -383,7 +383,7 @@ void OceanMonumentStructure::generateRoom(
     i32 centerX = width / 2;
     i32 centerZ = depth / 2;
     for (i32 y = 0; y < height; ++y) {
-        world.setBlock(baseX + centerX, baseY + y, baseZ + centerZ, prismarine, 18);
+        world.setBlockState(baseX + centerX, baseY + y, baseZ + centerZ, prismarine, 18);
     }
 
     // 角落柱子
@@ -391,13 +391,13 @@ void OceanMonumentStructure::generateRoom(
         i32 cx = (corner % 2 == 0) ? 1 : width - 2;
         i32 cz = (corner < 2) ? 1 : depth - 2;
         for (i32 y = 0; y < height; ++y) {
-            world.setBlock(baseX + cx, baseY + y, baseZ + cz, prismarine, 18);
+            world.setBlockState(baseX + cx, baseY + y, baseZ + cz, prismarine, 18);
         }
     }
 
     // 海晶灯装饰
-    world.setBlock(baseX + centerX, baseY + height - 1, baseZ + centerZ, seaLantern, 18);
-    world.setBlock(baseX + centerX, baseY + 1, baseZ + centerZ, seaLantern, 18);
+    world.setBlockState(baseX + centerX, baseY + height - 1, baseZ + centerZ, seaLantern, 18);
+    world.setBlockState(baseX + centerX, baseY + 1, baseZ + centerZ, seaLantern, 18);
 }
 
 } // namespace structure

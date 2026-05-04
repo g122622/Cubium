@@ -101,7 +101,7 @@ void CauldronBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
                 // 约 1/20 概率在雨天填充（每个随机tick）
                 if (random.nextFloat() < 0.05f) {
                     BlockState newState = currentState->with(BlockStateProperties::LEVEL_0_3(), level + 1);
-                    world.setBlock(pos, &newState);
+                    world.setBlockState(pos, &newState);
                 }
             }
         }

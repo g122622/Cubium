@@ -507,7 +507,7 @@ TEST_F(ChunkMesherTest, GenerateEmptyChunk) {
 
 TEST_F(ChunkMesherTest, GenerateSingleBlockWithoutModelCache) {
     // 放置一个方块
-    testChunk->setBlock(8, 64, 8, &VanillaBlocks::STONE->defaultState());
+    testChunk->setBlockState(8, 64, 8, &VanillaBlocks::STONE->defaultState());
 
     MeshData mesh;
     ChunkMesher::generateMesh(*testChunk, mesh, nullptr, nullptr);
@@ -626,7 +626,7 @@ TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_MergesFlatStoneLayerToSixQua
     constexpr i32 y = 64;
     for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
         for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
-            m_chunk->setBlock(x, y, z, &VanillaBlocks::STONE->defaultState());
+            m_chunk->setBlockState(x, y, z, &VanillaBlocks::STONE->defaultState());
         }
     }
 
@@ -650,7 +650,7 @@ TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_MergesFlatStoneLayerToSixQua
 }
 
 TEST_F(ChunkMesherWithModelCacheTest, GreedyMeshing_SmoothLightingFallsBackToSimplePath) {
-    m_chunk->setBlock(8, 64, 8, &VanillaBlocks::STONE->defaultState());
+    m_chunk->setBlockState(8, 64, 8, &VanillaBlocks::STONE->defaultState());
 
     ChunkMesher::setLightingEnabled(true);
     ChunkMesher::setLightingMode(LightingMode::Smooth);
@@ -689,8 +689,8 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_PlacesWaterIntoTransparentLayer)
     });
 
     ChunkMesher::setModelCache(&modelCache);
-    m_chunk->setBlock(8, 64, 8, &VanillaBlocks::STONE->defaultState());
-    m_chunk->setBlock(9, 64, 8, &VanillaBlocks::WATER->defaultState());
+    m_chunk->setBlockState(8, 64, 8, &VanillaBlocks::STONE->defaultState());
+    m_chunk->setBlockState(9, 64, 8, &VanillaBlocks::WATER->defaultState());
 
     MeshData solidMesh;
     MeshData transparentMesh;
@@ -704,8 +704,8 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_PlacesWaterIntoTransparentLayer)
 }
 
 TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_TransparentFaceAgainstOpaqueIsKept) {
-    m_chunk->setBlock(8, 64, 8, &VanillaBlocks::GLASS->defaultState());
-    m_chunk->setBlock(9, 64, 8, &VanillaBlocks::STONE->defaultState());
+    m_chunk->setBlockState(8, 64, 8, &VanillaBlocks::GLASS->defaultState());
+    m_chunk->setBlockState(9, 64, 8, &VanillaBlocks::STONE->defaultState());
 
     MeshData solidMesh;
     MeshData transparentMesh;
@@ -739,7 +739,7 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterUsesTranslucentVertexAlpha)
     });
 
     ChunkMesher::setModelCache(&modelCache);
-    m_chunk->setBlock(8, 64, 8, &VanillaBlocks::WATER->defaultState());
+    m_chunk->setBlockState(8, 64, 8, &VanillaBlocks::WATER->defaultState());
 
     MeshData solidMesh;
     MeshData transparentMesh;
@@ -784,8 +784,8 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterCullsFaceAgainstSeagrass) {
     });
 
     ChunkMesher::setModelCache(&modelCache);
-    m_chunk->setBlock(8, 64, 8, &VanillaBlocks::WATER->defaultState());
-    m_chunk->setBlock(9, 64, 8, &VanillaBlocks::SEAGRASS->defaultState());
+    m_chunk->setBlockState(8, 64, 8, &VanillaBlocks::WATER->defaultState());
+    m_chunk->setBlockState(9, 64, 8, &VanillaBlocks::SEAGRASS->defaultState());
 
     MeshData solidMesh;
     MeshData transparentMesh;
@@ -820,8 +820,8 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterCullsFaceAgainstKelpPlant) 
     });
 
     ChunkMesher::setModelCache(&modelCache);
-    m_chunk->setBlock(8, 64, 8, &VanillaBlocks::WATER->defaultState());
-    m_chunk->setBlock(9, 64, 8, &VanillaBlocks::KELP_PLANT->defaultState());
+    m_chunk->setBlockState(8, 64, 8, &VanillaBlocks::WATER->defaultState());
+    m_chunk->setBlockState(9, 64, 8, &VanillaBlocks::KELP_PLANT->defaultState());
 
     MeshData solidMesh;
     MeshData transparentMesh;
@@ -858,7 +858,7 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_ShallowWaterLowersSurfaceHeight)
     ChunkMesher::setModelCache(&modelCache);
     const BlockState& shallowWater = VanillaBlocks::WATER->defaultState()
         .with(BlockStateProperties::LEVEL_0_15(), 7);
-    m_chunk->setBlock(8, 64, 8, &shallowWater);
+    m_chunk->setBlockState(8, 64, 8, &shallowWater);
 
     MeshData solidMesh;
     MeshData transparentMesh;
@@ -875,7 +875,7 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_ShallowWaterLowersSurfaceHeight)
 }
 
 TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RedstoneTorchIsNotFullCube) {
-    m_chunk->setBlock(8, 64, 8, &VanillaBlocks::REDSTONE_TORCH->defaultState());
+    m_chunk->setBlockState(8, 64, 8, &VanillaBlocks::REDSTONE_TORCH->defaultState());
 
     ChunkMesher::setGreedyMeshing(false);
     ChunkMesher::setLightingEnabled(false);
@@ -896,7 +896,7 @@ TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RepeaterAndPressurePlateAreN
 
     {
         ChunkData repeaterChunk(0, 0);
-        repeaterChunk.setBlock(8, 64, 8, &VanillaBlocks::REDSTONE_REPEATER->defaultState());
+        repeaterChunk.setBlockState(8, 64, 8, &VanillaBlocks::REDSTONE_REPEATER->defaultState());
 
         MeshData mesh;
         ChunkMesher::generateMesh(repeaterChunk, mesh, nullptr, nullptr);
@@ -909,7 +909,7 @@ TEST_F(ChunkMesherWithModelCacheTest, ShapeFallback_RepeaterAndPressurePlateAreN
 
     {
         ChunkData pressurePlateChunk(0, 0);
-        pressurePlateChunk.setBlock(8, 64, 8, &VanillaBlocks::STONE_PRESSURE_PLATE->defaultState());
+        pressurePlateChunk.setBlockState(8, 64, 8, &VanillaBlocks::STONE_PRESSURE_PLATE->defaultState());
 
         MeshData mesh;
         ChunkMesher::generateMesh(pressurePlateChunk, mesh, nullptr, nullptr);
@@ -965,7 +965,7 @@ TEST(ChunkMesherLiquidMaterialTest, ParticleOnlyWaterModelStillRendersWithLiquid
     ChunkMesher::setLightingMode(LightingMode::Flat);
 
     ChunkData chunk(0, 0);
-    chunk.setBlock(8, 64, 8, &VanillaBlocks::WATER->defaultState());
+    chunk.setBlockState(8, 64, 8, &VanillaBlocks::WATER->defaultState());
 
     MeshData solidMesh;
     MeshData transparentMesh;

@@ -44,7 +44,7 @@ void RuinedPortalPiece::generate(IWorldWriter& world, math::Random& rng,
                               dz == 0 || dz == maxZ() - minZ());
 
                 if (isEdge && rng.nextFloat() < 0.8f) {
-                    world.setBlock(worldX, worldY, worldZ,
+                    world.setBlockState(worldX, worldY, worldZ,
                                   obsidianState ? obsidianState : stoneBricksState);
                 }
             }
@@ -141,7 +141,7 @@ void RuinedPortalStructure::generatePortalFrame(
             if (isFrame) {
                 // 部分黑曜石可能损坏
                 if (rng.nextFloat() > 0.15f) {  // 85% 概率放置
-                    world.setBlock(x + dx, y + dy, z, obsidianState);
+                    world.setBlockState(x + dx, y + dy, z, obsidianState);
                 }
             }
         }
@@ -155,9 +155,9 @@ void RuinedPortalStructure::generatePortalFrame(
 
         // 放置石砖或岩浆块
         if (rng.nextBoolean()) {
-            world.setBlock(x + dx, y + dy, z + dz, stoneBricksState);
+            world.setBlockState(x + dx, y + dy, z + dz, stoneBricksState);
         } else if (magmaState) {
-            world.setBlock(x + dx, y + dy, z + dz, magmaState);
+            world.setBlockState(x + dx, y + dy, z + dz, magmaState);
         }
     }
 }

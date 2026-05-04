@@ -25,7 +25,7 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 setBlock(CommandContext<ServerCommandSource>& context);
+    static i32 setBlockState(CommandContext<ServerCommandSource>& context);
     static i32 setBlockDestroy(CommandContext<ServerCommandSource>& context);
     static i32 setBlockKeep(CommandContext<ServerCommandSource>& context);
     static i32 setBlockReplace(CommandContext<ServerCommandSource>& context);

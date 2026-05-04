@@ -195,7 +195,7 @@ std::vector<BlockPos> SurfacePlacement::getPositions(
     constexpr i32 MAX_Y = world::MAX_BUILD_HEIGHT - 1;
 
     for (i32 y = MAX_Y; y >= MIN_Y; --y) {
-        const BlockState* state = region.getBlock(basePos.x, y, basePos.z);
+        const BlockState* state = region.getBlockState(basePos.x, y, basePos.z);
         if (state == nullptr) {
             continue;
         }
@@ -210,7 +210,7 @@ std::vector<BlockPos> SurfacePlacement::getPositions(
             // 检查水深
             i32 waterDepth = 0;
             for (i32 wy = y; wy >= MIN_Y && waterDepth <= surfaceConfig.maxWaterDepth; --wy) {
-                const BlockState* waterState = region.getBlock(basePos.x, wy, basePos.z);
+                const BlockState* waterState = region.getBlockState(basePos.x, wy, basePos.z);
                 if (waterState == nullptr || waterState->isAir()) {
                     break;
                 }

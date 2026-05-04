@@ -133,10 +133,10 @@ void StrongholdStructure::generateFallbackEntrance(
                 // 边缘是石砖墙，中间是空气
                 bool isEdge = std::abs(x) == 2 || std::abs(z) == 2;
                 if (isEdge) {
-                    world.setBlock(baseX + x, baseY + y, baseZ + z, randomBrick(), 18);
+                    world.setBlockState(baseX + x, baseY + y, baseZ + z, randomBrick(), 18);
                 } else if (y == 0) {
                     // 底部
-                    world.setBlock(baseX + x, baseY + y, baseZ + z, stoneBricks, 18);
+                    world.setBlockState(baseX + x, baseY + y, baseZ + z, stoneBricks, 18);
                 }
                 // 中间是空气（已挖空）
             }
@@ -150,7 +150,7 @@ void StrongholdStructure::generateFallbackEntrance(
     // 地板
     for (i32 x = -roomSize/2; x <= roomSize/2; ++x) {
         for (i32 z = -roomSize/2; z <= roomSize/2; ++z) {
-            world.setBlock(baseX + x, portalRoomY, baseZ + z, stoneBricks, 18);
+            world.setBlockState(baseX + x, portalRoomY, baseZ + z, stoneBricks, 18);
         }
     }
 
@@ -158,19 +158,19 @@ void StrongholdStructure::generateFallbackEntrance(
     i32 roomHeight = 6;
     for (i32 y = 1; y <= roomHeight; ++y) {
         for (i32 x = -roomSize/2; x <= roomSize/2; ++x) {
-            world.setBlock(baseX + x, portalRoomY + y, baseZ - roomSize/2, randomBrick(), 18);
-            world.setBlock(baseX + x, portalRoomY + y, baseZ + roomSize/2, randomBrick(), 18);
+            world.setBlockState(baseX + x, portalRoomY + y, baseZ - roomSize/2, randomBrick(), 18);
+            world.setBlockState(baseX + x, portalRoomY + y, baseZ + roomSize/2, randomBrick(), 18);
         }
         for (i32 z = -roomSize/2; z <= roomSize/2; ++z) {
-            world.setBlock(baseX - roomSize/2, portalRoomY + y, baseZ + z, randomBrick(), 18);
-            world.setBlock(baseX + roomSize/2, portalRoomY + y, baseZ + z, randomBrick(), 18);
+            world.setBlockState(baseX - roomSize/2, portalRoomY + y, baseZ + z, randomBrick(), 18);
+            world.setBlockState(baseX + roomSize/2, portalRoomY + y, baseZ + z, randomBrick(), 18);
         }
     }
 
     // 天花板
     for (i32 x = -roomSize/2; x <= roomSize/2; ++x) {
         for (i32 z = -roomSize/2; z <= roomSize/2; ++z) {
-            world.setBlock(baseX + x, portalRoomY + roomHeight + 1, baseZ + z, stoneBricks, 18);
+            world.setBlockState(baseX + x, portalRoomY + roomHeight + 1, baseZ + z, stoneBricks, 18);
         }
     }
 
@@ -185,7 +185,7 @@ void StrongholdStructure::generateFallbackEntrance(
                           (x == 0 && z == 0);
             if (isFrame) {
                 // 使用金块作为传送门框架占位符（末地传送门框架方块尚未实现）
-                world.setBlock(baseX + x, portalY, baseZ + z, goldBlock ? goldBlock : chiseledStoneBricks, 18);
+                world.setBlockState(baseX + x, portalY, baseZ + z, goldBlock ? goldBlock : chiseledStoneBricks, 18);
             }
         }
     }

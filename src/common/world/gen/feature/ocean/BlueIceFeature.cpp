@@ -46,7 +46,7 @@ bool BlueIceFeature::place(
         }
 
         const BlockPos neighborPos = startPos.offset(direction);
-        const BlockState* neighborState = world.getBlock(neighborPos);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
         if (neighborState != nullptr && neighborState->is(&config.packedIceState->owner())) {
             hasPackedIceNeighbor = true;
             break;
@@ -57,7 +57,7 @@ bool BlueIceFeature::place(
         return false;
     }
 
-    world.setBlock(startPos, config.blueIceState);
+    world.setBlockState(startPos, config.blueIceState);
 
     const i32 spreadAttempts = std::max(1, config.spreadAttempts);
     for (i32 i = 0; i < spreadAttempts; ++i) {
@@ -82,9 +82,9 @@ bool BlueIceFeature::place(
 
         for (Direction direction : Directions::all()) {
             const BlockPos neighborPos = targetPos.offset(direction);
-            const BlockState* neighborState = world.getBlock(neighborPos);
+            const BlockState* neighborState = world.getBlockState(neighborPos);
             if (neighborState != nullptr && neighborState->is(&config.blueIceState->owner())) {
-                world.setBlock(targetPos, config.blueIceState);
+                world.setBlockState(targetPos, config.blueIceState);
                 break;
             }
         }
@@ -95,7 +95,7 @@ bool BlueIceFeature::place(
 
 bool BlueIceFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (state == nullptr || VanillaBlocks::WATER == nullptr) {
         return false;
     }
@@ -108,7 +108,7 @@ bool BlueIceFeature::isReplaceableForSpread(
     const BlockPos& pos,
     const BlueIceFeatureConfig& config) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
         return false;
     }
@@ -136,7 +136,7 @@ i32 BlueIceFeature::findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) const
     }
 
     for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT + 1; --y) {
-        const BlockState* state = world.getBlock(x, y, z);
+        const BlockState* state = world.getBlockState(x, y, z);
         if (state == nullptr || state->isAir()) {
             continue;
         }

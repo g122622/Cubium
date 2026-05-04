@@ -55,7 +55,7 @@ public:
         if (pos.chunkX() != m_chunk->x() || pos.chunkZ() != m_chunk->z()) {
             return nullptr;
         }
-        return m_chunk->getBlock(pos.x & 0xF, pos.y, pos.z & 0xF);
+        return m_chunk->getBlockState(pos.x & 0xF, pos.y, pos.z & 0xF);
     }
 
     mc::IWorld* getWorld() override {
@@ -102,7 +102,7 @@ TEST(BlockLightRegressionTest, EmissiveBlockPropagatesToNeighbors) {
 
     mc::WorldLightManager lightManager(&provider, true, false);
     const mc::BlockState* glowstone = &mc::VanillaBlocks::GLOWSTONE->defaultState();
-    chunk.setBlock(8, 70, 8, glowstone);
+    chunk.setBlockState(8, 70, 8, glowstone);
 
     const mc::SectionPos sectionPos(0, 4, 0);
     lightManager.updateSectionStatus(sectionPos, false);
@@ -138,7 +138,7 @@ TEST(BlockLightRegressionTest, RemovingSourceDarkensNearbyCells) {
     const mc::BlockState* glowstone = &mc::VanillaBlocks::GLOWSTONE->defaultState();
     const mc::BlockState* air = &mc::VanillaBlocks::AIR->defaultState();
 
-    chunk.setBlock(8, 70, 8, glowstone);
+    chunk.setBlockState(8, 70, 8, glowstone);
 
     const mc::SectionPos sectionPos(0, 4, 0);
     lightManager.updateSectionStatus(sectionPos, false);
@@ -154,7 +154,7 @@ TEST(BlockLightRegressionTest, RemovingSourceDarkensNearbyCells) {
     EXPECT_GT(before, static_cast<mc::u8>(0));
 
     // 移除光源并使用 checkBlock 进行增量更新
-    chunk.setBlock(8, 70, 8, air);
+    chunk.setBlockState(8, 70, 8, air);
     lightManager.checkBlock(8, 70, 8);
 
     mc::u8 after = nibble->getUpdating(8, 70 - 64, 8);
@@ -177,7 +177,7 @@ TEST(BlockLightRegressionTest, InsertingOpaqueBlockReducesBehindLight) {
     const mc::BlockState* glowstone = &mc::VanillaBlocks::GLOWSTONE->defaultState();
     const mc::BlockState* stone = &mc::VanillaBlocks::STONE->defaultState();
 
-    chunk.setBlock(8, 70, 8, glowstone);
+    chunk.setBlockState(8, 70, 8, glowstone);
 
     const mc::SectionPos sectionPos(0, 4, 0);
     lightManager.updateSectionStatus(sectionPos, false);
@@ -193,7 +193,7 @@ TEST(BlockLightRegressionTest, InsertingOpaqueBlockReducesBehindLight) {
     EXPECT_GT(before, static_cast<mc::u8>(0));
 
     // 插入不透明方块并使用 checkBlock 进行增量更新
-    chunk.setBlock(9, 70, 8, stone);
+    chunk.setBlockState(9, 70, 8, stone);
     lightManager.checkBlock(9, 70, 8);
 
     const mc::u8 after = nibble->getUpdating(10, 70 - 64, 8);
@@ -214,8 +214,8 @@ TEST(BlockLightRegressionTest, RemovingOpaqueBlockRestoresBehindLight) {
     const mc::BlockState* stone = &mc::VanillaBlocks::STONE->defaultState();
     const mc::BlockState* air = &mc::VanillaBlocks::AIR->defaultState();
 
-    chunk.setBlock(8, 70, 8, glowstone);
-    chunk.setBlock(9, 70, 8, stone);
+    chunk.setBlockState(8, 70, 8, glowstone);
+    chunk.setBlockState(9, 70, 8, stone);
 
     const mc::SectionPos sectionPos(0, 4, 0);
     lightManager.updateSectionStatus(sectionPos, false);
@@ -230,7 +230,7 @@ TEST(BlockLightRegressionTest, RemovingOpaqueBlockRestoresBehindLight) {
     const mc::u8 blocked = nibble->getUpdating(10, 70 - 64, 8);
 
     // 移除不透明方块并使用 checkBlock 进行增量更新
-    chunk.setBlock(9, 70, 8, air);
+    chunk.setBlockState(9, 70, 8, air);
     lightManager.checkBlock(9, 70, 8);
 
     const mc::u8 restored = nibble->getUpdating(10, 70 - 64, 8);
@@ -248,7 +248,7 @@ TEST(BlockLightRegressionTest, EmissionIncreaseEventQueuesPropagation) {
 
     mc::WorldLightManager lightManager(&provider, true, false);
     const mc::BlockState* glowstone = &mc::VanillaBlocks::GLOWSTONE->defaultState();
-    chunk.setBlock(8, 70, 8, glowstone);
+    chunk.setBlockState(8, 70, 8, glowstone);
 
     const mc::SectionPos sectionPos(0, 4, 0);
     lightManager.updateSectionStatus(sectionPos, false);
@@ -275,7 +275,7 @@ TEST(BlockLightRegressionTest, CheckBlockMatchesCheckBlock) {
 
     mc::WorldLightManager lightManager(&provider, true, false);
     const mc::BlockState* glowstone = &mc::VanillaBlocks::GLOWSTONE->defaultState();
-    chunk.setBlock(8, 70, 8, glowstone);
+    chunk.setBlockState(8, 70, 8, glowstone);
 
     const mc::SectionPos sectionPos(0, 4, 0);
     lightManager.updateSectionStatus(sectionPos, false);

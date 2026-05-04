@@ -431,7 +431,7 @@ const f32 depthFactor = (depth > centerDepth) ? 0.5f : 1.0f;
 
 ```cpp
 // WorldGenRegion 使用世界坐标
-const BlockState* block = region.getBlock(worldX, worldY, worldZ);
+const BlockState* block = region.getBlockState(worldX, worldY, worldZ);
 
 // ChunkPrimer 使用本地坐标 (0-15)
 primer.getBlock(localX, y, localZ);

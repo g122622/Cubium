@@ -47,15 +47,15 @@ TEST_F(NetherSurfaceParityTest, BedrockUsesConfiguredRoofAndFloorAnchors) {
 
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
-            const BlockState* floor = centerChunk->getBlock(x, 0, z);
+            const BlockState* floor = centerChunk->getBlockState(x, 0, z);
             ASSERT_NE(floor, nullptr);
             EXPECT_TRUE(floor->is(VanillaBlocks::BEDROCK));
 
-            const BlockState* roof = centerChunk->getBlock(x, 127, z);
+            const BlockState* roof = centerChunk->getBlockState(x, 127, z);
             ASSERT_NE(roof, nullptr);
             EXPECT_TRUE(roof->is(VanillaBlocks::BEDROCK));
 
-            const BlockState* lava = centerChunk->getBlock(x, generator.lavaLevel(), z);
+            const BlockState* lava = centerChunk->getBlockState(x, generator.lavaLevel(), z);
             ASSERT_NE(lava, nullptr);
             EXPECT_TRUE(lava->is(VanillaBlocks::LAVA));
         }

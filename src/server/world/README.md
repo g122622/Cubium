@@ -42,7 +42,7 @@ src/server/world/
 - 存档保存编排（通过 `SaveManager` 驱动自动保存与全量保存）
 - 天气状态管理
 
-`ServerWorld.hpp` 需要显式 `using IWorld::...` 重新暴露 `BlockPos` 便捷重载，否则自身的 xyz 接口会把 `getBlockState`、`getFluidState`、`getBlockLight`、`getSkyLight`、`setBlock`、`isWithinWorldBounds` 这些重载隐藏掉。所有已经拿到 `BlockPos` 的服务端调用点都应该优先走这些重载。
+`ServerWorld.hpp` 需要显式 `using IWorld::...` 重新暴露 `BlockPos` 便捷重载，否则自身的 xyz 接口会把 `getBlockState`、`getFluidState`、`getBlockLight`、`getSkyLight`、`setBlockState`、`isWithinWorldBounds` 这些重载隐藏掉。所有已经拿到 `BlockPos` 的服务端调用点都应该优先走这些重载。
 
 `ServerWorld` 现在还会把实体声音统一挂到 `setOnPlaySound(...)`。`MinecraftServer` 在创建世界时会把这个回调接到广播逻辑上，因此 `LivingEntity`、`MobEntity` 和 `Player` 的声音事件都能走同一条路径。
 
@@ -526,9 +526,9 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 });
 ```
 
-### 7. 未初始化世界直接调用 setBlock
+### 7. 未初始化世界直接调用 setBlockState
 
-**问题**：在未调用 `initialize()` 的 `ServerWorld` 上调用 `setBlock()`，会在光照更新阶段触发 `MC_ASSERT_RELEASE(false)`。
+**问题**：在未调用 `initialize()` 的 `ServerWorld` 上调用 `setBlockState()`，会在光照更新阶段触发 `MC_ASSERT_RELEASE(false)`。
 
 **解决方案**：所有方块写入测试和同步测试都必须先初始化世界，确保 `m_lightManager` 和 `m_tickManager` 已经创建。
 
@@ -587,7 +587,7 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 - flush 前取消追踪的玩家不会收到更新
 
 **ServerWorldBlockUpdateCallback**：
-- `ServerWorld::setBlock()` 会触发方块变化回调
+- `ServerWorld::setBlockState()` 会触发方块变化回调
 - 回调会收到最终的 stateId（空气为 0）
 
 ---
@@ -613,7 +613,7 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 
 ```mermaid
 flowchart LR
-    setBlock["ServerWorld::setBlock"] --> callback["setOnBlockChanged"]
+    setBlockState["ServerWorld::setBlockState"] --> callback["setOnBlockChanged"]
     callback --> sync["BlockUpdateSyncManager"]
     sync --> ticket["ChunkLoadTicketManager"]
     ticket --> players["追踪玩家"]
@@ -621,7 +621,7 @@ flowchart LR
     flush --> packet["BlockUpdatePacket"]
     packet --> client["客户端"]
 
-    style setBlock fill:#ffd166,stroke:#b7791f,color:#111
+    style setBlockState fill:#ffd166,stroke:#b7791f,color:#111
     style callback fill:#8ecae6,stroke:#1d4ed8,color:#111
     style sync fill:#90be6d,stroke:#2f6f3e,color:#111
     style ticket fill:#f4a261,stroke:#b45309,color:#111

@@ -68,8 +68,8 @@ public:
     [[nodiscard]] ChunkPos pos() const override { return ChunkPos(m_x, m_z); }
 
     // 方块访问
-    [[nodiscard]] const BlockState* getBlock(BlockCoord x, BlockCoord y, BlockCoord z) const override;
-    void setBlock(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override;
+    [[nodiscard]] const BlockState* getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const override;
+    void setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override;
     [[nodiscard]] u32 getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const override;
     void setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId) override;
 

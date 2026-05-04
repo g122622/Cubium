@@ -28,7 +28,7 @@ public:
         return getAirState();
     }
 
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
         m_blocks[BlockPos(x, y, z)] = state != nullptr ? state : getAirState();
         return true;
     }
@@ -381,7 +381,7 @@ TEST_F(EntitySpawnPlacementRegistryTest, OnGroundSpawnUsesSurfaceSupport)
     SpawnPlacementTestWorld world;
     SupportBlock supportBlock(BlockProperties(Material::DECORATION).noCollision().notSolid());
 
-    world.setBlock(0, 63, 0, &supportBlock.defaultState());
+    world.setBlockState(0, 63, 0, &supportBlock.defaultState());
 
     EXPECT_EQ(world.getHeight(0, 0), 64);
 
@@ -404,8 +404,8 @@ TEST_F(EntitySpawnPlacementRegistryTest, OnGroundSpawnRejectsBarrierLikeBlocks)
     SupportBlock supportBlock(BlockProperties(Material::DECORATION).noCollision().notSolid());
     blocks::BarrierBlock barrierBlock(BlockProperties(Material::DECORATION).noCollision().notSolid());
 
-    world.setBlock(0, 63, 0, &supportBlock.defaultState());
-    world.setBlock(0, 64, 0, &barrierBlock.defaultState());
+    world.setBlockState(0, 63, 0, &supportBlock.defaultState());
+    world.setBlockState(0, 64, 0, &barrierBlock.defaultState());
 
     EXPECT_FALSE(world::spawn::EntitySpawnPlacementRegistry::canSpawnAtLocation(
         world::spawn::PlacementType::OnGround,

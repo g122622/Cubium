@@ -32,7 +32,7 @@ void NyliumBlock::randomTick(
     if (!isDarkEnough(world, pos, state)) {
         const BlockState* netherrackState = &VanillaBlocks::NETHERRACK->defaultState();
         if (netherrackState != nullptr) {
-            world.setBlock(pos, netherrackState);
+            world.setBlockState(pos, netherrackState);
         }
     }
 }

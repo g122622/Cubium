@@ -59,21 +59,21 @@ ChunkPrimer::ChunkPrimer(std::unique_ptr<ChunkData> data)
 // 方块访问
 // ============================================================================
 
-const BlockState* ChunkPrimer::getBlock(BlockCoord x, BlockCoord y, BlockCoord z) const
+const BlockState* ChunkPrimer::getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const
 {
     if (!isValidBlockCoord(x, y, z)) {
         return BlockRegistry::instance().airState();
     }
-    return m_data ? m_data->getBlock(x, y, z) : BlockRegistry::instance().airState();
+    return m_data ? m_data->getBlockState(x, y, z) : BlockRegistry::instance().airState();
 }
 
-void ChunkPrimer::setBlock(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
+void ChunkPrimer::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
     if (!isValidBlockCoord(x, y, z)) {
         return;
     }
     if (m_data) {
-        m_data->setBlock(x, y, z, state);
+        m_data->setBlockState(x, y, z, state);
         m_modified = true;
     }
 }
@@ -217,7 +217,7 @@ void ChunkPrimer::updateAllHeightmaps()
                     break;
                 }
 
-                const BlockState* state = m_data->getBlock(x, y, z);
+                const BlockState* state = m_data->getBlockState(x, y, z);
                 if (!state || state->isAir()) {
                     continue;
                 }

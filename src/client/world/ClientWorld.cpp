@@ -138,7 +138,7 @@ const BlockState* ClientWorld::getBlockState(i32 x, i32 y, i32 z) const
     const i32 localX = toLocalCoord(x);
     const i32 localZ = toLocalCoord(z);
 
-    return chunk->data->getBlock(localX, y, localZ);
+    return chunk->data->getBlockState(localX, y, localZ);
 }
 
 const Biome* ClientWorld::getBiomeAtBlock(i32 x, i32 y, i32 z) const
@@ -219,7 +219,7 @@ u8 ClientWorld::getBlockLight(i32 x, i32 y, i32 z) const
     return section->getBlockLight(localX, localY, localZ);
 }
 
-void ClientWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
+void ClientWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
 {
     if (!isValidY(y)) {
         return;
@@ -227,7 +227,7 @@ void ClientWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 
     const BlockPos pos(x, y, z);
     MC_TRACE_INSTANT("client.lighting",
-        "ClientWorld::setBlock",
+        "ClientWorld::setBlockState",
         "pos", fmt::format("({}, {}, {})", x, y, z),
         "stateId", state ? state->stateId() : 0,
         [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) {
@@ -246,7 +246,7 @@ void ClientWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     const i32 localX = toLocalCoord(x);
     const i32 localZ = toLocalCoord(z);
 
-    chunk->data->setBlock(localX, y, localZ, state);
+    chunk->data->setBlockState(localX, y, localZ, state);
     chunk->data->setDirty(true);
     chunk->hasMeshResult = false;
 

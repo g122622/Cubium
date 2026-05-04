@@ -203,7 +203,7 @@ TEST_F(DefaultSurfaceBuilderTest, BuildBasicSurface) {
 
     // 填充区块
     for (int y = 0; y < 64; ++y) {
-        chunk.setBlock(0, y, 0, stone);
+        chunk.setBlockState(0, y, 0, stone);
     }
 
     // 构建地表
@@ -222,7 +222,7 @@ TEST_F(DefaultSurfaceBuilderTest, BuildBasicSurface) {
     );
 
     // 验证地表已放置
-    const BlockState* topBlock = chunk.getBlock(0, 63, 0);
+    const BlockState* topBlock = chunk.getBlockState(0, 63, 0);
     EXPECT_TRUE(topBlock != nullptr);
     EXPECT_TRUE(topBlock->is(VanillaBlocks::GRASS_BLOCK));
 }
@@ -236,7 +236,7 @@ TEST_F(DefaultSurfaceBuilderTest, UnderwaterSurface) {
 
     // 填充区块到海平面以下
     for (int y = 0; y < 60; ++y) {
-        chunk.setBlock(0, y, 0, stone);
+        chunk.setBlockState(0, y, 0, stone);
     }
 
     // 构建地表
@@ -255,7 +255,7 @@ TEST_F(DefaultSurfaceBuilderTest, UnderwaterSurface) {
     );
 
     // 水下应该使用gravel作为底板
-    const BlockState* bottomBlock = chunk.getBlock(0, 52, 0);
+    const BlockState* bottomBlock = chunk.getBlockState(0, 52, 0);
     if (bottomBlock != nullptr) {
         EXPECT_TRUE(bottomBlock->is(VanillaBlocks::GRAVEL) || bottomBlock->is(VanillaBlocks::STONE));
     }
@@ -290,7 +290,7 @@ TEST_F(MountainSurfaceBuilderTest, HighNoiseUsesStone) {
     auto config = SurfaceBuilderConfig::grassDirtGravel();
 
     for (int y = 0; y < 100; ++y) {
-        chunk.setBlock(0, y, 0, stone);
+        chunk.setBlockState(0, y, 0, stone);
     }
 
     // 高噪声应使用石头配置
@@ -309,7 +309,7 @@ TEST_F(MountainSurfaceBuilderTest, HighNoiseUsesStone) {
     );
 
     // 表层应该是石头
-    const BlockState* topBlock = chunk.getBlock(0, 99, 0);
+    const BlockState* topBlock = chunk.getBlockState(0, 99, 0);
     EXPECT_TRUE(topBlock != nullptr);
     EXPECT_TRUE(topBlock->is(VanillaBlocks::STONE));
 }
@@ -322,7 +322,7 @@ TEST_F(MountainSurfaceBuilderTest, LowNoiseUsesGrass) {
     auto config = SurfaceBuilderConfig::grassDirtGravel();
 
     for (int y = 0; y < 100; ++y) {
-        chunk.setBlock(0, y, 0, stone);
+        chunk.setBlockState(0, y, 0, stone);
     }
 
     // 低噪声应使用草地配置
@@ -340,7 +340,7 @@ TEST_F(MountainSurfaceBuilderTest, LowNoiseUsesGrass) {
         config
     );
 
-    const BlockState* topBlock = chunk.getBlock(0, 99, 0);
+    const BlockState* topBlock = chunk.getBlockState(0, 99, 0);
     EXPECT_TRUE(topBlock != nullptr);
     EXPECT_TRUE(topBlock->is(VanillaBlocks::GRASS_BLOCK));
 }
@@ -484,7 +484,7 @@ TEST_F(BadlandsSurfaceBuilderTest, BuildSurface) {
     auto config = SurfaceBuilderConfig::redSand();
 
     for (int y = 0; y < 80; ++y) {
-        chunk.setBlock(0, y, 0, stone);
+        chunk.setBlockState(0, y, 0, stone);
     }
 
     builder->setSeed(12345);
@@ -503,7 +503,7 @@ TEST_F(BadlandsSurfaceBuilderTest, BuildSurface) {
     );
 
     // 表层应该是红沙或陶瓦
-    const BlockState* topBlock = chunk.getBlock(0, 79, 0);
+    const BlockState* topBlock = chunk.getBlockState(0, 79, 0);
     EXPECT_TRUE(topBlock != nullptr);
     bool isValidTop = topBlock->is(VanillaBlocks::RED_SAND) ||
                       isTerracottaState(topBlock);
@@ -670,7 +670,7 @@ TEST_F(NoopSurfaceBuilderTest, DoesNotModifyChunk) {
 
     // 填充区块
     for (int y = 0; y < 64; ++y) {
-        chunk.setBlock(0, y, 0, stone);
+        chunk.setBlockState(0, y, 0, stone);
     }
 
     // NoopSurfaceBuilder不应修改区块
@@ -690,7 +690,7 @@ TEST_F(NoopSurfaceBuilderTest, DoesNotModifyChunk) {
 
     // 验证区块仍然全是石头
     for (int y = 0; y < 64; ++y) {
-        const BlockState* block = chunk.getBlock(0, y, 0);
+        const BlockState* block = chunk.getBlockState(0, y, 0);
         EXPECT_TRUE(block != nullptr);
         EXPECT_TRUE(block->is(VanillaBlocks::STONE));
     }
@@ -741,7 +741,7 @@ TEST_F(SurfaceBuilderPolymorphismTest, BuildSurfaceWithDifferentBuilders) {
 
     // 填充区块
     for (int y = 0; y < 64; ++y) {
-        chunk.setBlock(0, y, 0, stone);
+        chunk.setBlockState(0, y, 0, stone);
     }
 
     std::vector<std::unique_ptr<SurfaceBuilder>> builders;
@@ -753,7 +753,7 @@ TEST_F(SurfaceBuilderPolymorphismTest, BuildSurfaceWithDifferentBuilders) {
     for (auto& builder : builders) {
         // 重新填充区块
         for (int y = 0; y < 64; ++y) {
-            chunk.setBlock(0, y, 0, stone);
+            chunk.setBlockState(0, y, 0, stone);
         }
 
         // 不应该抛出异常

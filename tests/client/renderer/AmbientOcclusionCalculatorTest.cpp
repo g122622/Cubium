@@ -58,7 +58,7 @@ protected:
     void fillSolidBlock(i32 x, i32 y, i32 z) {
         const Block* stone = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:stone"));
         if (stone && m_chunk) {
-            m_chunk->setBlock(x, y, z, &stone->defaultState());
+            m_chunk->setBlockState(x, y, z, &stone->defaultState());
         }
     }
 
@@ -68,7 +68,7 @@ protected:
     void fillTransparentBlock(i32 x, i32 y, i32 z) {
         const Block* glass = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:glass"));
         if (glass && m_chunk) {
-            m_chunk->setBlock(x, y, z, &glass->defaultState());
+            m_chunk->setBlockState(x, y, z, &glass->defaultState());
         }
     }
 

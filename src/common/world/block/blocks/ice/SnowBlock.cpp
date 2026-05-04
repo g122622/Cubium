@@ -43,7 +43,7 @@ void SnowBlock::randomTick(
         // 目前直接移除方块
         const BlockState* airState = &VanillaBlocks::AIR->defaultState();
         if (airState != nullptr) {
-            world.setBlock(pos, airState);
+            world.setBlockState(pos, airState);
         }
     }
 }

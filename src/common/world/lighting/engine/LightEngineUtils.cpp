@@ -40,7 +40,7 @@ const BlockState* LightEngineUtils::getBlockAndOpacity(
 
     i32 x, y, z;
     unpackPos(worldPos, x, y, z);
-    const BlockState* state = chunk->getBlock(x & 0xF, y, z & 0xF);
+    const BlockState* state = chunk->getBlockState(x & 0xF, y, z & 0xF);
 
     if (state == nullptr) {
         if (opacityOut != nullptr) {

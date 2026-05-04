@@ -127,11 +127,11 @@ std::unique_ptr<StructureStart> VillageStructure::generate(
         // 简单的 5x5 平台
         for (i32 x = -2; x <= 2; ++x) {
             for (i32 z = -2; z <= 2; ++z) {
-                world.setBlock(baseX + x, baseY - 1, baseZ + z, cobblestone, 18);
+                world.setBlockState(baseX + x, baseY - 1, baseZ + z, cobblestone, 18);
             }
         }
         // 中心标记
-        world.setBlock(baseX, baseY, baseZ, oakPlanks, 18);
+        world.setBlockState(baseX, baseY, baseZ, oakPlanks, 18);
 
         return start;
     }

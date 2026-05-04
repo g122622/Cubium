@@ -17,14 +17,14 @@ bool GlowstoneFeature::place(
     const GlowstoneFeatureConfig& config)
 {
     // 检查起始位置是否有效（应该在下界岩或基岩下方）
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (!state || (!state->is(VanillaBlocks::NETHERRACK) &&
                    !state->is(VanillaBlocks::BEDROCK))) {
         return false;
     }
 
     // 检查下方是否有空间
-    const BlockState* belowState = world.getBlock(pos.x, pos.y - 1, pos.z);
+    const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
     if (belowState && !belowState->isAir()) {
         return false;
     }
@@ -37,7 +37,7 @@ bool GlowstoneFeature::place(
 
     // 在起始位置下方放置萤石块
     BlockPos glowPos(pos.x, pos.y - 1, pos.z);
-    world.setBlock(glowPos, glowstone);
+    world.setBlockState(glowPos, glowstone);
 
     // 生成多个分支
     for (i32 i = 0; i < config.branchCount; ++i) {
@@ -86,7 +86,7 @@ void GlowstoneFeature::growBranch(
         }
 
         // 放置萤石
-        world.setBlock(next, glowstone);
+        world.setBlockState(next, glowstone);
 
         // 随机添加侧向分支
         if (random.nextInt(4) == 0) {
@@ -95,7 +95,7 @@ void GlowstoneFeature::growBranch(
             if (sideDx != 0 || sideDz != 0) {
                 BlockPos sidePos(next.x + sideDx, next.y, next.z + sideDz);
                 if (canPlaceAt(world, sidePos)) {
-                    world.setBlock(sidePos, glowstone);
+                    world.setBlockState(sidePos, glowstone);
                 }
             }
         }
@@ -116,7 +116,7 @@ void GlowstoneFeature::growBranch(
 
 bool GlowstoneFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     // 可以在空气或液体中放置
     return !state || state->isAir() || state->isLiquid();
 }

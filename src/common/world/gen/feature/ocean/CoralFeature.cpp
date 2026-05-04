@@ -161,7 +161,7 @@ namespace {
 }
 
 [[nodiscard]] bool isWaterAt(WorldGenRegion& world, const BlockPos& pos) {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     return state != nullptr && VanillaBlocks::WATER != nullptr && state->is(VanillaBlocks::WATER);
 }
 
@@ -173,7 +173,7 @@ namespace {
 
     // 某些场景可能未构建高度图，回退到显式扫描。
     for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT + 1; --y) {
-        const BlockState* state = world.getBlock(x, y, z);
+        const BlockState* state = world.getBlockState(x, y, z);
         if (state == nullptr || state->isAir()) {
             continue;
         }
@@ -194,7 +194,7 @@ namespace {
         return false;
     }
 
-    world.setBlock(pos, coralState);
+    world.setBlockState(pos, coralState);
     return true;
 }
 
@@ -220,9 +220,9 @@ void placeCoralDecorations(
                 const BlockState* pickleState = &VanillaBlocks::SEA_PICKLE->defaultState().with(
                     BlockStateProperties::PICKLES_1_4(),
                     pickleCount);
-                world.setBlock(topPos, pickleState);
+                world.setBlockState(topPos, pickleState);
             } else if (const BlockState* fanState = getCoralFanState(color, isDead); fanState != nullptr) {
-                world.setBlock(topPos, fanState);
+                world.setBlockState(topPos, fanState);
             }
         }
     }
@@ -242,7 +242,7 @@ void placeCoralDecorations(
         // 参考 MC CoralFeature.java 第43行：FACING应为direction而非opposite
         if (const BlockState* wallFanState = getCoralWallFanState(color, horizontal, isDead);
             wallFanState != nullptr) {
-            world.setBlock(sidePos, wallFanState);
+            world.setBlockState(sidePos, wallFanState);
         }
     }
 }
@@ -331,7 +331,7 @@ bool CoralFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 
     // 检查下方方块是否为固体
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlock(belowPos);
+    const BlockState* belowState = world.getBlockState(belowPos);
 
     if (!belowState) {
         return false;
@@ -343,7 +343,7 @@ bool CoralFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 
 bool CoralFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return false;
     }
@@ -376,13 +376,13 @@ void CoralFeature::placeCoralFan(
 
     if (direction == Direction::Up) {
         if (const BlockState* fanState = getCoralFanState(color, false); fanState != nullptr) {
-            world.setBlock(pos, fanState);
+            world.setBlockState(pos, fanState);
         }
         return;
     }
 
     if (const BlockState* wallFanState = getCoralWallFanState(color, direction, false); wallFanState != nullptr) {
-        world.setBlock(pos, wallFanState);
+        world.setBlockState(pos, wallFanState);
     }
 }
 

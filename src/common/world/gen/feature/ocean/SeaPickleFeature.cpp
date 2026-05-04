@@ -19,7 +19,7 @@ namespace {
 
     // 测试场景中高度图可能未初始化，回退到显式扫描。
     for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT + 1; --y) {
-        const BlockState* state = world.getBlock(x, y, z);
+        const BlockState* state = world.getBlockState(x, y, z);
         if (state == nullptr || state->isAir()) {
             continue;
         }
@@ -77,7 +77,7 @@ bool SeaPickleFeature::place(
                 pickleState = &config.seaPickleState->with(BlockStateProperties::PICKLES_1_4(), count);
             }
 
-            world.setBlock(placePos, pickleState);
+            world.setBlockState(placePos, pickleState);
             placedAny = true;
         }
     }
@@ -97,13 +97,13 @@ bool SeaPickleFeature::canPlaceAt(
     }
 
     const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlock(belowPos);
+    const BlockState* belowState = world.getBlockState(belowPos);
     return belowState != nullptr && belowState->isSolid();
 }
 
 bool SeaPickleFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlock(pos);
+    const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return false;
     }

@@ -356,17 +356,17 @@ const BlockState* ServerWorld::getBlockState(i32 x, i32 y, i32 z) const
     i32 localX = x - chunkX * 16;
     i32 localZ = z - chunkZ * 16;
 
-    return chunk->getBlock(localX, y, localZ);
+    return chunk->getBlockState(localX, y, localZ);
 }
 
 // ============================================================================
 // 修改世界中的方块
 // 注意：会自动给客户端发包，不要在外部调用后再发一次！
 // ============================================================================
-bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
+bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
 {
     MC_TRACE_EVENT(
-        "server.world", "ServerWorld::setBlock",
+        "server.world", "ServerWorld::setBlockState",
         "x", x,
         "y", y,
         "z", z,
@@ -378,7 +378,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     const BlockPos changedPos(x, y, z);
 
     {
-        MC_TRACE_EVENT("server.world", "ServerWorld::setBlock::DebugWorldCheck", "x", x, "y", y, "z", z);
+        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::DebugWorldCheck", "x", x, "y", y, "z", z);
 
         // 调试世界禁止方块修改
         if (m_config.isDebugWorld) {
@@ -392,7 +392,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 
     {
         MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::ChunkLookup",
+            "server.world", "ServerWorld::setBlockState::ChunkLookup",
             "chunkX", chunkX,
             "chunkZ", chunkZ
         );
@@ -431,13 +431,13 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 
     {
         MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::CanonicalizeState",
+            "server.world", "ServerWorld::setBlockState::CanonicalizeState",
             "x", x,
             "y", y,
             "z", z
         );
 
-        oldState = canonicalizeState(chunk->getBlock(localX, y, localZ));
+        oldState = canonicalizeState(chunk->getBlockState(localX, y, localZ));
         newState = canonicalizeState(state);
         if (newState != nullptr && newState->isAir()) {
             newState = airState;
@@ -446,7 +446,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 
     {
         MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::StateComparison",
+            "server.world", "ServerWorld::setBlockState::StateComparison",
             "x", x,
             "y", y,
             "z", z
@@ -467,7 +467,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 
     {
         MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::WriteChunk",
+            "server.world", "ServerWorld::setBlockState::WriteChunk",
             "x", x,
             "y", y,
             "z", z,
@@ -476,14 +476,14 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
         );
 
         const BlockState* storedState = newIsAir ? nullptr : newState;
-        chunk->setBlock(localX, y, localZ, storedState);
+        chunk->setBlockState(localX, y, localZ, storedState);
         chunk->setDirty(true);
         // 先写入区块，后续旧方块回调可能会在同一坐标上做二次替换。
     }
 
     {
         MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::OldBlockCallbacks",
+            "server.world", "ServerWorld::setBlockState::OldBlockCallbacks",
             "x", x,
             "y", y,
             "z", z
@@ -500,14 +500,14 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
         }
     }
 
-    const BlockState* currentState = canonicalizeState(chunk->getBlock(localX, y, localZ));
+    const BlockState* currentState = canonicalizeState(chunk->getBlockState(localX, y, localZ));
     if (currentState != newState) {
         return true;
     }
 
     {
         MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::NewBlockCallbacks",
+            "server.world", "ServerWorld::setBlockState::NewBlockCallbacks",
             "x", x,
             "y", y,
             "z", z
@@ -552,7 +552,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 
     {
         MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::NeighborUpdates",
+            "server.world", "ServerWorld::setBlockState::NeighborUpdates",
             "x", x,
             "y", y,
             "z", z
@@ -569,7 +569,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 
             {
                 MC_TRACE_EVENT(
-                    "server.world", "ServerWorld::setBlock::NeighborUpdatePostPlacement",
+                    "server.world", "ServerWorld::setBlockState::NeighborUpdatePostPlacement",
                     "x", neighborPos.x,
                     "y", neighborPos.y,
                     "z", neighborPos.z
@@ -593,13 +593,13 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
             }
 
             if (updatedState != nullptr && updatedState != neighborState) {
-                setBlock(neighborPos, updatedState);
+                setBlockState(neighborPos, updatedState);
                 neighborState = canonicalizeState(getBlockState(neighborPos));
             }
 
             {
                 MC_TRACE_EVENT(
-                    "server.world", "ServerWorld::setBlock::NeighborChanged",
+                    "server.world", "ServerWorld::setBlockState::NeighborChanged",
                     "x", neighborPos.x,
                     "y", neighborPos.y,
                     "z", neighborPos.z
@@ -615,7 +615,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 
     {
         MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::LightUpdates",
+            "server.world", "ServerWorld::setBlockState::LightUpdates",
             "x", x,
             "y", y,
             "z", z,
@@ -634,7 +634,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
         }
     }
 
-    // setBlock 路径不会自动触发 LiquidBlock 回调，这里主动补一次流体初始调度。
+    // setBlockState 路径不会自动触发 LiquidBlock 回调，这里主动补一次流体初始调度。
     // 同时调度周围六邻域，确保水/岩浆在方块变化后能及时重算流动。
     const auto scheduleFluidAt = [&](const BlockPos& pos, const BlockState* blockState) {
         MC_ASSERT_RELEASE(blockState && m_tickManager);
@@ -650,7 +650,7 @@ bool ServerWorld::setBlock(i32 x, i32 y, i32 z, const BlockState* state)
 
     {
         MC_TRACE_EVENT(
-            "server.world", "ServerWorld::setBlock::FluidScheduling",
+            "server.world", "ServerWorld::setBlockState::FluidScheduling",
             "x", x,
             "y", y,
             "z", z
@@ -809,7 +809,7 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed) {
                 BlockPos pos = getBlockRandomPos(chunkX, sectionY, chunkZ);
 
                 // 获取方块状态
-                const BlockState* blockState = chunk.getBlock(
+                const BlockState* blockState = chunk.getBlockState(
                     pos.x - chunkX,
                     pos.y,
                     pos.z - chunkZ
@@ -999,7 +999,7 @@ bool ServerWorld::hasBlockCollision(const AxisAlignedBB& box) const
                             continue;
                         }
 
-                        const BlockState* state = chunk->getBlock(x, y, z);
+                        const BlockState* state = chunk->getBlockState(x, y, z);
                         if (!state || state->isAir()) continue;
 
                         const CollisionShape& shape = state->getCollisionShape();
@@ -1045,7 +1045,7 @@ std::vector<AxisAlignedBB> ServerWorld::getBlockCollisions(const AxisAlignedBB& 
                             continue;
                         }
 
-                        const BlockState* state = chunk->getBlock(x, y, z);
+                        const BlockState* state = chunk->getBlockState(x, y, z);
                         if (!state || state->isAir()) continue;
 
                         const CollisionShape& shape = state->getCollisionShape();

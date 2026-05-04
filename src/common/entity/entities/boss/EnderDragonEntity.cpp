@@ -584,7 +584,7 @@ bool EnderDragonEntity::destroyBlocksInAABB(const AxisAlignedBB& area) {
                 // 破坏方块
                 // 注意：实际应该调用 world->destroyBlock(pos, false) 来触发掉落和粒子
                 // 这里简化为直接设置为空气
-                worldPtr->setBlock(bx, by, bz, nullptr);
+                worldPtr->setBlockState(bx, by, bz, nullptr);
 
                 // 生成粒子效果
                 // worldPtr->addParticle(ParticleTypeId::EXPLOSION, Vector3(bx + 0.5, by + 0.5, bz + 0.5), Vector3(0, 0, 0));

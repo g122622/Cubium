@@ -98,7 +98,7 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
     // TODO: destroy模式需要先破坏原有方块并掉落物品
 
     // 放置方块
-    bool success = world->setBlock(position.x, position.y, position.z, state);
+    bool success = world->setBlockState(position.x, position.y, position.z, state);
     if (!success) {
         source.sendError("commands.setblock.failed");
         return 0;
@@ -139,7 +139,7 @@ void SetBlockCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
         StringArgumentType::string()
     );
     blockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setBlock(ctx);
+        return setBlockState(ctx);
     });
 
     // /setblock <pos> <block> destroy
@@ -169,7 +169,7 @@ void SetBlockCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     dispatcher.registerCommand(setblockNode);
 }
 
-i32 SetBlockCommand::setBlock(CommandContext<ServerCommandSource>& context) {
+i32 SetBlockCommand::setBlockState(CommandContext<ServerCommandSource>& context) {
     // 默认replace模式
     return executeSetBlock(context, false, false);
 }

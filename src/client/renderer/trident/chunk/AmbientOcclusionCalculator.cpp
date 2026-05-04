@@ -437,7 +437,7 @@ AmbientOcclusionCalculator::CornerSample AmbientOcclusionCalculator::samplePosit
     }
 
     // 获取方块状态
-    const BlockState* state = sampleChunk->getBlock(localX, y, localZ);
+    const BlockState* state = sampleChunk->getBlockState(localX, y, localZ);
 
     // 获取光照
     sample.skyLight = sampleChunk->getSkyLight(localX, y, localZ);
@@ -497,7 +497,7 @@ bool AmbientOcclusionCalculator::isTransparent(
     }
 
     // 获取方块状态
-    const BlockState* state = sampleChunk->getBlock(localX, y, localZ);
+    const BlockState* state = sampleChunk->getBlockState(localX, y, localZ);
     if (!state || state->isAir()) {
         return true;  // 空气是透明的
     }

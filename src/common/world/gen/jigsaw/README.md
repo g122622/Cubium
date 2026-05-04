@@ -482,7 +482,7 @@ graph TB
 | 输出项 | 类型 | 目标 | 说明 |
 |--------|------|------|------|
 | 已放置拼图块列表 | `vector<PlacedPiece>` | 结构生成 | 结构的所有组成部分 |
-| 世界方块 | `setBlock()` | IWorldWriter | 实际放置的方块 |
+| 世界方块 | `setBlockState()` | IWorldWriter | 实际放置的方块 |
 | 边界框 | `StructureBoundingBox` | 区块检测 | 用于跨区块检测 |
 
 ### 依赖项

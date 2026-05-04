@@ -157,7 +157,7 @@ public:
  */
 class WorldGenRegion : public IWorld {
 public:
-    using IWorld::setBlock;
+    using IWorld::setBlockState;
     using IWorld::getBlockState;
 
     /**
@@ -220,33 +220,26 @@ public:
     /**
      * @brief 获取方块状态（IWorld 接口）
      */
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
-        return getBlock(x, y, z);
-    }
-
-    /**
-     * @brief 获取方块（便捷方法）
-     */
-    [[nodiscard]] const BlockState* getBlock(i32 x, i32 y, i32 z) const;
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const;
 
     /**
      * @brief 获取方块（BlockPos 版本）
      */
-    [[nodiscard]] const BlockState* getBlock(const BlockPos& pos) const {
-        return getBlock(pos.x, pos.y, pos.z);
+    [[nodiscard]] const BlockState* getBlockState(const BlockPos& pos) const {
+        return getBlockState(pos.x, pos.y, pos.z);
     }
 
     /**
      * @brief 设置方块状态（IWorld 接口）
      */
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override;
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override;
 
     /**
      * @brief 设置方块状态（带标志）
      */
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override {
         (void)flags;
-        return setBlock(x, y, z, state);
+        return setBlockState(x, y, z, state);
     }
 
     /**

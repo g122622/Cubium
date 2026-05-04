@@ -61,13 +61,13 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    bool setBlock(i32 x, i32 y, i32 z, const BlockState* state) override {
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
         m_blocks[packPos(x, y, z)] = state;
         return true;
     }
 
-    bool setBlock(const BlockPos& pos, const BlockState* state) {
-        return setBlock(pos.x, pos.y, pos.z, state);
+    bool setBlockState(const BlockPos& pos, const BlockState* state) {
+        return setBlockState(pos.x, pos.y, pos.z, state);
     }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {

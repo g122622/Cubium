@@ -28,7 +28,7 @@ public:
         : m_region(region) {}
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
-        return m_region.getBlock(x, y, z);
+        return m_region.getBlockState(x, y, z);
     }
 
     [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override {
@@ -269,19 +269,19 @@ i32 WorldGenSpawner::getSpawnHeight(
     // 对于地面生物，需要在地面上一格生成
     if (placementType == world::spawn::PlacementType::OnGround) {
         // 检查脚下方块是否是实心方块
-        const BlockState* groundBlock = region.getBlock(x, topY - 1, z);
+        const BlockState* groundBlock = region.getBlockState(x, topY - 1, z);
         if (!groundBlock || groundBlock->isAir()) {
             return -1;
         }
 
         // 检查生成位置是否为空气或可通过方块
-        const BlockState* spawnBlock = region.getBlock(x, topY, z);
+        const BlockState* spawnBlock = region.getBlockState(x, topY, z);
         if (spawnBlock && spawnBlock->isSolid()) {
             return -1;  // 头顶被堵住
         }
 
         // 再检查上一格（对于高度 > 1 的生物）
-        const BlockState* aboveBlock = region.getBlock(x, topY + 1, z);
+        const BlockState* aboveBlock = region.getBlockState(x, topY + 1, z);
         if (aboveBlock && aboveBlock->isSolid()) {
             return -1;  // 头顶被堵住
         }
@@ -290,7 +290,7 @@ i32 WorldGenSpawner::getSpawnHeight(
     else if (placementType == world::spawn::PlacementType::InWater) {
         // 在高度位置向下搜索水
         for (i32 y = topY; y > 0; --y) {
-            const BlockState* state = region.getBlock(x, y, z);
+            const BlockState* state = region.getBlockState(x, y, z);
             if (state && state->getMaterial().isLiquid()) {
                 return y;
             }
@@ -301,7 +301,7 @@ i32 WorldGenSpawner::getSpawnHeight(
     else if (placementType == world::spawn::PlacementType::InLava) {
         // 在高度位置向下搜索岩浆
         for (i32 y = topY; y > 0; --y) {
-            const BlockState* state = region.getBlock(x, y, z);
+            const BlockState* state = region.getBlockState(x, y, z);
             if (state && &state->getMaterial() == &Material::LAVA) {
                 return y;
             }
@@ -364,7 +364,7 @@ bool WorldGenSpawner::checkSpawnRules(
     i32 y,
     i32 z) const
 {
-    const BlockState* ground = region.getBlock(x, y - 1, z);
+    const BlockState* ground = region.getBlockState(x, y - 1, z);
     if (!ground || ground->isAir() || ground->isLiquid()) {
         return false;
     }

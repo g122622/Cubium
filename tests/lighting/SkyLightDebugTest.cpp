@@ -32,7 +32,7 @@ public:
     }
     const mc::BlockState* getBlockStateForLight(const mc::BlockPos& pos) const override {
         if (!m_chunk || pos.chunkX() != m_chunk->x() || pos.chunkZ() != m_chunk->z()) return nullptr;
-        return m_chunk->getBlock(pos.x & 0xF, pos.y, pos.z & 0xF);
+        return m_chunk->getBlockState(pos.x & 0xF, pos.y, pos.z & 0xF);
     }
     mc::IWorld* getWorld() override { return nullptr; }
     const mc::IWorld* getWorld() const override { return nullptr; }
@@ -57,7 +57,7 @@ TEST(SkyLightDebugTest, FloatingStoneSections) {
     
     // Place stone at Y=70
     const mc::BlockState* stone = &mc::VanillaBlocks::STONE->defaultState();
-    chunk.setBlock(8, 70, 8, stone);
+    chunk.setBlockState(8, 70, 8, stone);
     
     std::cout << "Section analysis:" << std::endl;
     for (int i = 0; i < 16; ++i) {
