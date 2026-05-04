@@ -363,6 +363,7 @@ void Player::tick() {
 
 bool Player::tickPortal() {
     // 玩家需要 80 tick (4秒) 在传送门中才能传送
+    // 创造模式（无敌状态）只需要 1 tick
     // 参考 MC 1.16.5 PlayerEntity.tick() line 578-607
 
     // 如果不在传送门中，递减传送门计时
@@ -380,11 +381,13 @@ bool Player::tickPortal() {
     // 递增传送门计时
     m_portalTime++;
 
-    // 检查是否达到传送阈值（80 ticks = 4秒）
-    if (m_portalTime >= 80) {
-        // 传送触发，保持 portalTime 为 80（与 Entity 基类一致）
+    // 检查是否达到传送阈值
+    // 使用 getMaxInPortalTime() 而非硬编码，以支持创造模式
+    const i32 maxPortalTime = getMaxInPortalTime();
+    if (m_portalTime >= maxPortalTime) {
+        // 传送触发，保持 portalTime 为最大值（与 Entity 基类一致）
         // 实际重置在 onPortalTriggered() 中完成
-        m_portalTime = 80;
+        m_portalTime = maxPortalTime;
         return true;
     }
 
@@ -963,6 +966,14 @@ void Player::serialize(network::PacketSerializer& ser) const {
     ser.writeI32(m_experienceManager->getLevel());
     ser.writeF32(m_experienceManager->getProgress());
     ser.writeI32(m_experienceManager->getTotalExperience());
+
+    // 下界进度追踪位置（可选）
+    ser.writeBool(m_enteredNetherPosition.has_value());
+    if (m_enteredNetherPosition.has_value()) {
+        ser.writeF64(m_enteredNetherPosition->x);
+        ser.writeF64(m_enteredNetherPosition->y);
+        ser.writeF64(m_enteredNetherPosition->z);
+    }
 }
 
 Result<std::unique_ptr<Player>> Player::deserialize(network::PacketDeserializer& deser) {
@@ -1042,6 +1053,19 @@ Result<std::unique_ptr<Player>> Player::deserialize(network::PacketDeserializer&
         progressResult.value(),
         totalResult.value()
     );
+
+    // 下界进度追踪位置（可选）
+    auto hasNetherPosResult = deser.readBool();
+    if (hasNetherPosResult.failed()) return hasNetherPosResult.error();
+    if (hasNetherPosResult.value()) {
+        auto nxResult = deser.readF64();
+        if (nxResult.failed()) return nxResult.error();
+        auto nyResult = deser.readF64();
+        if (nyResult.failed()) return nyResult.error();
+        auto nzResult = deser.readF64();
+        if (nzResult.failed()) return nzResult.error();
+        player->m_enteredNetherPosition = Vector3d(nxResult.value(), nyResult.value(), nzResult.value());
+    }
 
     return std::move(player);
 }

@@ -68,12 +68,13 @@ bool ClientDimensionManager::isDimensionAvailable(DimensionId dimension) const {
 }
 
 const DimensionType* ClientDimensionManager::getDimensionType(DimensionId dimension) const {
+    // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
     switch (dimension) {
         case 0:  // Overworld
             return m_overworldType.get();
-        case 1:  // Nether
+        case -1:  // Nether (MC 1.16.5 使用 -1)
             return m_netherType.get();
-        case 2:  // The End
+        case 1:  // The End (MC 1.16.5 使用 1)
             return m_endType.get();
         default:
             return nullptr;

@@ -72,42 +72,45 @@ inline const std::vector<std::string> ALL_COLUMN_FAMILIES = {
 
 /**
  * @brief 根据维度ID获取Section列族名
- * @param dim 维度ID
+ * @param dim 维度ID (MC 1.16.5: 主世界=0, 下界=-1, 末地=1)
  * @return 列族名
  */
 inline const char* getSectionCF(DimensionId dim) {
+    // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
     switch (dim) {
         case 0: return SECTIONS_OVERWORLD;
-        case 1: return SECTIONS_NETHER;
-        case 2: return SECTIONS_THE_END;
+        case -1: return SECTIONS_NETHER;
+        case 1: return SECTIONS_THE_END;
         default: return SECTIONS_OVERWORLD;
     }
 }
 
 /**
  * @brief 根据维度ID获取实体列族名
- * @param dim 维度ID
+ * @param dim 维度ID (MC 1.16.5: 主世界=0, 下界=-1, 末地=1)
  * @return 列族名
  */
 inline const char* getEntityCF(DimensionId dim) {
+    // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
     switch (dim) {
         case 0: return ENTITIES_OVERWORLD;
-        case 1: return ENTITIES_NETHER;
-        case 2: return ENTITIES_THE_END;
+        case -1: return ENTITIES_NETHER;
+        case 1: return ENTITIES_THE_END;
         default: return ENTITIES_OVERWORLD;
     }
 }
 
 /**
  * @brief 根据维度ID获取POI列族名
- * @param dim 维度ID
+ * @param dim 维度ID (MC 1.16.5: 主世界=0, 下界=-1, 末地=1)
  * @return 列族名
  */
 inline const char* getPoiCF(DimensionId dim) {
+    // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
     switch (dim) {
         case 0: return POI_OVERWORLD;
-        case 1: return POI_NETHER;
-        case 2: return POI_THE_END;
+        case -1: return POI_NETHER;
+        case 1: return POI_THE_END;
         default: return POI_OVERWORLD;
     }
 }

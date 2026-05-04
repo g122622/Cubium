@@ -8,59 +8,20 @@
 namespace mc::network {
 
 /**
- * @brief 维度切换包 (服务端 -> 客户端)
+ * @brief 重生/维度切换包 (服务端 -> 客户端)
  *
- * 当玩家切换维度时发送。客户端应卸载当前维度的所有区块，
+ * 当玩家重生或切换维度时发送。客户端应卸载当前维度的所有区块，
  * 重置状态，并准备加载新维度。
  *
- * 参考 MC 1.16.5 SChangeGameStatePacket 或 SRespawnPacket
- */
-class ChangeDimensionPacket : public Packet {
-public:
-    ChangeDimensionPacket();
-    ~ChangeDimensionPacket() override = default;
-
-    // ========== Packet 接口实现 ==========
-
-    [[nodiscard]] Result<std::vector<u8>> serialize() const override;
-    [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
-    size_t expectedSize() const override;
-
-    // ========== Getter/Setter ==========
-
-    /**
-     * @brief 获取目标维度ID
-     */
-    [[nodiscard]] DimensionId dimension() const { return m_dimension; }
-    void setDimension(DimensionId dimension) { m_dimension = dimension; }
-
-    /**
-     * @brief 获取目标位置
-     */
-    [[nodiscard]] const Vector3d& position() const { return m_position; }
-    void setPosition(const Vector3d& pos) { m_position = pos; }
-
-    /**
-     * @brief 是否为重生触发的维度切换
-     *
-     * 如果为 true，客户端应显示重生界面。
-     */
-    [[nodiscard]] bool respawn() const { return m_respawn; }
-    void setRespawn(bool respawn) { m_respawn = respawn; }
-
-private:
-    DimensionId m_dimension = 0;
-    Vector3d m_position;
-    bool m_respawn = false;
-};
-
-/**
- * @brief 重生包 (服务端 -> 客户端)
- *
- * 当玩家重生时发送（死亡后重生或从末地返回）。
- * 包含新维度的信息和玩家状态。
- *
- * 参考 MC 1.16.5 SRespawnPacket
+ * 参考 MC 1.16.5 SRespawnPacket:
+ * - DimensionType field_240822_a_ (维度类型)
+ * - RegistryKey<World> dimensionID (世界名称: minecraft:overworld/nether/the_end)
+ * - long hashedSeed (世界种子的 SHA-256 前8字节)
+ * - GameType gameType
+ * - GameType field_241787_e_ (上一个游戏模式)
+ * - boolean field_240823_e_ (isDebug)
+ * - boolean field_240824_f_ (isFlat)
+ * - boolean field_240825_g_ (copyMetadata - 用于维度切换时保留数据)
  */
 class RespawnPacket : public Packet {
 public:
@@ -76,28 +37,35 @@ public:
     // ========== Getter/Setter ==========
 
     /**
-     * @brief 获取重生维度ID
+     * @brief 获取维度类型
+     *
+     * 维度类型定义了维度的物理特性：
+     * - hasSkyLight: 是否有天空光照
+     * - hasCeiling: 是否有天花板
+     * - ultraWarm: 是否是超热维度（下界）
+     * - coordinateScale: 坐标缩放比例
+     */
+    [[nodiscard]] i32 dimensionType() const { return m_dimensionType; }
+    void setDimensionType(i32 type) { m_dimensionType = type; }
+
+    /**
+     * @brief 获取维度ID
+     *
+     * 维度的唯一标识符：
+     * - 0: 主世界 (minecraft:overworld)
+     * - -1: 下界 (minecraft:the_nether)
+     * - 1: 末地 (minecraft:the_end)
      */
     [[nodiscard]] DimensionId dimension() const { return m_dimension; }
     void setDimension(DimensionId dimension) { m_dimension = dimension; }
 
     /**
-     * @brief 获取重生位置
+     * @brief 获取世界种子的哈希值
+     *
+     * 世界种子 SHA-256 的前8字节，用于客户端验证。
      */
-    [[nodiscard]] const Vector3d& position() const { return m_position; }
-    void setPosition(const Vector3d& pos) { m_position = pos; }
-
-    /**
-     * @brief 获取重生时的偏航角
-     */
-    [[nodiscard]] f32 yaw() const { return m_yaw; }
-    void setYaw(f32 yaw) { m_yaw = yaw; }
-
-    /**
-     * @brief 获取重生时的俯仰角
-     */
-    [[nodiscard]] f32 pitch() const { return m_pitch; }
-    void setPitch(f32 pitch) { m_pitch = pitch; }
+    [[nodiscard]] u64 hashedSeed() const { return m_hashedSeed; }
+    void setHashedSeed(u64 seed) { m_hashedSeed = seed; }
 
     /**
      * @brief 获取游戏模式
@@ -124,23 +92,24 @@ public:
     void setFlat(bool flat) { m_isFlat = flat; }
 
     /**
-     * @brief 是否复制元数据
+     * @brief 是否保留玩家数据
      *
+     * MC 1.16.5: copyMetadata
      * 如果为 true，客户端应保留某些玩家状态（如经验值）。
+     * 维度切换时通常为 true，死亡重生时为 false。
      */
-    [[nodiscard]] bool copyMetadata() const { return m_copyMetadata; }
-    void setCopyMetadata(bool copy) { m_copyMetadata = copy; }
+    [[nodiscard]] bool keepData() const { return m_keepData; }
+    void setKeepData(bool keep) { m_keepData = keep; }
 
 private:
-    DimensionId m_dimension = 0;
-    Vector3d m_position;
-    f32 m_yaw = 0.0f;
-    f32 m_pitch = 0.0f;
+    i32 m_dimensionType = 0;     // 维度类型（用于渲染设置）
+    DimensionId m_dimension = 0;  // 维度ID (0=主世界, -1=下界, 1=末地)
+    u64 m_hashedSeed = 0;         // 世界种子哈希
     GameMode m_gameMode = GameMode::Survival;
     GameMode m_previousGameMode = GameMode::NotSet;
     bool m_isDebug = false;
     bool m_isFlat = false;
-    bool m_copyMetadata = false;
+    bool m_keepData = false;     // 维度切换时保留数据
 };
 
 /**

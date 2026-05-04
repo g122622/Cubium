@@ -1,4 +1,5 @@
 #include "Dimension.hpp"
+#include "DimensionManager.hpp"
 #include "../gen/settings/DimensionSettings.hpp"
 #include "../gen/chunk/NoiseChunkGenerator.hpp"
 #include "../gen/chunk/NetherChunkGenerator.hpp"
@@ -71,7 +72,7 @@ std::unique_ptr<Dimension> Dimension::createNether(u64 seed) {
     auto generator = std::make_unique<NetherChunkGenerator>(seed, std::move(settings));
 
     auto dimension = std::make_unique<Dimension>(
-        1,  // DimensionId::Nether
+        DimensionManager::NETHER,  // -1 (MC 1.16.5 标准)
         std::move(dimType),
         std::move(generator),
         std::move(biomeProvider)
@@ -94,7 +95,7 @@ std::unique_ptr<Dimension> Dimension::createTheEnd(u64 seed) {
     auto generator = std::make_unique<EndChunkGenerator>(seed, std::move(settings));
 
     auto dimension = std::make_unique<Dimension>(
-        2,  // DimensionId::TheEnd
+        DimensionManager::THE_END,  // 1 (MC 1.16.5 标准)
         std::move(dimType),
         std::move(generator),
         std::move(biomeProvider)

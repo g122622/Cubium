@@ -458,9 +458,11 @@ public:
 
     /**
      * @brief 是否为超热维度
+     *
+     * 下界是超热维度，水会蒸发。MC 1.16.5 标准下界ID为 -1。
      */
     [[nodiscard]] virtual bool isUltraWarm() const {
-        return dimension() == 1;
+        return dimension() == -1;  // DimensionManager::NETHER
     }
 
     /**
@@ -507,8 +509,12 @@ public:
     /**
      * @brief 检查维度是否有天空光照
      * @return 如果维度有天空光照返回true（主世界），否则返回false（下界、末地）
+     *
+     * MC 1.16.5 标准：只有主世界(ID=0)有天空光照
      */
-    [[nodiscard]] virtual bool hasSkyLight() const { return dimension() == 0; }
+    [[nodiscard]] virtual bool hasSkyLight() const {
+        return dimension() == 0;  // DimensionManager::OVERWORLD
+    }
 
     // ========== 难度 ==========
 

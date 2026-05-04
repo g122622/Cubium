@@ -1,6 +1,7 @@
 #include "RespawnAnchorBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../dimension/DimensionType.hpp"
+#include "../../../explosion/ExplosionMode.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
@@ -157,16 +158,13 @@ ActionResultType RespawnAnchorBlock::onBlockActivated(
         // 移除重生锚
         world.setBlockState(pos, nullptr, 11);
 
-        // TODO: 创建爆炸
-        // world.createExplosion(pos, 5.0f, true, Explosion::Mode::DESTROY);
-
-        // 播放爆炸音效
-        world.playSound(
-            ResourceLocation("minecraft:entity.generic.explode"),
-            sound::SoundCategory::Blocks,
+        // MC 1.16.5: 重生锚爆炸强度为 5.0，破坏方块但不生成火焰
+        // 参考: net.minecraft.block.RespawnAnchorBlock.onBlockActivated
+        world.createExplosion(
             pos.center(),
-            4.0f,
-            1.0f
+            5.0f,  // 爆炸半径
+            world::explosion::ExplosionMode::Destroy,
+            false   // 不生成火焰
         );
 
         return ActionResultType::Success;

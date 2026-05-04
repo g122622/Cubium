@@ -56,11 +56,10 @@ enum class PacketType : u16 {
     SetPassengers = 224,        // 设置乘客列表 (S->C)
 
     // 维度相关包
-    ChangeDimension = 225,      // 维度切换 (S->C)
-    Respawn = 226,              // 重生 (S->C)
-    DimensionInfo = 227,        // 维度信息 (S->C)
-    ConfirmDimensionChange = 228, // 确认维度切换 (C->S)
-    SpawnPosition = 229,        // 世界出生点 (S->C)
+    Respawn = 225,              // 重生/维度切换 (S->C) - 参考 MC 1.16.5 SRespawnPacket
+    DimensionInfo = 226,        // 维度信息 (S->C)
+    ConfirmDimensionChange = 227, // 确认维度切换 (C->S)
+    SpawnPosition = 228,        // 世界出生点 (S->C)
 
     // 命令系统
     CommandTree = 230,          // 命令树同步 (S->C)

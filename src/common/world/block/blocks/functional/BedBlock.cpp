@@ -1,6 +1,7 @@
 #include "BedBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../dimension/DimensionType.hpp"
+#include "../../../explosion/ExplosionMode.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
@@ -193,16 +194,13 @@ ActionResultType BedBlock::onBlockActivated(
             }
         }
 
-        // TODO: 创建爆炸
-        // world.createExplosion(pos, 5.0f, true, Explosion::Mode::DESTROY);
-
-        // 播放爆炸音效
-        world.playSound(
-            ResourceLocation("minecraft:entity.generic.explode"),
-            sound::SoundCategory::Blocks,
+        // MC 1.16.5: 床爆炸强度为 5.0，破坏方块并生成火焰
+        // 参考: net.minecraft.block.BedBlock.onBlockActivated
+        world.createExplosion(
             pos.center(),
-            4.0f,
-            1.0f
+            5.0f,  // 爆炸半径
+            world::explosion::ExplosionMode::Destroy,
+            true    // 生成火焰
         );
 
         return ActionResultType::Success;

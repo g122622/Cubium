@@ -98,8 +98,16 @@ public:
 
     // ========== 传送门搜索半径 ==========
 
-    /// 下界传送门搜索半径（格）
-    static constexpr i32 NETHER_SEARCH_RADIUS = 128;
+    /// 从主世界到下界的搜索半径（格）
+    /// MC 1.16.5: 主世界坐标 ÷ 8 = 下界坐标，需要大范围搜索避免分散
+    static constexpr i32 OVERWORLD_TO_NETHER_SEARCH_RADIUS = 128;
+
+    /// 从下界到主世界的搜索半径（格）
+    /// MC 1.16.5: 下界坐标 × 8 = 主世界坐标，需要小范围搜索
+    static constexpr i32 NETHER_TO_OVERWORLD_SEARCH_RADIUS = 16;
+
+    /// 创建新传送门时的搜索半径（格）
+    static constexpr i32 CREATE_PORTAL_SEARCH_RADIUS = 16;
 
     /// 末地传送门固定位置
     [[nodiscard]] static Vector3d getEndSpawnPosition() {

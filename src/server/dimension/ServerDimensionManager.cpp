@@ -346,11 +346,51 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::createServerDimension(D
 }
 
 void ServerDimensionManager::sendDimensionChangePacket(PlayerId playerId, DimensionId newDim, const Vector3d& pos) {
-    // 创建维度切换包
-    network::ChangeDimensionPacket packet;
+    // 获取维度类型
+    auto* targetDim = getDimension(newDim);
+    if (!targetDim) {
+        return;
+    }
+
+    // 参考 MC 1.16.5 ServerPlayerEntity.changeDimension():
+    // 使用 SRespawnPacket 进行维度切换
+    network::RespawnPacket packet;
+
+    // 设置维度类型 (MC 1.16.5 维度类型 ID)
+    // 0 = minecraft:overworld
+    // 1 = minecraft:the_nether
+    // 2 = minecraft:the_end
+    i32 dimensionTypeId = 0;
+    switch (newDim) {
+        case 0:  // Overworld
+            dimensionTypeId = 0;
+            break;
+        case -1: // Nether
+            dimensionTypeId = 1;
+            break;
+        case 1:  // The End
+            dimensionTypeId = 2;
+            break;
+        default:
+            dimensionTypeId = 0;
+            break;
+    }
+    packet.setDimensionType(dimensionTypeId);
     packet.setDimension(newDim);
-    packet.setPosition(pos);
-    packet.setRespawn(false);
+
+    // 设置种子哈希（使用世界种子的简化版本）
+    packet.setHashedSeed(m_seed);  // TODO: 使用 SHA-256 哈希的前8字节
+
+    // 设置游戏模式
+    auto* playerData = m_server->playerManager().getPlayer(playerId);
+    if (playerData) {
+        // TODO: 从玩家数据获取实际游戏模式
+        packet.setGameMode(GameMode::Survival);
+        packet.setPreviousGameMode(GameMode::NotSet);
+    }
+
+    // 维度切换时保留数据
+    packet.setKeepData(true);
 
     // 序列化包
     auto result = packet.serialize();

@@ -5,80 +5,6 @@
 namespace mc::network {
 
 // ============================================================================
-// ChangeDimensionPacket
-// ============================================================================
-
-ChangeDimensionPacket::ChangeDimensionPacket()
-    : Packet(PacketType::ChangeDimension)
-{
-}
-
-Result<std::vector<u8>> ChangeDimensionPacket::serialize() const {
-    PacketSerializer ser;
-
-    // 写入包头
-    ser.writeU16(static_cast<u16>(type()));
-
-    // 写入数据
-    ser.writeI32(m_dimension);
-    ser.writeF64(m_position.x);
-    ser.writeF64(m_position.y);
-    ser.writeF64(m_position.z);
-    ser.writeBool(m_respawn);
-
-    std::vector<u8> result;
-    result.insert(result.end(), ser.data(), ser.data() + ser.size());
-    return result;
-}
-
-Result<void> ChangeDimensionPacket::deserialize(const u8* data, size_t size) {
-    PacketDeserializer deser(data, size);
-
-    // 跳过包头 (类型已在外部读取)
-    auto typeResult = deser.readU16();
-    if (typeResult.failed()) {
-        return typeResult.error();
-    }
-
-    // 读取数据
-    auto dimResult = deser.readI32();
-    if (dimResult.failed()) {
-        return dimResult.error();
-    }
-    m_dimension = dimResult.value();
-
-    auto xResult = deser.readF64();
-    if (xResult.failed()) {
-        return xResult.error();
-    }
-    m_position.x = xResult.value();
-
-    auto yResult = deser.readF64();
-    if (yResult.failed()) {
-        return yResult.error();
-    }
-    m_position.y = yResult.value();
-
-    auto zResult = deser.readF64();
-    if (zResult.failed()) {
-        return zResult.error();
-    }
-    m_position.z = zResult.value();
-
-    auto respawnResult = deser.readBool();
-    if (respawnResult.failed()) {
-        return respawnResult.error();
-    }
-    m_respawn = respawnResult.value();
-
-    return {};
-}
-
-size_t ChangeDimensionPacket::expectedSize() const {
-    return sizeof(PacketHeader) + sizeof(i32) + sizeof(f64) * 3 + sizeof(bool);
-}
-
-// ============================================================================
 // RespawnPacket
 // ============================================================================
 
@@ -93,18 +19,61 @@ Result<std::vector<u8>> RespawnPacket::serialize() const {
     // 写入包头
     ser.writeU16(static_cast<u16>(type()));
 
-    // 写入数据
-    ser.writeI32(m_dimension);
-    ser.writeF64(m_position.x);
-    ser.writeF64(m_position.y);
-    ser.writeF64(m_position.z);
-    ser.writeF32(m_yaw);
-    ser.writeF32(m_pitch);
+    // 参考 MC 1.16.5 SRespawnPacket 格式:
+    // 1. DimensionType (使用 VarInt 编码的类型 ID)
+    // 2. RegistryKey<World> (维度名称: minecraft:overworld/nether/the_end)
+    // 3. hashedSeed (long)
+    // 4. gameType (ubyte)
+    // 5. previousGameType (ubyte)
+    // 6. isDebug (boolean)
+    // 7. isFlat (boolean)
+    // 8. copyMetadata (boolean)
+
+    // 维度类型 (简化: 使用维度ID作为类型ID)
+    // MC 1.16.5 维度类型 ID:
+    //   0 = minecraft:overworld
+    //   1 = minecraft:the_nether
+    //   2 = minecraft:the_end
+    // 注意：这与维度 ID 不同（下界类型ID是1，但维度ID是-1）
+    i32 dimensionTypeId = m_dimensionType;
+    if (dimensionTypeId == 0) {
+        dimensionTypeId = 0;  // Overworld
+    } else if (dimensionTypeId == -1 || dimensionTypeId == 1) {
+        // 下界维度 ID=-1, 类型 ID=1
+        // 末地维度 ID=1, 类型 ID=2
+        dimensionTypeId = (m_dimensionType == -1) ? 1 : 2;
+    }
+    ser.writeVarInt(dimensionTypeId);
+
+    // 维度名称
+    const char* dimensionName = "minecraft:overworld";
+    switch (m_dimension) {
+        case 0:
+            dimensionName = "minecraft:overworld";
+            break;
+        case -1:
+            dimensionName = "minecraft:the_nether";
+            break;
+        case 1:
+            dimensionName = "minecraft:the_end";
+            break;
+        default:
+            dimensionName = "minecraft:overworld";
+            break;
+    }
+    ser.writeString(String(dimensionName));
+
+    // 世界种子哈希
+    ser.writeU64(m_hashedSeed);
+
+    // 游戏模式
     ser.writeU8(static_cast<u8>(m_gameMode));
     ser.writeU8(static_cast<u8>(m_previousGameMode));
+
+    // 世界标志
     ser.writeBool(m_isDebug);
     ser.writeBool(m_isFlat);
-    ser.writeBool(m_copyMetadata);
+    ser.writeBool(m_keepData);
 
     std::vector<u8> result;
     result.insert(result.end(), ser.data(), ser.data() + ser.size());
@@ -120,43 +89,38 @@ Result<void> RespawnPacket::deserialize(const u8* data, size_t size) {
         return typeResult.error();
     }
 
-    // 读取数据
-    auto dimResult = deser.readI32();
-    if (dimResult.failed()) {
-        return dimResult.error();
+    // 读取维度类型
+    auto dimTypeResult = deser.readVarInt();
+    if (dimTypeResult.failed()) {
+        return dimTypeResult.error();
     }
-    m_dimension = dimResult.value();
+    m_dimensionType = dimTypeResult.value();
 
-    auto xResult = deser.readF64();
-    if (xResult.failed()) {
-        return xResult.error();
+    // 读取维度名称
+    auto nameResult = deser.readString();
+    if (nameResult.failed()) {
+        return nameResult.error();
     }
-    m_position.x = xResult.value();
-
-    auto yResult = deser.readF64();
-    if (yResult.failed()) {
-        return yResult.error();
+    // 解析维度名称到维度 ID
+    const String& name = nameResult.value();
+    if (name == "minecraft:overworld" || name == "overworld") {
+        m_dimension = 0;
+    } else if (name == "minecraft:the_nether" || name == "the_nether") {
+        m_dimension = -1;
+    } else if (name == "minecraft:the_end" || name == "the_end") {
+        m_dimension = 1;
+    } else {
+        m_dimension = 0;  // 默认主世界
     }
-    m_position.y = yResult.value();
 
-    auto zResult = deser.readF64();
-    if (zResult.failed()) {
-        return zResult.error();
+    // 读取种子哈希
+    auto seedResult = deser.readU64();
+    if (seedResult.failed()) {
+        return seedResult.error();
     }
-    m_position.z = zResult.value();
+    m_hashedSeed = seedResult.value();
 
-    auto yawResult = deser.readF32();
-    if (yawResult.failed()) {
-        return yawResult.error();
-    }
-    m_yaw = yawResult.value();
-
-    auto pitchResult = deser.readF32();
-    if (pitchResult.failed()) {
-        return pitchResult.error();
-    }
-    m_pitch = pitchResult.value();
-
+    // 读取游戏模式
     auto gameModeResult = deser.readU8();
     if (gameModeResult.failed()) {
         return gameModeResult.error();
@@ -169,6 +133,7 @@ Result<void> RespawnPacket::deserialize(const u8* data, size_t size) {
     }
     m_previousGameMode = static_cast<GameMode>(prevGameModeResult.value());
 
+    // 读取世界标志
     auto debugResult = deser.readBool();
     if (debugResult.failed()) {
         return debugResult.error();
@@ -181,22 +146,19 @@ Result<void> RespawnPacket::deserialize(const u8* data, size_t size) {
     }
     m_isFlat = flatResult.value();
 
-    auto copyResult = deser.readBool();
-    if (copyResult.failed()) {
-        return copyResult.error();
+    auto keepResult = deser.readBool();
+    if (keepResult.failed()) {
+        return keepResult.error();
     }
-    m_copyMetadata = copyResult.value();
+    m_keepData = keepResult.value();
 
     return {};
 }
 
 size_t RespawnPacket::expectedSize() const {
-    return sizeof(PacketHeader) +
-           sizeof(i32) +           // dimension
-           sizeof(f64) * 3 +       // position
-           sizeof(f32) * 2 +       // yaw, pitch
-           sizeof(u8) * 2 +        // gameMode, previousGameMode
-           sizeof(bool) * 3;       // isDebug, isFlat, copyMetadata
+    // VarInt + 字符串 + u64 + 3*u8 + 3*bool
+    // 保守估计
+    return sizeof(PacketHeader) + 5 + 32 + 8 + 3 + 3;
 }
 
 // ============================================================================

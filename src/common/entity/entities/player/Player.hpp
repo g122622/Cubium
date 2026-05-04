@@ -193,11 +193,24 @@ public:
      * @brief 获取在传送门中停留所需的最大时间
      *
      * 玩家需要 80 tick (4秒) 在传送门中才能传送。
+     * 创造模式（无敌状态）只需要 1 tick。
      * 参考 MC 1.16.5 PlayerEntity.getMaxInPortalTime()
      *
-     * @return 80 tick
+     * @return 创造模式返回 1，其他返回 80
      */
-    [[nodiscard]] i32 getMaxInPortalTime() const override { return 80; }
+    [[nodiscard]] i32 getMaxInPortalTime() const override {
+        return m_abilities.invulnerable ? 1 : 80;
+    }
+
+    /**
+     * @brief 获取传送冷却时间
+     *
+     * 玩家的传送冷却时间为 10 tick，而非默认的 300 tick。
+     * 参考 MC 1.16.5 PlayerEntity.getPortalCooldown()
+     *
+     * @return 10 tick
+     */
+    [[nodiscard]] i32 getPortalCooldown() const override { return 10; }
 
     /**
      * @brief 设置位置并重置步距采样
@@ -441,6 +454,31 @@ public:
      * @return true 如果重生点被强制设置
      */
     [[nodiscard]] bool isSpawnForced() const { return m_spawnForced; }
+
+    // ========== 下界进度追踪 ==========
+
+    /**
+     * @brief 获取进入下界时的位置
+     *
+     * 用于 nether_travel 进度触发器。
+     * 当玩家从主世界进入下界时记录，从下界返回主世界时清除。
+     *
+     * 参考 MC 1.16.5 ServerPlayerEntity.enteredNetherPosition
+     *
+     * @return 进入下界时的位置，如果未记录则返回空
+     */
+    [[nodiscard]] std::optional<Vector3d> getEnteredNetherPosition() const { return m_enteredNetherPosition; }
+
+    /**
+     * @brief 设置进入下界时的位置
+     * @param pos 位置
+     */
+    void setEnteredNetherPosition(const Vector3d& pos) { m_enteredNetherPosition = pos; }
+
+    /**
+     * @brief 清除进入下界时的位置
+     */
+    void clearEnteredNetherPosition() { m_enteredNetherPosition = std::nullopt; }
 
     /**
      * @brief 切换飞行状态
@@ -984,6 +1022,10 @@ private:
     // 重生点（床或重生锚设置的位置）
     std::optional<GlobalPos> m_spawnPoint;
     bool m_spawnForced = false;      // 是否强制重生点
+
+    // 进入下界时的位置（用于进度触发器 nether_travel）
+    // 参考 MC 1.16.5 ServerPlayerEntity.enteredNetherPosition
+    std::optional<Vector3d> m_enteredNetherPosition;
 
     // 自动跳跃系统
     entity::movement::AutoJump m_autoJump;

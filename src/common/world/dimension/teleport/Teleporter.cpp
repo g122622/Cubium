@@ -166,12 +166,19 @@ std::optional<PortalInfo> NetherTeleporter::findPortal(IWorld& world, const Vect
                       math::floorTo<BlockCoord>(pos.y),
                       math::floorTo<BlockCoord>(pos.z));
 
-    // 根据目标维度确定搜索半径
-    // 下界 -> 主世界: 搜索半径 128 格
-    // 主世界 -> 下界: 搜索半径 16 格
+    // MC 1.16.5: 根据目标维度确定搜索半径
+    // 下界 -> 主世界: 搜索半径 16 格（因为下界坐标 × 8 = 主世界坐标，范围会扩大）
+    // 主世界 -> 下界: 搜索半径 128 格（因为主世界坐标 ÷ 8 = 下界坐标，范围会缩小）
+    // 注意：此方法在目标世界中执行，所以：
+    // - 如果目标世界是主世界，使用 16 格半径
+    // - 如果目标世界是下界，使用 128 格半径
+    i32 searchRadius = NETHER_TO_OVERWORLD_SEARCH_RADIUS;  // 默认 16
+    if (world.dimension() == -1) {  // NETHER = -1
+        searchRadius = OVERWORLD_TO_NETHER_SEARCH_RADIUS;  // 128
+    }
 
     // 搜索传送门方块
-    auto portalBlocks = searchPortalBlocks(world, blockPos, NETHER_SEARCH_RADIUS);
+    auto portalBlocks = searchPortalBlocks(world, blockPos, searchRadius);
 
     if (portalBlocks.empty()) {
         return std::nullopt;

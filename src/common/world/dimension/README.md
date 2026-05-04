@@ -110,10 +110,13 @@ auto spawnPoint = overworld->spawnPoint();
 
 **职责**: 维度管理器，管理所有维度实例的注册表。
 
-**维度ID常量** (MC 1.16.5 兼容):
-- `OVERWORLD = 0` - 主世界
-- `NETHER = -1` - 下界（注意：MC 1.16.5 使用 -1）
-- `THE_END = 1` - 末地（注意：MC 1.16.5 使用 1）
+### 维度ID常量 (MC 1.16.5 兼容)
+
+| 维度 | ID | 说明 |
+|------|-----|------|
+| `OVERWORLD` | 0 | 主世界 |
+| `NETHER` | -1 | 下界（注意：MC 1.16.5 使用 -1，而非 1 或其他值） |
+| `THE_END` | 1 | 末地（注意：MC 1.16.5 使用 1，而非 2 或其他值） |
 
 > **重要**: 维度ID与 MC 1.16.5 保持一致，下界=-1，末地=1。这对存档兼容性至关重要。
 
@@ -314,9 +317,15 @@ if (settings.hasNaturalLight) {
 
 ### 传送冷却
 
-传送后有 300 ticks (15秒) 的冷却时间，期间无法再次传送：
-- `Entity::getPortalCooldown()` 返回 300
+传送后有冷却时间：
+- **玩家**: 10 ticks (MC 1.16.5 `Player::getPortalCooldown()`)
+- **其他实体**: 300 ticks (15秒) (`Entity::getPortalCooldown()` 默认值)
 - 冷却期间 `canTeleport()` 返回 false
+
+### 创造模式传送
+
+玩家在创造模式（无敌状态）下通过传送门的时间仅为 1 tick：
+- `Player::getMaxInPortalTime()` 返回 `invulnerable ? 1 : 80`
 
 ### 坐标转换
 

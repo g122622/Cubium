@@ -1266,12 +1266,13 @@ bool ServerWorld::hasSkyLight() const
 
 DimensionType ServerWorld::getDimensionType() const
 {
+    // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
     switch (m_config.dimension) {
         case 0:
             return DimensionType::overworld();
-        case 1:
+        case -1:
             return DimensionType::nether();
-        case 2:
+        case 1:
             return DimensionType::theEnd();
         default:
             return DimensionType::overworld();
