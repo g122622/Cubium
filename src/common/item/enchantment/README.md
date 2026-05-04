@@ -118,6 +118,14 @@ enchantment/
 | 时运 | minecraft:fortune | III | 罕见 | 增加方块掉落 |
 | 精准采集 | minecraft:silk_touch | I | 极罕见 | 采集方块本身 |
 
+**时运附魔说明**：
+- 时运效果由战利品表的 `ApplyBonusFunction` 处理
+- 三种时运公式：
+  - `OreDrops`: 钻石矿、绿宝石矿，公式：`baseCount * (random(fortune+2) + 1)`
+  - `Uniform`: 煤矿、红石矿，公式：`baseCount + random(0, fortune)`
+  - `Binomial`: 树叶、萤石，公式：`baseCount + binomial(fortune+1, probability)`
+- 实现：`ApplyBonusFunction` 类
+
 ### 弓类附魔（4种）
 
 | 附魔 | ID | 最大等级 | 稀有度 | 效果 |

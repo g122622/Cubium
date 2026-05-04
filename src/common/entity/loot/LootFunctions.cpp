@@ -66,9 +66,10 @@ std::unique_ptr<LootFunction> SetCountFunction::clone() const {
 // ApplyBonusFunction
 // ============================================================================
 
-ApplyBonusFunction::ApplyBonusFunction(BonusType bonusType, i32 baseCount, f32 probability)
+ApplyBonusFunction::ApplyBonusFunction(BonusType bonusType, i32 bonusMultiplier, i32 extra, f32 probability)
     : m_bonusType(bonusType)
-    , m_baseCount(baseCount)
+    , m_bonusMultiplier(bonusMultiplier)
+    , m_extra(extra)
     , m_probability(probability)
 {
 }
@@ -95,16 +96,17 @@ ItemStack ApplyBonusFunction::apply(ItemStack stack, LootContext& context) const
     }
 
     // 根据加成类型计算新数量
-    i32 newCount = stack.getCount();
+    i32 baseCount = stack.getCount();
+    i32 newCount = baseCount;
     switch (m_bonusType) {
         case BonusType::OreDrops:
-            newCount = calculateOreDrops(fortuneLevel, context.getRandom());
+            newCount = calculateOreDrops(baseCount, fortuneLevel, context.getRandom());
             break;
         case BonusType::Uniform:
-            newCount = calculateUniformBonus(newCount, fortuneLevel, context.getRandom());
+            newCount = calculateUniformBonus(baseCount, fortuneLevel, m_bonusMultiplier, context.getRandom());
             break;
         case BonusType::Binomial:
-            newCount = calculateBinomialBonus(newCount, fortuneLevel, m_probability, context.getRandom());
+            newCount = calculateBinomialBonus(baseCount, fortuneLevel, m_extra, m_probability, context.getRandom());
             break;
     }
 
@@ -113,15 +115,15 @@ ItemStack ApplyBonusFunction::apply(ItemStack stack, LootContext& context) const
 }
 
 std::unique_ptr<LootFunction> ApplyBonusFunction::clone() const {
-    auto func = std::make_unique<ApplyBonusFunction>(m_bonusType, m_baseCount, m_probability);
+    auto func = std::make_unique<ApplyBonusFunction>(m_bonusType, m_bonusMultiplier, m_extra, m_probability);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
     }
     return func;
 }
 
-i32 ApplyBonusFunction::calculateOreDrops(i32 fortuneLevel, math::Random& random) {
-    // MC 1.16.5 OreDropsFormula
+i32 ApplyBonusFunction::calculateOreDrops(i32 baseCount, i32 fortuneLevel, math::Random& random) {
+    // MC 1.16.5 OreDropsFormula:
     // if (fortune > 0) {
     //     int i = random.nextInt(fortune + 2) - 1;
     //     if (i < 0) i = 0;
@@ -129,55 +131,50 @@ i32 ApplyBonusFunction::calculateOreDrops(i32 fortuneLevel, math::Random& random
     // } else {
     //     return baseCount;
     // }
-
     if (fortuneLevel <= 0) {
-        return 1; // 基础数量为1
+        return baseCount;
     }
 
     // random.nextInt(fortune + 2) - 1
-    // fortune=1: random.nextInt(3) - 1 -> 0, 1, 或 -1 (修正为 0)
-    // fortune=2: random.nextInt(4) - 1 -> 0, 1, 2, 或 -1 (修正为 0)
-    // fortune=3: random.nextInt(5) - 1 -> 0, 1, 2, 3, 或 -1 (修正为 0)
+    // fortune=1: random.nextInt(3) - 1 -> -1, 0, 1 (修正后 0, 0, 1) -> multiplier: 1, 1, 2
+    // fortune=2: random.nextInt(4) - 1 -> -1, 0, 1, 2 (修正后 0, 0, 1, 2) -> multiplier: 1, 1, 2, 3
+    // fortune=3: random.nextInt(5) - 1 -> -1, 0, 1, 2, 3 (修正后 0, 0, 1, 2, 3) -> multiplier: 1, 1, 2, 3, 4
     i32 i = random.nextInt(fortuneLevel + 2) - 1;
     if (i < 0) {
         i = 0;
     }
 
-    return 1 * (i + 1); // 基础数量为1
+    return baseCount * (i + 1);
 }
 
-i32 ApplyBonusFunction::calculateUniformBonus(i32 baseCount, i32 fortuneLevel, math::Random& random) {
-    // MC 1.16.5 UniformBonusCountFormula
+i32 ApplyBonusFunction::calculateUniformBonus(i32 baseCount, i32 fortuneLevel, i32 bonusMultiplier, math::Random& random) {
+    // MC 1.16.5 UniformBonusCountFormula:
     // count + random.nextInt(bonusMultiplier * fortune + 1)
-    // 默认 bonusMultiplier = 1
-
     if (fortuneLevel <= 0) {
         return baseCount;
     }
 
-    i32 bonus = random.nextInt(fortuneLevel + 1);
+    i32 bonus = random.nextInt(bonusMultiplier * fortuneLevel + 1);
     return baseCount + bonus;
 }
 
-i32 ApplyBonusFunction::calculateBinomialBonus(i32 baseCount, i32 fortuneLevel, f32 probability, math::Random& random) {
-    // MC 1.16.5 BinomialWithBonusCountFormula
+i32 ApplyBonusFunction::calculateBinomialBonus(i32 baseCount, i32 fortuneLevel, i32 extra, f32 probability, math::Random& random) {
+    // MC 1.16.5 BinomialWithBonusCountFormula:
     // for (int i = 0; i < fortune + extra; ++i) {
     //     if (random.nextFloat() < probability) {
     //         ++count;
     //     }
     // }
-    // extra 默认为 1
-
-    i32 extra = 1; // 默认额外次数
     i32 trials = fortuneLevel + extra;
+    i32 result = baseCount;
 
     for (i32 i = 0; i < trials; ++i) {
         if (random.nextFloat() < probability) {
-            ++baseCount;
+            ++result;
         }
     }
 
-    return baseCount;
+    return result;
 }
 
 // ============================================================================
@@ -829,10 +826,11 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::setCount(i32 count, bool add)
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::applyBonus(
     ApplyBonusFunction::BonusType bonusType,
-    i32 baseCount,
+    i32 bonusMultiplier,
+    i32 extra,
     f32 probability)
 {
-    return std::make_unique<ApplyBonusFunction>(bonusType, baseCount, probability);
+    return std::make_unique<ApplyBonusFunction>(bonusType, bonusMultiplier, extra, probability);
 }
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::lootingEnchantBonus(

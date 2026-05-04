@@ -17,8 +17,9 @@ void DamagingProjectileEntity::tick()
         m_leftShooter = checkLeftShooter();
     }
 
+    // MC 1.16.5: 火球类实体每 tick 燃烧 1 秒（20 ticks）
     if (isFiery()) {
-        setFire(1);
+        setFire(20);  // 1 秒 = 20 ticks
     }
 
     const RayTraceResult result = performRayTrace();

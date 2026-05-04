@@ -128,19 +128,21 @@ public:
      * 参考 MC 1.16.5 的三种加成公式
      */
     enum class BonusType : u8 {
-        Uniform,        // 均匀分布: count + random(0, fortune)
-        Binomial,       // 二项分布: count + binomial(fortune + 1, probability)
-        OreDrops        // 矿石掉落: 特殊算法
+        Uniform,        // 均匀分布: count + random(0, bonusMultiplier * fortune)
+        Binomial,       // 二项分布: count + binomial(fortune + extra, probability)
+        OreDrops        // 矿石掉落: count * random(1, fortune + 1)
     };
 
     /**
      * @brief 构造时运加成函数
      * @param bonusType 加成类型
-     * @param baseCount 基础数量
-     * @param probability 概率（仅 binomial 类型使用）
+     * @param bonusMultiplier Uniform 类型的乘数（默认1）
+     * @param extra Binomial 类型的额外试验次数（默认1）
+     * @param probability Binomial 类型的成功概率
      */
     explicit ApplyBonusFunction(BonusType bonusType = BonusType::OreDrops,
-                                i32 baseCount = 1,
+                                i32 bonusMultiplier = 1,
+                                i32 extra = 1,
                                 f32 probability = 1.0f);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
@@ -148,53 +150,65 @@ public:
     [[nodiscard]] String getType() const override { return "apply_bonus"; }
 
     [[nodiscard]] BonusType getBonusType() const { return m_bonusType; }
-    [[nodiscard]] i32 getBaseCount() const { return m_baseCount; }
+    [[nodiscard]] i32 getBonusMultiplier() const { return m_bonusMultiplier; }
+    [[nodiscard]] i32 getExtra() const { return m_extra; }
     [[nodiscard]] f32 getProbability() const { return m_probability; }
 
     /**
      * @brief 计算时运加成数量（矿石掉落算法）
      *
-     * MC 1.16.5 矿石掉落算法：
-     * - 无时运: 返回 1
-     * - Fortune I: 33% 概率返回 2（1+1）
-     * - Fortune II: 25% 概率返回 2, 25% 概率返回 3（1+1 或 1+2）
-     * - Fortune III: 20% 概率返回 2, 20% 概率返回 3, 20% 概率返回 4
+     * MC 1.16.5 OreDropsFormula:
+     * if (fortune > 0) {
+     *     int i = random.nextInt(fortune + 2) - 1;
+     *     if (i < 0) i = 0;
+     *     return baseCount * (i + 1);
+     * } else {
+     *     return baseCount;
+     * }
      *
+     * @param baseCount 基础掉落数量
      * @param fortuneLevel 时运等级 (0-3)
      * @param random 随机数生成器
      * @return 掉落数量
      */
-    [[nodiscard]] static i32 calculateOreDrops(i32 fortuneLevel, math::Random& random);
+    [[nodiscard]] static i32 calculateOreDrops(i32 baseCount, i32 fortuneLevel, math::Random& random);
 
     /**
      * @brief 计算均匀分布加成
      *
-     * 返回 count + random(0, fortuneLevel)
+     * MC 1.16.5 UniformBonusCountFormula:
+     * count + random.nextInt(bonusMultiplier * fortune + 1)
      *
-     * @param baseCount 基础数量
+     * @param baseCount 基础掉落数量
      * @param fortuneLevel 时运等级
+     * @param bonusMultiplier 乘数（默认1）
      * @param random 随机数生成器
      * @return 掉落数量
      */
-    [[nodiscard]] static i32 calculateUniformBonus(i32 baseCount, i32 fortuneLevel, math::Random& random);
+    [[nodiscard]] static i32 calculateUniformBonus(i32 baseCount, i32 fortuneLevel, i32 bonusMultiplier, math::Random& random);
 
     /**
      * @brief 计算二项分布加成
      *
-     * 返回 count + binomial(fortuneLevel + 1, probability)
+     * MC 1.16.5 BinomialWithBonusCountFormula:
+     * for (int i = 0; i < fortune + extra; ++i) {
+     *     if (random.nextFloat() < probability) ++count;
+     * }
      *
-     * @param baseCount 基础数量
+     * @param baseCount 基础掉落数量
      * @param fortuneLevel 时运等级
+     * @param extra 额外试验次数（默认1）
      * @param probability 成功概率
      * @param random 随机数生成器
      * @return 掉落数量
      */
-    [[nodiscard]] static i32 calculateBinomialBonus(i32 baseCount, i32 fortuneLevel, f32 probability, math::Random& random);
+    [[nodiscard]] static i32 calculateBinomialBonus(i32 baseCount, i32 fortuneLevel, i32 extra, f32 probability, math::Random& random);
 
 private:
     BonusType m_bonusType;
-    i32 m_baseCount;
-    f32 m_probability;
+    i32 m_bonusMultiplier;  // Uniform 类型使用
+    i32 m_extra;            // Binomial 类型使用
+    f32 m_probability;      // Binomial 类型使用
 };
 
 /**
@@ -795,10 +809,15 @@ public:
 
     /**
      * @brief 创建时运加成函数
+     * @param bonusType 加成类型
+     * @param bonusMultiplier Uniform 类型的乘数（默认1）
+     * @param extra Binomial 类型的额外试验次数（默认1）
+     * @param probability Binomial 类型的成功概率
      */
     [[nodiscard]] static std::unique_ptr<LootFunction> applyBonus(
         ApplyBonusFunction::BonusType bonusType = ApplyBonusFunction::BonusType::OreDrops,
-        i32 baseCount = 1,
+        i32 bonusMultiplier = 1,
+        i32 extra = 1,
         f32 probability = 1.0f);
 
     /**

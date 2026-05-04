@@ -239,8 +239,9 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target) {
     EntityDamageSource damageSource = DamageSources::mobAttack(this);
 
     // 如果有火焰附加，在攻击前点燃目标 1 秒（用于燃烧传递）
+    // MC 1.16.5: setFire 接收 ticks，1 秒 = 20 ticks
     if (fireAspectLevel > 0) {
-        target.setFire(1);  // 1 秒 = 20 ticks
+        target.setFire(20);  // 1 秒 = 20 ticks
     }
 
     bool attacked = target.hurt(damageSource, attackDamage);
