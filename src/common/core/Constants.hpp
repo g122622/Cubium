@@ -33,6 +33,16 @@ constexpr i32 MIN_LIGHT_LEVEL = 0;
 // 时间
 constexpr i32 DAY_LENGTH_TICKS = 24000;
 constexpr i32 DAY_LENGTH_SECONDS = 1200; // 20分钟
+constexpr i32 TICKS_PER_SECOND = 20;     // 每秒20刻
+
+/**
+ * @brief 秒转换为刻
+ * @param seconds 秒数
+ * @return 刻数
+ */
+inline constexpr i32 secondsToTicks(i32 seconds) {
+    return seconds * TICKS_PER_SECOND;
+}
 
 } // namespace game
 

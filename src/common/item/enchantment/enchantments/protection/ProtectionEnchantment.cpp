@@ -1,4 +1,5 @@
 #include "ProtectionEnchantment.hpp"
+#include "../../../../entity/damage/DamageSource.hpp"
 
 namespace mc {
 namespace item {
@@ -62,17 +63,7 @@ i32 ProtectionEnchantment::getDamageProtection(i32 level, u32 damageType) const 
     // 注意：火焰保护、爆炸保护、弹射物保护对非匹配伤害类型返回 0，
     // 不提供基础保护。只有全保护对所有伤害有效。
     //
-    // damageType 参数是一个位掩码，由 LivingEntity::applyPotionDamageCalculations 构建：
-    // - 0x01: 火焰/岩浆
-    // - 0x04: 摔落
-    // - 0x08: 爆炸
-    // - 0x10: 弹射物
-
-    // 伤害类型位掩码（与 LivingEntity::applyPotionDamageCalculations 保持一致）
-    constexpr u32 DamageTypeFlagFire = 0x01;       // 火焰/岩浆
-    constexpr u32 DamageTypeFlagFall = 0x04;       // 摔落
-    constexpr u32 DamageTypeFlagExplosion = 0x08;  // 爆炸
-    constexpr u32 DamageTypeFlagProjectile = 0x10; // 弹射物
+    // damageType 参数是一个位掩码，由 LivingEntity::applyPotionDamageCalculations 构建
 
     switch (m_protectionType) {
         case Type::All:
@@ -81,28 +72,28 @@ i32 ProtectionEnchantment::getDamageProtection(i32 level, u32 damageType) const 
 
         case Type::Fire:
             // 火焰保护只对火焰伤害有效，每级 EPF = level * 2
-            if (damageType & DamageTypeFlagFire) {
+            if (damageType & DamageFlags::FIRE) {
                 return level * 2;
             }
             return 0;  // 对其他伤害无效
 
         case Type::Fall:
             // 摔落保护只对摔落伤害有效，每级 EPF = level * 3
-            if (damageType & DamageTypeFlagFall) {
+            if (damageType & DamageFlags::FALL) {
                 return level * 3;
             }
             return 0;
 
         case Type::Explosion:
             // 爆炸保护只对爆炸伤害有效，每级 EPF = level * 2
-            if (damageType & DamageTypeFlagExplosion) {
+            if (damageType & DamageFlags::EXPLOSION) {
                 return level * 2;
             }
             return 0;  // 对其他伤害无效
 
         case Type::Projectile:
             // 弹射物保护只对弹射物伤害有效，每级 EPF = level * 2
-            if (damageType & DamageTypeFlagProjectile) {
+            if (damageType & DamageFlags::PROJECTILE) {
                 return level * 2;
             }
             return 0;  // 对其他伤害无效

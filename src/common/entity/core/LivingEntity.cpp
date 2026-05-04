@@ -9,6 +9,7 @@
 #include "../../world/block/Block.hpp"
 #include "../../world/block/BlockPos.hpp"
 #include "../combat/CombatRules.hpp"
+#include "../damage/DamageSource.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../item/core/Item.hpp"
 #include <cmath>
@@ -550,9 +551,8 @@ void LivingEntity::handleFallDamage(f32 distance, f32 damageMultiplier) {
             &getEquipment(EquipmentSlot::Legs),
             &getEquipment(EquipmentSlot::Feet)
         };
-        // 摔落伤害类型标志
-        constexpr u32 FALL_DAMAGE_TYPE = 0x04;  // DamageType::Fall
-        i32 fallProtectionEPF = item::enchant::EnchantmentHelper::getTotalArmorProtection(armorSlots, FALL_DAMAGE_TYPE);
+        // 使用统一伤害类型标志
+        i32 fallProtectionEPF = item::enchant::EnchantmentHelper::getTotalArmorProtection(armorSlots, DamageFlags::FALL);
         if (fallProtectionEPF > 0) {
             damage = entity::combat::CombatRules::getDamageAfterMagicAbsorb(damage, static_cast<f32>(fallProtectionEPF));
         }

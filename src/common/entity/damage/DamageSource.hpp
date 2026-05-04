@@ -10,6 +10,18 @@ namespace mc {
 class Entity;
 class LivingEntity;
 
+// ============================================================================
+// 保护附魔伤害类型标志位
+// 用于 ProtectionEnchantment 计算伤害减免
+// 参考 MC 1.16.5 ProtectionEnchantment
+// ============================================================================
+namespace DamageFlags {
+    constexpr u32 FIRE = 0x01;        // 火焰/岩浆: InFire, OnFire, Lava, HotFloor
+    constexpr u32 FALL = 0x04;        // 摔落: Fall, FlyIntoWall
+    constexpr u32 EXPLOSION = 0x08;   // 爆炸: Explosion, ExplosionPlayer
+    constexpr u32 PROJECTILE = 0x10;  // 弹射物: Arrow, Trident, MobProjectile, Fireball
+}
+
 /**
  * @brief 伤害类型枚举
  *
