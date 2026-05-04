@@ -184,6 +184,15 @@ std::unordered_set<const Block*> AxeItem::initializeEffectiveBlocks() {
     if (VanillaBlocks::STRIPPED_CRIMSON_HYPHAE) blocks.insert(VanillaBlocks::STRIPPED_CRIMSON_HYPHAE);
     if (VanillaBlocks::STRIPPED_WARPED_HYPHAE) blocks.insert(VanillaBlocks::STRIPPED_WARPED_HYPHAE);
 
+    // MC 1.16.5: 梯子和脚手架（斧可以有效挖掘）
+    if (VanillaBlocks::LADDER) blocks.insert(VanillaBlocks::LADDER);
+    if (VanillaBlocks::SCAFFOLDING) blocks.insert(VanillaBlocks::SCAFFOLDING);
+
+    // MC 1.16.5: 木质按钮（斧可以有效挖掘）
+    if (VanillaBlocks::OAK_BUTTON) blocks.insert(VanillaBlocks::OAK_BUTTON);
+    // TODO: 添加其他木质按钮（SPRUCE_BUTTON, BIRCH_BUTTON, JUNGLE_BUTTON,
+    // DARK_OAK_BUTTON, ACACIA_BUTTON, CRIMSON_BUTTON, WARPED_BUTTON）
+
     return blocks;
 }
 

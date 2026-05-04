@@ -1,10 +1,35 @@
 #include "item/crafting/special/ArmorDyeRecipe.hpp"
+#include "item/Items.hpp"
 #include "item/items/armor/DyeableArmorItem.hpp"
 #include "entity/entities/passive/basic/SheepEntity.hpp"
 #include <algorithm>
+#include <unordered_set>
 
 namespace mc {
 namespace crafting {
+
+// 染料物品集合（MC 1.16.5 共16种染料 + 墨囊 + 可可豆）
+static const std::unordered_set<const Item*>& getDyeItems() {
+    static std::unordered_set<const Item*> dyeItems = {
+        Items::INK_SAC,           // 墨囊（黑色染料）
+        Items::RED_DYE,           // 红色染料
+        Items::GREEN_DYE,         // 绿色染料
+        Items::COCOA_BEANS,       // 可可豆（棕色染料）
+        Items::LAPIS_LAZULI_DYE,  // 青金石（蓝色染料）
+        Items::PURPLE_DYE,        // 紫色染料
+        Items::CYAN_DYE,          // 青色染料
+        Items::LIGHT_GRAY_DYE,    // 淡灰色染料
+        Items::GRAY_DYE,          // 灰色染料
+        Items::PINK_DYE,          // 粉红色染料
+        Items::LIME_DYE,          // 黄绿色染料
+        Items::YELLOW_DYE,        // 黄色染料
+        Items::LIGHT_BLUE_DYE,    // 淡蓝色染料
+        Items::MAGENTA_DYE,       // 品红色染料
+        Items::ORANGE_DYE,        // 橙色染料
+        Items::WHITE_DYE,         // 白色染料
+    };
+    return dyeItems;
+}
 
 ArmorDyeRecipe::ArmorDyeRecipe(const ResourceLocation& id)
     : SpecialRecipe(id) {
@@ -106,10 +131,12 @@ bool ArmorDyeRecipe::isDye(const ItemStack& stack) {
     if (stack.isEmpty()) {
         return false;
     }
-    // TODO: 检查物品是否为染料
-    // 需要实现染料物品注册表或标签
-    // 暂时返回 false
-    return false;
+    const Item* item = stack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+    // MC 1.16.5: 检查物品是否为染料
+    return getDyeItems().count(item) > 0;
 }
 
 u32 ArmorDyeRecipe::mixColors(u32 color1, u32 color2) {

@@ -239,6 +239,11 @@ bool ItemStack::canMergeWith(const ItemStack& other) const {
         return false;
     }
 
+    // MC 1.16.5: 比较修复成本（铁砧操作次数）
+    if (m_repairCost != other.m_repairCost) {
+        return false;
+    }
+
     // 比较自定义名称
     bool customNameEqual = false;
     if (m_customName && other.m_customName) {
@@ -268,12 +273,13 @@ bool ItemStack::canMergeWith(const ItemStack& other) const {
         return false;
     }
 
-    if (m_customData != other.m_customData) {
+    // MC 1.16.5: 比较附魔 - 相同附魔的物品可以堆叠！
+    // 参考: ItemStack.areItemStackTagsEqual() 使用 tag.equals() 比较
+    if (m_enchantments != other.m_enchantments) {
         return false;
     }
 
-    // 如果有附魔，不能合并（附魔物品无法堆叠）
-    if (hasEnchantments() || other.hasEnchantments()) {
+    if (m_customData != other.m_customData) {
         return false;
     }
 

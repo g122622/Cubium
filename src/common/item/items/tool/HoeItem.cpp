@@ -105,14 +105,14 @@ bool HoeItem::isEffectiveMaterial(const Material& material) const {
 std::unordered_set<const Block*> HoeItem::initializeEffectiveBlocks() {
     std::unordered_set<const Block*> blocks;
 
-    // 干草块
+    // MC 1.16.5: 干草块
     if (VanillaBlocks::HAY_BLOCK) blocks.insert(VanillaBlocks::HAY_BLOCK);
 
-    // 海绵
+    // MC 1.16.5: 海绵
     if (VanillaBlocks::SPONGE) blocks.insert(VanillaBlocks::SPONGE);
     if (VanillaBlocks::WET_SPONGE) blocks.insert(VanillaBlocks::WET_SPONGE);
 
-    // 树叶
+    // MC 1.16.5: 树叶
     if (VanillaBlocks::OAK_LEAVES) blocks.insert(VanillaBlocks::OAK_LEAVES);
     if (VanillaBlocks::SPRUCE_LEAVES) blocks.insert(VanillaBlocks::SPRUCE_LEAVES);
     if (VanillaBlocks::BIRCH_LEAVES) blocks.insert(VanillaBlocks::BIRCH_LEAVES);
@@ -120,16 +120,17 @@ std::unordered_set<const Block*> HoeItem::initializeEffectiveBlocks() {
     if (VanillaBlocks::ACACIA_LEAVES) blocks.insert(VanillaBlocks::ACACIA_LEAVES);
     if (VanillaBlocks::DARK_OAK_LEAVES) blocks.insert(VanillaBlocks::DARK_OAK_LEAVES);
 
-    // 地狱疣块
+    // MC 1.16.5: 地狱疣块
     if (VanillaBlocks::NETHER_WART_BLOCK) blocks.insert(VanillaBlocks::NETHER_WART_BLOCK);
+    // TODO: WARPED_WART_BLOCK (诡异疣块) 待添加到 VanillaBlocks
 
-    // 干海带块
+    // MC 1.16.5: 干海带块
     if (VanillaBlocks::DRIED_KELP_BLOCK) blocks.insert(VanillaBlocks::DRIED_KELP_BLOCK);
 
-    // 标靶方块
+    // MC 1.16.5: 标靶方块
     if (VanillaBlocks::TARGET) blocks.insert(VanillaBlocks::TARGET);
 
-    // 荧光块
+    // MC 1.16.5: 菌光体
     if (VanillaBlocks::SHROOMLIGHT) blocks.insert(VanillaBlocks::SHROOMLIGHT);
 
     return blocks;

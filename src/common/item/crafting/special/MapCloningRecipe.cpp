@@ -1,7 +1,13 @@
 #include "item/crafting/special/MapCloningRecipe.hpp"
+#include "item/Items.hpp"
 
 namespace mc {
 namespace crafting {
+
+// TODO: 地图物品尚未实现，需要在 Items.hpp 中添加以下声明：
+// static Item* FILLED_MAP;    // 已填充地图
+// static Item* EMPTY_MAP;     // 空地图
+// 并在 Items.cpp 中注册这些物品
 
 MapCloningRecipe::MapCloningRecipe(const ResourceLocation& id)
     : SpecialRecipe(id) {
@@ -82,8 +88,13 @@ bool MapCloningRecipe::isFilledMap(const ItemStack& stack) {
     if (stack.isEmpty()) {
         return false;
     }
-    // TODO: 检查物品是否为 FilledMapItem
-    // 需要实现物品类型检查
+    // TODO: 地图物品尚未实现
+    // 需要实现:
+    // 1. Items.hpp 添加: static Item* FILLED_MAP;
+    // 2. Items.cpp 注册 FILLED_MAP 物品
+    // 3. 实现 FilledMapItem 类（继承 Item）
+    // 检查方式: return stack.getItem() == item::Items::FILLED_MAP;
+    // 参考: net.minecraft.item.FilledMapItem
     return false;
 }
 
@@ -91,8 +102,13 @@ bool MapCloningRecipe::isEmptyMap(const ItemStack& stack) {
     if (stack.isEmpty()) {
         return false;
     }
-    // TODO: 检查物品是否为 EmptyMapItem
-    // 需要实现物品类型检查
+    // TODO: 地图物品尚未实现
+    // 需要实现:
+    // 1. Items.hpp 添加: static Item* EMPTY_MAP;
+    // 2. Items.cpp 注册 EMPTY_MAP 物品
+    // 3. 实现 EmptyMapItem 类（继承 Item）
+    // 检查方式: return stack.getItem() == item::Items::EMPTY_MAP;
+    // 参考: net.minecraft.item.EmptyMapItem
     return false;
 }
 

@@ -289,12 +289,22 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseBlastingRecipe(
     const ResourceLocation& id,
     const nlohmann::json& json) {
 
-    auto result = parseSmeltingRecipe(id, json, DEFAULT_COOKING_TIME);
+    // MC 1.16.5: 高炉配方默认熔炼时间为 100 tick
+    constexpr i32 BLASTING_COOK_TIME = 100;
+
+    auto result = parseSmeltingRecipe(id, json, BLASTING_COOK_TIME);
     if (result.success()) {
-        // 转换为 BlastingRecipe
-        // 目前 BlastingRecipe 继承自 SmeltingRecipe，仅类型不同
-        // 实际创建时需要使用 BlastingRecipe 类
-        // 这里暂时返回 SmeltingRecipe，后续需要重构
+        // 获取 SmeltingRecipe 并转换为 BlastingRecipe
+        auto smelting = result.value();
+        std::unique_ptr<SmeltingRecipe> blasting = std::make_unique<BlastingRecipe>(
+            smelting->getId(),
+            smelting->getGroup(),
+            smelting->getIngredient(),
+            smelting->getResultItem(),
+            smelting->getExperience(),
+            smelting->getCookTime()
+        );
+        return blasting;
     }
     return result;
 }
@@ -303,14 +313,48 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseSmokingRecipe(
     const ResourceLocation& id,
     const nlohmann::json& json) {
 
-    return parseSmeltingRecipe(id, json, DEFAULT_COOKING_TIME);
+    // MC 1.16.5: 烟熏炉配方默认熔炼时间为 100 tick
+    constexpr i32 SMOKING_COOK_TIME = 100;
+
+    auto result = parseSmeltingRecipe(id, json, SMOKING_COOK_TIME);
+    if (result.success()) {
+        // 获取 SmeltingRecipe 并转换为 SmokingRecipe
+        auto smelting = result.value();
+        std::unique_ptr<SmeltingRecipe> smoking = std::make_unique<SmokingRecipe>(
+            smelting->getId(),
+            smelting->getGroup(),
+            smelting->getIngredient(),
+            smelting->getResultItem(),
+            smelting->getExperience(),
+            smelting->getCookTime()
+        );
+        return smoking;
+    }
+    return result;
 }
 
 Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseCampfireCookingRecipe(
     const ResourceLocation& id,
     const nlohmann::json& json) {
 
-    return parseSmeltingRecipe(id, json, DEFAULT_COOKING_TIME);
+    // MC 1.16.5: 营火烹饪配方默认熔炼时间为 600 tick（30秒）
+    constexpr i32 CAMPFIRE_COOK_TIME = 600;
+
+    auto result = parseSmeltingRecipe(id, json, CAMPFIRE_COOK_TIME);
+    if (result.success()) {
+        // 获取 SmeltingRecipe 并转换为 CampfireCookingRecipe
+        auto smelting = result.value();
+        std::unique_ptr<SmeltingRecipe> campfire = std::make_unique<CampfireCookingRecipe>(
+            smelting->getId(),
+            smelting->getGroup(),
+            smelting->getIngredient(),
+            smelting->getResultItem(),
+            smelting->getExperience(),
+            smelting->getCookTime()
+        );
+        return campfire;
+    }
+    return result;
 }
 
 Result<Ingredient> RecipeSerializers::parseIngredient(const nlohmann::json& json) {

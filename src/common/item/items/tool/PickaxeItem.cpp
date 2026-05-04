@@ -182,6 +182,18 @@ std::unordered_set<const Block*> PickaxeItem::initializeEffectiveBlocks() {
     // MC 1.16.5: 台阶（石制）
     if (VanillaBlocks::STONE_SLAB) blocks.insert(VanillaBlocks::STONE_SLAB);
     if (VanillaBlocks::COBBLESTONE_SLAB) blocks.insert(VanillaBlocks::COBBLESTONE_SLAB);
+    if (VanillaBlocks::STONE_BRICK_SLAB) blocks.insert(VanillaBlocks::STONE_BRICK_SLAB);
+    if (VanillaBlocks::MOSSY_STONE_BRICK_SLAB) blocks.insert(VanillaBlocks::MOSSY_STONE_BRICK_SLAB);
+    if (VanillaBlocks::PRISMARINE_SLAB) blocks.insert(VanillaBlocks::PRISMARINE_SLAB);
+    if (VanillaBlocks::PRISMARINE_BRICK_SLAB) blocks.insert(VanillaBlocks::PRISMARINE_BRICK_SLAB);
+    if (VanillaBlocks::DARK_PRISMARINE_SLAB) blocks.insert(VanillaBlocks::DARK_PRISMARINE_SLAB);
+
+    // MC 1.16.5: 脚手架和梯子
+    if (VanillaBlocks::LADDER) blocks.insert(VanillaBlocks::LADDER);
+    if (VanillaBlocks::SCAFFOLDING) blocks.insert(VanillaBlocks::SCAFFOLDING);
+
+    // MC 1.16.5: 活塞头（镐可以有效挖掘）
+    if (VanillaBlocks::PISTON_HEAD) blocks.insert(VanillaBlocks::PISTON_HEAD);
 
     return blocks;
 }

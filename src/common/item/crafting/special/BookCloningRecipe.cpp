@@ -1,4 +1,5 @@
 #include "item/crafting/special/BookCloningRecipe.hpp"
+#include "item/Items.hpp"
 
 namespace mc {
 namespace crafting {
@@ -94,18 +95,18 @@ bool BookCloningRecipe::isWrittenBook(const ItemStack& stack) {
     if (stack.isEmpty()) {
         return false;
     }
-    // TODO: 检查物品是否为 WrittenBookItem
-    // 需要实现物品类型检查
-    return false;
+    const Item* item = stack.getItem();
+    // MC 1.16.5: 检查物品是否为 WrittenBookItem（成书）
+    return item == Items::WRITTEN_BOOK;
 }
 
 bool BookCloningRecipe::isWritableBook(const ItemStack& stack) {
     if (stack.isEmpty()) {
         return false;
     }
-    // TODO: 检查物品是否为 WritableBookItem
-    // 需要实现物品类型检查
-    return false;
+    const Item* item = stack.getItem();
+    // MC 1.16.5: 检查物品是否为 WritableBookItem（书与笔）
+    return item == Items::WRITABLE_BOOK;
 }
 
 i32 BookCloningRecipe::getGeneration(const ItemStack& stack) {
