@@ -4,6 +4,8 @@
 #include "items/armor/ArmorItem.hpp"
 #include "items/armor/DyeableArmorItem.hpp"
 #include "items/food/FoodItem.hpp"
+#include "items/food/HoneyBottleItem.hpp"
+#include "items/food/ChorusFruitItem.hpp"
 #include "items/potion/PotionItem.hpp"
 #include "items/potion/SplashPotionItem.hpp"
 #include "items/potion/LingeringPotionItem.hpp"
@@ -1131,9 +1133,12 @@ void Items::registerFood() {
         ItemProperties().maxStackSize(64).food(&Foods::CARROT)
     );
 
-    CHORUS_FRUIT = &registry.registerItem(
+    // 紫颂果 - 食用后随机传送
+    // 参考: net.minecraft.item.ChorusFruitItem
+    CHORUS_FRUIT = &registry.registerItem<item::items::ChorusFruitItem>(
         ResourceLocation("minecraft:chorus_fruit"),
-        ItemProperties().maxStackSize(64).food(&Foods::CHORUS_FRUIT)
+        &Foods::CHORUS_FRUIT,
+        ItemProperties().maxStackSize(64)
     );
 
     COOKIE = &registry.registerItem(
@@ -1151,9 +1156,12 @@ void Items::registerFood() {
         ItemProperties().maxStackSize(64).rarity(ItemRarity::Rare).food(&Foods::GOLDEN_CARROT)
     );
 
-    HONEY_BOTTLE = &registry.registerItem(
+    // 蜂蜜瓶 - 清除中毒效果，返回玻璃瓶
+    // 参考: net.minecraft.item.HoneyBottleItem
+    HONEY_BOTTLE = &registry.registerItem<item::items::HoneyBottleItem>(
         ResourceLocation("minecraft:honey_bottle"),
-        ItemProperties().maxStackSize(16).food(&Foods::HONEY_BOTTLE)
+        &Foods::HONEY_BOTTLE,
+        ItemProperties().maxStackSize(16)
     );
 
     MELON_SLICE = &registry.registerItem(
