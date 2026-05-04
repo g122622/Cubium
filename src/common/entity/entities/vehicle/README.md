@@ -26,7 +26,7 @@ vehicle/
 ## 接口继承
 
 - **BoatEntity**: `Entity`, `IRideable`
-- **AbstractMinecartEntity**: `Entity`, `IRideable`
+- **AbstractMinecartEntity**: `Entity`
 
 ## 船的特性
 
@@ -38,16 +38,55 @@ vehicle/
 
 ## 矿车的特性
 
-- 铁轨行驶
+### 基础功能
+- 铁轨行驶（支持10种铁轨形状）
 - 受动力轨道加速
 - 受激活轨道触发
-- 各种功能性变体
+- 斜坡高度调整
+- 物品掉落
+
+### 各变体特性
+
+| 变体 | 特性 | 实现状态 |
+|------|------|----------|
+| RideableMinecartEntity | 可乘坐、物品掉落 | ✅ 完成 |
+| ChestMinecartEntity | 27格库存、物品掉落 | ✅ 完成 |
+| FurnaceMinecartEntity | 燃料系统、自动推进 | ⚠️ 基础完成 |
+| TNTMinecartEntity | 激活铁轨点燃、爆炸 | ⚠️ 基础完成 |
+| HopperMinecartEntity | 物品收集、传输 | ⚠️ 基础完成 |
+| CommandBlockMinecartEntity | 命令执行 | ⚠️ 框架完成 |
+
+### 铁轨系统
+- AbstractRailBlock: 铁轨基类，支持10种形状
+- RailBlock: 普通铁轨，自动连接
+- PoweredRailBlock: 动力铁轨，红石加速
+- DetectorRailBlock: 探测铁轨，矿车检测
+- ActivatorRailBlock: 激活铁轨，触发矿车
+
+### 矿车物品
+- MinecartItem: 放置矿车物品
+- 6种矿车物品注册（Items::MINECART等）
+- 斜坡高度调整（Y + 0.0625 或 Y + 0.5625）
 
 ## 实现状态
 
 | 组件 | 状态 |
 |------|------|
-| BoatEntity | ⚠️ 框架完成，TODO需填充 |
-| MinecartEntity | ⚠️ 框架完成，TODO需填充 |
-| 铁轨逻辑 | ❌ 待实现 |
-| 库存系统 | ❌ 待实现 |
+| BoatEntity | ⚠️ 框架完成 |
+| AbstractMinecartEntity | ✅ 完成 |
+| RideableMinecartEntity | ✅ 完成 |
+| ChestMinecartEntity | ✅ 完成 |
+| FurnaceMinecartEntity | ⚠️ 基础完成 |
+| TNTMinecartEntity | ⚠️ 基础完成 |
+| HopperMinecartEntity | ⚠️ 基础完成 |
+| CommandBlockMinecartEntity | ⚠️ 框架完成 |
+| 铁轨逻辑 | ✅ 完成 |
+| 库存系统 | ✅ 完成 |
+
+## 测试覆盖
+
+测试文件位于 `tests/entity/MinecartTests.cpp`，包含：
+- RailShape isAscending 辅助函数测试
+- ChestMinecartEntity 库存测试
+- AbstractMinecartEntity 基础功能测试
+- MinecartItem 构造测试

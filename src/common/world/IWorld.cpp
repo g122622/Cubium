@@ -3,6 +3,8 @@
 #include "fluid/FluidRegistry.hpp"
 #include "block/Block.hpp"
 #include "entity/core/Entity.hpp"
+#include "redstone/RedstoneSystem.hpp"
+#include "util/Direction.hpp"
 
 namespace mc {
 
@@ -42,6 +44,18 @@ EntityId IWorld::spawnEntity(std::unique_ptr<Entity> entity) {
     // 默认实现：不支持生成实体
     // ServerWorld 会重写此方法
     return 0;
+}
+
+void IWorld::updateNeighbors(const BlockPos& pos, Block& sourceBlock) {
+    // MC 1.16.5: notifyNeighborsOfStateChange
+    // 委托给 RedstoneSystem 实现
+    world::redstone::RedstoneSystem::instance().updateNeighbors(*this, pos, sourceBlock);
+}
+
+void IWorld::updateNeighborsExcept(const BlockPos& pos, Block& sourceBlock, Direction except) {
+    // MC 1.16.5: notifyNeighborsOfStateExcept
+    // 委托给 RedstoneSystem 实现
+    world::redstone::RedstoneSystem::instance().updateNeighborsExcept(*this, pos, sourceBlock, except);
 }
 
 } // namespace mc

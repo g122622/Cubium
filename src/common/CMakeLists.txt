@@ -347,6 +347,9 @@ add_library(mc_common STATIC
     item/items/special/MilkBucketItem.cpp
     item/items/special/EnchantedBookItem.cpp
 
+    # Item - Vehicle Items
+    item/items/vehicle/MinecartItem.cpp
+
     # Item - Crafting
     item/crafting/Ingredient.cpp
     item/crafting/RecipeType.cpp

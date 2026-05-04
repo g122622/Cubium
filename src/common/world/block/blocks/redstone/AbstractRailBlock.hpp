@@ -29,6 +29,18 @@ enum class RailShape : u8 {
 };
 
 /**
+ * @brief 检查铁轨形状是否为上升/斜坡形状
+ * @param shape 铁轨形状
+ * @return 是否为上升形状
+ */
+[[nodiscard]] constexpr bool isAscending(RailShape shape) {
+    return shape == RailShape::AscendingEast ||
+           shape == RailShape::AscendingWest ||
+           shape == RailShape::AscendingNorth ||
+           shape == RailShape::AscendingSouth;
+}
+
+/**
  * @brief 铁轨方块基类
  *
  * 铁轨是矿车行驶的基础：

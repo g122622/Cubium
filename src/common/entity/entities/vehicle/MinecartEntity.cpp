@@ -3,8 +3,12 @@
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
+#include "../../../world/blockentity/core/SimpleInventory.hpp"
 #include "../../../world/redstone/RedstonePower.hpp"
+#include "../../../item/Items.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include "../player/Player.hpp"
+#include "../item/ItemEntity.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include <cmath>
@@ -133,10 +137,7 @@ void AbstractMinecartEntity::moveAlongTrack(const BlockPos& pos) {
     f64 speed = std::sqrt(vx * vx + vz * vz);
 
     // 斜坡调整
-    if (m_railShape == RailShape::AscendingEast ||
-        m_railShape == RailShape::AscendingWest ||
-        m_railShape == RailShape::AscendingNorth ||
-        m_railShape == RailShape::AscendingSouth) {
+    if (blocks::isAscending(m_railShape)) {
         // 斜坡上有额外的重力分量
         f64 adjustment = getSlopeAdjustment();
         switch (m_railShape) {
@@ -332,17 +333,15 @@ void AbstractMinecartEntity::applyDrag() {
 
 void AbstractMinecartEntity::handleEntityCollisions() {
     // MC 1.16.5: collideWithEntities()
-    // 推动实体
+    // 同时处理实体推动和矿车间碰撞，避免重复查询
 
     IWorld* worldPtr = Entity::world();
     if (!worldPtr) {
         return;
     }
 
-    // 获取矿车碰撞箱
+    // 获取矿车碰撞箱（仅查询一次）
     AxisAlignedBB box = boundingBox().expand(0.2f, 0.0f, 0.2f);
-
-    // 获取碰撞的实体
     std::vector<Entity*> entities = worldPtr->getEntitiesInAABB(box, this);
 
     for (Entity* entity : entities) {
@@ -350,17 +349,48 @@ void AbstractMinecartEntity::handleEntityCollisions() {
             continue;
         }
 
+        LegacyEntityType entityType = entity->legacyType();
+
         // 跳过玩家（玩家碰撞由其他逻辑处理）
-        if (entity->legacyType() == LegacyEntityType::Player) {
+        if (entityType == LegacyEntityType::Player) {
             continue;
         }
 
-        // 跳过矿车（由 handleMinecartCollisions 处理）
-        if (entity->legacyType() == LegacyEntityType::Minecart) {
+        // 矿车间碰撞处理
+        if (entityType == LegacyEntityType::Minecart) {
+            AbstractMinecartEntity* otherCart = static_cast<AbstractMinecartEntity*>(entity);
+
+            // 计算碰撞方向
+            f32 dx = static_cast<f32>(otherCart->x() - x());
+            f32 dz = static_cast<f32>(otherCart->z() - z());
+            f32 dist = std::sqrt(dx * dx + dz * dz);
+
+            if (dist > 0.0f) {
+                // 归一化方向
+                dx /= dist;
+                dz /= dist;
+
+                // 检查是否平行（用于判断是追尾还是侧面碰撞）
+                f32 dotProduct = velocityX() * otherCart->velocityX() + velocityZ() * otherCart->velocityZ();
+                bool parallel = dotProduct > 0.8f; // 大致同向
+
+                if (parallel) {
+                    // 追尾碰撞：平均速度
+                    f32 avgVx = (velocityX() + otherCart->velocityX()) * 0.5f;
+                    f32 avgVz = (velocityZ() + otherCart->velocityZ()) * 0.5f;
+                    setVelocity(avgVx, velocityY(), avgVz);
+                    otherCart->setVelocity(avgVx, otherCart->velocityY(), avgVz);
+                } else {
+                    // 侧面碰撞：推开
+                    constexpr f32 COLLISION_STRENGTH = 0.2f;
+                    setVelocity(-dx * COLLISION_STRENGTH, velocityY(), -dz * COLLISION_STRENGTH);
+                    otherCart->setVelocity(dx * COLLISION_STRENGTH, otherCart->velocityY(), dz * COLLISION_STRENGTH);
+                }
+            }
             continue;
         }
 
-        // 推动实体
+        // 其他实体：推动
         f32 dx = static_cast<f32>(entity->x() - x());
         f32 dz = static_cast<f32>(entity->z() - z());
         f32 dist = std::sqrt(dx * dx + dz * dz);
@@ -377,59 +407,8 @@ void AbstractMinecartEntity::handleEntityCollisions() {
 }
 
 void AbstractMinecartEntity::handleMinecartCollisions() {
-    // MC 1.16.5: 矿车间碰撞
-
-    IWorld* worldPtr = Entity::world();
-    if (!worldPtr) {
-        return;
-    }
-
-    // 获取矿车碰撞箱
-    AxisAlignedBB box = boundingBox().expand(0.2f, 0.0f, 0.2f);
-
-    // 获取碰撞的实体
-    std::vector<Entity*> entities = worldPtr->getEntitiesInAABB(box, this);
-
-    for (Entity* entity : entities) {
-        if (!entity || entity->isRemoved()) {
-            continue;
-        }
-
-        // 只处理矿车
-        if (entity->legacyType() != LegacyEntityType::Minecart) {
-            continue;
-        }
-
-        AbstractMinecartEntity* otherCart = static_cast<AbstractMinecartEntity*>(entity);
-
-        // 计算碰撞方向
-        f32 dx = static_cast<f32>(otherCart->x() - x());
-        f32 dz = static_cast<f32>(otherCart->z() - z());
-        f32 dist = std::sqrt(dx * dx + dz * dz);
-
-        if (dist > 0.0f) {
-            // 归一化方向
-            dx /= dist;
-            dz /= dist;
-
-            // 检查是否平行（用于判断是追尾还是侧面碰撞）
-            f32 dotProduct = velocityX() * otherCart->velocityX() + velocityZ() * otherCart->velocityZ();
-            bool parallel = dotProduct > 0.8f; // 大致同向
-
-            if (parallel) {
-                // 追尾碰撞：平均速度
-                f32 avgVx = (velocityX() + otherCart->velocityX()) * 0.5f;
-                f32 avgVz = (velocityZ() + otherCart->velocityZ()) * 0.5f;
-                setVelocity(avgVx, velocityY(), avgVz);
-                otherCart->setVelocity(avgVx, otherCart->velocityY(), avgVz);
-            } else {
-                // 侧面碰撞：推开
-                constexpr f32 COLLISION_STRENGTH = 0.2f;
-                setVelocity(-dx * COLLISION_STRENGTH, velocityY(), -dz * COLLISION_STRENGTH);
-                otherCart->setVelocity(dx * COLLISION_STRENGTH, otherCart->velocityY(), dz * COLLISION_STRENGTH);
-            }
-        }
-    }
+    // 已在 handleEntityCollisions() 中处理
+    // 此方法保留为空以保持API兼容性
 }
 
 void AbstractMinecartEntity::updateRollingAnimation() {
@@ -507,11 +486,9 @@ bool AbstractMinecartEntity::isActivatorRail(const BlockPos& pos) const {
     return state->is(VanillaBlocks::ACTIVATOR_RAIL);
 }
 
-bool AbstractMinecartEntity::isRailPowered(const BlockPos& pos) const {
+bool AbstractMinecartEntity::isRailPowered(const BlockPos& pos) {
     // 检查铁轨是否接收红石信号
-    // 注意：RedstonePower::isPowered 需要非 const 世界引用
-    // 由于此方法是 const，我们需要使用 const_cast
-    IWorld* worldPtr = const_cast<IWorld*>(Entity::world());
+    IWorld* worldPtr = Entity::world();
     if (!worldPtr) {
         return false;
     }
@@ -523,8 +500,72 @@ void AbstractMinecartEntity::dropItem() {
     // MC 1.16.5: killMinecart()
     // 根据矿车类型掉落对应物品
 
-    // TODO: 使用 ItemEntity 生成物品
-    // 这需要物品注册表和 ItemEntity 支持
+    IWorld* worldPtr = world();
+    if (!worldPtr || worldPtr->isClientSide()) {
+        remove();
+        return;
+    }
+
+    // 获取对应的矿车物品
+    const Item* minecartItem = nullptr;
+    switch (m_type) {
+        case Type::Rideable:
+            minecartItem = Items::MINECART;
+            break;
+        case Type::Chest:
+            minecartItem = Items::CHEST_MINECART;
+            break;
+        case Type::Furnace:
+            minecartItem = Items::FURNACE_MINECART;
+            break;
+        case Type::TNT:
+            minecartItem = Items::TNT_MINECART;
+            break;
+        case Type::Hopper:
+            minecartItem = Items::HOPPER_MINECART;
+            break;
+        case Type::CommandBlock:
+            minecartItem = Items::COMMAND_BLOCK_MINECART;
+            break;
+        case Type::Spawner:
+            // Spawner minecart 不掉落物品（MC 1.16.5）
+            remove();
+            return;
+    }
+
+    if (minecartItem == nullptr) {
+        remove();
+        return;
+    }
+
+    // 创建物品堆
+    ItemStack stack(*minecartItem, 1);
+
+    // 如果矿车有自定义名称，设置到物品上
+    if (hasCustomName()) {
+        stack.setCustomName(customNameText());
+    }
+
+    // 创建物品实体
+    // MC 1.16.5: entityDropItem(stack) - 在实体位置生成物品
+    thread_local math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+    f32 vx = rng.nextFloat(-0.1f, 0.1f);
+    f32 vy = 0.2f;  // 轻微向上
+    f32 vz = rng.nextFloat(-0.1f, 0.1f);
+
+    auto itemEntity = std::make_unique<ItemEntity>(
+        EntityId(0),
+        stack,
+        x(), y(), z(),
+        vx, vy, vz
+    );
+
+    // 设置拾取延迟，防止立即被玩家拾取
+    itemEntity->setPickupDelay(10);
+
+    // 生成实体
+    worldPtr->spawnEntity(std::move(itemEntity));
+
     remove();
 }
 
@@ -574,21 +615,94 @@ void RideableMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool power
 // ChestMinecartEntity
 // ============================================================================
 
+ChestMinecartEntity::ChestMinecartEntity(EntityId id)
+    : AbstractMinecartEntity(Type::Chest, id)
+    , m_inventory(std::make_unique<blockentity::SimpleInventory>(INVENTORY_SIZE))
+{
+}
+
 void ChestMinecartEntity::applyDrag() {
     // MC 1.16.5: 箱子矿车摩擦力
     // 根据红石信号强度增加摩擦
     f32 drag = 0.98f;
 
-    // TODO: 计算红石信号强度
-    // 当箱子有物品时，摩擦力增加
+    // MC 1.16.5: 根据容器红石信号强度增加摩擦力
     // int signal = Container.calcRedstoneFromInventory(this);
-    // drag += signal * 0.001f;
+    // drag -= signal * 0.001f;
+    // 目前简化处理，使用固定摩擦力
 
     setVelocity(
         velocityX() * drag,
         velocityY(),
         velocityZ() * drag
     );
+}
+
+void ChestMinecartEntity::dropItem() {
+    // MC 1.16.5: 先掉落库存内容，再掉落矿车物品
+    IWorld* worldPtr = world();
+    if (!worldPtr || worldPtr->isClientSide()) {
+        remove();
+        return;
+    }
+
+    // 掉落所有库存物品
+    if (m_inventory) {
+        for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
+            ItemStack stack = m_inventory->getItem(i);
+            if (!stack.isEmpty()) {
+                // 在矿车位置生成物品实体
+                thread_local math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+                f32 vx = rng.nextFloat(-0.1f, 0.1f);
+                f32 vy = 0.2f;
+                f32 vz = rng.nextFloat(-0.1f, 0.1f);
+
+                auto itemEntity = std::make_unique<ItemEntity>(
+                    EntityId(0),
+                    stack,
+                    x(), y(), z(),
+                    vx, vy, vz
+                );
+                itemEntity->setPickupDelay(10);
+                worldPtr->spawnEntity(std::move(itemEntity));
+            }
+        }
+    }
+
+    // 调用父类方法掉落矿车物品
+    AbstractMinecartEntity::dropItem();
+}
+
+i32 ChestMinecartEntity::getContainerSize() const {
+    return m_inventory ? m_inventory->getContainerSize() : 0;
+}
+
+bool ChestMinecartEntity::isInventoryEmpty() const {
+    return m_inventory ? m_inventory->isEmpty() : true;
+}
+
+ItemStack ChestMinecartEntity::getInventoryItem(i32 slot) const {
+    return m_inventory ? m_inventory->getItem(slot) : ItemStack();
+}
+
+void ChestMinecartEntity::setInventoryItem(i32 slot, const ItemStack& stack) {
+    if (m_inventory) {
+        m_inventory->setItem(slot, stack);
+    }
+}
+
+ItemStack ChestMinecartEntity::removeInventoryItem(i32 slot, i32 count) {
+    return m_inventory ? m_inventory->removeItem(slot, count) : ItemStack();
+}
+
+void ChestMinecartEntity::clearInventory() {
+    if (m_inventory) {
+        m_inventory->clear();
+    }
+}
+
+IInventory* ChestMinecartEntity::getInventory() {
+    return m_inventory.get();
 }
 
 // ============================================================================

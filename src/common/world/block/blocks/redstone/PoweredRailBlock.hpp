@@ -90,6 +90,25 @@ public:
     static const BooleanProperty& POWERED() {
         return BlockStateProperties::POWERED();
     }
+
+private:
+    /**
+     * @brief 沿铁轨方向查找动力信号
+     *
+     * MC 1.16.5: findPoweredRailSignal
+     * 使用迭代方式搜索相连的动力铁轨，最大搜索距离为8格。
+     *
+     * @param world 世界
+     * @param startPos 起始铁轨位置
+     * @param startState 起始铁轨状态
+     * @param checkForward 是否向前检查（true为正向，false为反向）
+     * @return 如果找到充能的动力铁轨则返回true
+     */
+    [[nodiscard]] bool findPoweredRailSignal(
+        IWorld& world,
+        const BlockPos& startPos,
+        const BlockState& startState,
+        bool checkForward) const;
 };
 
 } // namespace blocks

@@ -1,5 +1,6 @@
 #include "ActivatorRailBlock.hpp"
 #include "../../../../world/IWorld.hpp"
+#include "../../../../world/redstone/RedstonePower.hpp"
 
 namespace mc {
 namespace blocks {
@@ -38,15 +39,18 @@ void ActivatorRailBlock::neighborChanged(
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // 检查是否应该更新激活状态
+    // MC 1.16.5: 检查红石信号并更新状态
     const BlockState* currentState = world.getBlockState(pos);
     if (!currentState) return;
 
-    // TODO: 检查红石信号
-    // bool shouldPower = RedstonePower::isPowered(world, pos);
-    // if (shouldPower != isPowered(*currentState)) {
-    //     world.setBlockState(pos.x, pos.y, pos.z, currentState->with(POWERED(), shouldPower), 3);
-    // }
+    // 激活铁轨只需要检查直接红石信号
+    bool shouldBePowered = world::redstone::RedstonePower::isPowered(world, pos);
+
+    bool isCurrentlyPowered = isPowered(*currentState);
+    if (shouldBePowered != isCurrentlyPowered) {
+        BlockState newState = currentState->with(POWERED(), shouldBePowered);
+        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+    }
 }
 
 RailShape ActivatorRailBlock::getRailShape(const BlockState& state) const {

@@ -392,6 +392,16 @@ public:
     static Item* SPONGE;                 // 海绵（干燥）
     static Item* WET_SPONGE;             // 湿海绵
 
+    // ========================================================================
+    // 矿车
+    // ========================================================================
+    static Item* MINECART;               // 普通矿车
+    static Item* CHEST_MINECART;         // 箱子矿车
+    static Item* FURNACE_MINECART;       // 熔炉矿车
+    static Item* TNT_MINECART;           // TNT矿车
+    static Item* HOPPER_MINECART;        // 漏斗矿车
+    static Item* COMMAND_BLOCK_MINECART; // 命令方块矿车
+
 private:
     static bool s_initialized;
 
@@ -411,6 +421,7 @@ private:
     static void registerBuckets();
     static void registerBooks();
     static void registerSponges();
+    static void registerMinecarts();
 };
 
 } // namespace mc

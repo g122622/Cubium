@@ -102,6 +102,7 @@ add_executable(mc_tests
     entity/PathfindingTests.cpp
     entity/RandomWalkingGoalTest.cpp
     entity/AiGoalRegressionTest.cpp
+    entity/MinecartTests.cpp
     common/SettingsTest.cpp
     server/ServerWorldTest.cpp
     server/ServerWorldBlockUpdateCallbackTest.cpp

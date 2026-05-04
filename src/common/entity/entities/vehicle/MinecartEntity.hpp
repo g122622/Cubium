@@ -2,8 +2,11 @@
 
 #include "../../core/Entity.hpp"
 #include "../../../world/block/BlockPos.hpp"
+#include "../../../world/block/blocks/redstone/AbstractRailBlock.hpp"
+#include "../../../world/blockentity/core/SimpleInventory.hpp"
 #include <string>
 #include <array>
+#include <memory>
 
 namespace mc {
 
@@ -15,23 +18,8 @@ class IWorld;
 
 namespace entity {
 
-/**
- * @brief 铁轨形状枚举
- *
- * MC 1.16.5 RailShape
- */
-enum class RailShape : u8 {
-    NorthSouth = 0,    // 南北向直轨
-    EastWest = 1,      // 东西向直轨
-    AscendingEast = 2, // 向东上坡
-    AscendingWest = 3, // 向西上坡
-    AscendingNorth = 4,// 向北上坡
-    AscendingSouth = 5,// 向南上坡
-    SouthEast = 6,     // 东南弯道
-    SouthWest = 7,     // 西南弯道
-    NorthWest = 8,     // 西北弯道
-    NorthEast = 9      // 东北弯道
-};
+// 使用 blocks 命名空间中的 RailShape
+using blocks::RailShape;
 
 /**
  * @brief 矿车实体基类
@@ -320,7 +308,7 @@ protected:
     /**
      * @brief 检查铁轨是否充能
      */
-    [[nodiscard]] bool isRailPowered(const BlockPos& pos) const;
+    [[nodiscard]] bool isRailPowered(const BlockPos& pos);
 
 private:
     // 矿车类型
@@ -382,8 +370,9 @@ public:
  */
 class ChestMinecartEntity : public AbstractMinecartEntity {
 public:
-    ChestMinecartEntity(EntityId id)
-        : AbstractMinecartEntity(Type::Chest, id) {}
+    static constexpr i32 INVENTORY_SIZE = 27;  // 3行 x 9列
+
+    ChestMinecartEntity(EntityId id);
 
     /**
      * @brief 箱子矿车有额外的摩擦力
@@ -391,8 +380,51 @@ public:
      */
     void applyDrag() override;
 
-    // TODO: 实现库存系统
-    // Inventory* getInventory();
+    /**
+     * @brief 掉落物品时同时掉落库存内容
+     */
+    void dropItem() override;
+
+    // ========== IInventory 代理方法 ==========
+
+    /**
+     * @brief 获取库存大小
+     */
+    [[nodiscard]] i32 getContainerSize() const;
+
+    /**
+     * @brief 检查库存是否为空
+     */
+    [[nodiscard]] bool isInventoryEmpty() const;
+
+    /**
+     * @brief 获取指定槽位的物品
+     */
+    [[nodiscard]] ItemStack getInventoryItem(i32 slot) const;
+
+    /**
+     * @brief 设置指定槽位的物品
+     */
+    void setInventoryItem(i32 slot, const ItemStack& stack);
+
+    /**
+     * @brief 从槽位移除指定数量的物品
+     */
+    ItemStack removeInventoryItem(i32 slot, i32 count);
+
+    /**
+     * @brief 清空库存
+     */
+    void clearInventory();
+
+    /**
+     * @brief 获取库存指针
+     */
+    [[nodiscard]] IInventory* getInventory();
+
+private:
+    /// 27格库存（与箱子相同）
+    std::unique_ptr<blockentity::SimpleInventory> m_inventory;
 };
 
 /**

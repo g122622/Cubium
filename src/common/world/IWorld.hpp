@@ -25,6 +25,7 @@ class Block;
 class IRandom;
 class BlockEntity;
 class Player;
+enum class Direction : u8;
 enum class ContainerType : u8;
 
 namespace world::tick {
@@ -156,6 +157,31 @@ public:
         // TODO : 移除方块实体
         (void)pos;
     }
+
+    // ========== 方块更新 ==========
+
+    /**
+     * @brief 通知相邻方块更新
+     *
+     * MC 1.16.5: notifyNeighborsOfStateChange
+     * 通知指定位置的所有6个相邻方块发生变化
+     *
+     * @param pos 发生变化的位置
+     * @param sourceBlock 触发变化的方块
+     */
+    virtual void updateNeighbors(const BlockPos& pos, Block& sourceBlock);
+
+    /**
+     * @brief 通知相邻方块更新（排除指定方向）
+     *
+     * MC 1.16.5: notifyNeighborsOfStateExcept
+     * 通知指定位置的所有相邻方块发生变化，排除指定方向
+     *
+     * @param pos 发生变化的位置
+     * @param sourceBlock 触发变化的方块
+     * @param except 排除的方向
+     */
+    virtual void updateNeighborsExcept(const BlockPos& pos, Block& sourceBlock, Direction except);
 
     // ========== 流体访问 ==========
 

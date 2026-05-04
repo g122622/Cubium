@@ -31,6 +31,7 @@
 #include "items/special/FlintAndSteelItem.hpp"
 #include "items/special/MilkBucketItem.hpp"
 #include "items/special/EnchantedBookItem.hpp"
+#include "items/vehicle/MinecartItem.hpp"
 #include "food/Foods.hpp"
 #include "armor/ArmorMaterial.hpp"
 #include "../world/block/VanillaBlocks.hpp"
@@ -376,6 +377,16 @@ Item* Items::SPONGE = nullptr;
 Item* Items::WET_SPONGE = nullptr;
 
 // ============================================================================
+// 矿车
+// ============================================================================
+Item* Items::MINECART = nullptr;
+Item* Items::CHEST_MINECART = nullptr;
+Item* Items::FURNACE_MINECART = nullptr;
+Item* Items::TNT_MINECART = nullptr;
+Item* Items::HOPPER_MINECART = nullptr;
+Item* Items::COMMAND_BLOCK_MINECART = nullptr;
+
+// ============================================================================
 // 初始化
 // ============================================================================
 
@@ -418,6 +429,7 @@ void Items::initialize() {
     registerBuckets();   // 桶类物品（需要 BUCKET 在 WATER_BUCKET/LAVA_BUCKET 之前注册）
     registerBooks();     // 书本类物品
     registerSponges();   // 海绵物品
+    registerMinecarts(); // 矿车物品
 
     s_initialized = true;
 }
@@ -1829,6 +1841,52 @@ void Items::registerSponges() {
 
     // 湿海绵 - 在熔炉中干燥后返回海绵
     WET_SPONGE = &registerBlockBackedItem(registry, VanillaBlocks::WET_SPONGE, "wet_sponge", ItemProperties().maxStackSize(64));
+}
+
+void Items::registerMinecarts() {
+    auto& registry = ItemRegistry::instance();
+
+    // 普通矿车 - MC 1.16.5: maxStackSize = 1
+    MINECART = &registry.registerItem<item::MinecartItem>(
+        ResourceLocation("minecraft:minecart"),
+        entity::AbstractMinecartEntity::Type::Rideable,
+        ItemProperties().maxStackSize(1)
+    );
+
+    // 箱子矿车
+    CHEST_MINECART = &registry.registerItem<item::MinecartItem>(
+        ResourceLocation("minecraft:chest_minecart"),
+        entity::AbstractMinecartEntity::Type::Chest,
+        ItemProperties().maxStackSize(1)
+    );
+
+    // 熔炉矿车
+    FURNACE_MINECART = &registry.registerItem<item::MinecartItem>(
+        ResourceLocation("minecraft:furnace_minecart"),
+        entity::AbstractMinecartEntity::Type::Furnace,
+        ItemProperties().maxStackSize(1)
+    );
+
+    // TNT矿车
+    TNT_MINECART = &registry.registerItem<item::MinecartItem>(
+        ResourceLocation("minecraft:tnt_minecart"),
+        entity::AbstractMinecartEntity::Type::TNT,
+        ItemProperties().maxStackSize(1)
+    );
+
+    // 漏斗矿车
+    HOPPER_MINECART = &registry.registerItem<item::MinecartItem>(
+        ResourceLocation("minecraft:hopper_minecart"),
+        entity::AbstractMinecartEntity::Type::Hopper,
+        ItemProperties().maxStackSize(1)
+    );
+
+    // 命令方块矿车
+    COMMAND_BLOCK_MINECART = &registry.registerItem<item::MinecartItem>(
+        ResourceLocation("minecraft:command_block_minecart"),
+        entity::AbstractMinecartEntity::Type::CommandBlock,
+        ItemProperties().maxStackSize(1)
+    );
 }
 
 } // namespace mc
