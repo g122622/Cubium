@@ -3,6 +3,8 @@
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
+#include "../../../world/block/blocks/redstone/DetectorRailBlock.hpp"
+#include "../../../world/block/blocks/redstone/ActivatorRailBlock.hpp"
 #include "../../../world/blockentity/core/SimpleInventory.hpp"
 #include "../../../world/blockentity/transport/HopperEntity.hpp"
 #include "../../../world/explosion/Explosion.hpp"
@@ -859,8 +861,25 @@ void HopperMinecartEntity::tick() {
         return;
     }
 
-    // 检查是否被红石禁用（探测铁轨或充能铁轨）
-    // 简化处理：如果停在探测铁轨上，暂停吸取
+    // MC 1.16.5: 检查是否被红石信号禁用
+    // 漏斗矿车在充能的探测铁轨上会被禁用
+    if (isOnRail()) {
+        BlockPos railPos = getRailPosition();
+        const BlockState* railState = worldPtr->getBlockState(railPos);
+        if (railState && railState->is(VanillaBlocks::DETECTOR_RAIL)) {
+            // 探测铁轨被充能时禁用漏斗
+            m_disabled = blocks::DetectorRailBlock::isPowered(*railState);
+        } else if (railState && railState->is(VanillaBlocks::ACTIVATOR_RAIL)) {
+            // 激活铁轨被充能时也禁用漏斗
+            m_disabled = blocks::ActivatorRailBlock::isPowered(*railState);
+        } else {
+            m_disabled = false;
+        }
+    } else {
+        m_disabled = false;
+    }
+
+    // 如果被禁用，跳过吸取和传输
     if (m_disabled) {
         return;
     }
