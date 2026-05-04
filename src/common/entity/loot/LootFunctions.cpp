@@ -537,6 +537,285 @@ std::unique_ptr<LootFunction> SetNbtFunction::clone() const {
 }
 
 // ============================================================================
+// CopyNameFunction
+// ============================================================================
+
+CopyNameFunction::CopyNameFunction(Source source)
+    : m_source(source)
+{
+}
+
+ItemStack CopyNameFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    // TODO: 实现名称复制
+    // 参考: net.minecraft.loot.functions.CopyName
+    // 需要从以下来源获取名称:
+    // - Source::This: 从 THIS_ENTITY 参数获取实体名称
+    // - Source::Killer: 从 KILLER_ENTITY 参数获取击杀者名称
+    // - Source::KillerPlayer: 从 KILLER_PLAYER 参数获取玩家名称
+    // - Source::BlockEntity: 从 BLOCK_STATE 参数获取方块实体名称
+    // 需要 Entity/Player 类实现 INameable 接口
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> CopyNameFunction::clone() const {
+    auto func = std::make_unique<CopyNameFunction>(m_source);
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// CopyBlockStateFunction
+// ============================================================================
+
+CopyBlockStateFunction::CopyBlockStateFunction(const String& blockId,
+                                               const std::vector<String>& properties)
+    : m_blockId(blockId)
+    , m_properties(properties)
+{
+}
+
+ItemStack CopyBlockStateFunction::apply(ItemStack stack, LootContext& context) const {
+    MC_UNUSED(context);
+
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    // TODO: 实现方块状态复制
+    // 参考: net.minecraft.loot.functions.CopyBlockState
+    // 需要将 BlockState 的属性值复制到 ItemStack 的 NBT 中
+
+    return stack;
+}
+
+std::unique_ptr<LootFunction> CopyBlockStateFunction::clone() const {
+    auto func = std::make_unique<CopyBlockStateFunction>(m_blockId, m_properties);
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// CopyNbtFunction
+// ============================================================================
+
+CopyNbtFunction::CopyNbtFunction(Source source)
+    : m_source(source)
+{
+}
+
+void CopyNbtFunction::addOperation(const String& sourcePath, const String& targetPath, Operation operation) {
+    m_operations.push_back({sourcePath, targetPath, operation});
+}
+
+ItemStack CopyNbtFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty() || m_operations.empty()) {
+        return stack;
+    }
+
+    // TODO: 实现 NBT 复制
+    // 参考: net.minecraft.loot.functions.CopyNbt
+    // 需要 NBT 路径解析和操作实现
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> CopyNbtFunction::clone() const {
+    auto func = std::make_unique<CopyNbtFunction>(m_source);
+    func->m_operations = m_operations;
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// FillPlayerHeadFunction
+// ============================================================================
+
+FillPlayerHeadFunction::FillPlayerHeadFunction(CopyNameFunction::Source source)
+    : m_source(source)
+{
+}
+
+ItemStack FillPlayerHeadFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    // TODO: 实现玩家头颅填充
+    // 参考: net.minecraft.loot.functions.FillPlayerHead
+    // 需要获取玩家信息并设置到头颅物品的 NBT 中
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> FillPlayerHeadFunction::clone() const {
+    auto func = std::make_unique<FillPlayerHeadFunction>(m_source);
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// SetAttributesFunction
+// ============================================================================
+
+void SetAttributesFunction::addModifier(const AttributeModifier& modifier) {
+    m_modifiers.push_back(modifier);
+}
+
+ItemStack SetAttributesFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty() || m_modifiers.empty()) {
+        return stack;
+    }
+
+    // TODO: 实现属性设置
+    // 参考: net.minecraft.loot.functions.SetAttributes
+    // 需要属性系统支持
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> SetAttributesFunction::clone() const {
+    auto func = std::make_unique<SetAttributesFunction>();
+    func->m_modifiers = m_modifiers;
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// SetContentsFunction
+// ============================================================================
+
+ItemStack SetContentsFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    // TODO: 实现内容物设置
+    // 参考: net.minecraft.loot.functions.SetContents
+    // 需要容器物品系统支持
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> SetContentsFunction::clone() const {
+    auto func = std::make_unique<SetContentsFunction>();
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// SetLootTableFunction
+// ============================================================================
+
+SetLootTableFunction::SetLootTableFunction(const String& lootTableId, u64 seed)
+    : m_lootTableId(lootTableId)
+    , m_seed(seed)
+{
+}
+
+ItemStack SetLootTableFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty() || m_lootTableId.empty()) {
+        return stack;
+    }
+
+    // TODO: 实现掉落表设置
+    // 参考: net.minecraft.loot.functions.SetLootTable
+    // 需要将掉落表ID设置到物品的NBT中
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> SetLootTableFunction::clone() const {
+    auto func = std::make_unique<SetLootTableFunction>(m_lootTableId, m_seed);
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// ExplorationMapFunction
+// ============================================================================
+
+ExplorationMapFunction::ExplorationMapFunction(Destination destination)
+    : m_destination(destination)
+{
+}
+
+ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    // TODO: 实现探险地图生成
+    // 参考: net.minecraft.loot.functions.ExplorationMap
+    // 需要地图系统和世界探索追踪支持
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> ExplorationMapFunction::clone() const {
+    auto func = std::make_unique<ExplorationMapFunction>(m_destination);
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
+// SetStewEffectFunction
+// ============================================================================
+
+void SetStewEffectFunction::addEffect(const String& effectId, const RandomValueRange& duration) {
+    m_effects.push_back({effectId, duration});
+}
+
+ItemStack SetStewEffectFunction::apply(ItemStack stack, LootContext& context) const {
+    if (stack.isEmpty() || m_effects.empty()) {
+        return stack;
+    }
+
+    // TODO: 实现炖菜效果设置
+    // 参考: net.minecraft.loot.functions.SetStewEffect
+    // 需要药水效果系统支持
+
+    MC_UNUSED(context);
+    return stack;
+}
+
+std::unique_ptr<LootFunction> SetStewEffectFunction::clone() const {
+    auto func = std::make_unique<SetStewEffectFunction>();
+    func->m_effects = m_effects;
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+// ============================================================================
 // LootFunctionBuilder
 // ============================================================================
 
@@ -603,6 +882,42 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::explosionDecay() {
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::setNbt(const String& nbtString) {
     return std::make_unique<SetNbtFunction>(nbtString);
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::copyName(CopyNameFunction::Source source) {
+    return std::make_unique<CopyNameFunction>(source);
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::copyBlockState(const String& blockId) {
+    return std::make_unique<CopyBlockStateFunction>(blockId);
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::copyNbt(CopyNbtFunction::Source source) {
+    return std::make_unique<CopyNbtFunction>(source);
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::fillPlayerHead() {
+    return std::make_unique<FillPlayerHeadFunction>(CopyNameFunction::Source::KillerPlayer);
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::setAttributes() {
+    return std::make_unique<SetAttributesFunction>();
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::setContents() {
+    return std::make_unique<SetContentsFunction>();
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::setLootTable(const String& lootTableId) {
+    return std::make_unique<SetLootTableFunction>(lootTableId);
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::explorationMap() {
+    return std::make_unique<ExplorationMapFunction>();
+}
+
+std::unique_ptr<LootFunction> LootFunctionBuilder::setStewEffect() {
+    return std::make_unique<SetStewEffectFunction>();
 }
 
 } // namespace loot

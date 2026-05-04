@@ -105,6 +105,15 @@ MC 1.16.5 时运公式:
 | `EnchantRandomlyFunction` | `enchant_randomly` | 随机附魔 |
 | `ExplosionDecayFunction` | `explosion_decay` | 爆炸衰减函数 |
 | `SetNbtFunction` | `set_nbt` | 设置NBT标签函数 |
+| `CopyNameFunction` | `copy_name` | 复制名称函数 |
+| `CopyBlockStateFunction` | `copy_block_state` | 复制方块状态函数 |
+| `CopyNbtFunction` | `copy_nbt` | 复制NBT函数 |
+| `FillPlayerHeadFunction` | `fill_player_head` | 填充玩家头颅函数 |
+| `SetAttributesFunction` | `set_attributes` | 设置属性函数 |
+| `SetContentsFunction` | `set_contents` | 设置内容物函数 |
+| `SetLootTableFunction` | `set_loot_table` | 设置掉落表函数 |
+| `ExplorationMapFunction` | `exploration_map` | 探险地图函数 |
+| `SetStewEffectFunction` | `set_stew_effect` | 设置炖菜效果函数 |
 
 **MC 1.16.5 时运矿石掉落算法** (`ApplyBonusFunction::calculateOreDrops`):
 ```

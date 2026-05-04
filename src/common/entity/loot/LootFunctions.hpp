@@ -10,8 +10,11 @@
 
 namespace mc {
 
-// Forward declaration
+// Forward declarations
 class ItemStack;
+class Entity;
+class Player;
+class BlockState;
 
 namespace loot {
 
@@ -457,6 +460,319 @@ private:
 };
 
 /**
+ * @brief 复制名称函数
+ *
+ * 从掉落源复制名称到物品。
+ * 参考: net.minecraft.loot.functions.CopyName
+ *
+ * 用于命名实体掉落物品时保留名称（如命名生物掉落的物品）。
+ */
+class CopyNameFunction : public LootFunction {
+public:
+    /**
+     * @brief 名称来源
+     */
+    enum class Source : u8 {
+        This,           // 当前实体
+        Killer,         // 击杀者
+        KillerPlayer,   // 击杀玩家
+        BlockEntity     // 方块实体
+    };
+
+    /**
+     * @brief 构造复制名称函数
+     * @param source 名称来源
+     */
+    explicit CopyNameFunction(Source source);
+
+    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] String getType() const override { return "copy_name"; }
+
+    [[nodiscard]] Source getSource() const { return m_source; }
+
+private:
+    Source m_source;
+};
+
+/**
+ * @brief 复制方块状态函数
+ *
+ * 从被破坏的方块复制状态属性到物品。
+ * 参考: net.minecraft.loot.functions.CopyBlockState
+ *
+ * 用于保留方块的某些状态属性（如容器的朝向）。
+ */
+class CopyBlockStateFunction : public LootFunction {
+public:
+    /**
+     * @brief 构造复制方块状态函数
+     * @param blockId 方块ID
+     * @param properties 要复制的属性名列表（空表示复制所有）
+     */
+    explicit CopyBlockStateFunction(const String& blockId,
+                                    const std::vector<String>& properties = {});
+
+    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] String getType() const override { return "copy_block_state"; }
+
+    [[nodiscard]] const String& getBlockId() const { return m_blockId; }
+    [[nodiscard]] const std::vector<String>& getProperties() const { return m_properties; }
+
+private:
+    String m_blockId;
+    std::vector<String> m_properties;
+};
+
+/**
+ * @brief 复制NBT函数
+ *
+ * 从掉落源复制NBT数据到物品。
+ * 参考: net.minecraft.loot.functions.CopyNbt
+ *
+ * 用于复制实体或方块的NBT数据到掉落物品。
+ */
+class CopyNbtFunction : public LootFunction {
+public:
+    /**
+     * @brief NBT来源
+     */
+    enum class Source : u8 {
+        This,           // 当前实体
+        Killer,         // 击杀者
+        KillerPlayer,   // 击杀玩家
+        BlockEntity     // 方块实体
+    };
+
+    /**
+     * @brief NBT操作类型
+     */
+    enum class Operation : u8 {
+        Replace,    // 替换
+        Append,     // 追加
+        Merge       // 合并
+    };
+
+    /**
+     * @brief NBT操作定义
+     */
+    struct NbtOperation {
+        String sourcePath;
+        String targetPath;
+        Operation operation;
+    };
+
+    /**
+     * @brief 构造复制NBT函数
+     * @param source NBT来源
+     */
+    explicit CopyNbtFunction(Source source);
+
+    /**
+     * @brief 添加NBT操作
+     */
+    void addOperation(const String& sourcePath, const String& targetPath, Operation operation);
+
+    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] String getType() const override { return "copy_nbt"; }
+
+    [[nodiscard]] Source getSource() const { return m_source; }
+    [[nodiscard]] const std::vector<NbtOperation>& getOperations() const { return m_operations; }
+
+private:
+    Source m_source;
+    std::vector<NbtOperation> m_operations;
+};
+
+/**
+ * @brief 填充玩家头颅函数
+ *
+ * 用玩家信息填充玩家头颅物品。
+ * 参考: net.minecraft.loot.functions.FillPlayerHead
+ *
+ * 用于生成玩家头颅时填充皮肤信息。
+ */
+class FillPlayerHeadFunction : public LootFunction {
+public:
+    /**
+     * @brief 构造填充玩家头颅函数
+     * @param source 玩家来源（This/Killer/KillerPlayer）
+     */
+    explicit FillPlayerHeadFunction(CopyNameFunction::Source source);
+
+    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] String getType() const override { return "fill_player_head"; }
+
+    [[nodiscard]] CopyNameFunction::Source getSource() const { return m_source; }
+
+private:
+    CopyNameFunction::Source m_source;
+};
+
+/**
+ * @brief 设置属性函数
+ *
+ * 给物品添加属性修饰符。
+ * 参考: net.minecraft.loot.functions.SetAttributes
+ *
+ * 用于生成带有特定属性的装备。
+ * 注意：需要属性系统支持，当前为桩实现。
+ */
+class SetAttributesFunction : public LootFunction {
+public:
+    /**
+     * @brief 属性修饰符定义
+     */
+    struct AttributeModifier {
+        String name;            // 修饰符名称
+        String attributeId;     // 属性ID
+        f32 value;              // 修饰值
+        u8 operation;           // 操作类型
+        String slot;            // 装备槽位
+    };
+
+    /**
+     * @brief 构造设置属性函数
+     */
+    SetAttributesFunction() = default;
+
+    /**
+     * @brief 添加属性修饰符
+     */
+    void addModifier(const AttributeModifier& modifier);
+
+    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] String getType() const override { return "set_attributes"; }
+
+    [[nodiscard]] const std::vector<AttributeModifier>& getModifiers() const { return m_modifiers; }
+
+private:
+    std::vector<AttributeModifier> m_modifiers;
+};
+
+/**
+ * @brief 设置内容物函数
+ *
+ * 设置容器类物品的内容物。
+ * 参考: net.minecraft.loot.functions.SetContents
+ *
+ * 用于生成带有物品的容器（如箱子矿车）。
+ */
+class SetContentsFunction : public LootFunction {
+public:
+    SetContentsFunction() = default;
+
+    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] String getType() const override { return "set_contents"; }
+};
+
+/**
+ * @brief 设置掉落表函数
+ *
+ * 为容器设置战利品表。
+ * 参考: net.minecraft.loot.functions.SetLootTable
+ *
+ * 用于生成未开封的箱子等。
+ */
+class SetLootTableFunction : public LootFunction {
+public:
+    /**
+     * @brief 构造设置掉落表函数
+     * @param lootTableId 掉落表ID
+     * @param seed 随机种子（0表示使用世界种子）
+     */
+    explicit SetLootTableFunction(const String& lootTableId, u64 seed = 0);
+
+    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] String getType() const override { return "set_loot_table"; }
+
+    [[nodiscard]] const String& getLootTableId() const { return m_lootTableId; }
+    [[nodiscard]] u64 getSeed() const { return m_seed; }
+
+private:
+    String m_lootTableId;
+    u64 m_seed;
+};
+
+/**
+ * @brief 探险地图函数
+ *
+ * 生成探险地图。
+ * 参考: net.minecraft.loot.functions.ExplorationMap
+ *
+ * 用于生成藏宝图、林地府邸地图等。
+ */
+class ExplorationMapFunction : public LootFunction {
+public:
+    /**
+     * @brief 地图目的地类型
+     */
+    enum class Destination : u8 {
+        BuriedTreasure,     // 埋藏的宝藏
+        Mansion,            // 林地府邸
+        Monument,           // 海底神殿
+        Shipwreck,          // 沉船
+        RuinedPortal        // 废弃传送门
+    };
+
+    /**
+     * @brief 构造探险地图函数
+     * @param destination 目的地类型
+     */
+    explicit ExplorationMapFunction(Destination destination = Destination::BuriedTreasure);
+
+    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] String getType() const override { return "exploration_map"; }
+
+    [[nodiscard]] Destination getDestination() const { return m_destination; }
+
+private:
+    Destination m_destination;
+};
+
+/**
+ * @brief 设置炖菜效果函数
+ *
+ * 设置谜之炖菜的状态效果。
+ * 参考: net.minecraft.loot.functions.SetStewEffect
+ *
+ * 用于生成带有特定效果的谜之炖菜。
+ */
+class SetStewEffectFunction : public LootFunction {
+public:
+    /**
+     * @brief 效果定义
+     */
+    struct EffectEntry {
+        String effectId;        // 效果ID
+        RandomValueRange duration;  // 持续时间（秒）
+    };
+
+    SetStewEffectFunction() = default;
+
+    /**
+     * @brief 添加效果
+     */
+    void addEffect(const String& effectId, const RandomValueRange& duration);
+
+    [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] String getType() const override { return "set_stew_effect"; }
+
+    [[nodiscard]] const std::vector<EffectEntry>& getEffects() const { return m_effects; }
+
+private:
+    std::vector<EffectEntry> m_effects;
+};
+
+/**
  * @brief 掉落函数构建器
  *
  * 提供流畅的函数构建接口。
@@ -538,6 +854,53 @@ public:
      * @brief 创建设置NBT函数
      */
     [[nodiscard]] static std::unique_ptr<LootFunction> setNbt(const String& nbtString);
+
+    /**
+     * @brief 创建复制名称函数
+     */
+    [[nodiscard]] static std::unique_ptr<LootFunction> copyName(CopyNameFunction::Source source);
+
+    /**
+     * @brief 创建复制方块状态函数
+     */
+    [[nodiscard]] static std::unique_ptr<LootFunction> copyBlockState(const String& blockId);
+
+    /**
+     * @brief 创建复制NBT函数
+     * @param source 数据源
+     * @param operations NBT路径操作列表（暂未实现完整操作解析）
+     */
+    [[nodiscard]] static std::unique_ptr<LootFunction> copyNbt(CopyNbtFunction::Source source);
+
+    /**
+     * @brief 创建填充玩家头颅函数
+     */
+    [[nodiscard]] static std::unique_ptr<LootFunction> fillPlayerHead();
+
+    /**
+     * @brief 创建设置属性函数
+     */
+    [[nodiscard]] static std::unique_ptr<LootFunction> setAttributes();
+
+    /**
+     * @brief 创建设置内容物函数
+     */
+    [[nodiscard]] static std::unique_ptr<LootFunction> setContents();
+
+    /**
+     * @brief 创建设置掉落表函数
+     */
+    [[nodiscard]] static std::unique_ptr<LootFunction> setLootTable(const String& lootTableId);
+
+    /**
+     * @brief 创建探险地图函数
+     */
+    [[nodiscard]] static std::unique_ptr<LootFunction> explorationMap();
+
+    /**
+     * @brief 创建设置炖菜效果函数
+     */
+    [[nodiscard]] static std::unique_ptr<LootFunction> setStewEffect();
 };
 
 } // namespace loot
