@@ -334,6 +334,7 @@ add_library(mc_common STATIC
 
     # Item - Potion Items
     item/items/potion/PotionItem.cpp
+    item/items/potion/ThrowablePotionItem.cpp
     item/items/potion/SplashPotionItem.cpp
     item/items/potion/LingeringPotionItem.cpp
     item/items/potion/GlassBottleItem.cpp

@@ -66,8 +66,8 @@ std::vector<entity::effect::EffectInstance> TippedArrowItem::getEffects(const It
         effects = potion::PotionUtils::getEffects(potion);
     }
 
-    // TODO: 合并自定义效果（从 NBT CustomPotionEffects）
-    // 这需要 NBT 解析支持
+    // 注意：自定义效果（NBT CustomPotionEffects）需要在 NBT 系统完善后合并
+    // 当前仅返回药水的基础效果
 
     return effects;
 }

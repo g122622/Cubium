@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../weapon/ThrowableItem.hpp"
+#include "ThrowablePotionItem.hpp"
 
 namespace mc {
 
@@ -15,11 +15,11 @@ namespace item {
  *
  * 投掷后产生滞留区域，在区域内的实体会获得效果。
  * 持续约30秒，每秒应用一次效果。
- * 继承ThrowableItem以获得投掷行为。
+ * 继承ThrowablePotionItem以获得药水物品的共享行为。
  *
  * 参考: net.minecraft.item.LingeringPotionItem
  */
-class LingeringPotionItem : public ThrowableItem {
+class LingeringPotionItem : public ThrowablePotionItem {
 public:
     /**
      * @brief 构造函数
@@ -40,38 +40,20 @@ public:
         Player& player,
         const ItemStack& stack) const override;
 
+protected:
     /**
-     * @brief 播放投掷音效
+     * @brief 获取基础翻译键
      */
-    void playThrowSound(Player& player) const override;
-
-    // ========== Item 接口重写 ==========
-
-    /**
-     * @brief 是否有附魔光效
-     * @param stack 物品堆
-     * @return 如果药水有效果则返回true
-     */
-    [[nodiscard]] bool hasEffect(const ItemStack& stack) const override;
+    [[nodiscard]] String getBaseTranslationKey() const override {
+        return String("item.minecraft.lingering_potion");
+    }
 
     /**
-     * @brief 获取翻译键
-     * @param stack 物品堆
-     * @return 带药水类型的翻译键
+     * @brief 获取带效果后缀的翻译键前缀
      */
-    [[nodiscard]] String getTranslationKey(const ItemStack& stack) const override;
-
-    /**
-     * @brief 获取投掷速度
-     * MC 1.16.5: 药水投掷速度为 0.5
-     */
-    [[nodiscard]] f32 getThrowVelocity() const override { return 0.5f; }
-
-    /**
-     * @brief 获取投掷偏移
-     * MC 1.16.5: 药水投掷偏移为 0.0f
-     */
-    [[nodiscard]] f32 getThrowInaccuracy() const override { return 0.0f; }
+    [[nodiscard]] String getEffectTranslationKeyPrefix() const override {
+        return String("item.minecraft.lingering_potion.effect.");
+    }
 };
 
 } // namespace item

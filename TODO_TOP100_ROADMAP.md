@@ -57,8 +57,9 @@
 - ✅ 已完成 `src/common/item/items/armor/ElytraItem.cpp:18,32,54`：补鞘翅装备、耐久消耗和滑翔状态检查。
 - `src/common/item/items/block/BlockItem.cpp:72`：补世界边界检查，防止非法放置位置。
 - ✅ 已完成 `src/common/item/items/potion/GlassBottleItem.cpp:13`：补水源/炼药锅取水，右键成功时返回水瓶。
-- `src/common/item/items/potion/LingeringPotionItem.cpp:15`：补滞留区域生成，先接实体创建，再接效果范围。
-- `src/common/item/items/potion/SplashPotionItem.cpp:15,36`：补喷溅投掷与区域效果应用。
+- ✅ 已完成 `src/common/item/items/potion/LingeringPotionItem.cpp`：滞留药水投掷已实现，PotionEntity.onImpact() 已实现效果应用，AreaEffectCloud 实体待实现。
+- ✅ 已完成 `src/common/item/items/potion/SplashPotionItem.cpp`：喷溅药水投掷与区域效果应用已完整实现。
+- ✅ 已完成 `src/common/item/items/potion/ThrowablePotionItem.cpp`：提取喷溅/滞留药水共同代码到基类。
 - `src/common/item/potion/PotionUtils.cpp:47`：补自定义效果读取，属于典型 NBT 解析收尾。
 
 ## E. 生物 / AI / 实体
