@@ -102,7 +102,7 @@
 
 ## F. 跨系统 / 核心小修
 
-- `src/common/entity/loot/LootTable.cpp:94,99`：补 JSON 解析与序列化，适合先把掉落表读写接通。
+- `src/common/entity/loot/LootTable.cpp:94,99`：**待实现** JSON 解析与序列化。当前 `fromJson()` 返回 `Unsupported` 错误。需要创建 `LootSerializers` 类实现完整的 JSON 解析逻辑（支持 MC 1.16.5 掉落表格式）。README 已标注为"未来计划"。
 - `src/common/entity/entities/passive/horse/AbstractHorseEntity.cpp:20`：补马鞍标志设置，逻辑很局部。
 - `src/client/sound/backend/AudioBuffer.cpp:63`、`src/client/sound/handler/BiomeAmbientHandler.cpp:51`、`src/client/sound/MusicPlayer.cpp:306`：这三处都在收尾客户端音频链路，建议一起处理。
 - `src/client/ui/kagero/template/parser/Parser.cpp:526` 与 `src/client/ui/kagero/template/parser/Ast.hpp` 中的 `bind:xxx / on:xxx / for:xxx` 示例：前者是真 TODO，后者是语法示例，不要混淆。
