@@ -543,6 +543,17 @@ public:
     virtual void travel(f32 strafing, f32 vertical, f32 forward);
 
     /**
+     * @brief 执行移动（Vector3版本）
+     *
+     * 便捷方法，将Vector3分解为三个分量调用travel(f32, f32, f32)。
+     *
+     * @param travelVec 移动向量 (x=左右, y=上下, z=前后)
+     */
+    virtual void travel(const Vector3& travelVec) {
+        travel(travelVec.x, travelVec.y, travelVec.z);
+    }
+
+    /**
      * @brief AI步进更新
      *
      * 处理AI移动逻辑，应用阻力，调用travel方法。

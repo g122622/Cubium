@@ -2,9 +2,11 @@
 
 #include "AnimalEntity.hpp"
 #include "common/entity/interfaces/IRideable.hpp"
+#include "common/entity/core/BoostHelper.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include <optional>
+#include <memory>
 
 namespace mc {
 
@@ -65,9 +67,9 @@ public:
 
     // ========== IRideable 接口实现 ==========
 
-    [[nodiscard]] bool hasSaddle() const override { return m_hasSaddle; }
+    [[nodiscard]] bool hasSaddle() const override { return m_boostHelper.getSaddled(); }
 
-    void setSaddle(bool saddle) override { m_hasSaddle = saddle; }
+    void setSaddle(bool saddle) override { m_boostHelper.setSaddled(saddle); }
 
     void onPlayerStartRiding(Player* player) override;
 
@@ -82,9 +84,20 @@ public:
 
     bool boost() override;
 
-    [[nodiscard]] i32 getBoostTime() const override { return m_boostTime; }
+    [[nodiscard]] i32 getBoostTime() const override { return m_boostHelper.getBoostTime(); }
 
-    void setBoostTime(i32 time) override { m_boostTime = time; }
+    void setBoostTime(i32 time) override { m_boostHelper.setBoostTime(time); }
+
+    /**
+     * @brief 检查是否可以被控制方向
+     * MC 1.16.5: 猪需要玩家手持胡萝卜钓竿
+     */
+    [[nodiscard]] bool canBeSteered() const override;
+
+    /**
+     * @brief 执行骑乘移动逻辑
+     */
+    void travelTowards(const Vector3& travelVec) override;
 
 protected:
     void registerGoals() override;
@@ -104,15 +117,11 @@ protected:
     [[nodiscard]] f32 eyeHeight() const override { return 0.4f * height(); }
 
 private:
-    bool m_hasSaddle = false;
-    i32 m_boostTime = 0;
-    f32 m_boostSpeed = 0.0f;
+    BoostHelper m_boostHelper;  ///< 加速辅助器（MC 1.16.5: field_234214_bx_）
 
     // MC 1.16.5 常量
     static constexpr f32 PIG_SPEED = 0.25f;       // 基础移动速度
     static constexpr f32 MOUNTED_SPEED_MULT = 0.225f;  // 骑乘速度乘数
-    static constexpr f32 BOOST_SPEED = 0.3f;      // 加速额外速度
-    static constexpr i32 MAX_BOOST_TIME = 140;    // 最大加速时间 (7秒)
 };
 
 } // namespace mc

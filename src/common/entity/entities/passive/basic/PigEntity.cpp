@@ -80,8 +80,8 @@ void PigEntity::onPlayerStartRiding(Player* /*player*/) {
 void PigEntity::onPlayerStopRiding(Player* /*player*/) {
     // MC 1.16.5: 当玩家停止骑乘时
     // 重置加速状态
-    m_boostTime = 0;
-    m_boostSpeed = 0.0f;
+    m_boostHelper.saddledRaw = false;
+    m_boostHelper.boostingTick = 0;
 }
 
 f32 PigEntity::getSteeringSpeed() const {
@@ -92,21 +92,22 @@ f32 PigEntity::getSteeringSpeed() const {
 }
 
 bool PigEntity::boost() {
-    // MC 1.16.5: 只有装备了鞍才能加速
-    if (!m_hasSaddle) {
-        return false;
-    }
+    // MC 1.16.5: 使用BoostHelper进行加速
+    math::Random rng = getRandom();
+    return m_boostHelper.boost(rng);
+}
 
-    // 如果已经在加速中，不重复触发
-    if (m_boostTime > 0) {
-        return false;
-    }
+bool PigEntity::canBeSteered() const {
+    // MC 1.16.5: 猪需要玩家手持胡萝卜钓竿才能控制
+    // 暂时返回是否有鞍
+    // TODO: 当 Player 和 Items::CARROT_ON_A_STICK 实现后检查玩家手持物品
+    return hasSaddle();
+}
 
-    // 设置加速时间和速度
-    m_boostTime = MAX_BOOST_TIME;
-    m_boostSpeed = BOOST_SPEED;
-
-    return true;
+void PigEntity::travelTowards(const Vector3& travelVec) {
+    // MC 1.16.5: PigEntity.travelTowards() -> super.travel(travelVec)
+    // 调用父类的travel方法处理移动
+    AnimalEntity::travel(travelVec);
 }
 
 void PigEntity::tick() {
@@ -114,14 +115,7 @@ void PigEntity::tick() {
     AnimalEntity::tick();
 
     // 更新加速计时
-    if (m_boostTime > 0) {
-        m_boostTime--;
-
-        // 加速结束，重置速度
-        if (m_boostTime <= 0) {
-            m_boostSpeed = 0.0f;
-        }
-    }
+    m_boostHelper.tick();
 }
 
 void PigEntity::registerGoals() {
@@ -130,17 +124,18 @@ void PigEntity::registerGoals() {
 
     // MC 1.16.5 PigEntity.registerGoals()
     // 注意：AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
+    // 注意：PigEntity 是多重继承（AnimalEntity + IRideable），需要显式转换为对应的基类类型
 
-    // 优先级 0: 游泳（最高优先级）
+    // 优先级 0: 游泳（最高优先级）- SwimGoal 需要 MobEntity*
     m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
 
-    // 优先级 1: 恐慌逃跑（受到伤害或着火时）
+    // 优先级 1: 恐慌逃跑（受到伤害或着火时）- PanicGoal 需要 CreatureEntity*
     m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 1.5));
 
-    // 优先级 2: 繁殖（当处于爱心状态时）
+    // 优先级 2: 繁殖（当处于爱心状态时）- BreedGoal 需要 AnimalEntity*
     m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
 
-    // 优先级 3: 食物诱惑（胡萝卜、马铃薯、甜菜根）
+    // 优先级 3: 食物诱惑（胡萝卜、马铃薯、甜菜根）- TemptGoal 需要 CreatureEntity*
     // MC 1.16.5: TemptGoal 使用 TEMPTATION_ITEMS，速度 1.2
     m_goalSelector.addGoal(3, std::make_unique<::mc::entity::ai::goal::TemptGoal>(
         this, 1.2,
@@ -153,17 +148,17 @@ void PigEntity::registerGoals() {
         },
         false));  // scaredByMovement = false
 
-    // 优先级 4: 跟随父母（幼体行为）
+    // 优先级 4: 跟随父母（幼体行为）- FollowParentGoal 需要 AnimalEntity*
     m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.1));
 
-    // 优先级 5: 随机漫步
+    // 优先级 5: 随机漫步 - RandomWalkingGoal 需要 CreatureEntity*
     // MC 1.16.5: 使用 WaterAvoidingRandomWalkingGoal，这里先用 RandomWalkingGoal
     m_goalSelector.addGoal(5, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
 
-    // 优先级 6: 看向玩家
+    // 优先级 6: 看向玩家 - LookAtGoal 需要 MobEntity*
     m_goalSelector.addGoal(6, new entity::ai::goal::LookAtGoal(this, 8.0f));
 
-    // 优先级 7: 随机看向
+    // 优先级 7: 随机看向 - LookRandomlyGoal 需要 MobEntity*
     m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
 }
 
@@ -172,7 +167,6 @@ void PigEntity::registerAttributes() {
     AnimalEntity::registerAttributes();
 
     // MC 1.16.5 PigEntity 属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, PIG_SPEED);
 }
 

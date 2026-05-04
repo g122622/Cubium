@@ -23,6 +23,7 @@ src/common/entity/
 │   ├── EntityUtils.hpp             # 模板型实体工具函数（搜索、距离）
 │   ├── DataParameter.hpp           # 数据参数定义
 │   ├── MoverType.hpp               # 移动类型枚举
+│   ├── BoostHelper.hpp             # 加速辅助类（鞍和加速状态管理）
 │   └── VanillaEntities.hpp         # 原版实体注册
 │
 ├── utils/                          # 非模板实体工具
@@ -164,7 +165,7 @@ src/common/entity/
 │
 ├── interfaces/                     # 实体接口
 │   ├── IAngerable.hpp              # 愤怒接口
-│   ├── IRideable.hpp               # 可骑乘接口
+│   ├── IRideable.hpp/cpp           # 可骑乘接口（猪、炽足兽、马等）
 │   ├── IShearable.hpp              # 可剪毛接口
 │   ├── IRangedAttackMob.hpp        # 远程攻击接口
 │   ├── ICrossbowUser.hpp           # 弩使用者接口

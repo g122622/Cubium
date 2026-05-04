@@ -182,7 +182,7 @@ public:
      * @brief 乘客乘坐高度偏移
      * MC 1.16.5: getMountedYOffset() -> 0.0D
      */
-    [[nodiscard]] f32 getMountedYOffset() const { return 0.0f; }
+    [[nodiscard]] f64 getMountedYOffset() const override { return 0.0; }
 
     /**
      * @brief 应用力到矿车上（被推动时）

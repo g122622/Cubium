@@ -1061,9 +1061,8 @@ public:
 
     /**
      * @brief 停止骑乘
-     * @param clearVehicle 是否清除车辆引用
      */
-    void stopRiding(bool clearVehicle = true);
+    void stopRiding();
 
     /**
      * @brief 获取第一个乘客
@@ -1074,11 +1073,134 @@ public:
     }
 
     /**
-     * @brief 获取骑乘者在车辆中的位置偏移
-     * @return 骑乘位置偏移
+     * @brief 获取控制乘客（通常是第一个乘客）
+     * @return 控制乘客的实体ID，如果没有则返回 INVALID_ENTITY_ID
+     *
+     * MC 1.16.5: getControllingPassenger()
+     * 子类可重写此方法以返回不同的控制乘客
+     */
+    [[nodiscard]] virtual EntityId getControllingPassenger() const {
+        return getFirstPassenger();
+    }
+
+    /**
+     * @brief 检查是否可以由乘客控制方向
+     * @return 如果可以被乘客控制返回true
+     *
+     * MC 1.16.5: canBeSteered()
+     */
+    [[nodiscard]] virtual bool canBeSteered() const { return false; }
+
+    /**
+     * @brief 获取骑乘时的乘客数量限制
+     * @return 最大乘客数量
+     */
+    [[nodiscard]] virtual i32 getMaxPassengers() const { return 1; }
+
+    /**
+     * @brief 检查是否可以容纳更多乘客
+     */
+    [[nodiscard]] bool canFitPassenger() const {
+        return static_cast<i32>(m_passengers.size()) < getMaxPassengers();
+    }
+
+    /**
+     * @brief 获取载具骑乘高度偏移
+     * @return 载具顶部到乘客底部的距离
+     *
+     * MC 1.16.5: getMountedYOffset()
+     * 默认返回实体高度的75%
+     */
+    [[nodiscard]] virtual f64 getMountedYOffset() const;
+
+    /**
+     * @brief 获取乘客Y偏移
+     * @return 乘客相对于载具骑乘点的Y偏移
+     *
+     * MC 1.16.5: getYOffset()
+     * Entity默认返回0，Player重写返回-0.35
+     */
+    [[nodiscard]] virtual f64 getYOffset() const { return 0.0; }
+
+    /**
+     * @brief 获取骑乘位置（世界坐标）
+     * @return 骑乘位置的世界坐标
+     *
+     * MC 1.16.5: getRidingPosition()
      */
     [[nodiscard]] virtual Vector3 getRidingPosition() const;
 
+    /**
+     * @brief 更新乘客位置
+     *
+     * MC 1.16.5: updatePassenger(Entity)
+     * 每帧调用以更新所有乘客的位置
+     */
+    void updatePassengers();
+
+    /**
+     * @brief 更新骑乘实体的状态
+     *
+     * MC 1.16.5: updateRidden()
+     * 当作为乘客时调用，更新位置和旋转
+     */
+    virtual void updateRidden();
+
+    /**
+     * @brief 将载具的朝向应用到乘客
+     * @param passenger 乘客实体
+     *
+     * MC 1.16.5: applyYawToEntity() / applyOrientationToEntity()
+     * 用于船等需要同步旋转的载具
+     */
+    virtual void applyOrientationToEntity(Entity& passenger);
+
+    /**
+     * @brief 检查乘客是否可以控制方向
+     * @return 如果乘客可以控制载具方向返回true
+     *
+     * MC 1.16.5: canPassengerSteer()
+     */
+    [[nodiscard]] bool canPassengerSteer() const;
+
+    /**
+     * @brief 获取骑乘冷却时间
+     * @return 剩余冷却时间（tick），0表示可以骑乘
+     */
+    [[nodiscard]] i32 rideCooldown() const { return m_rideCooldown; }
+
+    /**
+     * @brief 检查是否可以骑乘（冷却为0）
+     */
+    [[nodiscard]] bool canRide() const { return m_rideCooldown <= 0; }
+
+    /**
+     * @brief 检查实体是否可以更新
+     * @return 如果实体可以更新返回true
+     *
+     * MC 1.16.5: canUpdate()
+     * 用于控制乘客是否执行tick更新
+     */
+    [[nodiscard]] virtual bool canUpdate() const { return true; }
+
+    /**
+     * @brief 更新单个乘客的位置
+     * @param passenger 乘客实体
+     *
+     * 子类可重写此方法以自定义乘客位置计算
+     */
+    virtual void updatePassengerPosition(Entity& passenger);
+
+protected:
+    /**
+     * @brief 定位乘客（内部方法）
+     * @param passenger 乘客实体
+     *
+     * MC 1.16.5: positionRider()
+     */
+    void positionRider(Entity& passenger);
+
+public:
     // ========== 更新 ==========
 
     /**
@@ -1256,6 +1378,7 @@ protected:
     // 乘客/骑乘系统
     std::vector<EntityId> m_passengers;  // 乘客列表
     EntityId m_vehicle = INVALID_ENTITY_ID;  // 正在骑乘的车辆
+    i32 m_rideCooldown = 0;  // 骑乘冷却（tick），用于防止快速上下骑乘
 
     /**
      * @brief 设置车辆（内部方法）
