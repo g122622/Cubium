@@ -126,6 +126,33 @@ public:
     PacketHandleResult handlePlayerMove(u32 sessionId, const u8* data, size_t size);
 
     /**
+     * @brief 处理玩家骑乘输入
+     * @param sessionId 会话ID
+     * @param data 数据包负载
+     * @param size 负载大小
+     * @return 处理结果
+     */
+    PacketHandleResult handlePlayerInput(u32 sessionId, const u8* data, size_t size);
+
+    /**
+     * @brief 处理载具移动同步
+     * @param sessionId 会话ID
+     * @param data 数据包负载
+     * @param size 负载大小
+     * @return 处理结果
+     */
+    PacketHandleResult handleMoveVehicle(u32 sessionId, const u8* data, size_t size);
+
+    /**
+     * @brief 处理实体动作
+     * @param sessionId 会话ID
+     * @param data 数据包负载
+     * @param size 负载大小
+     * @return 处理结果
+     */
+    PacketHandleResult handleEntityAction(u32 sessionId, const u8* data, size_t size);
+
+    /**
      * @brief 处理传送确认
      * @param sessionId 会话ID
      * @param data 数据包负载
