@@ -60,6 +60,20 @@ public:
 
     [[nodiscard]] bool ticksRandomly() const override { return true; }
 
+    // ========== 放置回调 ==========
+
+    /**
+     * @brief 方块被添加到世界时调用
+     *
+     * 参考 MC 1.16.5 AbstractFireBlock.onBlockAdded
+     * 在放置时立即检测并点燃下界传送门（而不是在tick时）。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 新方块状态
+     */
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
     // ========== 实体交互 ==========
 
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
@@ -92,10 +106,13 @@ protected:
      * 检查火焰周围是否形成有效的下界传送门框架，
      * 如果有效则点燃传送门。
      *
+     * 参考 MC 1.16.5 AbstractFireBlock.onBlockAdded
+     *
      * @param world 世界引用
      * @param pos 火焰位置
+     * @return 是否成功点燃传送门
      */
-    void tryLightNetherPortal(IWorld& world, const BlockPos& pos);
+    bool tryLightNetherPortal(IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 检查方块是否可燃

@@ -90,12 +90,21 @@ private:
 - `onPortalTriggered()` - 传送门触发回调（重写自 Entity）
 - `changeDimension()` - 执行维度切换
 
-**维度切换逻辑**：
+**维度切换逻辑**（已集成传送门搜索/创建）：
 1. 下骑乘/清除乘客
 2. 计算目标坐标（使用 Teleporter::transformPosition）
-3. 重置传送门状态和触发冷却
-4. 调用 ServerDimensionManager 执行传送
-5. 更新实体维度属性
+3. **搜索目标维度的已存在传送门**（下界传送）
+4. **如果未找到则创建新传送门**（使用 NetherTeleporter）
+5. 记录传送门位置到 ServerDimension
+6. 重置传送门状态和触发冷却
+7. 调用 ServerDimensionManager 执行传送
+8. 更新实体维度属性
+
+**传送门搜索逻辑**:
+- 主世界 → 下界：使用 `NetherTeleporter` 搜索半径 128 格内的传送门
+- 下界 → 主世界：搜索半径 128 格
+- 末地 → 主世界：固定出生点 (100, 49, 0)
+- 主世界 → 末地：固定出生点 (100, 49, 0)，创建黑曜石平台
 
 ---
 

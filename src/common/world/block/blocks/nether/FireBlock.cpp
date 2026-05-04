@@ -6,6 +6,7 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../dimension/teleport/PortalSize.hpp"
+#include "../../../dimension/DimensionManager.hpp"
 #include "../../VanillaBlocks.hpp"
 
 namespace mc {
@@ -124,9 +125,49 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
         world.setBlockState(pos, nullptr, 3);
     }
 
+    // 注意：MC 1.16.5 的传送门点燃在 onBlockAdded 中处理，不在 tick 中
+    // tick 方法只处理火焰蔓延和熄灭逻辑
+}
+
+void FireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    // 参考 MC 1.16.5 AbstractFireBlock.onBlockAdded
+    // 火焰方块被放置时，立即检测并点燃下界传送门
+
+    // 维度检查：只允许在主世界和下界点燃下界传送门
+    // MC 1.16.5: func_242649_a(world) 检查 world.dimension == OVERWORLD || world.dimension == NETHER
+    DimensionId dimensionId = world.dimension();
+
+    if (dimensionId != DimensionManager::OVERWORLD && dimensionId != DimensionManager::NETHER) {
+        // 不在主世界或下界，不检测传送门
+        return;
+    }
+
     // 尝试点燃下界传送门
-    // 参考 MC 1.16.5 FireBlock.tick
-    tryLightNetherPortal(world, pos);
+    // 参考 MC 1.16.5: 先尝试 X 轴，再尝试 Z 轴
+    if (tryLightNetherPortal(world, pos)) {
+        return;
+    }
+}
+
+bool FireBlock::tryLightNetherPortal(IWorld& world, const BlockPos& pos) {
+    // 参考 MC 1.16.5 AbstractFireBlock.onBlockAdded
+    // 检查火焰周围是否形成有效的下界传送门框架
+
+    if (VanillaBlocks::OBSIDIAN == nullptr || VanillaBlocks::NETHER_PORTAL == nullptr) {
+        return false;
+    }
+
+    // 参考 MC 1.16.5: 先尝试 X 轴，再尝试 Z 轴
+    // PortalSize::findNetherPortal 会先尝试 preferXAxis 指定的轴向
+    auto portalResult = PortalSize::findNetherPortal(world, pos, true);
+
+    if (portalResult.has_value() && portalResult->valid) {
+        // 找到有效的传送门框架，点燃传送门
+        PortalSize::lightNetherPortal(world, portalResult.value());
+        return true;
+    }
+
+    return false;
 }
 
 void FireBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
@@ -134,7 +175,8 @@ void FireBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
 
     // 火焰可能熄灭
     if (age < 15 && random.nextInt(3) == 0) {
-        world.setBlockState(pos, &withAge(age + 1), 2);
+        BlockState newState = withAge(age + 1);
+        world.setBlockState(pos, &newState, 2);
     }
 
     // 尝试蔓延
@@ -173,29 +215,6 @@ void FireBlock::trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRa
     MC_UNUSED(pos);
     MC_UNUSED(age);
     MC_UNUSED(random);
-}
-
-void FireBlock::tryLightNetherPortal(IWorld& world, const BlockPos& pos) {
-    // 参考 MC 1.16.5 FireBlock
-    // 检查火焰周围是否形成有效的下界传送门框架
-
-    if (VanillaBlocks::OBSIDIAN == nullptr) {
-        return;
-    }
-
-    // 遍历火焰周围的每个位置，尝试检测传送门
-    for (Direction dir : Directions::horizontal()) {
-        BlockPos adjacentPos = pos.offset(dir);
-
-        // 尝试从相邻位置检测传送门框架
-        auto portalResult = PortalSize::findNetherPortal(world, adjacentPos);
-
-        if (portalResult.has_value() && portalResult->valid) {
-            // 找到有效的传送门框架，点燃传送门
-            PortalSize::lightNetherPortal(world, portalResult.value());
-            return;
-        }
-    }
 }
 
 bool FireBlock::isFlammable(const BlockState& state) const {
@@ -381,7 +400,8 @@ void NetherWartBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState&
     if (age < getMaxAge()) {
         // 随机生长
         if (random.nextInt(10) == 0) {
-            world.setBlockState(pos, &withAge(age + 1), 2);
+            BlockState newState = withAge(age + 1);
+            world.setBlockState(pos, &newState, 2);
         }
     }
 }

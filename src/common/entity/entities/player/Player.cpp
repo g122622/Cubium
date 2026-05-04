@@ -364,17 +364,30 @@ void Player::tick() {
 bool Player::tickPortal() {
     // 玩家需要 80 tick (4秒) 在传送门中才能传送
     // 参考 MC 1.16.5 PlayerEntity.tick() line 578-607
-    if (m_inPortal && m_portalCooldown <= 0) {
-        m_portalTime++;
 
-        // 80 ticks = 4 秒 (20 ticks/秒)
-        if (m_portalTime >= 80) {
-            m_portalTime = 0;
-            return true; // 触发传送
-        }
-    } else {
-        m_portalTime = 0;
+    // 如果不在传送门中，递减传送门计时
+    // MC: this.portalTime -= 4;（与 Entity 基类一致）
+    if (!m_inPortal) {
+        m_portalTime = std::max(0, m_portalTime - 4);
+        return false;
     }
+
+    // 在传送门中，检查是否可以传送（冷却完成）
+    if (!canTeleport()) {
+        return false;
+    }
+
+    // 递增传送门计时
+    m_portalTime++;
+
+    // 检查是否达到传送阈值（80 ticks = 4秒）
+    if (m_portalTime >= 80) {
+        // 传送触发，保持 portalTime 为 80（与 Entity 基类一致）
+        // 实际重置在 onPortalTriggered() 中完成
+        m_portalTime = 80;
+        return true;
+    }
+
     return false;
 }
 

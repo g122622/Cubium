@@ -13,6 +13,12 @@ dimension/
 ├── DimensionManager.hpp         # 维度管理器
 ├── DimensionManager.cpp         # 维度管理器实现
 ├── DimensionRenderSettings.hpp  # 维度渲染设置
+├── teleport/                    # 传送系统
+│   ├── PortalSize.hpp           # 传送门尺寸检测
+│   ├── PortalSize.cpp           # 传送门尺寸检测实现
+│   ├── Teleporter.hpp           # 传送器基类和子类
+│   ├── Teleporter.cpp           # 传送器实现
+│   └── README.md                # 传送系统文档
 └── README.md                    # 本文档
 ```
 
@@ -104,10 +110,12 @@ auto spawnPoint = overworld->spawnPoint();
 
 **职责**: 维度管理器，管理所有维度实例的注册表。
 
-**维度ID常量**:
+**维度ID常量** (MC 1.16.5 兼容):
 - `OVERWORLD = 0` - 主世界
-- `NETHER = 1` - 下界
-- `THE_END = 2` - 末地
+- `NETHER = -1` - 下界（注意：MC 1.16.5 使用 -1）
+- `THE_END = 1` - 末地（注意：MC 1.16.5 使用 1）
+
+> **重要**: 维度ID与 MC 1.16.5 保持一致，下界=-1，末地=1。这对存档兼容性至关重要。
 
 **主要方法**:
 - `initialize(seed)` - 初始化维度管理器
@@ -338,12 +346,55 @@ Vector3d endSpawn = Teleporter::getEndSpawnPosition(); // (100, 49, 0)
 ```cpp
 bool ServerPlayer::changeDimension(DimensionId targetDim) {
     // 1. 检查骑乘状态，下骑乘
-    // 2. 计算目标坐标
-    // 3. 重置传送门状态和触发冷却
-    // 4. 调用 ServerDimensionManager::transferPlayerToDimension()
-    // 5. 更新实体维度属性和位置
+    // 2. 计算目标坐标（使用 Teleporter::transformPosition）
+    // 3. 搜索或创建目标维度的传送门（下界传送）
+    // 4. 重置传送门状态和触发冷却
+    // 5. 调用 ServerDimensionManager::transferPlayerToDimension()
+    // 6. 更新实体维度属性和位置
 }
 ```
+
+### 传送门检测算法
+
+`PortalSize` 类实现了 MC 1.16.5 的传送门检测算法：
+
+**核心方法**:
+- `findNetherPortal(world, pos, preferXAxis)` - 在指定位置寻找有效的下界传送门框架
+- `lightNetherPortal(world, portal)` - 点燃下界传送门（放置传送门方块）
+- `canConnect(state)` - 检查方块是否可作为传送门内部（空气/火/传送门方块）
+- `isPortalFrame(state)` - 检查方块是否为框架方块（黑曜石）
+
+**检测流程**:
+1. 从火焰位置向下搜索最多21格找到内部底部
+2. 向左搜索找到左边框架
+3. 计算宽度和高度
+4. 验证顶部框架
+5. 返回传送门位置和尺寸
+
+**传送门尺寸限制**:
+- 最小宽度: 2 格
+- 最大宽度: 21 格
+- 最小高度: 3 格
+- 最大高度: 21 格
+
+### 传送门点燃时机
+
+参考 MC 1.16.5，传送门点燃在 `FireBlock::onBlockAdded()` 中处理，而非 `tick()` 中：
+
+```cpp
+void FireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    // 维度检查：只允许在主世界和下界点燃下界传送门
+    DimensionId dimensionId = world.dimension();
+    if (dimensionId != DimensionManager::OVERWORLD && 
+        dimensionId != DimensionManager::NETHER) {
+        return;
+    }
+    // 尝试点燃传送门
+    tryLightNetherPortal(world, pos);
+}
+```
+
+这样避免了每 tick 都检测传送门，提高了性能。
 
 ## 未来扩展
 

@@ -11,10 +11,12 @@
 #include "common/util/property/Properties.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/core/Constants.hpp"
 #include "../core/ConnectionManager.hpp"
 #include "../world/ServerWorld.hpp"
 #include "../dimension/ServerDimensionManager.hpp"
+#include "../dimension/ServerDimension.hpp"
 #include "../application/IServer.hpp"
 #include "../application/MinecraftServer.hpp"
 #include <spdlog/spdlog.h>
@@ -378,13 +380,57 @@ bool ServerPlayer::changeDimension(DimensionId targetDim) {
 
     DimensionId currentDim = dimension();
     Vector3d currentPos(position().x, position().y, position().z);
+
+    // 计算目标位置（坐标转换）
     Vector3d targetPos = Teleporter::transformPosition(
         currentPos,
         DimensionType::fromId(currentDim),
         DimensionType::fromId(targetDim));
 
+    // 根据 MC 1.16.5 逻辑：
+    // 下界传送：搜索已存在的传送门，找不到则创建
+    // 末地传送：固定位置
     if (targetDim == DimensionManager::THE_END) {
+        // 末地传送：固定出生位置
         targetPos = Teleporter::getEndSpawnPosition();
+    } else {
+        // 下界/主世界传送：搜索传送门
+        // 获取目标维度的世界
+        ServerDimension* targetDimension = m_server->dimensionManager().getDimension(targetDim);
+        if (targetDimension != nullptr && targetDimension->world() != nullptr) {
+            IWorld* targetWorld = targetDimension->world();
+
+            // 根据目标维度选择传送器
+            if (targetDim == DimensionManager::NETHER || currentDim == DimensionManager::NETHER) {
+                // 使用下界传送器
+                NetherTeleporter teleporter;
+
+                // 先尝试查找已存在的传送门
+                auto portalInfo = teleporter.findPortal(*targetWorld, targetPos);
+
+                if (portalInfo.has_value() && portalInfo->valid) {
+                    // 找到已存在的传送门，使用其位置
+                    targetPos = portalInfo->position;
+                    spdlog::debug("ServerPlayer: found existing portal at ({:.1f}, {:.1f}, {:.1f})",
+                                  targetPos.x, targetPos.y, targetPos.z);
+                } else {
+                    // 没找到传送门，创建新传送门
+                    PortalInfo newPortal = teleporter.createPortal(*targetWorld, targetPos);
+                    if (newPortal.valid) {
+                        targetPos = newPortal.position;
+                        // 记录传送门位置
+                        BlockPos portalBlock(
+                            math::floorTo<BlockCoord>(targetPos.x),
+                            math::floorTo<BlockCoord>(targetPos.y),
+                            math::floorTo<BlockCoord>(targetPos.z));
+                        targetDimension->recordPortalPosition(portalBlock);
+                        spdlog::info("ServerPlayer: created new portal at ({:.1f}, {:.1f}, {:.1f})",
+                                     targetPos.x, targetPos.y, targetPos.z);
+                    }
+                }
+            }
+        }
+        // 如果无法获取目标世界，使用转换后的坐标（容错）
     }
 
     // 重置传送门状态

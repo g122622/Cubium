@@ -220,13 +220,15 @@ public:
 
     /**
      * @brief 检查是否为下界
+     * MC 1.16.5: 下界维度ID = -1
      */
-    [[nodiscard]] bool isNether() const { return m_id == 1; }
+    [[nodiscard]] bool isNether() const { return m_id == -1; }
 
     /**
      * @brief 检查是否为末地
+     * MC 1.16.5: 末地维度ID = 1
      */
-    [[nodiscard]] bool isTheEnd() const { return m_id == 2; }
+    [[nodiscard]] bool isTheEnd() const { return m_id == 1; }
 
 private:
     DimensionType(DimensionId id, String name)

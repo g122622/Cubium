@@ -1,0 +1,200 @@
+{
+  "tests": 14,
+  "failures": 2,
+  "disabled": 0,
+  "errors": 0,
+  "timestamp": "2026-05-04T12:56:45Z",
+  "time": "0s",
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "Entity",
+      "tests": 12,
+      "failures": 2,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-05-04T12:56:45Z",
+      "time": "0s",
+      "testsuite": [
+        {
+          "name": "PortalCooldown",
+          "file": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp",
+          "line": 588,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-05-04T12:56:45Z",
+          "time": "0s",
+          "classname": "Entity"
+        },
+        {
+          "name": "PortalTime",
+          "file": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp",
+          "line": 609,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-05-04T12:56:45Z",
+          "time": "0s",
+          "classname": "Entity"
+        },
+        {
+          "name": "GetMaxInPortalTime",
+          "file": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp",
+          "line": 629,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-05-04T12:56:45Z",
+          "time": "0s",
+          "classname": "Entity"
+        },
+        {
+          "name": "TickPortalNotInPortal",
+          "file": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp",
+          "line": 639,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-05-04T12:56:45Z",
+          "time": "0s",
+          "classname": "Entity"
+        },
+        {
+          "name": "TickPortalNotInPortalZero",
+          "file": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp",
+          "line": 652,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-05-04T12:56:45Z",
+          "time": "0s",
+          "classname": "Entity"
+        },
+        {
+          "name": "TickPortalInPortal",
+          "file": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp",
+          "line": 666,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-05-04T12:56:45Z",
+          "time": "0s",
+          "classname": "Entity"
+        },
+        {
+          "name": "TickPortalInPortalWithCooldown",
+          "file": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp",
+          "line": 679,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-05-04T12:56:45Z",
+          "time": "0s",
+          "classname": "Entity"
+        },
+        {
+          "name": "TickPortalPlayer",
+          "file": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp",
+          "line": 691,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-05-04T12:56:45Z",
+          "time": "0s",
+          "classname": "Entity",
+          "failures": [
+            {
+              "failure": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp:707\nExpected equality of these values:\n  player.portalTime()\n    Which is: 0\n  80\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "TickPortalPlayerInterrupted",
+          "file": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp",
+          "line": 710,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-05-04T12:56:45Z",
+          "time": "0s",
+          "classname": "Entity",
+          "failures": [
+            {
+              "failure": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp:726\nExpected equality of these values:\n  player.portalTime()\n    Which is: 0\n  36\n",
+              "type": ""
+            },
+            {
+              "failure": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp:731\nExpected equality of these values:\n  player.portalTime()\n    Which is: 1\n  37\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "PortalPos",
+          "file": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp",
+          "line": 734,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-05-04T12:56:45Z",
+          "time": "0s",
+          "classname": "Entity"
+        },
+        {
+          "name": "TickPortalCooldownDecrement",
+          "file": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp",
+          "line": 744,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-05-04T12:56:45Z",
+          "time": "0s",
+          "classname": "Entity"
+        },
+        {
+          "name": "OnPortalTriggered",
+          "file": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_entity.cpp",
+          "line": 760,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-05-04T12:56:45Z",
+          "time": "0s",
+          "classname": "Entity"
+        }
+      ]
+    },
+    {
+      "name": "ChunkLoadTicketManagerExtendedTest",
+      "tests": 1,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-05-04T12:56:45Z",
+      "time": "0s",
+      "testsuite": [
+        {
+          "name": "PortalTicketExpiration",
+          "file": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_chunkloadticket.cpp",
+          "line": 626,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-05-04T12:56:45Z",
+          "time": "0s",
+          "classname": "ChunkLoadTicketManagerExtendedTest"
+        }
+      ]
+    },
+    {
+      "name": "ChunkLoadTicketExtendedTest",
+      "tests": 1,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-05-04T12:56:45Z",
+      "time": "0s",
+      "testsuite": [
+        {
+          "name": "PortalTicketExpiration",
+          "file": "Z:\\mc_dev\\branch1\\minecraft-reborn\\tests\\common\\test_chunkloadticket.cpp",
+          "line": 1279,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-05-04T12:56:45Z",
+          "time": "0s",
+          "classname": "ChunkLoadTicketExtendedTest"
+        }
+      ]
+    }
+  ]
+}
