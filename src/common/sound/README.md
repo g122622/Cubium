@@ -121,6 +121,10 @@ player.playSound(SoundEvents::ENTITY_PLAYER_HURT, 1.0f, 1.0f);
 | 木压力板 | `BLOCK_WOODEN_PRESSURE_PLATE_CLICK_ON/OFF` | 按下/抬起时 | `WoodPressurePlateBlock.cpp` |
 | 测重压力板 | `BLOCK_METAL_PRESSURE_PLATE_CLICK_ON/OFF` | 按下/抬起时 | `WeightedPressurePlateBlock.cpp` |
 | TNT | `ENTITY_TNT_PRIMED` | 被点燃时 | `TNTBlock.cpp` |
+| 堆肥桶 | `BLOCK_COMPOSTER_FILL` | 堆肥尝试未增加等级时 | `ComposterBlock.cpp` |
+| 堆肥桶 | `BLOCK_COMPOSTER_FILL_SUCCESS` | 堆肥成功增加等级时 | `ComposterBlock.cpp` |
+| 堆肥桶 | `BLOCK_COMPOSTER_READY` | 等级7转为等级8时 | `ComposterBlock.cpp` |
+| 堆肥桶 | `BLOCK_COMPOSTER_EMPTY` | 提取骨粉时 | `ComposterBlock.cpp` |
 
 ### 生物相关方块
 

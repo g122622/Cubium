@@ -3,6 +3,8 @@
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../sound/SoundCategory.hpp"
 
 namespace mc {
 namespace blocks {
@@ -57,7 +59,17 @@ void ComposterBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state,
         // 等级7时，经过20 tick后变成等级8（可以收获骨粉）
         BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), 8);
         world.setBlockState(pos, &newState, 3);
-        // TODO: 播放声音
+
+        // MC 1.16.5: 播放堆肥完成音效
+        if (!world.isClientSide()) {
+            world.playSound(
+                SoundEvents::BLOCK_COMPOSTER_READY,
+                sound::SoundCategory::Blocks,
+                pos.center(),
+                1.0f,
+                1.0f
+            );
+        }
     }
 }
 
@@ -112,6 +124,17 @@ BlockState ComposterBlock::attemptCompost(
         BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), newLevel);
         world.setBlockState(pos, &newState, 3);
 
+        // MC 1.16.5: 播放成功音效
+        if (!world.isClientSide()) {
+            world.playSound(
+                SoundEvents::BLOCK_COMPOSTER_FILL_SUCCESS,
+                sound::SoundCategory::Blocks,
+                pos.center(),
+                1.0f,
+                1.0f
+            );
+        }
+
         // 如果达到等级7，安排tick
         if (newLevel == 7) {
             // TODO: 安排tick
@@ -119,6 +142,17 @@ BlockState ComposterBlock::attemptCompost(
         }
 
         return newState;
+    }
+
+    // MC 1.16.5: 播放失败音效（尝试堆肥但没增加等级）
+    if (!world.isClientSide()) {
+        world.playSound(
+            SoundEvents::BLOCK_COMPOSTER_FILL,
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            1.0f,
+            1.0f
+        );
     }
 
     return state;
@@ -132,7 +166,16 @@ BlockState ComposterBlock::empty(IWorld& world, const BlockPos& pos, BlockState&
     BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), 0);
     world.setBlockState(pos, &newState, 3);
 
-    // TODO: 播放空声音
+    // MC 1.16.5: 播放清空音效
+    if (!world.isClientSide()) {
+        world.playSound(
+            SoundEvents::BLOCK_COMPOSTER_EMPTY,
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            1.0f,
+            1.0f
+        );
+    }
 
     return newState;
 }
