@@ -3,10 +3,14 @@
 #include "AbstractHorseEntity.hpp"
 #include "CoatColors.hpp"
 #include "CoatTypes.hpp"
-
+#include "../../../../resource/ResourceLocation.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
+
+// Forward declaration
+class DamageSource;
 
 /**
  * @brief 马实体
@@ -95,6 +99,38 @@ public:
      * @brief 获取眼睛高度
      */
     [[nodiscard]] f32 eyeHeight() const override { return 1.53f; }
+
+    // ========== 音效 ==========
+
+    /**
+     * @brief 获取环境音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
+     * @brief 获取受伤音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+
+    /**
+     * @brief 获取死亡音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
+    /**
+     * @brief 播放进食音效
+     */
+    void playEatSound();
+
+    /**
+     * @brief 播放跳跃音效
+     */
+    void playJumpSound();
+
+    /**
+     * @brief 播放愤怒音效（被骑乘时）
+     */
+    void playAngrySound();
 
     void tick() override;
 

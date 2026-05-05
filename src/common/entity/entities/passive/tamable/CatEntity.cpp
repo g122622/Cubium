@@ -16,6 +16,7 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 
 namespace mc {
 
@@ -115,6 +116,27 @@ void CatEntity::onTamed(bool tamed) {
     } else {
         m_giftTimer = 0;
     }
+}
+
+std::optional<ResourceLocation> CatEntity::getAmbientSound() const {
+    // 驯服后的猫使用 ENTITY_CAT_AMBIENT
+    // 未驯服的流浪猫使用 ENTITY_CAT_STRAY_AMBIENT
+    if (isTamed()) {
+        return SoundEvents::ENTITY_CAT_AMBIENT;
+    }
+    return SoundEvents::ENTITY_CAT_STRAY_AMBIENT;
+}
+
+std::optional<ResourceLocation> CatEntity::getHurtSound(DamageSource& /*source*/) const {
+    return SoundEvents::ENTITY_CAT_HURT;
+}
+
+std::optional<ResourceLocation> CatEntity::getDeathSound() const {
+    return SoundEvents::ENTITY_CAT_DEATH;
+}
+
+void CatEntity::playEatSound() {
+    playSound(SoundEvents::ENTITY_CAT_EAT, 1.0f, 1.0f);
 }
 
 } // namespace mc

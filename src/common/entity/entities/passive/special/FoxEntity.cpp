@@ -12,6 +12,8 @@
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../damage/DamageSource.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 #include <random>
 
 namespace mc {
@@ -164,6 +166,42 @@ void FoxEntity::registerAttributes() {
     // 参考 MC 1.16.5 狐狸属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+}
+
+std::optional<ResourceLocation> FoxEntity::getAmbientSound() const {
+    // MC 1.16.5: 白狐使用 screech 音效
+    if (m_foxType == FoxType::Snow) {
+        return SoundEvents::ENTITY_FOX_SCREECH;
+    }
+    return SoundEvents::ENTITY_FOX_AMBIENT;
+}
+
+std::optional<ResourceLocation> FoxEntity::getHurtSound(DamageSource& /*source*/) const {
+    return SoundEvents::ENTITY_FOX_HURT;
+}
+
+std::optional<ResourceLocation> FoxEntity::getDeathSound() const {
+    return SoundEvents::ENTITY_FOX_DEATH;
+}
+
+void FoxEntity::playSleepSound() {
+    playSound(SoundEvents::ENTITY_FOX_SLEEP, 1.0f, 1.0f);
+}
+
+void FoxEntity::playSniffSound() {
+    playSound(SoundEvents::ENTITY_FOX_SNIFF, 1.0f, 1.0f);
+}
+
+void FoxEntity::playBiteSound() {
+    playSound(SoundEvents::ENTITY_FOX_BITE, 1.0f, 1.0f);
+}
+
+void FoxEntity::playEatSound() {
+    playSound(SoundEvents::ENTITY_FOX_EAT, 1.0f, 1.0f);
+}
+
+void FoxEntity::playSpitSound() {
+    playSound(SoundEvents::ENTITY_FOX_SPIT, 1.0f, 1.0f);
 }
 
 } // namespace mc

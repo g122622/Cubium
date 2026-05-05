@@ -1,7 +1,9 @@
 #include "ShulkerEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 #include <memory>
 
 namespace mc {
@@ -105,6 +107,38 @@ void ShulkerEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0f);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0f);  // 不移动
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 18.0f);
+}
+
+std::optional<ResourceLocation> ShulkerEntity::getAmbientSound() const {
+    return SoundEvents::ENTITY_SHULKER_AMBIENT;
+}
+
+std::optional<ResourceLocation> ShulkerEntity::getHurtSound(DamageSource& /*source*/) const {
+    // MC 1.16.5: 贝壳闭合时使用不同的受伤音效
+    if (isShellClosed()) {
+        return SoundEvents::ENTITY_SHULKER_HURT_CLOSED;
+    }
+    return SoundEvents::ENTITY_SHULKER_HURT;
+}
+
+std::optional<ResourceLocation> ShulkerEntity::getDeathSound() const {
+    return SoundEvents::ENTITY_SHULKER_DEATH;
+}
+
+void ShulkerEntity::playOpenSound() {
+    playSound(SoundEvents::ENTITY_SHULKER_OPEN, 1.0f, 1.0f);
+}
+
+void ShulkerEntity::playCloseSound() {
+    playSound(SoundEvents::ENTITY_SHULKER_CLOSE, 1.0f, 1.0f);
+}
+
+void ShulkerEntity::playShootSound() {
+    playSound(SoundEvents::ENTITY_SHULKER_SHOOT, 1.0f, 1.0f);
+}
+
+void ShulkerEntity::playTeleportSound() {
+    playSound(SoundEvents::ENTITY_SHULKER_TELEPORT, 1.0f, 1.0f);
 }
 
 } // namespace mc

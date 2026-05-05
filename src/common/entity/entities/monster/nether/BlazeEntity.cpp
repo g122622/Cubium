@@ -3,6 +3,7 @@
 #include "../../../damage/DamageSource.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 #include <cmath>
 
 namespace mc {
@@ -29,17 +30,17 @@ std::unique_ptr<Entity> BlazeEntity::create(IWorld* /*world*/) {
 
 std::optional<ResourceLocation> BlazeEntity::getAmbientSound() const {
 	// MC 1.16.5: entity.blaze.ambient
-	return makeSoundEventId("ambient");
+	return SoundEvents::ENTITY_BLAZE_AMBIENT;
 }
 
 std::optional<ResourceLocation> BlazeEntity::getHurtSound(DamageSource& /*source*/) const {
 	// MC 1.16.5: entity.blaze.hurt
-	return makeSoundEventId("hurt");
+	return SoundEvents::ENTITY_BLAZE_HURT;
 }
 
 std::optional<ResourceLocation> BlazeEntity::getDeathSound() const {
 	// MC 1.16.5: entity.blaze.death
-	return makeSoundEventId("death");
+	return SoundEvents::ENTITY_BLAZE_DEATH;
 }
 
 void BlazeEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charge*/) {

@@ -6,6 +6,7 @@
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/explosion/ExplosionMode.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 #include <memory>
 
 namespace mc {
@@ -29,12 +30,12 @@ std::unique_ptr<Entity> CreeperEntity::create(IWorld* /*world*/) {
 
 std::optional<ResourceLocation> CreeperEntity::getHurtSound(DamageSource& /*source*/) const {
     // MC 1.16.5: entity.creeper.hurt
-    return makeSoundEventId("hurt");
+    return SoundEvents::ENTITY_CREEPER_HURT;
 }
 
 std::optional<ResourceLocation> CreeperEntity::getDeathSound() const {
     // MC 1.16.5: entity.creeper.death
-    return makeSoundEventId("death");
+    return SoundEvents::ENTITY_CREEPER_DEATH;
 }
 
 i32 CreeperEntity::getCreeperState() const {
@@ -118,7 +119,7 @@ void CreeperEntity::tick() {
         i32 state = getCreeperState();
         if (state > 0 && m_timeSinceIgnited == 0) {
             // MC 1.16.5: 开始膨胀时播放音效
-            playSound(*makeSoundEventId("primed"), 1.0f, 0.5f);
+            playSound(SoundEvents::ENTITY_CREEPER_PRIMED, 1.0f, 0.5f);
         }
 
         m_timeSinceIgnited += state;

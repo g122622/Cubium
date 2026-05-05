@@ -27,6 +27,17 @@ class ItemStack;
  * - 驱逐爬行者：爬行者会避开猫
  * - 驱逐幻翼：幻翼会避开猫
  *
+ * 音效：
+ * - ENTITY_CAT_AMBIENT: 喵叫声（驯服后）
+ * - ENTITY_CAT_STRAY_AMBIENT: 流浪猫叫声（未驯服）
+ * - ENTITY_CAT_PURR: 呼噜声（驯服后空闲）
+ * - ENTITY_CAT_PURREOW: 长喵（求食）
+ * - ENTITY_CAT_HURT: 受伤音效
+ * - ENTITY_CAT_DEATH: 死亡音效
+ * - ENTITY_CAT_HISS: 嘶嘶声（恐惧时）
+ * - ENTITY_CAT_EAT: 进食音效
+ * - ENTITY_CAT_BEG_FOR_FOOD: 乞食音效
+ *
  * 参考 MC 1.16.5 CatEntity
  */
 class CatEntity : public TameableEntity {
@@ -147,6 +158,29 @@ public:
      * @brief 获取眼睛高度
      */
     [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.2f : 0.35f; }
+
+    // ========== 音效 ==========
+
+    /**
+     * @brief 获取环境音效
+     * 驯服后使用 ENTITY_CAT_AMBIENT，未驯服使用 ENTITY_CAT_STRAY_AMBIENT
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
+     * @brief 获取受伤音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+
+    /**
+     * @brief 获取死亡音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
+    /**
+     * @brief 播放进食音效
+     */
+    void playEatSound();
 
 protected:
     // ========== AI 目标注册 ==========

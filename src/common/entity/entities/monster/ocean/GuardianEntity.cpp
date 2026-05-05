@@ -1,5 +1,7 @@
 #include "GuardianEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../damage/DamageSource.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 
 namespace mc {
 
@@ -62,6 +64,34 @@ void GuardianEntity::registerAttributes() {
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, LASER_DAMAGE);
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
+}
+
+std::optional<ResourceLocation> GuardianEntity::getAmbientSound() const {
+    // MC 1.16.5: 在水中和陆地使用不同音效
+    if (isInWater()) {
+        return SoundEvents::ENTITY_GUARDIAN_AMBIENT;
+    }
+    return SoundEvents::ENTITY_GUARDIAN_AMBIENT_LAND;
+}
+
+std::optional<ResourceLocation> GuardianEntity::getHurtSound(DamageSource& /*source*/) const {
+    // MC 1.16.5: 在水中和陆地使用不同音效
+    if (isInWater()) {
+        return SoundEvents::ENTITY_GUARDIAN_HURT;
+    }
+    return SoundEvents::ENTITY_GUARDIAN_HURT_LAND;
+}
+
+std::optional<ResourceLocation> GuardianEntity::getDeathSound() const {
+    // MC 1.16.5: 在水中和陆地使用不同音效
+    if (isInWater()) {
+        return SoundEvents::ENTITY_GUARDIAN_DEATH;
+    }
+    return SoundEvents::ENTITY_GUARDIAN_DEATH_LAND;
+}
+
+void GuardianEntity::playLaserSound() {
+    playSound(SoundEvents::ENTITY_GUARDIAN_ATTACK, 1.0f, 1.0f);
 }
 
 } // namespace mc

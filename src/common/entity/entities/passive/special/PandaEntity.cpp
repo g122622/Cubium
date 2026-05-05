@@ -11,7 +11,9 @@
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 
 namespace mc {
 
@@ -178,6 +180,37 @@ void PandaEntity::registerAttributes() {
     if (isAggressive()) {
         m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
     }
+}
+
+std::optional<ResourceLocation> PandaEntity::getAmbientSound() const {
+    // MC 1.16.5: 根据性格返回不同音效
+    if (isAggressive()) {
+        return SoundEvents::ENTITY_PANDA_AGGRESSIVE_AMBIENT;
+    }
+    if (isWorried()) {
+        return SoundEvents::ENTITY_PANDA_WORRIED_AMBIENT;
+    }
+    return SoundEvents::ENTITY_PANDA_AMBIENT;
+}
+
+std::optional<ResourceLocation> PandaEntity::getHurtSound(DamageSource& /*source*/) const {
+    return SoundEvents::ENTITY_PANDA_HURT;
+}
+
+std::optional<ResourceLocation> PandaEntity::getDeathSound() const {
+    return SoundEvents::ENTITY_PANDA_DEATH;
+}
+
+void PandaEntity::playEatSound() {
+    playSound(SoundEvents::ENTITY_PANDA_EAT, 1.0f, 1.0f);
+}
+
+void PandaEntity::playSneezeSound() {
+    playSound(SoundEvents::ENTITY_PANDA_SNEEZE, 1.0f, 1.0f);
+}
+
+void PandaEntity::playBiteSound() {
+    playSound(SoundEvents::ENTITY_PANDA_BITE, 1.0f, 1.0f);
 }
 
 } // namespace mc

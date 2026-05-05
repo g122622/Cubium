@@ -1,7 +1,9 @@
 #include "HorseEntity.hpp"
 
 #include "../../../attribute/Attributes.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 
 namespace mc {
 
@@ -95,6 +97,30 @@ void HorseEntity::registerAttributes()
     AbstractHorseEntity::registerAttributes();
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed);
+}
+
+std::optional<ResourceLocation> HorseEntity::getAmbientSound() const {
+    return SoundEvents::ENTITY_HORSE_AMBIENT;
+}
+
+std::optional<ResourceLocation> HorseEntity::getHurtSound(DamageSource& /*source*/) const {
+    return SoundEvents::ENTITY_HORSE_HURT;
+}
+
+std::optional<ResourceLocation> HorseEntity::getDeathSound() const {
+    return SoundEvents::ENTITY_HORSE_DEATH;
+}
+
+void HorseEntity::playEatSound() {
+    playSound(SoundEvents::ENTITY_HORSE_EAT, 1.0f, 1.0f);
+}
+
+void HorseEntity::playJumpSound() {
+    playSound(SoundEvents::ENTITY_HORSE_JUMP, 0.4f, 1.0f);
+}
+
+void HorseEntity::playAngrySound() {
+    playSound(SoundEvents::ENTITY_HORSE_ANGRY, 1.0f, 1.0f);
 }
 
 } // namespace mc

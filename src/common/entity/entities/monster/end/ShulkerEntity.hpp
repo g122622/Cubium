@@ -2,10 +2,15 @@
 
 #include "../MonsterEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
+
+// Forward declaration
+class DamageSource;
 
 /**
  * @brief 潜影贝实体
@@ -174,6 +179,44 @@ public:
      * @brief 潜影贝不会燃烧
      */
     [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+
+    // ========== 音效 ==========
+
+    /**
+     * @brief 获取环境音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
+     * @brief 获取受伤音效
+     * 贝壳闭合时使用不同的音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+
+    /**
+     * @brief 获取死亡音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
+    /**
+     * @brief 播放打开贝壳音效
+     */
+    void playOpenSound();
+
+    /**
+     * @brief 播放关闭贝壳音效
+     */
+    void playCloseSound();
+
+    /**
+     * @brief 播放发射子弹音效
+     */
+    void playShootSound();
+
+    /**
+     * @brief 播放瞬移音效
+     */
+    void playTeleportSound();
 
     // ========== 生命周期 ==========
 

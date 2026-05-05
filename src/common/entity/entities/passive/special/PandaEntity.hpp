@@ -2,14 +2,17 @@
 
 #include "../basic/AnimalEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
 #include <memory>
 #include <random>
+#include <optional>
 
 namespace mc {
 
 // Forward declarations
 class Player;
 class ItemStack;
+class DamageSource;
 
 /**
  * @brief 熊猫实体
@@ -175,6 +178,39 @@ public:
      * @brief 获取眼睛高度
      */
     [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.6f : 1.2f; }
+
+    // ========== 音效 ==========
+
+    /**
+     * @brief 获取环境音效
+     * 根据性格返回不同音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
+     * @brief 获取受伤音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+
+    /**
+     * @brief 获取死亡音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
+    /**
+     * @brief 播放进食音效
+     */
+    void playEatSound();
+
+    /**
+     * @brief 播放打喷嚏音效
+     */
+    void playSneezeSound();
+
+    /**
+     * @brief 播放咬音效
+     */
+    void playBiteSound();
 
 protected:
     // ========== AI 目标注册 ==========
