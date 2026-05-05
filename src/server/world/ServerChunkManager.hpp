@@ -12,6 +12,7 @@
 #include <future>
 #include <functional>
 #include <vector>
+#include <atomic>
 
 namespace mc::server {
 
@@ -101,9 +102,16 @@ public:
     void stopWorkers();
 
     /**
+     * @brief 设置计算型 Worker 池
+     *
+     * 由 MinecraftServer 在世界创建后注入。
+     */
+    void setWorkerPool(util::ServerWorkerPool* workerPool) { m_workerPool = workerPool; }
+
+    /**
      * @brief 检查 Worker 是否运行
      */
-    [[nodiscard]] bool workersRunning() const { return m_workerPool.isRunning(); }
+    [[nodiscard]] bool workersRunning() const { return m_workerPool != nullptr && m_workerPool->isRunning(); }
 
     // ============================================================================
     // 区块访问（同步）
@@ -517,8 +525,8 @@ private:
     // 区块发送管理器（可选，由 MinecraftServer 设置）
     sync::ChunkSendManager* m_chunkSendManager = nullptr;
 
-    // Worker 线程池
-    util::ServerWorkerPool m_workerPool;
+    // Worker 线程池（由 MinecraftServer 持有）
+    util::ServerWorkerPool* m_workerPool = nullptr;
 
     // 统计
     u64 m_currentTick = 0;

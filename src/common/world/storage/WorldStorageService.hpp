@@ -3,6 +3,7 @@
 #include "world/storage/db/ConsistencyMode.hpp"
 #include "world/storage/db/RocksDBConfig.hpp"
 #include "world/storage/section/SectionManager.hpp"
+#include "world/storage/task/StorageTaskManager.hpp"
 #include "world/storage/list/WorldListService.hpp"
 #include "world/storage/core/WorldSessionLock.hpp"
 #include "world/storage/core/WorldStoragePaths.hpp"
@@ -194,6 +195,23 @@ public:
     [[nodiscard]] const BackupManager* backupManager() const { return m_backupManager.get(); }
 
     /**
+     * @brief 获取 IO Worker 池
+     */
+    [[nodiscard]] util::ServerWorkerPool* ioWorkerPool() { return m_ioWorkerPool; }
+    [[nodiscard]] const util::ServerWorkerPool* ioWorkerPool() const { return m_ioWorkerPool; }
+
+    /**
+     * @brief 设置 IO Worker 池
+     */
+    void setIoWorkerPool(util::ServerWorkerPool* workerPool);
+
+    /**
+     * @brief 获取存储任务管理器
+     */
+    [[nodiscard]] StorageTaskManager* taskManager() { return m_taskManager.get(); }
+    [[nodiscard]] const StorageTaskManager* taskManager() const { return m_taskManager.get(); }
+
+    /**
      * @brief 创建备份
      *
      * 便捷方法，创建世界快照。
@@ -295,6 +313,8 @@ private:
     std::unique_ptr<WorldListService> m_worldListService;
     std::optional<WorldSessionLock> m_sessionLock;
     std::unique_ptr<BackupManager> m_backupManager;
+    util::ServerWorkerPool* m_ioWorkerPool = nullptr;
+    std::unique_ptr<StorageTaskManager> m_taskManager;
 
     // 每维度一个 SectionManager
     mutable std::mutex m_sectionManagersMutex;

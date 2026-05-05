@@ -760,6 +760,8 @@ add_library(mc_common STATIC
     world/storage/save/DirtyTracker.cpp
     world/storage/save/AutoSave.cpp
     world/storage/save/SaveManager.cpp
+    world/storage/task/StorageTask.cpp
+    world/storage/task/StorageTaskManager.cpp
 
     # World - Tick System
     world/tick/manager/TickManager.cpp

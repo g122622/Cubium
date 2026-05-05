@@ -207,6 +207,112 @@ bool markDirty(const SectionKey& key);
 std::vector<SectionKey> getDirtyKeys() const;
 ```
 
+### StorageTask / StorageTaskManager
+
+**职责**：把存储相关的异步工作单元显式包装成任务，并统一提交到存储 IO Worker 池。
+
+**主要功能**：
+- 统一封装 Section 读写/刷盘任务
+- 提供 Perfetto 追踪类别，便于区分 load/save/flush
+- 由 `StorageTaskManager` 统一转发到 `ServerWorkerPool`
+
+**使用示例**：
+```cpp
+auto& storage = world.storage();
+auto* taskManager = storage.taskManager();
+
+auto task = StorageTask::createLoadTask(key, [](const std::atomic<bool>& cancelSignal) {
+    if (cancelSignal.load(std::memory_order_acquire)) {
+        return false;
+    }
+    return true;
+});
+
+taskManager->submit(std::move(task), util::TaskPriority::High);
+```
+
+**模块关系**：
+- `WorldStorageService` 负责创建和销毁 `StorageTaskManager`
+- `SectionManager` 通过 `StorageTaskManager` 提交异步任务
+- `StorageTask` 只负责执行逻辑，不直接管理线程
+
+## 文件介绍
+
+### `task/StorageTask.hpp` / `StorageTask.cpp`
+
+存储任务的轻量封装，当前支持：
+- `SectionLoad`
+- `SectionSave`
+- `SectionFlush`
+
+任务会在执行时写入 `storage.task.*` 追踪类别，方便定位存储卡顿点。
+
+### `task/StorageTaskManager.hpp` / `StorageTaskManager.cpp`
+
+存储任务调度门面，内部仅保存一个 `ServerWorkerPool*`，用于：
+- 提交任务
+- 取消任务
+- 等待所有任务完成
+
+该类不拥有线程池，线程池生命周期由 `WorldStorageService` 负责。
+
+## 模块关系
+
+```mermaid
+flowchart LR
+    A[WorldStorageService] --> B[StorageTaskManager]
+    B --> C[ServerWorkerPool]
+    D[SectionManager] --> B
+    D --> E[RocksDBDatabase]
+    D --> F[SectionCache]
+```
+
+## 整体职责
+
+本模块现在不仅负责持久化数据，还负责把存储工作拆分为可追踪、可调度的异步任务，避免继续依赖零散的 `std::async`。
+
+## 输入 / 输出
+
+- **输入**：`SectionKey`、`SectionData`、保存配置、世界路径
+- **输出**：Section 缓存、磁盘数据、快照、任务完成回调
+
+## 依赖项
+
+- 内部：`SectionManager`、`SectionCache`、`RocksDBDatabase`、`WorldStorageService`、`StorageTaskManager`
+- 外部：`rocksdb`、`fmt`、`spdlog`、`GTest`
+
+## 使用方法
+
+```cpp
+WorldStorageService storage;
+storage.open(worldPath, config);
+
+auto& sectionManager = storage.sectionManager(dimension);
+auto future = sectionManager.loadSectionAsync(key, util::TaskPriority::High);
+```
+
+## 容易踩的坑
+
+- `StorageTaskManager` 不拥有线程池，必须先由 `WorldStorageService::open()` 建立 IO 池。
+- 异步接口当前仍然通过 `promise/future` 回传结果，调用方必须等待 future。
+- `SectionManager` 的异步任务是共享同一个任务池，不要在外部重复启动额外线程。
+
+## 测试用例
+
+- `tests/common/world/storage/WorldStorageServiceTest.cpp`
+- `tests/common/world/storage/SectionCodecTest.cpp`
+- `tests/common/world/storage/StorageTaskTest.cpp`
+
+## Mermaid 图表
+
+```mermaid
+flowchart TD
+    A[SectionManager] --> B[StorageTaskManager]
+    B --> C[ServerWorkerPool]
+    C --> D[StorageTask]
+    D --> E[RocksDBDatabase]
+```
+
 ### SectionCache
 
 LRU 缓存实现，自动淘汰未使用的 Section。

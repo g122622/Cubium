@@ -69,6 +69,7 @@ add_executable(mc_tests
     common/world/blockentity/BlockEntityTodoTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/CauldronBlockTest.cpp
+    common/world/storage/StorageTaskTest.cpp
     common/world/block/blocks/EnchantingTableBlockTest.cpp
     common/world/block/blocks/ChestBlockTest.cpp
     common/world/block/blocks/decorative/PaneBlockTest.cpp

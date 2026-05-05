@@ -119,7 +119,6 @@ private:
 ServerChunkManager::ServerChunkManager(ServerWorld& world, std::unique_ptr<IChunkGenerator> generator)
     : m_world(&world)
     , m_generator(std::move(generator))
-    , m_workerPool(-1, "ChunkGenWorker")  // 自动检测线程数
 {
     // 设置票据管理器回调
     m_ticketManager.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
@@ -130,7 +129,6 @@ ServerChunkManager::ServerChunkManager(ServerWorld& world, std::unique_ptr<IChun
 ServerChunkManager::ServerChunkManager(std::unique_ptr<IChunkGenerator> generator)
     : m_world(nullptr)
     , m_generator(std::move(generator))
-    , m_workerPool(-1, "ChunkGenWorker")  // 自动检测线程数
 {
     // 设置票据管理器回调
     m_ticketManager.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
@@ -199,12 +197,14 @@ void ServerChunkManager::shutdown()
 
 void ServerChunkManager::startWorkers()
 {
-    m_workerPool.start();
+    MC_ASSERT_RELEASE(m_workerPool != nullptr);
+    m_workerPool->start();
 }
 
 void ServerChunkManager::stopWorkers()
 {
-    m_workerPool.shutdown();
+    MC_ASSERT_RELEASE(m_workerPool != nullptr);
+    m_workerPool->shutdown();
 }
 
 // ============================================================================
@@ -855,7 +855,8 @@ void ServerChunkManager::requestChunkGenerationAsync(ChunkCoord x, ChunkCoord z,
     // 提交任务到线程池
     util::TaskPriority taskPriority = static_cast<util::TaskPriority>(priority);
 
-    m_workerPool.submit(std::move(task),
+    MC_ASSERT_RELEASE(m_workerPool != nullptr);
+    m_workerPool->submit(std::move(task),
         [this, key, x, z, generation = control.generation](bool success, util::ITask* task) {
             ChunkData* stored = nullptr;
             ChunkPrimer* primer = nullptr;
@@ -1321,7 +1322,8 @@ size_t ServerChunkManager::singleChunkLifecycleManagerCount() const
 
 size_t ServerChunkManager::pendingTaskCount() const
 {
-    return m_workerPool.pendingTaskCount();
+    MC_ASSERT_RELEASE(m_workerPool != nullptr);
+    return m_workerPool->pendingTaskCount();
 }
 
 void ServerChunkManager::forEachLoadedChunk(const std::function<bool(ChunkData&)>& callback)

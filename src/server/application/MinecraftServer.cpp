@@ -50,6 +50,8 @@ namespace mc::server {
 MinecraftServer::MinecraftServer(const ServerCoreConfig& config)
     : m_config(config)
     , m_lootTableManager()
+    , m_computationWorkerPool(-1, "ServerCompute")
+    , m_ioWorkerPool(-1, "ServerIO")
 {
 }
 void MinecraftServer::setDifficulty(Difficulty difficulty)
@@ -131,6 +133,15 @@ void MinecraftServer::shutdown()
 {
     m_running = false;
     shutdownManagers();
+}
+
+void MinecraftServer::bindWorldWorkerPools()
+{
+    if (!m_world) {
+        return;
+    }
+
+    m_world->storage().setIoWorkerPool(&m_ioWorkerPool);
 }
 
 void MinecraftServer::tick()
@@ -279,6 +290,10 @@ void MinecraftServer::initializeCoreManagers()
                 player->onGround);
             updateEntityTrackingForPlayer(playerId, position.x, position.y, position.z);
         });
+
+    // Worker 池由服务器统一管理，初始化阶段在这里启动。
+    m_computationWorkerPool.start();
+    m_ioWorkerPool.start();
 }
 
 Result<void> MinecraftServer::initializeWorld()
@@ -791,6 +806,10 @@ void MinecraftServer::setWorld(std::unique_ptr<ServerWorld> world)
 {
     m_world = std::move(world);
     if (m_world) {
+        if (m_world->chunkManager()) {
+            m_world->chunkManager()->setWorkerPool(&m_computationWorkerPool);
+        }
+        bindWorldWorkerPools();
         m_world->setOnPlaySound([this](const ResourceLocation& soundEventId,
                                        sound::SoundCategory category,
                                        const Vector3& position,
@@ -1232,10 +1251,9 @@ void MinecraftServer::stopCore()
 {
     spdlog::info("Stopping server core...");
 
-    // 停止 Worker 线程
-    if (m_world && m_world->chunkManager()) {
-        m_world->chunkManager()->stopWorkers();
-    }
+    // 停止 Worker 线程池，避免后续关服过程中继续提交任务
+    m_computationWorkerPool.shutdown();
+    m_ioWorkerPool.shutdown();
 
     // 断开所有玩家
     if (m_connectionManager) {

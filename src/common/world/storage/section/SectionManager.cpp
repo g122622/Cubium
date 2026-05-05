@@ -62,10 +62,27 @@ std::future<Result<SectionData*>> SectionManager::loadSectionAsync(
                    "chunkZ", key.chunkZ,
                    "sectionY", static_cast<i32>(key.sectionY));
 
-    // 使用std::async简化异步实现
-    return std::async(std::launch::async, [this, key]() {
-        return loadSection(key);
-    });
+    auto promise = std::make_shared<std::promise<Result<SectionData*>>>();
+    auto future = promise->get_future();
+
+    auto executor = [this, key, promise](const std::atomic<bool>& cancelSignal) {
+        if (cancelSignal.load(std::memory_order_acquire)) {
+            promise->set_value(Error(ErrorCode::InvalidState, "Load section task cancelled"));
+            return false;
+        }
+
+        promise->set_value(loadSection(key));
+        return true;
+    };
+
+    if (!m_taskManager) {
+        promise->set_value(loadSection(key));
+        return future;
+    }
+
+    auto task = StorageTask::createLoadTask(key, std::move(executor));
+    m_taskManager->submit(std::move(task), priority, nullptr, std::make_shared<std::atomic<bool>>(false));
+    return future;
 }
 
 void SectionManager::loadSections(
@@ -133,9 +150,27 @@ std::future<Result<void>> SectionManager::saveSectionAsync(
                    "chunkZ", key.chunkZ,
                    "sectionY", static_cast<i32>(key.sectionY));
 
-    return std::async(std::launch::async, [this, key, data]() {
-        return saveSection(key, data);
-    });
+    auto promise = std::make_shared<std::promise<Result<void>>>();
+    auto future = promise->get_future();
+
+    auto executor = [this, key, data, promise](const std::atomic<bool>& cancelSignal) {
+        if (cancelSignal.load(std::memory_order_acquire)) {
+            promise->set_value(Error(ErrorCode::InvalidState, "Save section task cancelled"));
+            return false;
+        }
+
+        promise->set_value(saveSection(key, data));
+        return true;
+    };
+
+    if (!m_taskManager) {
+        promise->set_value(saveSection(key, data));
+        return future;
+    }
+
+    auto task = StorageTask::createSaveTask(key, false, std::move(executor));
+    m_taskManager->submit(std::move(task), priority, nullptr, std::make_shared<std::atomic<bool>>(false));
+    return future;
 }
 
 Result<size_t> SectionManager::flushDirtySections() {

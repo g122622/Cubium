@@ -25,10 +25,19 @@ WorldStorageService::WorldStorageService(WorldStorageService&& other) noexcept
     , m_worldListService(std::move(other.m_worldListService))
     , m_sessionLock(std::move(other.m_sessionLock))
     , m_backupManager(std::move(other.m_backupManager))
+    , m_taskManager(std::move(other.m_taskManager))
     , m_sectionManagers(std::move(other.m_sectionManagers))
     , m_config(std::move(other.m_config))
     , m_worldPath(std::move(other.m_worldPath))
 {
+    for (auto& [dim, manager] : m_sectionManagers) {
+        if (manager) {
+            manager->setTaskManager(m_taskManager.get());
+        }
+    }
+
+    m_ioWorkerPool = other.m_ioWorkerPool;
+    other.m_ioWorkerPool = nullptr;
 }
 
 WorldStorageService& WorldStorageService::operator=(WorldStorageService&& other) noexcept
@@ -39,11 +48,39 @@ WorldStorageService& WorldStorageService::operator=(WorldStorageService&& other)
         m_worldListService = std::move(other.m_worldListService);
         m_sessionLock = std::move(other.m_sessionLock);
         m_backupManager = std::move(other.m_backupManager);
+        m_taskManager = std::move(other.m_taskManager);
         m_sectionManagers = std::move(other.m_sectionManagers);
         m_config = std::move(other.m_config);
         m_worldPath = std::move(other.m_worldPath);
+
+        for (auto& [dim, manager] : m_sectionManagers) {
+            if (manager) {
+                manager->setTaskManager(m_taskManager.get());
+            }
+        }
+
+        m_ioWorkerPool = other.m_ioWorkerPool;
+        other.m_ioWorkerPool = nullptr;
     }
     return *this;
+}
+
+void WorldStorageService::setIoWorkerPool(util::ServerWorkerPool* workerPool)
+{
+    m_ioWorkerPool = workerPool;
+
+    if (m_ioWorkerPool) {
+        m_taskManager = std::make_unique<StorageTaskManager>(*m_ioWorkerPool);
+    } else {
+        m_taskManager.reset();
+    }
+
+    std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
+    for (auto& [dim, manager] : m_sectionManagers) {
+        if (manager) {
+            manager->setTaskManager(m_taskManager.get());
+        }
+    }
 }
 
 // ============================================================================
@@ -107,6 +144,13 @@ Result<void> WorldStorageService::open(const std::filesystem::path& worldPath,
         }
     }
 
+    // 4.1 存储任务管理器由服务器注入的 IO Worker 池驱动
+    if (!m_ioWorkerPool) {
+        m_taskManager.reset();
+    } else if (!m_taskManager) {
+        m_taskManager = std::make_unique<StorageTaskManager>(*m_ioWorkerPool);
+    }
+
     // 5. 清空 SectionManager 缓存
     m_sectionManagers.clear();
 
@@ -144,7 +188,11 @@ void WorldStorageService::close()
     // 4. 关闭数据库
     m_db.reset();
 
-    // 5. 释放会话锁
+    // 5. 断开 IO Worker 池引用，池本身由 MinecraftServer 统一管理
+    m_taskManager.reset();
+    m_ioWorkerPool = nullptr;
+
+    // 6. 释放会话锁
     m_sessionLock.reset();
 
     spdlog::info("WorldStorageService closed");
@@ -263,6 +311,7 @@ SectionManager* WorldStorageService::createSectionManager(DimensionId dimension)
     config.consistencyMode = m_config.consistencyMode;
 
     auto manager = std::make_unique<SectionManager>(*m_db, dimension, config);
+    manager->setTaskManager(m_taskManager.get());
 
     std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
     auto [it, inserted] = m_sectionManagers.emplace(dimension, std::move(manager));

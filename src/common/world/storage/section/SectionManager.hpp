@@ -7,7 +7,7 @@
 #include "SectionCache.hpp"
 #include "../../../core/Result.hpp"
 #include "../../../core/Types.hpp"
-#include "../../../util/thread/ServerWorkerPool.hpp"
+#include "../task/StorageTaskManager.hpp"
 #include <memory>
 #include <vector>
 #include <unordered_set>
@@ -167,6 +167,11 @@ public:
         const SectionData& data,
         util::TaskPriority priority = util::TaskPriority::Normal
     );
+
+    /**
+     * @brief 注入任务管理器
+     */
+    void setTaskManager(StorageTaskManager* taskManager) { m_taskManager = taskManager; }
 
     /**
      * @brief 批量保存脏Section
@@ -355,6 +360,7 @@ private:
 
     /// 脏集合互斥锁
     mutable std::mutex m_dirtyMutex;
+    StorageTaskManager* m_taskManager = nullptr;
 };
 
 } // namespace mc::world::storage

@@ -173,6 +173,9 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     // 设置 TimeManager 引用
     m_world->setTimeManager(m_timeManager.get());
 
+    // 先绑定 Worker 池，再打开世界存储，确保存储子系统创建时就能拿到服务器统一管理的 IO 线程池。
+    bindWorldWorkerPools();
+
     auto worldInitResult = m_world->initialize();
     if (worldInitResult.failed()) {
         return Error(ErrorCode::InitializationFailed,

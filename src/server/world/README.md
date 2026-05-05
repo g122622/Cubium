@@ -86,6 +86,16 @@ class ServerWorld : public IWorld, public ICollisionWorld, public StarLightLight
 - 区块状态管理（EMPTY → FULL）
 - 按 `ChunkStatus::taskRange()` 为每个生成阶段构建对应的 `WorldGenRegion`，`FEATURES` / `NOISE` 会使用更大的邻域窗口，`getTopBlockY()` 遇到缺失 chunk 会直接断言
 
+**线程池归属**：
+- `ServerChunkManager` 不再持有独立的 Worker 池实例
+- 计算线程池由 `MinecraftServer` 统一管理，成员名为 `m_computationWorkerPool`
+- `ServerWorld` 负责把该线程池注入当前世界和区块管理器
+
+**模块关系**：
+- `MinecraftServer` 创建、启动、停止计算线程池
+- `ServerWorld` 保存线程池引用，并在切换区块管理器时重新绑定
+- `ServerChunkManager` 仅负责提交区块生成任务，不负责线程池生命周期
+
 **关键方法**：
 ```cpp
 // 同步获取区块（阻塞）
@@ -143,6 +153,49 @@ cancelToken->store(true);
 ```
 
 **注意**：`ServerWorkerPool` 位于 `common/util/thread/`，是通用的任务池，不仅限于区块生成。
+
+## 线程池迁移说明
+
+区块生成线程池已经从 `ServerChunkManager` 迁移到 `MinecraftServer`。这样可以避免世界对象与区块管理器重复持有同类资源，并让服务器关闭流程更集中。
+
+## 目录职责补充
+
+### `ServerWorld.hpp/cpp`
+
+- 新增 `setComputationWorkerPool(...)`
+- 负责把服务器侧计算池绑定给当前世界与 `ServerChunkManager`
+
+### `ServerChunkManager.hpp/cpp`
+
+- 仅保留线程池指针引用
+- `initialize()` 和异步生成逻辑直接使用外部注入的计算池
+
+### `ChunkGenerateTask.hpp/cpp`
+
+- 仍然是区块生成任务本体
+- 现在由 `MinecraftServer::m_computationWorkerPool` 承载执行
+
+## 模块关系
+
+```mermaid
+flowchart LR
+    A[MinecraftServer] --> B[m_computationWorkerPool]
+    A --> C[ServerWorld]
+    C --> D[ServerChunkManager]
+    D --> B
+```
+
+## 容易踩的坑
+
+- 不要让 `ServerChunkManager` 再创建自己的计算池，否则会出现双池并发和关闭顺序混乱。
+- 世界初始化后必须及时绑定 `m_computationWorkerPool`，否则异步区块请求会触发断言。
+- 存储 IO 线程池和区块计算线程池是两套资源，不能混用。
+
+## 测试用例
+
+- `tests/server/test_chunk_worker_pool.cpp`
+- `tests/server/test_server_chunk_manager.cpp`
+- `tests/server/ServerWorldTest.cpp`
 
 ---
 

@@ -151,6 +151,9 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
     // 设置 TimeManager 引用
     m_world->setTimeManager(m_timeManager.get());
 
+    // 先绑定 Worker 池，再打开世界存储，确保 IO 任务池由服务器统一管理。
+    bindWorldWorkerPools();
+
     auto worldInitResult = m_world->initialize();
     if (worldInitResult.failed()) {
         return Error(ErrorCode::InitializationFailed,

@@ -46,6 +46,7 @@ src/server/application/
 - Implements `tick()` main loop framework
 - Provides packet dispatching and handling
 - Attaches the world sound callback after world creation so entity sounds can be broadcast through the server helpers
+- Owns the server-side computation worker pool `m_computationWorkerPool` for chunk generation and other compute-heavy tasks
 
 **Protected Methods (for subclasses):**
 
@@ -219,6 +220,14 @@ The `application` module serves as the **entry point and orchestrator** for the 
 4. **Manages** server lifecycle (startup, shutdown)
 5. **Provides** unified access to all server components
 
+### 线程池职责划分
+
+- **计算线程池**：`MinecraftServer::m_computationWorkerPool`
+    - 用于区块生成、区块状态推进等计算型异步任务
+- **存储 IO 线程池**：`WorldStorageService` 内部持有
+    - 用于 Section 读写、刷新与其他持久化任务
+- **模块专属线程池**：客户端网格构建、资源加载等仍按各自模块管理
+
 ### Input and Output
 
 | Direction  | Component       | Description                                                              |
@@ -257,6 +266,38 @@ server/application/
 - `spdlog` - Logging
 - `std::thread` - Threading
 - `std::atomic` - Thread-safe flags
+
+## 文件介绍补充
+
+### `MinecraftServer.hpp/cpp`
+
+- 新增 `m_computationWorkerPool`
+- 在 `setWorld(...)` 时把计算池注入 `ServerWorld`
+- 在 `stopCore()` 中统一停止计算池
+
+## 模块关系
+
+```mermaid
+flowchart TD
+    A[MinecraftServer] --> B[m_computationWorkerPool]
+    A --> C[ServerWorld]
+    C --> D[ServerChunkManager]
+    C --> E[WorldStorageService]
+    E --> F[StorageTaskManager]
+    F --> G[Storage IO WorkerPool]
+```
+
+## 容易踩的坑
+
+- 计算池和 IO 池职责不同，不要复用同一个 `ServerWorkerPool`。
+- `ServerChunkManager` 现在只接受外部注入的池指针，不能再假设自己拥有生命周期。
+- `WorldStorageService` 的异步任务需要在 `open()` 之后才可使用。
+
+## 测试用例
+
+- `tests/server/test_chunk_worker_pool.cpp`
+- `tests/server/test_server_chunk_manager.cpp`
+- `tests/common/world/storage/StorageTaskTest.cpp`
 
 ---
 

@@ -174,7 +174,15 @@ PERFETTO_DEFINE_CATEGORIES(
     perfetto::Category("storage.db")
         .SetDescription("数据库操作"),
     perfetto::Category("storage.section")
-        .SetDescription("Section管理操作")
+        .SetDescription("Section管理操作"),
+    perfetto::Category("storage.task")
+        .SetDescription("存储任务执行"),
+    perfetto::Category("storage.task.load")
+        .SetDescription("Section加载任务"),
+    perfetto::Category("storage.task.save")
+        .SetDescription("Section保存任务"),
+    perfetto::Category("storage.task.flush")
+        .SetDescription("批量刷盘任务")
 );
 
 #if defined(_MSC_VER)

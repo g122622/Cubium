@@ -27,6 +27,7 @@
 #include "common/network/packet/ParticlePacket.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "common/util/TimeUtils.hpp"
+#include "common/util/thread/ServerWorkerPool.hpp"
 #include <memory>
 #include <atomic>
 #include <cmath>
@@ -211,6 +212,18 @@ public:
     [[nodiscard]] const ServerCoreConfig& config() const { return m_config; }
 
     /**
+     * @brief 获取计算型 Worker 池
+     */
+    [[nodiscard]] util::ServerWorkerPool& computationWorkerPool() { return m_computationWorkerPool; }
+    [[nodiscard]] const util::ServerWorkerPool& computationWorkerPool() const { return m_computationWorkerPool; }
+
+    /**
+     * @brief 获取 IO Worker 池
+     */
+    [[nodiscard]] util::ServerWorkerPool& ioWorkerPool() { return m_ioWorkerPool; }
+    [[nodiscard]] const util::ServerWorkerPool& ioWorkerPool() const { return m_ioWorkerPool; }
+
+    /**
      * @brief 设置世界
      */
     void setWorld(std::unique_ptr<ServerWorld> world);
@@ -235,6 +248,11 @@ protected:
      * @brief 初始化核心管理器
      */
     void initializeCoreManagers();
+
+    /**
+     * @brief 绑定世界使用的 Worker 池
+     */
+    void bindWorldWorkerPools();
 
     /**
      * @brief 初始化世界
@@ -609,6 +627,8 @@ protected:
     std::unique_ptr<interaction::MiningManager> m_miningManager;
     std::unique_ptr<interaction::ContainerManager> m_containerManager;
     std::unique_ptr<interaction::InventoryManager> m_inventoryManager;
+    util::ServerWorkerPool m_computationWorkerPool;
+    util::ServerWorkerPool m_ioWorkerPool;
 
     // 同步管理器
     std::unique_ptr<sync::EntitySyncManager> m_entitySyncManager;
