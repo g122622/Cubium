@@ -8,6 +8,8 @@
 #include "../../../util/Direction.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 #include "../../../core/Constants.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../sound/SoundCategory.hpp"
 
 namespace mc {
 namespace blocks {
@@ -313,14 +315,13 @@ BlockStateProperties::DoorHinge DoorBlock::calculateHingeSide(BlockItemUseContex
 }
 
 void DoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening) {
-    // 参考 MC 1.16.5: DoorBlock.playSound
-    // 使用世界事件播放音效
-    // TODO: 实现 IWorld::playEvent 后启用
-    // i32 soundId = isOpening ? getOpenSound() : getCloseSound();
-    // world.playEvent(soundId, pos, 0);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(isOpening);
+    // MC 1.16.5: DoorBlock.playSound()
+    const ResourceLocation& soundEvent = isOpening
+        ? (m_isIron ? SoundEvents::BLOCK_IRON_DOOR_OPEN : SoundEvents::BLOCK_WOODEN_DOOR_OPEN)
+        : (m_isIron ? SoundEvents::BLOCK_IRON_DOOR_CLOSE : SoundEvents::BLOCK_WOODEN_DOOR_CLOSE);
+    world.playSound(soundEvent, sound::SoundCategory::Blocks,
+                    Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                    1.0f, 1.0f);
 }
 
 i32 DoorBlock::getOpenSound() const {

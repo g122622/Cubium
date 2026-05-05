@@ -8,6 +8,7 @@
 #include "../../world/IWorld.hpp"
 #include "../../world/block/Block.hpp"
 #include "../../world/block/BlockPos.hpp"
+#include "../../world/block/BlockSoundType.hpp"
 #include "../combat/CombatRules.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
@@ -562,6 +563,46 @@ void LivingEntity::handleFallDamage(f32 distance, f32 damageMultiplier) {
             EnvironmentalDamage source = DamageSources::fall();
             hurt(source, damage);
         }
+    }
+
+    // MC 1.16.5: 播放摔落音效
+    // 在 handleFallDamage 后 fallDistance 已被重置为 0，所以使用传入的 distance
+    playFallSound(distance);
+}
+
+// ============================================================================
+// 摔落音效
+// ============================================================================
+
+std::optional<ResourceLocation> LivingEntity::getFallSound(i32 /*fallHeight*/) const {
+    // 基类默认不返回摔落音效
+    // 子类（Player, MonsterEntity 等）可以重写
+    return std::nullopt;
+}
+
+void LivingEntity::playFallSound(f32 distance) {
+    if (m_world == nullptr || isSilent()) {
+        return;
+    }
+
+    // 播放实体的摔落音效
+    i32 fallHeight = static_cast<i32>(distance);
+    auto fallSound = getFallSound(fallHeight);
+    if (fallSound.has_value()) {
+        playSound(*fallSound, 1.0f, 1.0f);
+    }
+
+    // 播放脚下方块的摔落音效
+    // 参考 MC 1.16.5: LivingEntity.playFallSound()
+    BlockPos landPos(
+        static_cast<i32>(std::floor(m_position.x)),
+        static_cast<i32>(std::floor(m_position.y - 0.2f)),  // 脚底位置
+        static_cast<i32>(std::floor(m_position.z))
+    );
+    const BlockState* landState = m_world->getBlockState(landPos);
+    if (landState != nullptr && !landState->isAir()) {
+        const BlockSoundType& soundType = landState->getSoundType();
+        playSound(soundType.getFallSound(), soundType.getVolume() * 0.5f, soundType.getPitch() * 0.75f);
     }
 }
 

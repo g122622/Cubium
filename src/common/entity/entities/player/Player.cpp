@@ -14,6 +14,7 @@
 #include "../../experience/ExperienceDropHandler.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
+#include "../../../world/block/BlockSoundType.hpp"
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../../item/enchantment/enchantments/AllEnchantments.hpp"
 #include "../../../item/items/tool/SwordItem.hpp"
@@ -1114,30 +1115,8 @@ void Player::die(DamageSource& cause) {
 // ============================================================================
 
 void Player::handleFallDamage(f32 distance, f32 damageMultiplier) {
-    // 调用父类处理摔落伤害计算
+    // 调用父类处理摔落伤害计算（包含摔落音效播放）
     LivingEntity::handleFallDamage(distance, damageMultiplier);
-
-    // 玩家特有：播放摔落音效
-    // 参考 MC 1.16.5: PlayerEntity.func_225503_b_()
-    // 在 handleFallDamage 后 fallDistance 已被重置为 0，所以使用传入的 distance
-    i32 fallHeight = static_cast<i32>(distance);
-    auto fallSound = getFallSound(fallHeight);
-    if (fallSound.has_value()) {
-        playSound(*fallSound, 1.0f, 1.0f);
-    }
-
-    // 播放脚下方块的摔落音效
-    // 参考 MC 1.16.5: LivingEntity.playFallSound()
-    BlockPos landPos(
-        static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_position.y - 0.2)),  // 脚底位置
-        static_cast<i32>(std::floor(m_position.z))
-    );
-    const BlockState* landState = m_world->getBlockState(landPos);
-    if (landState && !landState->isAir()) {
-        const BlockSoundType& soundType = landState->getSoundType();
-        playSound(soundType.getFallSound(), soundType.getVolume() * 0.5f, soundType.getPitch() * 0.75f);
-    }
 }
 
 // ============================================================================
@@ -1502,14 +1481,36 @@ void Player::updateCameraYaw() {
 }
 
 void Player::playStepSound() {
-    // 由客户端调用，在正确的位置播放声音
-    // 此处仅标记需要播放，客户端负责实际播放
+    // MC 1.16.5: Entity.playStepSound(BlockPos, BlockState)
+    // 由客户端在 updateMoveDistance() 检测到 m_shouldPlayStepSound 后调用
+
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 获取脚下方块状态
+    const BlockState* blockState = m_world->getBlockState(m_stepSoundPos);
+    if (blockState == nullptr || blockState->isAir()) {
+        return;
+    }
+
+    // 调用 Entity 基类方法播放脚步声
+    Entity::playStepSound(m_stepSoundPos, blockState);
 }
 
 void Player::playSwimSound(f32 volume) {
-    // 由客户端调用
-    m_swimSoundVolume = volume;
-    m_shouldPlaySwimSound = true;
+    // MC 1.16.5: Entity.playSwimSound(float volume)
+    // 播放游泳声音
+    if (m_world == nullptr || isSilent()) {
+        return;
+    }
+
+    // 使用实体ID和tick计数器生成伪随机音调
+    u32 seed = static_cast<u32>(m_id) ^ static_cast<u32>(m_ticksExisted);
+    f32 randomValue = static_cast<f32>((seed * 1103515245 + 12345) % 32768) / 32768.0f;
+    f32 pitch = 0.8f + randomValue * 0.4f;  // 0.8-1.2 范围
+
+    playSound(SoundEvents::ENTITY_PLAYER_SWIM, volume, pitch);
 }
 
 void Player::addExhaustion(f32 exhaustion) {

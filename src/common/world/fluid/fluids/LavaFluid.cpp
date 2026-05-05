@@ -10,6 +10,7 @@
 #include "../../block/Block.hpp"
 #include "../../block/Material.hpp"
 #include "../../IWorld.hpp"
+#include "../../WorldEvents.hpp"
 #include "../../../util/Direction.hpp"
 #include <cmath>
 
@@ -212,10 +213,9 @@ void LavaFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos,
 }
 
 void LavaFluid::triggerEffects(IWorld& world, const BlockPos& pos) {
-    // TODO: 触发烟雾和嘶嘶声音效果
-    // world.playEvent(1501, pos, 0);
-    (void)world;
-    (void)pos;
+    // 触发烟雾和嘶嘶声音效果
+    // 参考: net.minecraft.fluid.LavaFluid#triggerEffects
+    world.playEvent(world::WorldEvents::LAVA_EXTINGUISH, pos, 0);
 }
 
 void LavaFluid::flowInto(IWorld& world, const BlockPos& pos, const BlockState* blockState,

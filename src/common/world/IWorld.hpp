@@ -263,6 +263,26 @@ public:
         (void)pitch;
     }
 
+    // ========== 世界事件 ==========
+
+    /**
+     * @brief 播放世界事件
+     *
+     * 世界事件是服务端广播给客户端的游戏事件，用于触发音效和粒子效果。
+     * 例如：门开关音效、铁砧使用、方块破坏粒子等。
+     *
+     * 参考 MC 1.16.5: net.minecraft.world.IWorld#playEvent
+     *
+     * @param eventId 事件ID，参见 WorldEvents 命名空间
+     * @param pos 事件位置
+     * @param data 事件数据（含义因事件而异）
+     */
+    virtual void playEvent(i32 eventId, const BlockPos& pos, i32 data) {
+        (void)eventId;
+        (void)pos;
+        (void)data;
+    }
+
     // ========== 高度查询 ==========
 
     /**

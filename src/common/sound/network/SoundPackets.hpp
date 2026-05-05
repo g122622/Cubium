@@ -6,6 +6,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundTypes.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 #include <glm/glm.hpp>
 #include <optional>
@@ -364,6 +365,106 @@ private:
     i32 m_entityId = 0;
     f32 m_volume = 1.0f;
     f32 m_pitch = 1.0f;
+};
+
+/**
+ * @brief 世界事件数据包（服务端->客户端）
+ *
+ * 用于播放世界事件（音效和粒子效果）。
+ * 世界事件是由事件ID标识的预定义游戏效果。
+ *
+ * 参考: net.minecraft.network.play.server.SPlayWorldEventPacket
+ * 参考: WorldEvents 命名空间
+ *
+ * 使用示例:
+ * @code
+ * // 服务端发送 - 播放铁门开关音效
+ * WorldEventPacket packet(
+ *     WorldEvents::IRON_DOOR_OPEN_SOUND,
+ *     BlockPos(100, 64, 200),
+ *     0  // data（此事件不需要额外数据）
+ * );
+ * broadcastPacket(packet);
+ *
+ * // 服务端发送 - 播放唱片
+ * WorldEventPacket packet(
+ *     WorldEvents::PLAY_RECORD_SOUND,
+ *     BlockPos(100, 64, 200),
+ *     itemId  // data 为唱片物品ID
+ * );
+ *
+ * // 服务端发送 - 方块破坏效果
+ * WorldEventPacket packet(
+ *     WorldEvents::BREAK_BLOCK_EFFECTS,
+ *     BlockPos(100, 64, 200),
+ *     Block::getStateId(blockState)  // data 为方块状态ID
+ * );
+ * @endcode
+ */
+class WorldEventPacket : public network::Packet {
+public:
+    /**
+     * @brief 默认构造函数（用于反序列化）
+     */
+    WorldEventPacket();
+
+    /**
+     * @brief 构造世界事件包
+     *
+     * @param eventId 事件ID，参见 WorldEvents 命名空间
+     * @param pos 事件位置
+     * @param data 事件数据（含义因事件而异）
+     */
+    WorldEventPacket(i32 eventId, i32 x, i32 y, i32 z, i32 data);
+
+    /**
+     * @brief 构造世界事件包（使用 BlockPos）
+     */
+    WorldEventPacket(i32 eventId, const BlockPos& pos, i32 data);
+
+    // ========================================================================
+    // Packet 接口实现
+    // ========================================================================
+
+    [[nodiscard]] Result<std::vector<u8>> serialize() const override;
+    [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
+    size_t expectedSize() const override;
+
+    // ========================================================================
+    // 属性访问
+    // ========================================================================
+
+    /**
+     * @brief 获取事件ID
+     */
+    [[nodiscard]] i32 getEventId() const noexcept { return m_eventId; }
+
+    /**
+     * @brief 获取X坐标
+     */
+    [[nodiscard]] i32 getX() const noexcept { return m_x; }
+
+    /**
+     * @brief 获取Y坐标
+     */
+    [[nodiscard]] i32 getY() const noexcept { return m_y; }
+
+    /**
+     * @brief 获取Z坐标
+     */
+    [[nodiscard]] i32 getZ() const noexcept { return m_z; }
+
+    /**
+     * @brief 获取事件数据
+     */
+    [[nodiscard]] i32 getData() const noexcept { return m_data; }
+
+private:
+    i32 m_eventId = 0;
+    i32 m_x = 0;
+    i32 m_y = 0;
+    i32 m_z = 0;
+    i32 m_data = 0;
 };
 
 } // namespace mc::sound

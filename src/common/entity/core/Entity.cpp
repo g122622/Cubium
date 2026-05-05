@@ -8,6 +8,7 @@
 #include "../../util/math/MathUtils.hpp"
 #include "../../world/block/Block.hpp"
 #include "../../world/block/BlockPos.hpp"
+#include "../../world/block/BlockSoundType.hpp"
 #include "../../world/fluid/Fluid.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../util/text/StringTextComponent.hpp"
@@ -204,18 +205,36 @@ void Entity::playStepSound(const BlockPos& pos, const BlockState* blockState) {
         return;
     }
 
-    // 获取方块的声音类型
-    // 注意：完整的实现需要检查上方是否有雪层
+    // MC 1.16.5: 检查上方是否有雪层
     // 如果上方是雪层，则使用雪的声音类型
-    // 这里暂时简化实现
+    const BlockState* soundState = blockState;
 
-    // TODO: 获取 BlockSoundType 并播放 step 声音
-    // 需要 BlockState::getSoundType() 方法返回 BlockSoundType
-    // 然后调用 getStepSound() 获取声音事件
+    // 检查上方方块是否为雪层
+    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    const BlockState* aboveState = m_world->getBlockState(abovePos);
+    if (aboveState != nullptr && !aboveState->isAir()) {
+        // 检查上方方块是否为雪层（通过材质或其他属性判断）
+        // MC 1.16.5: 如果上方是雪层且高度足够，使用雪的声音
+        const ResourceLocation& blockLoc = aboveState->getBlock().blockLocation();
+        const String& blockPath = blockLoc.path();
+        if (blockPath.find("snow") != String::npos && blockPath != "snow_block") {
+            // 雪层 - 使用雪的声音类型
+            soundState = aboveState;
+        }
+    }
 
-    // 暂时使用空实现，子类会提供具体实现
-    (void)pos;
-    (void)blockState;
+    // 获取方块的声音类型
+    const BlockSoundType& soundType = soundState->getSoundType();
+
+    // 播放脚步声
+    // MC 1.16.5: 音量 = soundType.volume * 0.15, 音调 = soundType.pitch * random(0.8, 1.2)
+    // 使用实体ID和tick计数器生成伪随机数
+    u32 seed = static_cast<u32>(m_id) ^ static_cast<u32>(m_ticksExisted);
+    f32 randomValue = static_cast<f32>((seed * 1103515245 + 12345) % 32768) / 32768.0f;  // 0.0-1.0
+    f32 volume = soundType.getVolume() * 0.15f;
+    f32 pitch = soundType.getPitch() * (0.8f + randomValue * 0.4f);  // 0.8-1.2 范围
+
+    playSound(soundType.getStepSound(), volume, pitch);
 }
 
 void Entity::setPosition(f32 x, f32 y, f32 z) {

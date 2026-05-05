@@ -85,12 +85,6 @@ Result<void> SoundEngine::initialize() {
         m_loader = std::make_unique<SoundLoader>(m_handler.getResourcePacks());
     }
 
-    // 创建缓冲区管理器（简化实现，不使用后端创建缓冲区）
-    {
-        MC_TRACE_CLIENT_SOUND_EVENT("BufferManager_Create", "phase", "create_buffer_manager");
-        m_bufferManager = std::make_unique<AudioBufferManager>();
-    }
-
     m_loaded = true;
     spdlog::info("[SoundEngine] Sound engine initialized successfully");
 
@@ -112,7 +106,7 @@ void SoundEngine::shutdown() {
     m_delayedSounds.clear();
     m_ambientHandlers.clear();
     m_pool.clear();
-    m_bufferManager.reset();
+    m_bufferCache.clear();
     m_loader.reset();
 
     // 关闭音频后端
@@ -191,32 +185,24 @@ SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound) {
     // spdlog::debug("[SoundEngine] Audio loaded: {} Hz, {} ch, {:.2f}s",
     //               audioData.format.sampleRate, audioData.format.channels, audioData.duration);
 
-    // 创建音频缓冲区
-    auto bufferResult = m_backend->createBuffer(audioData);
+    // 使用缓冲区缓存获取或创建缓冲区
+    auto bufferResult = m_bufferCache.getOrCreate(resolvedDef.location, *m_backend, *m_loader);
     if (!bufferResult.success()) {
-        spdlog::warn("[SoundEngine] Failed to create buffer: {}", bufferResult.error().message());
+        spdlog::warn("[SoundEngine] Failed to get/create buffer: {}", bufferResult.error().message());
         return 0;
     }
 
-    AudioBufferId bufferId = bufferResult.value();
+    auto buffer = bufferResult.value();
 
     // 创建音频源
     auto sourceResult = m_backend->createSource();
     if (!sourceResult.success()) {
-        m_backend->destroyBuffer(bufferId);
+        // 注意：缓冲区由缓存管理，不需要手动销毁
         spdlog::warn("[SoundEngine] Failed to create source: {}", sourceResult.error().message());
         return 0;
     }
 
     auto source = std::move(sourceResult.value());
-
-    // 获取后端缓冲区对象并绑定到音频源
-    auto buffer = m_backend->getBuffer(bufferId);
-    if (!buffer) {
-        m_backend->destroyBuffer(bufferId);
-        spdlog::warn("[SoundEngine] Failed to get buffer object for id={}", bufferId);
-        return 0;
-    }
 
     // 配置音频源
     // 音量 = 实例音量 * 事件音量修正 * 定义音量
@@ -250,16 +236,17 @@ SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound) {
     // 添加到声音池
     SoundInstanceId soundId = m_pool.add(std::move(sound));
     if (soundId == 0) {
-        m_backend->destroyBuffer(bufferId);
+        // 注意：缓冲区由缓存管理，不需要手动销毁
         return 0;
     }
 
     // 创建活动通道
+    // 注意：bufferId 为 0，因为缓冲区由缓存管理，不需要手动销毁
     ActiveChannel channel;
     channel.soundId = soundId;
     channel.source = std::move(source);
     channel.buffer = std::move(buffer);
-    channel.bufferId = bufferId;
+    channel.bufferId = 0;  // 缓冲区由缓存管理
     channel.isPaused = false;
 
     m_channels[soundId] = std::move(channel);
@@ -296,12 +283,10 @@ void SoundEngine::stop(SoundInstanceId id) {
 
     auto it = m_channels.find(id);
     if (it != m_channels.end()) {
-        AudioBufferId bufferId = it->second.bufferId;
         it->second.source->stop();
+        // 注意：缓冲区由缓存管理，不需要手动销毁
+        // bufferId 为 0 时表示缓冲区来自缓存
         m_channels.erase(it);
-        if (bufferId != 0) {
-            m_backend->destroyBuffer(bufferId);
-        }
     }
 
     m_pool.remove(id);
@@ -339,10 +324,7 @@ void SoundEngine::stopAll() {
         if (channel.source) {
             channel.source->stop();
         }
-
-        if (channel.bufferId != 0) {
-            m_backend->destroyBuffer(channel.bufferId);
-        }
+        // 注意：缓冲区由缓存管理，不需要手动销毁
     }
 
     m_channels.clear();
@@ -513,9 +495,7 @@ void SoundEngine::tick(bool isPaused) {
     for (SoundInstanceId id : finishedSounds) {
         auto it = m_channels.find(id);
         if (it != m_channels.end()) {
-            if (it->second.bufferId != 0) {
-                m_backend->destroyBuffer(it->second.bufferId);
-            }
+            // 注意：缓冲区由缓存管理，不需要手动销毁
             m_channels.erase(it);
         }
         m_pool.remove(id);
@@ -524,6 +504,13 @@ void SoundEngine::tick(bool isPaused) {
     // 调用环境音效处理器
     for (auto& handler : m_ambientHandlers) {
         handler->tick(*this);
+    }
+
+    // 定期清理未使用的缓冲区（每 BUFFER_CLEANUP_INTERVAL 帧清理一次）
+    ++m_bufferCleanupCounter;
+    if (m_bufferCleanupCounter >= BUFFER_CLEANUP_INTERVAL) {
+        m_bufferCache.cleanupUnused();
+        m_bufferCleanupCounter = 0;
     }
 
     // 更新音频后端

@@ -705,6 +705,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/sound/StbVorbisImpl.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/SoundPool.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/SoundEngine.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/AudioBufferCache.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/instance/SoundInstance.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/instance/UnderwaterLoopSound.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/instance/MinecartSound.cpp

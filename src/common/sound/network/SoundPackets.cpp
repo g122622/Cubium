@@ -424,4 +424,95 @@ Result<void> MovingSoundPacket::deserialize(const u8* data, size_t size) {
     return {};
 }
 
+// ============================================================================
+// WorldEventPacket
+// ============================================================================
+
+WorldEventPacket::WorldEventPacket()
+    : network::Packet(network::PacketType::WorldEvent)
+{
+}
+
+WorldEventPacket::WorldEventPacket(i32 eventId, i32 x, i32 y, i32 z, i32 data)
+    : network::Packet(network::PacketType::WorldEvent)
+    , m_eventId(eventId)
+    , m_x(x)
+    , m_y(y)
+    , m_z(z)
+    , m_data(data)
+{
+}
+
+WorldEventPacket::WorldEventPacket(i32 eventId, const BlockPos& pos, i32 data)
+    : network::Packet(network::PacketType::WorldEvent)
+    , m_eventId(eventId)
+    , m_x(pos.x)
+    , m_y(pos.y)
+    , m_z(pos.z)
+    , m_data(data)
+{
+}
+
+size_t WorldEventPacket::expectedSize() const {
+    // eventId(varint) + x(i32) + y(i32) + z(i32) + data(i32)
+    return 20;
+}
+
+Result<std::vector<u8>> WorldEventPacket::serialize() const {
+    network::PacketSerializer serializer;
+    serializer.reserve(expectedSize());
+
+    // 写入事件ID（VarInt）
+    serializer.writeVarInt(m_eventId);
+
+    // 写入位置（定点整数）
+    serializer.writeI32(m_x);
+    serializer.writeI32(m_y);
+    serializer.writeI32(m_z);
+
+    // 写入数据
+    serializer.writeI32(m_data);
+
+    return serializer.buffer();
+}
+
+Result<void> WorldEventPacket::deserialize(const u8* data, size_t size) {
+    network::PacketDeserializer deserializer(data, size);
+
+    // 读取事件ID
+    auto eventIdResult = deserializer.readVarInt();
+    if (!eventIdResult.success()) {
+        return eventIdResult.error();
+    }
+    m_eventId = eventIdResult.value();
+
+    // 读取位置
+    auto xResult = deserializer.readI32();
+    if (!xResult.success()) {
+        return xResult.error();
+    }
+    m_x = xResult.value();
+
+    auto yResult = deserializer.readI32();
+    if (!yResult.success()) {
+        return yResult.error();
+    }
+    m_y = yResult.value();
+
+    auto zResult = deserializer.readI32();
+    if (!zResult.success()) {
+        return zResult.error();
+    }
+    m_z = zResult.value();
+
+    // 读取数据
+    auto dataResult = deserializer.readI32();
+    if (!dataResult.success()) {
+        return dataResult.error();
+    }
+    m_data = dataResult.value();
+
+    return {};
+}
+
 } // namespace mc::sound

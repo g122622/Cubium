@@ -2,6 +2,7 @@
 
 #include "client/sound/SoundPool.hpp"
 #include "client/sound/SoundLoader.hpp"
+#include "client/sound/AudioBufferCache.hpp"
 #include "client/sound/backend/IAudioBackend.hpp"
 #include "client/sound/backend/AudioBuffer.hpp"
 #include "client/sound/resource/SoundRegistry.hpp"
@@ -384,8 +385,8 @@ private:
     /// 声音加载器
     std::unique_ptr<SoundLoader> m_loader;
 
-    /// 音频缓冲区管理器
-    std::unique_ptr<AudioBufferManager> m_bufferManager;
+    /// 音频缓冲区缓存（避免重复解码相同音频）
+    AudioBufferCache m_bufferCache;
 
     /// 声音池
     SoundPool m_pool;
@@ -416,6 +417,12 @@ private:
 
     /// 随机数生成器（用于声音选择）
     mutable math::Random m_rng;
+
+    /// 缓冲区清理计数器（每N帧清理一次未使用的缓冲区）
+    u32 m_bufferCleanupCounter = 0;
+
+    /// 缓冲区清理间隔（帧数）
+    static constexpr u32 BUFFER_CLEANUP_INTERVAL = 600;  // 约30秒（假设60fps）
 };
 
 } // namespace mc::client::sound

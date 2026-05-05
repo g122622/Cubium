@@ -56,15 +56,19 @@ void BeeSound::tick() {
 
     if (horizontalSpeed >= 0.01f) {
         // 根据速度插值音调
+        // MC 1.16.5: pitch = lerp(clampedSpeed, minPitch, maxPitch)
+        // 其中 lerp(pct, start, end) = start + pct * (end - start)
+        // 我们的 lerp(a, b, t) = a + (b - a) * t，所以参数顺序是 (start, end, factor)
         f32 minPitch = getMinPitch();
         f32 maxPitch = getMaxPitch();
         f32 clampedSpeed = std::clamp(horizontalSpeed, minPitch, maxPitch);
-        f32 pitch = math::lerp(clampedSpeed, minPitch, maxPitch);
+        f32 pitch = math::lerp(minPitch, maxPitch, clampedSpeed);
         setPitch(pitch);
 
         // 根据速度插值音量
+        // MC 1.16.5: volume = lerp(clampedVol, 0.0F, 1.2F)
         f32 clampedVol = std::clamp(horizontalSpeed, 0.0f, 0.5f);
-        f32 volume = math::lerp(clampedVol, 0.0f, 1.2f);
+        f32 volume = math::lerp(0.0f, 1.2f, clampedVol);
         setVolume(volume);
     } else {
         // 速度太低，静音

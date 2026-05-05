@@ -5,6 +5,8 @@
 #include "../../../entity/core/LivingEntity.hpp"
 #include "../../../item/core/ItemStack.hpp"
 #include "../../../item/Items.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../sound/SoundCategory.hpp"
 #include "../../../util/math/random/IRandom.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 
@@ -346,17 +348,19 @@ ActionResultType CauldronBlock::handleBannerCleaning(
 }
 
 void CauldronBlock::playFillSound(IWorld& world, const BlockPos& pos) {
-    // TODO: 实现音效系统
-    // world.playEvent(nullptr, 1040, pos, 0);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
+    // 参考: net.minecraft.block.CauldronBlock - 使用 playSound 而不是 playEvent
+    world.playSound(SoundEvents::ITEM_BUCKET_FILL,
+                    sound::SoundCategory::Blocks,
+                    Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                    1.0f, 1.0f);
 }
 
 void CauldronBlock::playEmptySound(IWorld& world, const BlockPos& pos) {
-    // TODO: 实现音效系统
-    // world.playEvent(nullptr, 1041, pos, 0);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
+    // 参考: net.minecraft.block.CauldronBlock - 使用 playSound 而不是 playEvent
+    world.playSound(SoundEvents::ITEM_BUCKET_EMPTY,
+                    sound::SoundCategory::Blocks,
+                    Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                    1.0f, 1.0f);
 }
 
 } // namespace blocks

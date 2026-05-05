@@ -258,6 +258,10 @@ public:
                    f32 volume,
                    f32 pitch) override;
 
+    // ========== 世界事件 ==========
+
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override;
+
     // ========== 容器打开回调 ==========
 
     using OpenContainerCallback = std::function<bool(ContainerType, const BlockPos&, Player&)>;
@@ -302,6 +306,20 @@ public:
 
     void setOnBroadcastEntityStatus(EntityStatusCallback callback) {
         m_onBroadcastEntityStatus = std::move(callback);
+    }
+
+    // ========== 世界事件回调 ==========
+
+    /**
+     * @brief 世界事件广播回调类型
+     *
+     * 当服务端需要广播世界事件给玩家时调用。
+     * 参数：事件ID、位置、数据
+     */
+    using WorldEventCallback = std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)>;
+
+    void setOnBroadcastWorldEvent(WorldEventCallback callback) {
+        m_onBroadcastWorldEvent = std::move(callback);
     }
 
     // ========== IWorld 接口实现 ==========
@@ -555,6 +573,7 @@ private:
     std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> m_onPlaySound;
     ParticleBroadcastCallback m_onBroadcastParticle;
     EntityStatusCallback m_onBroadcastEntityStatus;
+    WorldEventCallback m_onBroadcastWorldEvent;
 
     // 随机刻系统
     math::Random m_random;            ///< 世界随机数生成器

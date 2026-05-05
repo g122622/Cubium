@@ -760,6 +760,26 @@ protected:
      */
     [[nodiscard]] virtual std::optional<ResourceLocation> getDeathSound() const;
 
+    /**
+     * @brief 获取摔落声音
+     *
+     * 参考 MC 1.16.5: LivingEntity.getFallSound()
+     * 子类可重写以提供特定摔落音效。
+     *
+     * @param fallHeight 摔落高度（格数）
+     * @return 摔落音效，默认返回空
+     */
+    [[nodiscard]] virtual std::optional<ResourceLocation> getFallSound(i32 fallHeight) const;
+
+    /**
+     * @brief 播放摔落音效
+     *
+     * 在 handleFallDamage 中调用，播放实体摔落音效和方块摔落音效。
+     *
+     * @param distance 摔落距离
+     */
+    void playFallSound(f32 distance);
+
 protected:
 
     /**

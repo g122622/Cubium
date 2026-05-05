@@ -7,6 +7,8 @@
 #include "../../../item/context/BlockItemUseContext.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/assert/AssertAll.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../sound/SoundCategory.hpp"
 
 namespace mc {
 namespace blocks {
@@ -238,9 +240,13 @@ bool FenceGateBlock::isWall(const IWorld& world, const BlockPos& pos, Direction 
 }
 
 void FenceGateBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening) {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(isOpening);
+    // MC 1.16.5: FenceGateBlock.playSound()
+    const ResourceLocation& soundEvent = isOpening
+        ? SoundEvents::BLOCK_FENCE_GATE_OPEN
+        : SoundEvents::BLOCK_FENCE_GATE_CLOSE;
+    world.playSound(soundEvent, sound::SoundCategory::Blocks,
+                    Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                    1.0f, 1.0f);
 }
 
 } // namespace blocks

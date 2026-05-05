@@ -243,6 +243,13 @@ void ServerWorld::playSound(const ResourceLocation& soundEventId,
     }
 }
 
+void ServerWorld::playEvent(i32 eventId, const BlockPos& pos, i32 data)
+{
+    if (m_onBroadcastWorldEvent) {
+        m_onBroadcastWorldEvent(eventId, pos.x, pos.y, pos.z, data);
+    }
+}
+
 bool ServerWorld::openContainer(ContainerType type, const BlockPos& pos, Player& player)
 {
     if (!m_onOpenContainer) {

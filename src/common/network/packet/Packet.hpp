@@ -92,6 +92,7 @@ enum class PacketType : u16 {
     StopSound = 401,            // 停止声音
     PlaySoundEffect = 402,      // 播放声音效果（实体/方块等）
     MovingSound = 403,          // 移动声音（跟随实体）
+    WorldEvent = 404,           // 世界事件（音效/粒子效果）
 
     // 玩家经验包 (S->C)
     SetExperience = 500,        // 同步玩家经验
