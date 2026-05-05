@@ -633,3 +633,641 @@ TEST_F(EntitySoundHandlerIntegrationTest, RidingStateTracking) {
     ASSERT_NE(minecart, nullptr);
     EXPECT_FLOAT_EQ(minecart->velocity.x, 0.5f);
 }
+
+// ============================================================================
+// MovingTickableSound 边界条件和位置更新测试
+// ============================================================================
+
+class MovingTickableSoundBoundaryTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        handler = std::make_unique<EntitySoundHandler>();
+        testLocation = ResourceLocation("minecraft:entity.lightning.thunder");
+    }
+
+    std::unique_ptr<EntitySoundHandler> handler;
+    ResourceLocation testLocation;
+};
+
+TEST_F(MovingTickableSoundBoundaryTest, PositionAtWorldBoundary) {
+    // 测试世界边界位置
+    EntitySoundState state;
+    state.position = glm::vec3(30000000.0f, 256.0f, -30000000.0f);  // 世界边界
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    MovingTickableSound sound(
+        testLocation,
+        SoundCategory::Weather,
+        handler.get(),
+        static_cast<EntityId>(1),
+        1.0f,
+        1.0f
+    );
+
+    sound.tick();
+    EXPECT_FLOAT_EQ(sound.getX(), 30000000.0f);
+    EXPECT_FLOAT_EQ(sound.getY(), 256.0f);
+    EXPECT_FLOAT_EQ(sound.getZ(), -30000000.0f);
+    EXPECT_FALSE(sound.isDone());
+}
+
+TEST_F(MovingTickableSoundBoundaryTest, PositionAtNegativeCoordinates) {
+    EntitySoundState state;
+    state.position = glm::vec3(-100.5f, -64.0f, -200.75f);
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    MovingTickableSound sound(
+        testLocation,
+        SoundCategory::Neutral,
+        handler.get(),
+        static_cast<EntityId>(1),
+        1.0f,
+        1.0f
+    );
+
+    sound.tick();
+    EXPECT_FLOAT_EQ(sound.getX(), -100.5f);
+    EXPECT_FLOAT_EQ(sound.getY(), -64.0f);
+    EXPECT_FLOAT_EQ(sound.getZ(), -200.75f);
+}
+
+TEST_F(MovingTickableSoundBoundaryTest, RapidPositionUpdates) {
+    EntitySoundState state;
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    MovingTickableSound sound(
+        testLocation,
+        SoundCategory::Neutral,
+        handler.get(),
+        static_cast<EntityId>(1),
+        1.0f,
+        1.0f
+    );
+
+    // 快速更新位置 100 次
+    for (int i = 0; i < 100; ++i) {
+        state.position = glm::vec3(
+            static_cast<f32>(i * 10),
+            static_cast<f32>(i * 5),
+            static_cast<f32>(i * 2)
+        );
+        handler->updateEntityState(static_cast<EntityId>(1), state);
+        sound.tick();
+
+        EXPECT_FLOAT_EQ(sound.getX(), static_cast<f32>(i * 10));
+        EXPECT_FLOAT_EQ(sound.getY(), static_cast<f32>(i * 5));
+        EXPECT_FLOAT_EQ(sound.getZ(), static_cast<f32>(i * 2));
+        EXPECT_FALSE(sound.isDone());
+    }
+}
+
+TEST_F(MovingTickableSoundBoundaryTest, MultipleTicksWithoutPositionUpdate) {
+    EntitySoundState state;
+    state.position = glm::vec3(50.0f, 64.0f, 100.0f);
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    MovingTickableSound sound(
+        testLocation,
+        SoundCategory::Neutral,
+        handler.get(),
+        static_cast<EntityId>(1),
+        1.0f,
+        1.0f
+    );
+
+    // 第一次 tick 更新位置
+    sound.tick();
+    EXPECT_FLOAT_EQ(sound.getX(), 50.0f);
+
+    // 位置不变的情况下多次 tick，位置应该保持
+    for (int i = 0; i < 10; ++i) {
+        sound.tick();
+        EXPECT_FLOAT_EQ(sound.getX(), 50.0f);
+        EXPECT_FLOAT_EQ(sound.getY(), 64.0f);
+        EXPECT_FLOAT_EQ(sound.getZ(), 100.0f);
+        EXPECT_FALSE(sound.isDone());
+    }
+}
+
+TEST_F(MovingTickableSoundBoundaryTest, ZeroVolumeSound) {
+    EntitySoundState state;
+    state.position = glm::vec3(0.0f);
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    MovingTickableSound sound(
+        testLocation,
+        SoundCategory::Neutral,
+        handler.get(),
+        static_cast<EntityId>(1),
+        0.0f,  // 零音量
+        1.0f
+    );
+
+    sound.tick();
+    EXPECT_FLOAT_EQ(sound.getVolume(), 0.0f);
+    EXPECT_TRUE(sound.canBeSilent());  // 允许静音播放
+    EXPECT_FALSE(sound.isDone());
+}
+
+TEST_F(MovingTickableSoundBoundaryTest, HighVolumeSound) {
+    EntitySoundState state;
+    state.position = glm::vec3(0.0f);
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    MovingTickableSound sound(
+        testLocation,
+        SoundCategory::Neutral,
+        handler.get(),
+        static_cast<EntityId>(1),
+        10.0f,  // 高音量
+        1.0f
+    );
+
+    sound.tick();
+    EXPECT_FLOAT_EQ(sound.getVolume(), 10.0f);
+}
+
+TEST_F(MovingTickableSoundBoundaryTest, PitchRange) {
+    EntitySoundState state;
+    state.position = glm::vec3(0.0f);
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    // 低音调
+    MovingTickableSound soundLow(
+        testLocation,
+        SoundCategory::Neutral,
+        handler.get(),
+        static_cast<EntityId>(1),
+        1.0f,
+        0.1f
+    );
+    soundLow.tick();
+    EXPECT_FLOAT_EQ(soundLow.getPitch(), 0.1f);
+
+    // 高音调
+    MovingTickableSound soundHigh(
+        testLocation,
+        SoundCategory::Neutral,
+        handler.get(),
+        static_cast<EntityId>(1),
+        1.0f,
+        2.0f
+    );
+    soundHigh.tick();
+    EXPECT_FLOAT_EQ(soundHigh.getPitch(), 2.0f);
+}
+
+TEST_F(MovingTickableSoundBoundaryTest, DifferentSoundCategories) {
+    EntitySoundState state;
+    state.position = glm::vec3(0.0f);
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    // 测试不同声音类别
+    SoundCategory categories[] = {
+        SoundCategory::Master,
+        SoundCategory::Music,
+        SoundCategory::Records,
+        SoundCategory::Weather,
+        SoundCategory::Blocks,
+        SoundCategory::Hostile,
+        SoundCategory::Neutral,
+        SoundCategory::Players,
+        SoundCategory::Ambient,
+        SoundCategory::Voice
+    };
+
+    for (auto category : categories) {
+        MovingTickableSound sound(
+            testLocation,
+            category,
+            handler.get(),
+            static_cast<EntityId>(1),
+            1.0f,
+            1.0f
+        );
+        sound.tick();
+        EXPECT_EQ(sound.getCategory(), category);
+        EXPECT_FALSE(sound.isDone());
+    }
+}
+
+// ============================================================================
+// EntitySoundState 边界条件和错误处理测试
+// ============================================================================
+
+class EntitySoundStateBoundaryTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        handler = std::make_unique<EntitySoundHandler>();
+    }
+
+    std::unique_ptr<EntitySoundHandler> handler;
+};
+
+TEST_F(EntitySoundStateBoundaryTest, LargeEntityId) {
+    EntitySoundState state;
+    state.position = glm::vec3(0.0f);
+
+    // 最大 EntityId
+    EntityId maxId = static_cast<EntityId>(0xFFFFFFFF);
+    handler->updateEntityState(maxId, state);
+
+    const EntitySoundState* retrieved = handler->getEntityState(maxId);
+    ASSERT_NE(retrieved, nullptr);
+    EXPECT_EQ(retrieved->entityId, maxId);
+}
+
+TEST_F(EntitySoundStateBoundaryTest, ZeroEntityId) {
+    EntitySoundState state;
+    state.position = glm::vec3(0.0f);
+
+    handler->updateEntityState(static_cast<EntityId>(0), state);
+
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(0));
+    ASSERT_NE(retrieved, nullptr);
+}
+
+TEST_F(EntitySoundStateBoundaryTest, VelocityAtMaximum) {
+    EntitySoundState state;
+    state.velocity = glm::vec3(1000.0f, 500.0f, -1000.0f);  // 极端速度
+
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    ASSERT_NE(retrieved, nullptr);
+    EXPECT_FLOAT_EQ(retrieved->velocity.x, 1000.0f);
+    EXPECT_FLOAT_EQ(retrieved->velocity.y, 500.0f);
+    EXPECT_FLOAT_EQ(retrieved->velocity.z, -1000.0f);
+}
+
+TEST_F(EntitySoundStateBoundaryTest, AllFlagsSet) {
+    EntitySoundState state;
+    state.isRemoved = false;
+    state.isChild = true;
+    state.isFallFlying = true;
+    state.isAngry = true;
+    state.isRiding = true;
+
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    ASSERT_NE(retrieved, nullptr);
+    EXPECT_TRUE(retrieved->isChild);
+    EXPECT_TRUE(retrieved->isFallFlying);
+    EXPECT_TRUE(retrieved->isAngry);
+    EXPECT_TRUE(retrieved->isRiding);
+    EXPECT_FALSE(retrieved->isRemoved);
+}
+
+TEST_F(EntitySoundStateBoundaryTest, AttackAnimationScale) {
+    EntitySoundState state;
+    state.attackAnimScale = 0.0f;
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    ASSERT_NE(retrieved, nullptr);
+    EXPECT_FLOAT_EQ(retrieved->attackAnimScale, 0.0f);
+
+    // 更新为最大值
+    state.attackAnimScale = 1.0f;
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    ASSERT_NE(retrieved, nullptr);
+    EXPECT_FLOAT_EQ(retrieved->attackAnimScale, 1.0f);
+}
+
+TEST_F(EntitySoundStateBoundaryTest, ConcurrentUpdates) {
+    // 模拟多个实体的并发更新
+    const int NUM_ENTITIES = 100;
+
+    for (int i = 0; i < NUM_ENTITIES; ++i) {
+        EntitySoundState state;
+        state.position = glm::vec3(static_cast<f32>(i));
+        state.velocity = glm::vec3(static_cast<f32>(i * 0.1f));
+        handler->updateEntityState(static_cast<EntityId>(i), state);
+    }
+
+    // 验证所有实体状态正确存储
+    for (int i = 0; i < NUM_ENTITIES; ++i) {
+        const EntitySoundState* state = handler->getEntityState(static_cast<EntityId>(i));
+        ASSERT_NE(state, nullptr) << "Entity " << i << " not found";
+        EXPECT_FLOAT_EQ(state->position.x, static_cast<f32>(i));
+        EXPECT_FLOAT_EQ(state->velocity.x, static_cast<f32>(i * 0.1f));
+    }
+}
+
+// ============================================================================
+// 淡入淡出行为测试
+// ============================================================================
+
+class FadeBehaviorTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        testLocation = ResourceLocation("minecraft:test.fade");
+    }
+
+    ResourceLocation testLocation;
+};
+
+TEST_F(FadeBehaviorTest, LinearFadeOut) {
+    auto sound = SoundInstance::createGlobal(testLocation, SoundCategory::Music, 1.0f, 1.0f);
+
+    // 测试线性淡出
+    constexpr int FADE_STEPS = 40;
+    for (int i = 0; i < FADE_STEPS; ++i) {
+        f32 fadeProgress = static_cast<f32>(FADE_STEPS - i) / static_cast<f32>(FADE_STEPS);
+        sound.setVolume(fadeProgress);
+
+        f32 expectedVolume = static_cast<f32>(FADE_STEPS - i) / static_cast<f32>(FADE_STEPS);
+        EXPECT_NEAR(sound.getVolume(), expectedVolume, 0.001f);
+    }
+
+    // 完全淡出
+    sound.setVolume(0.0f);
+    EXPECT_FLOAT_EQ(sound.getVolume(), 0.0f);
+}
+
+TEST_F(FadeBehaviorTest, LinearFadeIn) {
+    auto sound = SoundInstance::createGlobal(testLocation, SoundCategory::Music, 0.0f, 1.0f);
+
+    // 测试线性淡入
+    constexpr int FADE_STEPS = 40;
+    for (int i = 0; i < FADE_STEPS; ++i) {
+        f32 fadeProgress = static_cast<f32>(i + 1) / static_cast<f32>(FADE_STEPS);
+        sound.setVolume(fadeProgress);
+
+        f32 expectedVolume = static_cast<f32>(i + 1) / static_cast<f32>(FADE_STEPS);
+        EXPECT_NEAR(sound.getVolume(), expectedVolume, 0.001f);
+    }
+
+    EXPECT_FLOAT_EQ(sound.getVolume(), 1.0f);
+}
+
+TEST_F(FadeBehaviorTest, FadeOutThenFadeIn) {
+    auto sound = SoundInstance::createGlobal(testLocation, SoundCategory::Music, 1.0f, 1.0f);
+
+    // 淡出
+    for (int i = 0; i < 20; ++i) {
+        sound.setVolume(1.0f - static_cast<f32>(i) / 20.0f);
+    }
+    EXPECT_FLOAT_EQ(sound.getVolume(), 0.05f);  // 最后一步
+
+    // 淡入
+    for (int i = 0; i < 20; ++i) {
+        sound.setVolume(static_cast<f32>(i) / 20.0f);
+    }
+    EXPECT_FLOAT_EQ(sound.getVolume(), 0.95f);  // 最后一步
+}
+
+TEST_F(FadeBehaviorTest, FadeWithPitchChange) {
+    auto sound = SoundInstance::createGlobal(testLocation, SoundCategory::Music, 1.0f, 1.0f);
+
+    // 同时改变音量和音调
+    for (int i = 0; i < 10; ++i) {
+        f32 volume = 1.0f - static_cast<f32>(i) * 0.1f;
+        f32 pitch = 1.0f + static_cast<f32>(i) * 0.05f;
+        sound.setVolume(volume);
+        sound.setPitch(pitch);
+
+        EXPECT_FLOAT_EQ(sound.getVolume(), volume);
+        EXPECT_FLOAT_EQ(sound.getPitch(), pitch);
+    }
+}
+
+// ============================================================================
+// 音乐选择器边界条件测试
+// ============================================================================
+
+class MusicSelectorBoundaryTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        testLocation = ResourceLocation("minecraft:music.game");
+    }
+
+    ResourceLocation testLocation;
+};
+
+TEST_F(MusicSelectorBoundaryTest, MinDelayEqualsMaxDelay) {
+    // 最小延迟等于最大延迟
+    MusicPlayer::MusicSelector selector(testLocation, 1000, 1000, false);
+
+    EXPECT_EQ(selector.minDelayTicks, 1000u);
+    EXPECT_EQ(selector.maxDelayTicks, 1000u);
+}
+
+TEST_F(MusicSelectorBoundaryTest, ZeroDelay) {
+    MusicPlayer::MusicSelector selector(testLocation, 0, 0, true);
+
+    EXPECT_EQ(selector.minDelayTicks, 0u);
+    EXPECT_EQ(selector.maxDelayTicks, 0u);
+    EXPECT_TRUE(selector.replaceCurrent);
+}
+
+TEST_F(MusicSelectorBoundaryTest, LargeDelayValues) {
+    // 大延迟值
+    MusicPlayer::MusicSelector selector(testLocation, 72000, 144000, false);  // 1-2 小时
+
+    EXPECT_EQ(selector.minDelayTicks, 72000u);
+    EXPECT_EQ(selector.maxDelayTicks, 144000u);
+}
+
+TEST_F(MusicSelectorBoundaryTest, FromBiomeMusicWithEmptySound) {
+    BiomeMusic biomeMusic(ResourceLocation("minecraft:music.test"), 5000, 10000, false);
+
+    MusicPlayer::MusicSelector selector = MusicPlayer::MusicSelector::fromBiomeMusic(biomeMusic);
+
+    EXPECT_EQ(selector.soundEventId.toString(), "minecraft:music.test");
+    EXPECT_EQ(selector.minDelayTicks, 5000u);
+    EXPECT_EQ(selector.maxDelayTicks, 10000u);
+    EXPECT_FALSE(selector.replaceCurrent);
+}
+
+TEST_F(MusicSelectorBoundaryTest, ReplaceCurrentFlag) {
+    // 测试 replaceCurrent 标志
+    MusicPlayer::MusicSelector selectorWithReplace(testLocation, 100, 200, true);
+    EXPECT_TRUE(selectorWithReplace.replaceCurrent);
+
+    MusicPlayer::MusicSelector selectorWithoutReplace(testLocation, 100, 200, false);
+    EXPECT_FALSE(selectorWithoutReplace.replaceCurrent);
+}
+
+// ============================================================================
+// 群系音乐有效性测试
+// ============================================================================
+
+class BiomeMusicValidityTest : public ::testing::Test {};
+
+TEST_F(BiomeMusicValidityTest, ValidMusicWithDifferentDelays) {
+    // 短延迟
+    BiomeMusic shortDelay(ResourceLocation("minecraft:music.menu"), 20, 600, true);
+    EXPECT_TRUE(shortDelay.isValid());
+    EXPECT_TRUE(shortDelay.replaceCurrent());
+
+    // 长延迟
+    BiomeMusic longDelay(ResourceLocation("minecraft:music.game"), 24000, 48000, false);
+    EXPECT_TRUE(longDelay.isValid());
+    EXPECT_EQ(longDelay.minDelayTicks(), 24000u);
+    EXPECT_EQ(longDelay.maxDelayTicks(), 48000u);
+}
+
+TEST_F(BiomeMusicValidityTest, BiomeAmbientSoundsHasMusicCheck) {
+    BiomeAmbientSounds sounds;
+
+    // 没有音乐
+    EXPECT_FALSE(sounds.hasMusic());
+
+    // 设置有效音乐
+    sounds.setMusic(BiomeMusic(ResourceLocation("minecraft:music.nether.nether_wastes"), 12000, 24000, false));
+    EXPECT_TRUE(sounds.hasMusic());
+
+    // 设置空的音乐（但 ResourceLocation 默认构造为 "minecraft:"）
+    sounds.setMusic(BiomeMusic());
+    // hasMusic 检查 isValid()，而默认构造的 BiomeMusic 是有效的
+    EXPECT_TRUE(sounds.hasMusic());
+}
+
+TEST_F(BiomeMusicValidityTest, BiomeAmbientSoundsWithAllAmbientTypes) {
+    BiomeAmbientSounds sounds;
+
+    // 设置所有类型的环境音效
+    sounds.setLoopSound(ResourceLocation("minecraft:ambient.cave"));
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
+    sounds.setAdditionsSound(SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.underwater.loop.additions"), 0.009));
+    sounds.setMusic(BiomeMusic(ResourceLocation("minecraft:music.game"), 12000, 24000, false));
+
+    // 验证所有都设置成功
+    EXPECT_TRUE(sounds.loopSound().has_value());
+    EXPECT_TRUE(sounds.moodSound().has_value());
+    EXPECT_TRUE(sounds.additionsSound().has_value());
+    EXPECT_TRUE(sounds.music().has_value());
+    EXPECT_TRUE(sounds.hasAnySound());
+    EXPECT_TRUE(sounds.hasMusic());
+}
+
+// ============================================================================
+// TickableSound 生命周期测试
+// ============================================================================
+
+class TickableSoundLifecycleTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        handler = std::make_unique<EntitySoundHandler>();
+        testLocation = ResourceLocation("minecraft:test.lifecycle");
+    }
+
+    std::unique_ptr<EntitySoundHandler> handler;
+    ResourceLocation testLocation;
+};
+
+TEST_F(TickableSoundLifecycleTest, SoundStartsNotDone) {
+    EntitySoundState state;
+    state.position = glm::vec3(0.0f);
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    MovingTickableSound sound(
+        testLocation,
+        SoundCategory::Neutral,
+        handler.get(),
+        static_cast<EntityId>(1),
+        1.0f,
+        1.0f
+    );
+
+    EXPECT_FALSE(sound.isDone());
+    EXPECT_TRUE(sound.isLooping());
+}
+
+TEST_F(TickableSoundLifecycleTest, SoundStopsWhenEntityRemoved) {
+    EntitySoundState state;
+    state.position = glm::vec3(0.0f);
+    state.isRemoved = false;
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    MovingTickableSound sound(
+        testLocation,
+        SoundCategory::Neutral,
+        handler.get(),
+        static_cast<EntityId>(1),
+        1.0f,
+        1.0f
+    );
+
+    // 正常 tick
+    sound.tick();
+    EXPECT_FALSE(sound.isDone());
+
+    // 标记实体移除
+    handler->onEntityRemove(static_cast<EntityId>(1));
+    sound.tick();
+
+    // 声音应该停止
+    EXPECT_TRUE(sound.isDone());
+    EXPECT_FALSE(sound.isLooping());  // markDone 会取消循环
+}
+
+TEST_F(TickableSoundLifecycleTest, SoundStopsWhenStateRemoved) {
+    EntitySoundState state;
+    state.position = glm::vec3(0.0f);
+    handler->updateEntityState(static_cast<EntityId>(1), state);
+
+    MovingTickableSound sound(
+        testLocation,
+        SoundCategory::Neutral,
+        handler.get(),
+        static_cast<EntityId>(1),
+        1.0f,
+        1.0f
+    );
+
+    sound.tick();
+    EXPECT_FALSE(sound.isDone());
+
+    // 完全移除状态
+    handler->removeEntityState(static_cast<EntityId>(1));
+    sound.tick();
+
+    // 声音应该停止（找不到实体状态）
+    EXPECT_TRUE(sound.isDone());
+}
+
+TEST_F(TickableSoundLifecycleTest, MultipleSoundsForDifferentEntities) {
+    // 设置多个实体
+    for (int i = 1; i <= 5; ++i) {
+        EntitySoundState state;
+        state.position = glm::vec3(static_cast<f32>(i * 100));
+        handler->updateEntityState(static_cast<EntityId>(i), state);
+    }
+
+    // 为每个实体创建声音
+    std::vector<MovingTickableSound> sounds;
+    for (int i = 1; i <= 5; ++i) {
+        sounds.emplace_back(
+            testLocation,
+            SoundCategory::Neutral,
+            handler.get(),
+            static_cast<EntityId>(i),
+            1.0f,
+            1.0f
+        );
+    }
+
+    // 所有声音应该正常工作
+    for (auto& sound : sounds) {
+        sound.tick();
+        EXPECT_FALSE(sound.isDone());
+    }
+
+    // 移除一个实体
+    handler->onEntityRemove(static_cast<EntityId>(3));
+
+    // 只有第三个声音应该停止
+    for (size_t i = 0; i < sounds.size(); ++i) {
+        sounds[i].tick();
+        if (i == 2) {  // 第三个声音（索引2）
+            EXPECT_TRUE(sounds[i].isDone());
+        } else {
+            EXPECT_FALSE(sounds[i].isDone());
+        }
+    }
+}
