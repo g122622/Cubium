@@ -780,51 +780,85 @@ TEST_F(IInventoryInterfaceTest, HasAny_WithNullItemInSet) {
 }
 
 // ============================================================================
-// FurnaceFuelSlot 边界测试
+// IInventory 边界测试 - 空背包和空集合
 // ============================================================================
 
-class FurnaceFuelSlotEdgeCaseTest : public ::testing::Test {
+class IInventoryEdgeCaseTest : public ::testing::Test {
 protected:
     void SetUp() override {
         Items::initialize();
+        m_inventory = std::make_unique<PlayerInventory>(nullptr);
     }
 
-    void TearDown() override {
-        // 确保清理
-    }
+    std::unique_ptr<PlayerInventory> m_inventory;
 };
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, MayPlace_EmptyStack) {
-    blockentity::SimpleInventory inventory(3);
-    FurnaceFuelSlot slot(&inventory, 0, 10, 10);
+TEST_F(IInventoryEdgeCaseTest, HasAny_EmptyInventory) {
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
 
-    // 空物品堆
-    ItemStack emptyStack;
-    EXPECT_FALSE(slot.mayPlace(emptyStack));
+    IInventory* inv = m_inventory.get();
+    std::unordered_set<const Item*> items = {diamond};
+
+    // 空背包不包含任何物品
+    EXPECT_FALSE(inv->hasAny(items));
 }
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, GetMaxStackSize_EmptyStack) {
-    blockentity::SimpleInventory inventory(3);
-    FurnaceFuelSlot slot(&inventory, 0, 10, 10);
+TEST_F(IInventoryEdgeCaseTest, HasAny_EmptySet) {
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
 
-    // 空物品堆的堆叠上限
-    ItemStack emptyStack;
-    EXPECT_EQ(slot.getMaxStackSize(emptyStack), 64);
+    IInventory* inv = m_inventory.get();
+
+    // 添加物品到背包
+    m_inventory->setItem(0, ItemStack(*diamond, 10));
+
+    // 空集合不匹配任何物品
+    std::unordered_set<const Item*> empty;
+    EXPECT_FALSE(inv->hasAny(empty));
 }
 
-TEST_F(FurnaceFuelSlotEdgeCaseTest, SetAndGetItem) {
-    blockentity::SimpleInventory inventory(3);
-    FurnaceFuelSlot slot(&inventory, 0, 10, 10);
+TEST_F(IInventoryEdgeCaseTest, HasAny_AllNullItems) {
+    IInventory* inv = m_inventory.get();
 
-    Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
-    if (coal == nullptr) {
-        GTEST_SKIP() << "Coal not registered";
+    // 集合中只有空指针
+    std::unordered_set<const Item*> items = {nullptr};
+
+    // 添加物品到背包
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    if (diamond != nullptr) {
+        m_inventory->setItem(0, ItemStack(*diamond, 10));
     }
 
-    // 设置物品到槽位
-    ItemStack stack(*coal, 32);
-    inventory.setItem(0, stack);
+    // 空指针集合应该返回 false
+    EXPECT_FALSE(inv->hasAny(items));
+}
 
-    EXPECT_FALSE(slot.isEmpty());
-    EXPECT_EQ(slot.getItem().getCount(), 32);
+TEST_F(IInventoryEdgeCaseTest, HasAny_MultipleItemsInDifferentSlots) {
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
+    Item* iron = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
+    ASSERT_NE(diamond, nullptr);
+    ASSERT_NE(coal, nullptr);
+
+    IInventory* inv = m_inventory.get();
+
+    // 将物品放在不同槽位
+    m_inventory->setItem(0, ItemStack(*diamond, 10));
+    m_inventory->setItem(20, ItemStack(*coal, 5));
+
+    // 检查包含钻石和铁的集合（应该找到钻石）
+    std::unordered_set<const Item*> items1 = {diamond, iron};
+    EXPECT_TRUE(inv->hasAny(items1));
+
+    // 检查只包含铁的集合（不应该找到）
+    std::unordered_set<const Item*> items2;
+    if (iron != nullptr) {
+        items2.insert(iron);
+    }
+    EXPECT_FALSE(inv->hasAny(items2));
+
+    // 清空后检查
+    m_inventory->clear();
+    EXPECT_FALSE(inv->hasAny(items1));
 }

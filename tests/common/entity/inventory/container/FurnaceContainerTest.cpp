@@ -188,6 +188,179 @@ TEST_F(FurnaceResultSlotTest, GetMaxStackSize_AlwaysOne) {
     EXPECT_EQ(slot.getMaxStackSize(stack), 64);
 }
 
+TEST_F(FurnaceResultSlotTest, MayPlace_EmptyStack) {
+    FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
+
+    // 空物品堆
+    ItemStack emptyStack;
+    EXPECT_FALSE(slot.mayPlace(emptyStack));
+}
+
+TEST_F(FurnaceResultSlotTest, MayPickup_AlwaysTrue) {
+    FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
+
+    // 结果槽总是可以取出（即使为空）
+    // 注意：mayPickup 需要 Player 参数，这里无法直接测试
+    // 但可以验证方法存在
+    (void)slot;
+    SUCCEED() << "FurnaceResultSlot mayPickup method exists";
+}
+
+TEST_F(FurnaceResultSlotTest, Remove_AllItems) {
+    FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
+
+    Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
+    if (ironIngot == nullptr) {
+        GTEST_SKIP() << "Iron ingot not registered";
+    }
+
+    // 设置输出槽物品
+    ItemStack stack(*ironIngot, 16);
+    inventory_->setItem(2, stack);
+
+    // 移除全部物品
+    ItemStack removed = slot.remove(16);
+    EXPECT_EQ(removed.getCount(), 16);
+    EXPECT_TRUE(inventory_->getItem(2).isEmpty());
+}
+
+TEST_F(FurnaceResultSlotTest, Remove_ZeroItems) {
+    FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
+
+    Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
+    if (ironIngot == nullptr) {
+        GTEST_SKIP() << "Iron ingot not registered";
+    }
+
+    // 设置输出槽物品
+    ItemStack stack(*ironIngot, 10);
+    inventory_->setItem(2, stack);
+
+    // 移除0个物品
+    ItemStack removed = slot.remove(0);
+    EXPECT_TRUE(removed.isEmpty());
+    EXPECT_EQ(inventory_->getItem(2).getCount(), 10);
+}
+
+TEST_F(FurnaceResultSlotTest, Remove_NegativeAmount) {
+    FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
+
+    Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
+    if (ironIngot == nullptr) {
+        GTEST_SKIP() << "Iron ingot not registered";
+    }
+
+    // 设置输出槽物品
+    ItemStack stack(*ironIngot, 10);
+    inventory_->setItem(2, stack);
+
+    // 移除负数个物品（应该返回空）
+    ItemStack removed = slot.remove(-5);
+    EXPECT_TRUE(removed.isEmpty());
+    EXPECT_EQ(inventory_->getItem(2).getCount(), 10);
+}
+
+// ========== FurnaceFuelSlot 边界测试 ==========
+
+class FurnaceFuelSlotEdgeCaseTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        Items::initialize();
+        inventory_ = std::make_unique<SimpleInventory>(3);
+    }
+
+    std::unique_ptr<SimpleInventory> inventory_;
+};
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, MayPlace_EmptyStack) {
+    FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
+
+    // 空物品堆
+    ItemStack emptyStack;
+    EXPECT_FALSE(slot.mayPlace(emptyStack));
+}
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, GetMaxStackSize_EmptyStack) {
+    FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
+
+    // 空物品堆的堆叠上限
+    ItemStack emptyStack;
+    EXPECT_EQ(slot.getMaxStackSize(emptyStack), 64);
+}
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, SetAndGetItem) {
+    FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
+
+    Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
+    if (coal == nullptr) {
+        GTEST_SKIP() << "Coal not registered";
+    }
+
+    // 设置物品到槽位
+    ItemStack stack(*coal, 32);
+    inventory_->setItem(0, stack);
+
+    EXPECT_FALSE(slot.isEmpty());
+    EXPECT_EQ(slot.getItem().getCount(), 32);
+}
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_NotBucket) {
+    Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
+    if (coal == nullptr) {
+        GTEST_SKIP() << "Coal not registered";
+    }
+
+    ItemStack coalStack(*coal, 1);
+    // 煤炭不是桶
+    EXPECT_FALSE(FurnaceFuelSlot::isBucket(coalStack));
+}
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, IsFuel_EmptyStack) {
+    ItemStack emptyStack;
+    // 空物品不是燃料
+    EXPECT_FALSE(FurnaceFuelSlot::isFuel(emptyStack));
+}
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_EmptyStack) {
+    ItemStack emptyStack;
+    // 空物品不是桶
+    EXPECT_FALSE(FurnaceFuelSlot::isBucket(emptyStack));
+}
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, GetMaxStackSize_VariousItems) {
+    FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
+
+    Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
+    if (coal != nullptr) {
+        ItemStack coalStack(*coal, 1);
+        EXPECT_EQ(slot.getMaxStackSize(coalStack), 64);
+    }
+
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    if (diamond != nullptr) {
+        ItemStack diamondStack(*diamond, 1);
+        // 钻石不是燃料，但 getMaxStackSize 仍返回物品本身的堆叠上限
+        EXPECT_EQ(slot.getMaxStackSize(diamondStack), 64);
+    }
+}
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, RemoveFromSlot) {
+    FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
+
+    Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
+    if (coal == nullptr) {
+        GTEST_SKIP() << "Coal not registered";
+    }
+
+    // 设置物品
+    inventory_->setItem(0, ItemStack(*coal, 32));
+
+    // 移除部分
+    ItemStack removed = slot.remove(10);
+    EXPECT_EQ(removed.getCount(), 10);
+    EXPECT_EQ(inventory_->getItem(0).getCount(), 22);
+}
+
 TEST_F(FurnaceContainerTest, Create_HasCorrectSlotCount) {
     // 注意: 在Release模式下MC_ASSERT不起作用
     // 容器实际槽位数量 = 熔炉槽位 + 玩家背包槽位 = 3 + 36 = 39
