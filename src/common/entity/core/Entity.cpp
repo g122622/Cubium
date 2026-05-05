@@ -320,52 +320,30 @@ void Entity::baseTick() {
 
 bool Entity::tickPortal() {
     // 参考 MC 1.16.5 Entity.updatePortal()
-    //
-    // MC 源码逻辑：
-    // if (this.inPortal) {
-    //     if (this.portalCounter++ >= i) {
-    //         // 触发传送
-    //         this.portalCounter = i;
-    //         this.triggerPortalCooldown();
-    //         this.changeDimension(...);
-    //     }
-    //     this.inPortal = false;  // ★ 每帧都重置
-    // } else {
-    //     if (this.portalCounter > 0) {
-    //         this.portalCounter -= 4;
-    //     }
-    // }
-    // 注意：冷却递减在 baseTick() 的 decrementTimeUntilPortal() 中
+    // 关键行为：inPortal 每帧重置，由 NetherPortalBlock.onEntityCollision 重新设置
+    // 冷却递减在 baseTick() 的 decrementTimeUntilPortal() 中处理
 
-    // 如果不在传送门中，递减传送门计时
     if (!m_inPortal) {
         if (m_portalTime > 0) {
-            // MC: this.portalCounter -= 4;
             m_portalTime = std::max(0, m_portalTime - 4);
         }
         return false;
     }
 
-    // 在传送门中
-    // ★ MC 1.16.5: 无论是否传送，都重置 inPortal
-    // 这样下一帧如果玩家仍在传送门方块中，会由 NetherPortalBlock.onEntityCollision 重新设置
+    // 无论是否传送，都重置 inPortal
     m_inPortal = false;
 
-    // 检查是否可以传送（冷却完成）
     if (!canTeleport()) {
         return false;
     }
 
-    // 递增传送门计时（MC: portalCounter++ >= i，先递增再比较）
+    // 递增计时并检查阈值（MC: portalCounter++ >= i）
+    // 非玩家：i=0，第一次进入时 1 >= 0 成立
+    // 玩家：i=80，第 80 tick 时 80 >= 80 成立
     m_portalTime++;
 
-    // 检查是否达到传送阈值
-    // MC 1.16.5: portalCounter++ >= i
-    // - 非玩家实体：i=0，第一次进入时 1 >= 0 成立
-    // - 玩家：i=80，第 80 tick 时 80 >= 80 成立
     const i32 maxPortalTime = getMaxInPortalTime();
     if (m_portalTime >= maxPortalTime) {
-        // 传送后重置计时器
         m_portalTime = maxPortalTime;
         return true;
     }

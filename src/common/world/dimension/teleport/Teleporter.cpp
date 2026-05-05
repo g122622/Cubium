@@ -81,10 +81,8 @@ std::vector<BlockPos> Teleporter::searchPortalBlocks(
                             // 转换为世界坐标
                             BlockPos worldPos(cx * 16 + x, y, cz * 16 + z);
 
-                            // 检查是否在搜索半径内
-                            i32 dx = worldPos.x - center.x;
-                            i32 dz = worldPos.z - center.z;
-                            if (dx * dx + dz * dz <= radius * radius) {
+                            // 检查是否在搜索半径内（水平距离）
+                            if (worldPos.distanceHorizontalSq(center) <= radius * radius) {
                                 portalBlocks.push_back(worldPos);
                             }
                         }
@@ -184,17 +182,13 @@ std::optional<PortalInfo> NetherTeleporter::findPortal(IWorld& world, const Vect
         return std::nullopt;
     }
 
-    // 找到最近的传送门（使用 3D 距离，MC 1.16.5 使用 distanceSq）
+    // 找到最近的传送门（使用 3D 距离平方，MC 1.16.5 使用 distanceSq）
     // 次排序键：Y 坐标（距离相同时选择 Y 更小的）
     BlockPos closest = portalBlocks[0];
-    i64 closestDistSq = static_cast<i64>(closest.x - blockPos.x) * (closest.x - blockPos.x) +
-                        static_cast<i64>(closest.y - blockPos.y) * (closest.y - blockPos.y) +
-                        static_cast<i64>(closest.z - blockPos.z) * (closest.z - blockPos.z);
+    i64 closestDistSq = closest.distanceSq(blockPos);
 
     for (size_t i = 1; i < portalBlocks.size(); ++i) {
-        i64 distSq = static_cast<i64>(portalBlocks[i].x - blockPos.x) * (portalBlocks[i].x - blockPos.x) +
-                     static_cast<i64>(portalBlocks[i].y - blockPos.y) * (portalBlocks[i].y - blockPos.y) +
-                     static_cast<i64>(portalBlocks[i].z - blockPos.z) * (portalBlocks[i].z - blockPos.z);
+        i64 distSq = portalBlocks[i].distanceSq(blockPos);
         if (distSq < closestDistSq ||
             (distSq == closestDistSq && portalBlocks[i].y < closest.y)) {
             closestDistSq = distSq;

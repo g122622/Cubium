@@ -140,7 +140,7 @@ std::optional<BlockPos> PortalSize::findBottomLeft(
 {
     Direction leftDir = Directions::opposite(rightDir);
 
-    // MC 1.16.5 PortalSize.func_242971_a:
+    // MC 1.16.5 PortalSize.func_242971_a
     // 第一步：向下搜索找到内部底部
     BlockPos currentPos = pos;
     i32 minY = std::max(world::MIN_BUILD_HEIGHT, pos.y - MAX_SEARCH_DOWN);
@@ -152,48 +152,32 @@ std::optional<BlockPos> PortalSize::findBottomLeft(
         currentPos = belowPos;
     }
 
-    // 第二步：向左（opposite of rightDir）搜索框架
-    // MC 1.16.5 逻辑：
-    // - 遇到连接方块（空气/火/传送门）→ 检查底部框架 → 继续下一个位置
-    // - 遇到框架方块 → 返回当前距离（框架右边的位置就是内部左下角）
+    // 第二步：向左搜索框架
+    // 连接方块需底部有框架，框架方块则返回
     i32 leftDistance = -1;
     for (i32 i = 0; i <= MAX_WIDTH + 1; ++i) {
         BlockPos checkPos = currentPos.offset(leftDir, i);
         const BlockState* state = world.getBlockState(checkPos);
 
-        if (state == nullptr) {
-            // 空状态，无法判断
-            break;
-        }
+        if (state == nullptr) break;
 
         if (canConnect(*state)) {
-            // 是连接方块（空气/火/传送门），检查底部是否是框架
             BlockPos belowCheckPos = checkPos.offset(Direction::Down);
             const BlockState* belowState = world.getBlockState(belowCheckPos);
-            if (belowState == nullptr || !isPortalFrame(*belowState)) {
-                // 底部不是框架，传送门无效
-                break;
-            }
-            // 底部是框架，继续向左搜索
+            if (belowState == nullptr || !isPortalFrame(*belowState)) break;
             continue;
         }
 
         if (isPortalFrame(*state)) {
-            // 找到框架方块
             leftDistance = i;
             break;
         }
 
-        // 既不是连接方块也不是框架，停止搜索
         break;
     }
 
-    if (leftDistance <= 0) {
-        // 没有找到有效的左边框架
-        return std::nullopt;
-    }
+    if (leftDistance <= 0) return std::nullopt;
 
-    // 内部左下角 = 框架位置向右偏移 1
     return currentPos.offset(leftDir, leftDistance - 1);
 }
 

@@ -364,10 +364,8 @@ void Player::tick() {
 bool Player::tickPortal() {
     // 玩家需要 80 tick (4秒) 在传送门中才能传送
     // 创造模式（无敌状态）只需要 1 tick
-    // 参考 MC 1.16.5 PlayerEntity.tick() line 578-607
+    // 参考 MC 1.16.5 PlayerEntity.tick()
 
-    // 如果不在传送门中，递减传送门计时
-    // MC: this.portalTime -= 4;（与 Entity 基类一致）
     if (!m_inPortal) {
         if (m_portalTime > 0) {
             m_portalTime = std::max(0, m_portalTime - 4);
@@ -375,24 +373,18 @@ bool Player::tickPortal() {
         return false;
     }
 
-    // ★ MC 1.16.5: 无论是否传送，都重置 inPortal
-    // 这样下一帧如果玩家仍在传送门方块中，会由 NetherPortalBlock.onEntityCollision 重新设置
+    // 无论是否传送，都重置 inPortal
     m_inPortal = false;
 
-    // 在传送门中，检查是否可以传送（冷却完成）
     if (!canTeleport()) {
         return false;
     }
 
-    // 递增传送门计时
+    // 递增计时并检查阈值
     m_portalTime++;
 
-    // 检查是否达到传送阈值
-    // 使用 getMaxInPortalTime() 而非硬编码，以支持创造模式
-    // MC 1.16.5: portalCounter++ >= i
     const i32 maxPortalTime = getMaxInPortalTime();
     if (m_portalTime >= maxPortalTime) {
-        // 传送触发
         m_portalTime = maxPortalTime;
         return true;
     }
