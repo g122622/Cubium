@@ -358,6 +358,89 @@ public:
         Entity& attacker,
         const std::array<const ItemStack*, 4>& armorSlots);
 
+    // ========== 附魔生成（附魔台用） ==========
+
+    /**
+     * @brief 附魔数据结构
+     *
+     * 包含附魔和等级，用于附魔台生成附魔列表。
+     */
+    struct EnchantmentData {
+        const Enchantment* enchantment;
+        i32 level;
+        i32 weight;  // 权重（用于随机选择）
+
+        EnchantmentData(const Enchantment* ench, i32 lvl)
+            : enchantment(ench), level(lvl), weight(ench ? ench->rarityWeight() : 0) {}
+    };
+
+    /**
+     * @brief 计算物品附魔等级
+     *
+     * MC 1.16.5: EnchantmentHelper.calcItemStackEnchantability
+     * 根据书架力量和槽位计算附魔等级。
+     *
+     * @param random 随机数生成器
+     * @param slotIndex 槽位索引（0-2）
+     * @param power 书架力量（0-15）
+     * @param stack 物品堆
+     * @return 附魔等级，如果物品不可附魔返回0
+     */
+    [[nodiscard]] static i32 calcItemStackEnchantability(
+        math::Random& random, i32 slotIndex, i32 power, const ItemStack& stack);
+
+    /**
+     * @brief 获取物品可用的附魔列表
+     *
+     * MC 1.16.5: EnchantmentHelper.getEnchantmentDatas
+     * 返回指定等级范围内可用于该物品的所有附魔。
+     *
+     * @param level 附魔等级
+     * @param stack 物品堆
+     * @param allowTreasure 是否允许宝藏附魔
+     * @return 可用附魔列表
+     */
+    [[nodiscard]] static std::vector<EnchantmentData> getEnchantmentDatas(
+        i32 level, const ItemStack& stack, bool allowTreasure = false);
+
+    /**
+     * @brief 构建附魔列表
+     *
+     * MC 1.16.5: EnchantmentHelper.buildEnchantmentList
+     * 根据物品和等级生成附魔列表，可能包含多个附魔。
+     *
+     * @param random 随机数生成器
+     * @param stack 物品堆
+     * @param level 附魔等级
+     * @param allowTreasure 是否允许宝藏附魔
+     * @return 附魔列表
+     */
+    [[nodiscard]] static std::vector<EnchantmentData> buildEnchantmentList(
+        math::Random& random, const ItemStack& stack, i32 level, bool allowTreasure = false);
+
+    /**
+     * @brief 移除与指定附魔不兼容的附魔
+     *
+     * MC 1.16.5: EnchantmentHelper.removeIncompatible
+     * 从列表中移除与指定附魔不兼容的所有附魔。
+     *
+     * @param list 附魔列表（会被修改）
+     * @param enchantment 参考附魔
+     */
+    static void removeIncompatible(std::vector<EnchantmentData>& list, const Enchantment* enchantment);
+
+    /**
+     * @brief 加权随机选择附魔
+     *
+     * MC 1.16.5: WeightedRandom.getRandomItem
+     * 根据附魔稀有度权重随机选择一个附魔。
+     *
+     * @param random 随机数生成器
+     * @param list 附魔列表
+     * @return 选中的附魔数据，如果列表为空返回空
+     */
+    [[nodiscard]] static EnchantmentData getRandomEnchantment(math::Random& random, std::vector<EnchantmentData>& list);
+
 private:
     EnchantmentHelper() = delete;  // 禁止实例化
 };
