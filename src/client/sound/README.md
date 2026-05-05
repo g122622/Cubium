@@ -362,9 +362,23 @@ audioService.setAmbientPlayerPosition(x, y, z);
 - ✅ 熔炉/高炉/烟熏炉火苗噼啪声 (AbstractFurnaceEntity::tick，服务端实现)
 - ✅ 酿造台酿造完成音效 (BrewingStandEntity::doBrew)
 - ✅ 末影箱打开/关闭音效 (EnderChestEntity::openContainer/tick)
-- 下界传送门环境音效 (客户端 animateTick，待实现)
-- 营火噼啪声 (客户端 animateTick，待实现)
-- 铁砧使用/损坏/落地音效 (需要 playEvent 系统)
+- ✅ 营火熄灭音效 (CampfireBlock::extinguish，服务端实现)
+
+#### 待实现音效及技术限制
+
+| 音效 | 触发位置 | 技术依赖 | 优先级 |
+|-----|---------|---------|-------|
+| 下界传送门 ambient | 客户端 `animateTick` | 客户端方块动画系统 | 中 |
+| 下界传送门 trigger | 客户端 `ClientPlayerEntity` | 客户端玩家状态 | 中 |
+| 下界传送门 travel | 事件 ID 1032 | `playEvent` 系统传送触发 | 中 |
+| 营火 crackle | 客户端 `animateTick` | 客户端方块动画系统 | 低 |
+| 铁砧 use | 事件 ID 1030 | `playEvent` 系统 | 中 |
+| 铁砧 destroy | 事件 ID 1029 | `playEvent` 系统 | 中 |
+| 铁砧 land | 事件 ID 1031 | `playEvent` 系统下落方块实体 | 低 |
+
+**注**：`animateTick` 是 MC 客户端专用方法，在玩家附近方块上调用，用于粒子效果和随机音效。当前项目尚未实现此系统。
+
+**注**：`playEvent` 是服务端广播、客户端接收的事件系统，用于播放音效和粒子（如铁砧使用、传送门传送等）。当前项目尚未实现此系统。
 
 ## 测试用例
 
