@@ -1,4 +1,5 @@
 #include "entity/inventory/CraftingInventory.hpp"
+#include "item/core/Item.hpp"
 #include "network/packet/PacketSerializer.hpp"
 
 namespace mc {
@@ -164,6 +165,28 @@ bool CraftingInventory::getContentBounds(i32& outMinX, i32& outMinY,
     }
 
     return found;
+}
+
+void CraftingInventory::fillStackedContents(std::unordered_map<i32, i32>& itemCounts) const {
+    // 遍历所有物品，只计数"普通"物品（未损坏、未附魔、无自定义名称）
+    // 参考: net.minecraft.item.crafting.RecipeItemHelper.accountPlainStack
+    for (const ItemStack& stack : m_items) {
+        if (stack.isEmpty()) {
+            continue;
+        }
+        // 检查是否为"普通"物品
+        // accountPlainStack: !stack.isDamaged() && !stack.isEnchanted() && !stack.hasDisplayName()
+        if (!stack.isDamaged() && !stack.hasEnchantments() && !stack.hasDisplayName()) {
+            // 获取物品ID
+            const Item* item = stack.getItem();
+            if (item != nullptr) {
+                i32 itemId = static_cast<i32>(item->itemId());
+                i32 count = stack.getCount();
+                // 累加计数
+                itemCounts[itemId] += count;
+            }
+        }
+    }
 }
 
 // ========== CraftResultInventory ==========

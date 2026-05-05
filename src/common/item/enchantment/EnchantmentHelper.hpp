@@ -88,6 +88,17 @@ public:
      */
     [[nodiscard]] static std::vector<std::pair<const Enchantment*, i32>> getEnchantments(const ItemStack& stack);
 
+    /**
+     * @brief 设置物品上的所有附魔
+     *
+     * 清除物品上现有的所有附魔，然后添加新的附魔列表。
+     * 参考: net.minecraft.enchantment.EnchantmentHelper.setEnchantments
+     *
+     * @param enchantments 附魔列表（附魔指针和等级）
+     * @param stack 物品堆（会被修改）
+     */
+    static void setEnchantments(const std::vector<std::pair<const Enchantment*, i32>>& enchantments, ItemStack& stack);
+
     // ========== 特定附魔便捷方法 ==========
 
     /**

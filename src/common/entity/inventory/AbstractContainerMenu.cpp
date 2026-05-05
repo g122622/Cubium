@@ -1,8 +1,10 @@
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/Slot.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
+#include "entity/inventory/IInventory.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/entities/player/GameModeUtils.hpp"
+#include "core/Types.hpp"
 
 namespace mc {
 
@@ -10,6 +12,8 @@ AbstractContainerMenu::AbstractContainerMenu(ContainerId id, PlayerInventory* pl
     : m_id(id)
     , m_playerInventory(playerInventory)
     , m_carried() {
+    // 初始化槽位状态缓存
+    m_lastSlotStates.reserve(64);  // 预分配容量
 }
 
 Slot* AbstractContainerMenu::getSlot(i32 index) {
@@ -29,6 +33,8 @@ const Slot* AbstractContainerMenu::getSlot(i32 index) const {
 i32 AbstractContainerMenu::addSlot(std::unique_ptr<Slot> slot) {
     i32 index = static_cast<i32>(m_slots.size());
     m_slots.push_back(std::move(slot));
+    // 同步扩展缓存
+    m_lastSlotStates.push_back(ItemStack());
     return index;
 }
 
@@ -95,11 +101,51 @@ void AbstractContainerMenu::setCarriedItem(const ItemStack& stack) {
 }
 
 void AbstractContainerMenu::broadcastChanges() {
+    // 调用 detectAndSendChanges 实现变化检测
+    detectAndSendChanges();
+}
+
+void AbstractContainerMenu::detectAndSendChanges() {
+    // 检查槽位变化
     for (i32 i = 0; i < static_cast<i32>(m_slots.size()); ++i) {
         const Slot* slot = m_slots[i].get();
-        if (slot) {
-            ItemStack stack = slot->getItem();
-            notifySlotChanged(i, stack);
+        if (slot == nullptr) continue;
+
+        ItemStack currentStack = slot->getItem();
+
+        // 检查是否有变化（与 MC 1.16.5 ItemStack.areItemStacksEqual 对齐）
+        bool changed = false;
+        if (i >= static_cast<i32>(m_lastSlotStates.size())) {
+            // 缓存不够大，扩展并填充空 ItemStack
+            m_lastSlotStates.resize(i + 1);
+            changed = !currentStack.isEmpty();
+        } else {
+            const ItemStack& lastStack = m_lastSlotStates[i];
+            // 物品变化检测：检查物品类型、数量、NBT
+            if (currentStack.isEmpty() != lastStack.isEmpty()) {
+                changed = true;
+            } else if (!currentStack.isEmpty() && !lastStack.isEmpty()) {
+                if (currentStack.getItem() != lastStack.getItem() ||
+                    currentStack.getCount() != lastStack.getCount() ||
+                    !currentStack.isSameItem(lastStack)) {  // 使用 isSameItem 检查物品和 NBT 是否相同
+                    changed = true;
+                }
+            }
+        }
+
+        if (changed) {
+            // 更新缓存
+            m_lastSlotStates[i] = currentStack.copy();
+            // 通知监听器
+            notifySlotChanged(i, currentStack);
+        }
+    }
+
+    // 检查整型数据变化
+    for (i32 i = 0; i < static_cast<i32>(m_trackedInts.size()); ++i) {
+        IntReferenceHolder* holder = m_trackedInts[i].get();
+        if (holder != nullptr && holder->isDirty()) {
+            notifyIntChanged(i, holder->get());
         }
     }
 }
@@ -112,6 +158,107 @@ i32 AbstractContainerMenu::addListener(std::function<void(i32, ItemStack)> liste
 
 void AbstractContainerMenu::removeListener(i32 listenerId) {
     m_listeners.erase(listenerId);
+}
+
+i32 AbstractContainerMenu::trackInt(std::unique_ptr<IntReferenceHolder> holder) {
+    i32 index = static_cast<i32>(m_trackedInts.size());
+    m_trackedInts.push_back(std::move(holder));
+    return index;
+}
+
+i32 AbstractContainerMenu::trackInt(std::function<i32()> getter, std::function<void(i32)> setter) {
+    return trackInt(std::make_unique<FunctionalIntReferenceHolder>(std::move(getter), std::move(setter)));
+}
+
+IntReferenceHolder* AbstractContainerMenu::getTrackedInt(i32 index) {
+    if (index >= 0 && index < static_cast<i32>(m_trackedInts.size())) {
+        return m_trackedInts[index].get();
+    }
+    return nullptr;
+}
+
+const IntReferenceHolder* AbstractContainerMenu::getTrackedInt(i32 index) const {
+    if (index >= 0 && index < static_cast<i32>(m_trackedInts.size())) {
+        return m_trackedInts[index].get();
+    }
+    return nullptr;
+}
+
+void AbstractContainerMenu::setTrackedInt(i32 index, i32 value) {
+    IntReferenceHolder* holder = getTrackedInt(index);
+    if (holder != nullptr) {
+        holder->set(value);
+    }
+}
+
+void AbstractContainerMenu::notifyIntChanged(i32 index, i32 value) {
+    for (auto& pair : m_intListeners) {
+        pair.second(index, value);
+    }
+}
+
+bool AbstractContainerMenu::getCanCraft(const Player& player) const {
+    return m_cannotCraftPlayers.find(player.uuid()) == m_cannotCraftPlayers.end();
+}
+
+void AbstractContainerMenu::setCanCraft(const Player& player, bool canCraft) {
+    if (canCraft) {
+        m_cannotCraftPlayers.erase(player.uuid());
+    } else {
+        m_cannotCraftPlayers.insert(player.uuid());
+    }
+}
+
+void AbstractContainerMenu::putStackInSlot(i32 slotIndex, const ItemStack& stack) {
+    Slot* slot = getSlot(slotIndex);
+    if (slot != nullptr) {
+        slot->set(stack);
+    }
+}
+
+void AbstractContainerMenu::setAll(const std::vector<ItemStack>& stacks) {
+    for (i32 i = 0; i < static_cast<i32>(m_slots.size()) && i < static_cast<i32>(stacks.size()); ++i) {
+        Slot* slot = m_slots[i].get();
+        if (slot != nullptr) {
+            slot->set(stacks[i]);
+        }
+    }
+}
+
+void AbstractContainerMenu::clearContainer(Player& player, IInventory* inventory) {
+    if (inventory == nullptr) {
+        return;
+    }
+
+    // 参考 MC 1.16.5 Container.clearContainer
+    // 如果玩家死亡或断线，物品掉落到世界
+    // 否则尝试放回玩家背包
+
+    // TODO: 检查玩家是否存活/断线
+    // 目前简化实现：尝试放回背包，放不下的掉落
+
+    for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
+        ItemStack stack = inventory->removeItemNoUpdate(i);
+        if (!stack.isEmpty()) {
+            if (m_playerInventory != nullptr) {
+                // 尝试放回玩家背包
+                // add() 返回剩余未添加的数量，会修改 stack 的数量
+                i32 remaining = m_playerInventory->add(stack);
+                if (remaining > 0) {
+                    // 放不下的物品，调整数量后掉落
+                    stack.setCount(remaining);
+                    // TODO: 掉落剩余物品到世界
+                    // player.dropItem(stack, false);
+                    (void)stack;
+                }
+            } else {
+                // 没有玩家背包，直接掉落
+                // TODO: 掉落物品到世界
+                // player.dropItem(stack, false);
+                (void)stack;
+            }
+        }
+    }
 }
 
 void AbstractContainerMenu::notifySlotChanged(i32 slotIndex, const ItemStack& stack) {
@@ -422,7 +569,7 @@ ItemStack AbstractContainerMenu::handleQuickCraft(Slot& slot, i32 slotIndex, i32
 
 void AbstractContainerMenu::resetDrag() {
     m_dragEvent = 0;
-    m_dragMode = 0;
+    m_dragMode = DragConstants::DRAG_MODE_NONE;  // MC 1.16.5: 重置为 -1
     m_dragSlots.clear();
 }
 
@@ -628,10 +775,30 @@ bool AbstractContainerMenu::moveItemToRange(ItemStack& stack, i32 startIndex, i3
 }
 
 void AbstractContainerMenu::removed(Player& player) {
-    (void)player;
-    if (!m_carried.isEmpty() && m_playerInventory) {
-        m_carried = ItemStack();
+    // MC 1.16.5 对齐: Container.onContainerClosed
+    // 如果玩家光标上有物品，丢弃到世界中
+    if (!m_carried.isEmpty()) {
+        // 尝试放回玩家背包
+        if (m_playerInventory != nullptr) {
+            // add() 返回剩余未添加的数量，会修改 m_carried 的数量
+            i32 remaining = m_playerInventory->add(m_carried);
+            if (remaining > 0) {
+                // 放不下的物品掉落
+                m_carried.setCount(remaining);
+                // TODO: 调用玩家掉落物品的方法
+                // player.dropItem(m_carried, false);
+            }
+            m_carried = ItemStack();
+        } else {
+            // 没有玩家背包，直接掉落
+            // TODO: 调用玩家掉落物品的方法
+            // player.dropItem(m_carried, false);
+            m_carried = ItemStack();
+        }
     }
+
+    // 清理不能合成玩家列表
+    m_cannotCraftPlayers.clear();
 }
 
 } // namespace mc

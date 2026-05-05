@@ -136,6 +136,18 @@ public:
     [[nodiscard]] virtual bool canApplyTo(u32 itemType) const;
 
     /**
+     * @brief 检查附魔是否可以应用到物品堆
+     *
+     * 这是铁砧合并附魔时使用的方法。
+     * 默认实现调用 canApplyAtEnchantingTable。
+     * 参考: net.minecraft.enchantment.Enchantment.canApply
+     *
+     * @param stack 物品堆
+     * @return 如果可以应用返回true
+     */
+    [[nodiscard]] virtual bool canApply(const ItemStack& stack) const;
+
+    /**
      * @brief 检查是否可以在附魔台获得
      * @param stack 物品堆
      * @return 如果可以在附魔台获得返回true（宝藏附魔返回false）

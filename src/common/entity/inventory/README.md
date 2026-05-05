@@ -7,6 +7,8 @@
 ```
 inventory/
 ├── IInventory.hpp              # 背包接口（抽象基类）
+├── IRecipeHolder.hpp           # 配方持有者接口
+├── IRecipeHelperPopulator.hpp  # 配方辅助填充器接口
 ├── ContainerTypes.hpp          # 容器相关类型定义
 ├── Container.hpp               # 容器类（槽位管理）
 ├── Container.cpp
@@ -14,7 +16,7 @@ inventory/
 ├── Slot.cpp
 ├── PlayerInventory.hpp         # 玩家背包
 ├── PlayerInventory.cpp
-├── CraftingInventory.hpp       # 合成网格背包
+├── CraftingInventory.hpp       # 合成网格背包（实现 IRecipeHelperPopulator）
 ├── CraftingInventory.cpp
 ├── CreativeInventory.hpp       # 创造模式物品库辅助
 ├── CreativeInventory.cpp
@@ -40,7 +42,26 @@ inventory/
 - `core/Types.hpp` - 基础类型
 - `item/ItemStack.hpp` - 物品堆类型
 
-### 2. ContainerTypes.hpp
+### 2. IRecipeHolder.hpp
+
+**职责**: 配方持有者接口，用于追踪当前使用的配方。
+
+**主要内容**:
+- `setRecipeUsed()` - 设置当前使用的配方
+- `getRecipeUsed()` - 获取当前使用的配方
+
+**实现类**: `CraftResultInventory`
+
+### 3. IRecipeHelperPopulator.hpp
+
+**职责**: 配方辅助填充器接口，用于配方书查找可用配方。
+
+**主要内容**:
+- `fillStackedContents()` - 将背包内容填充到物品计数器
+
+**实现类**: `CraftingInventory`
+
+### 4. ContainerTypes.hpp
 
 **职责**: 定义容器系统相关类型常量。
 

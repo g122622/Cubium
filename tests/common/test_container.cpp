@@ -503,12 +503,12 @@ TEST_F(ContainerPacketTest, CloseContainerPacket) {
 }
 
 TEST_F(ContainerPacketTest, OpenContainerPacket) {
-    OpenContainerPacket packet(1, 2, "Chest", 27);
+    // 使用 ContainerType 枚举值构造（Generic9x3 = 2）
+    OpenContainerPacket packet(1, static_cast<i32>(ContainerType::Generic9x3), "Chest");
 
     EXPECT_EQ(packet.containerId(), 1);
-    EXPECT_EQ(packet.type(), 2);
+    EXPECT_EQ(packet.type(), static_cast<i32>(ContainerType::Generic9x3));
     EXPECT_EQ(packet.title(), "Chest");
-    EXPECT_EQ(packet.slotCount(), 27);
 
     // 序列化
     network::PacketSerializer ser;
@@ -522,9 +522,8 @@ TEST_F(ContainerPacketTest, OpenContainerPacket) {
     OpenContainerPacket decoded = result.value();
 
     EXPECT_EQ(decoded.containerId(), 1);
-    EXPECT_EQ(decoded.type(), 2);
+    EXPECT_EQ(decoded.type(), static_cast<i32>(ContainerType::Generic9x3));
     EXPECT_EQ(decoded.title(), "Chest");
-    EXPECT_EQ(decoded.slotCount(), 27);
 }
 
 TEST_F(ContainerPacketTest, HotbarSelectPacket) {

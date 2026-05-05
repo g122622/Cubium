@@ -68,11 +68,10 @@ public:
      * @param containerId 容器ID
      * @param type 容器类型
      * @param title 标题
-     * @param slotCount 槽位数
      * @return 打开包
      */
-    static OpenContainerPacket createOpenContainerPacket(ContainerId containerId, u8 type,
-                                                          const String& title, i32 slotCount);
+    static OpenContainerPacket createOpenContainerPacket(ContainerId containerId, i32 type,
+                                                          const String& title);
 
     /**
      * @brief 创建配方列表同步包

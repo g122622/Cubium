@@ -361,7 +361,19 @@ void ClientApplication::setupNetworkCallbacks()
             case ContainerType::Generic9x5:
             case ContainerType::Generic9x6:
             case ContainerType::ShulkerBox: {
-                const i32 rows = std::max(1, packet.slotCount() / mc::blockentity::ChestContainer::SLOTS_PER_ROW);
+                // 根据容器类型计算行数（MC 1.16.5 对齐：不再传输 slotCount）
+                const ContainerType containerType = static_cast<ContainerType>(packet.type());
+                i32 rows = 3;  // 默认3行
+                switch (containerType) {
+                    case ContainerType::Generic9x1: rows = 1; break;
+                    case ContainerType::Generic9x2: rows = 2; break;
+                    case ContainerType::Generic9x3: rows = 3; break;
+                    case ContainerType::Generic9x4: rows = 4; break;
+                    case ContainerType::Generic9x5: rows = 5; break;
+                    case ContainerType::Generic9x6: rows = 6; break;
+                    case ContainerType::ShulkerBox: rows = 3; break;
+                    default: rows = 3; break;
+                }
                 screen = std::make_unique<ChestScreen>(
                     packet.containerId(),
                     &m_player->inventory(),

@@ -1,4 +1,5 @@
 #include "Enchantment.hpp"
+#include "common/item/core/ItemStack.hpp"
 
 namespace mc {
 namespace item {
@@ -19,6 +20,12 @@ bool Enchantment::canApplyTo(u32 itemType) const {
     // 默认实现：根据类型判断
     // 子类可以覆盖此方法
     return true;
+}
+
+bool Enchantment::canApply(const ItemStack& stack) const {
+    // 默认实现：调用 canApplyAtEnchantingTable
+    // 参考: net.minecraft.enchantment.Enchantment.canApply
+    return canApplyAtEnchantingTable(stack);
 }
 
 bool Enchantment::canApplyAtEnchantingTable(const ItemStack& stack) const {

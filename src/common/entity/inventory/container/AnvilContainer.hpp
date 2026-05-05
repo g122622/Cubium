@@ -159,38 +159,19 @@ private:
 
     /**
      * @brief 更新输出结果
+     *
+     * 参考: net.minecraft.inventory.container.RepairContainer.updateRepairOutput
      */
     void updateRepairOutput();
 
     /**
-     * @brief 计算修复成本
-     * @return 修复成本
+     * @brief 计算新的修复成本
+     * @param oldRepairCost 旧修复成本
+     * @return 新修复成本 = oldRepairCost * 2 + 1
+     *
+     * 参考: net.minecraft.inventory.container.RepairContainer.getNewRepairCost
      */
-    i32 calculateRepairCost();
-
-    /**
-     * @brief 尝试修复物品
-     * @return 是否可以修复
-     */
-    bool tryRepair();
-
-    /**
-     * @brief 尝试合并物品
-     * @return 是否可以合并
-     */
-    bool tryCombine();
-
-    /**
-     * @brief 尝试合并附魔书
-     * @return 是否可以合并
-     */
-    bool tryCombineEnchantedBooks();
-
-    /**
-     * @brief 尝试重命名
-     * @return 是否可以重命名
-     */
-    bool tryRename();
+    [[nodiscard]] static i32 getNewRepairCost(i32 oldRepairCost);
 
     /**
      * @brief 检查两个附魔是否兼容
@@ -204,7 +185,7 @@ private:
     std::unique_ptr<IInventory> m_anvilInventory;  ///< 铁砧背包
     BlockPos m_position;                           ///< 铁砧位置
     IWorld* m_world;                               ///< 世界指针
-    i32 m_repairCost = 0;                          ///< 修复成本
+    i32 m_repairCost = 0;                          ///< 修复成本（经验等级）
     i32 m_materialCost = 0;                        ///< 材料消耗数量
     String m_itemName;                             ///< 重命名名称
 };

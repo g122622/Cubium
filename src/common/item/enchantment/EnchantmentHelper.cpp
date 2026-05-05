@@ -65,6 +65,22 @@ std::vector<std::pair<const Enchantment*, i32>> EnchantmentHelper::getEnchantmen
     return result;
 }
 
+void EnchantmentHelper::setEnchantments(const std::vector<std::pair<const Enchantment*, i32>>& enchantments, ItemStack& stack) {
+    if (stack.isEmpty()) {
+        return;
+    }
+
+    // 清除现有附魔
+    stack.getEnchantmentsMutable().clear();
+
+    // 添加新附魔
+    for (const auto& [enchantment, level] : enchantments) {
+        if (enchantment != nullptr && level > 0) {
+            stack.addEnchantment(enchantment->id(), level);
+        }
+    }
+}
+
 // ========== 特定附魔便捷方法 ==========
 
 bool EnchantmentHelper::hasSilkTouch(const ItemStack& stack) {
