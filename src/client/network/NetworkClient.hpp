@@ -153,6 +153,9 @@ struct NetworkClientCallbacks {
                        f32 vx, f32 vy, f32 vz,
                        f32 ox, f32 oy, f32 oz,
                        u32 count)> onParticle;
+
+    // 世界事件（音效/粒子效果）
+    std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)> onWorldEvent;
 };
 
 // ============================================================================
@@ -297,6 +300,9 @@ private:
     void handleStopSound(network::PacketDeserializer& deser);
     void handlePlaySoundEffect(network::PacketDeserializer& deser);
     void handleMovingSound(network::PacketDeserializer& deser);
+
+    // 世界事件处理
+    void handleWorldEvent(network::PacketDeserializer& deser);
 
     // 经验包处理
     void handleSetExperience(network::PacketDeserializer& deser);

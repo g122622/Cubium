@@ -727,6 +727,11 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
             break;
         }
 
+        case network::PacketType::WorldEvent: {
+            handleWorldEvent(bodyDeser);
+            break;
+        }
+
         case network::PacketType::SetPassengers: {
             handleSetPassengers(bodyDeser);
             break;
@@ -1628,6 +1633,32 @@ void NetworkClient::handleMovingSound(network::PacketDeserializer& deser) {
             packet.getEntityId(),
             packet.getVolume(),
             packet.getPitch()
+        );
+    }
+}
+
+void NetworkClient::handleWorldEvent(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    sound::WorldEventPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize WorldEvent packet: {}", result.error().message());
+        return;
+    }
+
+    spdlog::debug("[NetworkClient] Received WorldEvent: id={}, pos=({},{},{}), data={}",
+                  packet.getEventId(), packet.getX(), packet.getY(), packet.getZ(),
+                  packet.getData());
+
+    if (m_callbacks.onWorldEvent) {
+        m_callbacks.onWorldEvent(
+            packet.getEventId(),
+            packet.getX(),
+            packet.getY(),
+            packet.getZ(),
+            packet.getData()
         );
     }
 }
