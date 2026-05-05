@@ -172,6 +172,22 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.5f : 1.0f; }
 
+    /**
+     * @brief 获取乘客骑乘偏移
+     * MC 1.16.5: StriderEntity.getMountedYOffset()
+     * 动态计算：(float)this.getSize().getHeight() * 0.6F * this.getStriderHeightMultiplier()
+     * 还有一个基于 limbSwing 的额外偏移：sin(limbSwing * 0.5F) * 0.1F
+     *
+     * TODO: 需要在 Entity 基类添加 limbSwing/walkDistance 字段后实现动态偏移
+     */
+    [[nodiscard]] f64 getMountedYOffset() const override {
+        // MC 1.16.5: 基础偏移 = height * 0.6 * heightMultiplier
+        // 炽足兽的高度乘数在熔岩上为 1.0，在陆地上为 0.5
+        f32 heightMultiplier = isOnLavaSurface() ? 1.0f : 0.5f;
+        return static_cast<f64>(height() * 0.6f * heightMultiplier);
+        // TODO: 添加 limbSwing 动画偏移: + sin(limbSwing * 0.5F) * 0.1F
+    }
+
     // ========== 生命周期 ==========
 
     void tick() override;

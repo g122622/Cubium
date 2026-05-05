@@ -501,6 +501,27 @@ public:
     [[nodiscard]] f32 eyeHeight() const override;
     [[nodiscard]] f32 stepHeight() const override { return physics::STEP_HEIGHT; }
 
+    /**
+     * @brief 获取乘客Y偏移
+     * @return -0.35 (MC 1.16.5 PlayerEntity.getYOffset())
+     *
+     * 当玩家作为乘客时，相对于载具骑乘点的 Y 偏移。
+     * 这个负值使玩家稍微下沉到载具上，使骑乘动画看起来更自然。
+     */
+    [[nodiscard]] f64 getYOffset() const override { return -0.35; }
+
+    /**
+     * @brief 检查是否是本地玩家
+     * @return 如果是本地玩家返回true
+     *
+     * MC 1.16.5: PlayerEntity.isUser()
+     * 客户端：返回 true 表示这是本地玩家控制的实体
+     * 服务端：总是返回 false
+     *
+     * 用于 canPassengerSteer() 判断控制权。
+     */
+    [[nodiscard]] virtual bool isLocalPlayer() const { return false; }
+
     // ========== 水中物理和游泳 ==========
 
     /**

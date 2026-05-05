@@ -2,6 +2,7 @@
 
 #include "AnimalEntity.hpp"
 #include "common/entity/interfaces/IRideable.hpp"
+#include "common/entity/interfaces/IEquipable.hpp"
 #include "common/entity/core/BoostHelper.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
@@ -20,10 +21,11 @@ class DamageSource;
  *
  * 最基础的被动动物，可被骑乘（使用鞍）。
  * 实现 IRideable 接口以支持骑乘功能。
+ * 实现 IEquipable 接口以支持鞍装备。
  *
  * 参考 MC 1.16.5 PigEntity
  */
-class PigEntity : public AnimalEntity, public entity::IRideable {
+class PigEntity : public AnimalEntity, public entity::IRideable, public entity::IEquipable {
 public:
     PigEntity(LegacyEntityType type, EntityId id);
     ~PigEntity() override = default;
@@ -69,7 +71,7 @@ public:
 
     [[nodiscard]] bool hasSaddle() const override { return m_boostHelper.getSaddled(); }
 
-    void setSaddle(bool saddle) override { m_boostHelper.setSaddled(saddle); }
+    void setSaddle(bool saddle) override { m_boostHelper.setSaddledFromBoolean(saddle); }
 
     void onPlayerStartRiding(Player* player) override;
 
@@ -105,6 +107,32 @@ public:
      * 重写以使用 IRideable::ride()
      */
     void travel(const Vector3& travelVec) override;
+
+    // ========== IEquipable 接口实现 ==========
+
+    /**
+     * @brief 获取装备槽数量
+     * MC 1.16.5: 猪只有一个鞍槽
+     */
+    [[nodiscard]] i32 getEquipmentSlotCount() const override { return 1; }
+
+    /**
+     * @brief 获取指定槽位的装备
+     * @param slot 槽位索引 (0 = 鞍槽)
+     */
+    [[nodiscard]] ItemStack getEquipment(i32 slot) const override;
+
+    /**
+     * @brief 设置指定槽位的装备
+     * @param slot 槽位索引 (0 = 鞍槽)
+     */
+    void setEquipment(i32 slot, const ItemStack& item) override;
+
+    /**
+     * @brief 检查是否可以装备指定物品
+     * MC 1.16.5: 猪只能装备鞍
+     */
+    [[nodiscard]] bool canEquip(const ItemStack& item, i32 slot) const override;
 
 protected:
     void registerGoals() override;

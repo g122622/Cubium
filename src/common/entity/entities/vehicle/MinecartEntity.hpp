@@ -135,6 +135,12 @@ public:
     [[nodiscard]] virtual f32 getMaxSpeed() const { return DEFAULT_MAX_SPEED; }
 
     /**
+     * @brief 获取铁轨上的最大速度（考虑铁轨速度限制）
+     * MC 1.16.5 Forge: getMaxSpeedWithRail()
+     */
+    [[nodiscard]] virtual f32 getMaxSpeedWithRail() const;
+
+    /**
      * @brief 获取空中最大横向速度
      * MC 1.16.5: getMaxSpeedAirLateral()
      */
@@ -340,6 +346,25 @@ protected:
      */
     [[nodiscard]] bool isRailPowered(const BlockPos& pos);
 
+    /**
+     * @brief 是否应该执行铁轨特殊功能
+     * MC 1.16.5: shouldDoRailFunctions() - Forge扩展
+     */
+    [[nodiscard]] bool shouldDoRailFunctions() const { return true; }
+
+    /**
+     * @brief 在铁轨上移动矿车
+     * MC 1.16.5: moveMinecartOnRail()
+     * @param pos 铁轨位置
+     */
+    void moveMinecartOnRail(const BlockPos& pos);
+
+    /**
+     * @brief 检查位置是否为完整方块
+     * MC 1.16.5: func_213900_a()
+     */
+    [[nodiscard]] bool isNormalBlockAt(const BlockPos& pos) const;
+
 private:
     // 矿车类型
     Type m_type;
@@ -476,6 +501,9 @@ private:
  */
 class FurnaceMinecartEntity : public AbstractMinecartEntity {
 public:
+    /// 燃料上限（MC 1.16.5: 32000 ticks）
+    static constexpr i32 MAX_FUEL = 32000;
+
     FurnaceMinecartEntity(EntityId id)
         : AbstractMinecartEntity(Type::Furnace, id) {}
 
@@ -491,9 +519,10 @@ public:
 
     /**
      * @brief 添加燃料
+     * MC 1.16.5: 燃料上限 32000 ticks
      * @param ticks 燃烧时间（tick）
      */
-    void addFuel(i32 ticks) { m_fuel += ticks; }
+    void addFuel(i32 ticks);
 
     /**
      * @brief 获取剩余燃料
@@ -515,6 +544,7 @@ public:
 
     /**
      * @brief 激活熔炉矿车（玩家右键交互时调用）
+     * MC 1.16.5: 玩家右键添加燃料并设置推动方向
      */
     void activate() override;
 
@@ -522,6 +552,18 @@ public:
      * @brief 激活铁轨通过时改变方向
      */
     void onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) override;
+
+    /**
+     * @brief 重写 tick 以更新推动方向
+     * MC 1.16.5: 根据当前速度更新 pushX/pushZ
+     */
+    void updatePushDirection();
+
+    /**
+     * @brief 掉落物品时掉落熔炉
+     * MC 1.16.5: 爆炸伤害不掉落熔炉
+     */
+    void dropItem() override;
 
 private:
     i32 m_fuel = 0;
@@ -539,6 +581,7 @@ private:
  * - 被火焰/熔岩点燃
  * - 被燃烧的箭矢点燃
  * - 碰撞时根据速度造成不同威力的爆炸
+ * - 摔落时爆炸
  */
 class TNTMinecartEntity : public AbstractMinecartEntity {
 public:
@@ -552,14 +595,16 @@ public:
 
     /**
      * @brief 点燃TNT
+     * MC 1.16.5: prime/fuse
      * @param fuseTicks 引信时间（tick），默认80
      */
     void prime(i32 fuseTicks = DEFAULT_FUSE) { m_fuse = fuseTicks; }
 
     /**
      * @brief 是否已点燃
+     * MC 1.16.5: isIgnited() -> fuse > -1
      */
-    [[nodiscard]] bool isPrimed() const { return m_fuse > 0; }
+    [[nodiscard]] bool isPrimed() const { return m_fuse > -1; }
 
     /**
      * @brief 激活铁轨点燃TNT
@@ -576,6 +621,19 @@ public:
      */
     bool onProjectileHit(DamageSource& source, f32 amount);
 
+    /**
+     * @brief 重写伤害处理
+     * MC 1.16.5: attackEntityFrom() 燃烧箭矢立即爆炸
+     */
+    bool hurt(DamageSource& source, f32 amount);
+
+    /**
+     * @brief 重写掉落物品逻辑
+     * MC 1.16.5: killMinecart() 特殊逻辑
+     * 火焰/爆炸伤害时点燃而非爆炸掉落
+     */
+    void dropItem() override;
+
 private:
     /**
      * @brief 爆炸
@@ -588,6 +646,12 @@ private:
      * MC 1.16.5: 检查方块和流体
      */
     void checkFireIgnition();
+
+    /**
+     * @brief 点燃TNT（播放声音等）
+     * MC 1.16.5: ignite()
+     */
+    void ignite();
 
     i32 m_fuse = -1;  ///< -1 表示未点燃
 };
@@ -651,6 +715,12 @@ public:
      * @brief 设置禁用状态（红石控制）
      */
     void setDisabled(bool disabled) { m_disabled = disabled; }
+
+    /**
+     * @brief 激活铁轨通过回调
+     * MC 1.16.5: 激活铁轨充能时禁用漏斗
+     */
+    void onActivatorRailPass(i32 x, i32 y, i32 z, bool powered) override;
 
 private:
     /**

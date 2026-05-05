@@ -1,5 +1,6 @@
 #include "Entity.hpp"
 #include "../utils/EntityUtils.hpp"
+#include "../entities/player/Player.hpp"
 #include "../../world/IWorld.hpp"
 #include "../../physics/PhysicsEngine.hpp"
 #include "../../physics/PhysicsConstants.hpp"
@@ -828,9 +829,22 @@ bool Entity::addPassenger(Entity& passenger) {
     // } else {
     //     this.passengers.add(passenger);
     // }
-    // TODO: 当 Player 类实现后，检查是否是玩家并插入到头部
-    // 当前简化实现：直接追加到末尾
-    m_passengers.push_back(passenger.id());
+    bool isServerSide = m_world && !m_world->isClientSide();
+    bool isPlayer = passenger.legacyType() == LegacyEntityType::Player;
+    EntityId controllingId = getControllingPassenger();
+    bool controllingIsPlayer = false;
+    if (controllingId != INVALID_ENTITY_ID && m_world) {
+        Entity* controlling = m_world->getEntity(controllingId);
+        controllingIsPlayer = controlling != nullptr && controlling->legacyType() == LegacyEntityType::Player;
+    }
+
+    if (isServerSide && isPlayer && !controllingIsPlayer) {
+        // 服务端：玩家优先插入头部，成为控制者
+        m_passengers.insert(m_passengers.begin(), passenger.id());
+    } else {
+        // 其他情况：追加到末尾
+        m_passengers.push_back(passenger.id());
+    }
     passenger.setVehicle(m_id);
 
     // 设置骑乘冷却
@@ -1156,7 +1170,12 @@ void Entity::applyOrientationToEntity(Entity& passenger) {
 
 bool Entity::canPassengerSteer() const {
     // MC 1.16.5: Entity.canPassengerSteer()
-    // 如果第一个乘客是玩家，检查是否是本地玩家
+    // Entity entity = this.getControllingPassenger();
+    // if (entity instanceof PlayerEntity) {
+    //     return ((PlayerEntity)entity).isUser();
+    // } else {
+    //     return !this.world.isRemote;
+    // }
     EntityId controllerId = getControllingPassenger();
     if (controllerId == INVALID_ENTITY_ID) {
         return false;
@@ -1166,9 +1185,17 @@ bool Entity::canPassengerSteer() const {
     if (m_world) {
         Entity* controller = m_world->getEntity(controllerId);
         if (controller != nullptr) {
-            // MC: return controller instanceof PlayerEntity && ((PlayerEntity)controller).isUser();
-            // 简化实现：假设有乘客就可以控制
-            return true;
+            // 检查控制者是否是玩家
+            if (controller->legacyType() == LegacyEntityType::Player) {
+                // MC 1.16.5: return ((PlayerEntity)entity).isUser();
+                // 玩家需要检查是否是本地玩家
+                Player* player = dynamic_cast<Player*>(controller);
+                if (player != nullptr) {
+                    return player->isLocalPlayer();
+                }
+            }
+            // 非玩家实体：服务端可以控制，客户端不能
+            return !m_world->isClientSide();
         }
     }
 

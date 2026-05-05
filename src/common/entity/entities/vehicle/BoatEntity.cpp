@@ -7,6 +7,7 @@
 #include "../../core/DataParameter.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../entities/player/Player.hpp"
+#include "../passive/basic/AnimalEntity.hpp"
 #include <cmath>
 
 namespace mc {
@@ -72,20 +73,32 @@ void BoatEntity::registerData() {
 void BoatEntity::tick() {
     // MC 1.16.5 BoatEntity.tick()
 
+    // 更新 previousStatus 和 status
+    m_previousStatus = m_status;
+    updateStatus();
+
+    // 更新失控计时器
+    if (m_status == BoatStatus::UnderWater || m_status == BoatStatus::UnderFlowingWater) {
+        m_outOfControlTicks++;
+        // MC 1.16.5: 水下60tick踢下所有乘客
+        if (m_outOfControlTicks >= OUT_OF_CONTROL_THRESHOLD && !m_passengers.empty()) {
+            removePassengers();
+        }
+    } else {
+        m_outOfControlTicks = 0;
+    }
+
     // 更新损伤计时器
     if (m_timeSinceHit > 0) {
         m_timeSinceHit--;
     }
+    // MC 1.16.5: damageTaken 每tick减1.0（不是0.05）
     if (m_damageTaken > 0.0f) {
-        m_damageTaken -= 0.05f;
+        m_damageTaken -= 1.0f;
         if (m_damageTaken < 0.0f) {
             m_damageTaken = 0.0f;
         }
     }
-
-    // 更新失控计时器
-    BoatStatus prevStatus = m_status;
-    updateStatus();
 
     // 检查摔落伤害
     f64 currentYd = static_cast<f64>(m_position.y) - static_cast<f64>(m_prevPosition.y);
@@ -93,38 +106,40 @@ void BoatEntity::tick() {
         m_lastYd = currentYd;
     }
 
-    // 更新状态
-    m_previousStatus = prevStatus;
-
-    // 处理气泡柱
-    updateRocking();
+    // 调用父类tick (MC 1.16.5: super.tick() 在这里调用)
+    Entity::tick();
 
     // 更新插值
     tickLerp();
 
-    // 计算浮力 (MC 1.16.5: 在tickLerp之后调用)
-    floatBoat();
+    // MC 1.16.5: 检查 canPassengerSteer()
+    if (canPassengerSteer()) {
+        // 没有乘客或非玩家控制者时，不划桨
+        if (m_passengers.empty() || (m_world && !m_world->isClientSide())) {
+            setPaddleState(false, false);
+        }
 
-    // 更新运动
-    updateMotion();
+        // 更新运动
+        updateMotion();
 
-    // 控制船
-    controlBoat();
+        // MC 1.16.5: 客户端调用 controlBoat 并发送包
+        if (m_world && m_world->isClientSide()) {
+            controlBoat();
+            // TODO: 发送 CSteerBoatPacket 到服务端
+        }
+
+        // 执行移动 (MC 1.16.5: this.move(MoverType.SELF, this.getMotion()))
+        move(MoverType::Self, velocity());
+    } else {
+        // 不可控制时，清零速度
+        setVelocity(Vector3(0.0f, velocityY(), 0.0f));
+    }
+
+    // 处理气泡柱
+    updateRocking();
 
     // 更新乘客位置
     updateAllPassengerPositions();
-
-    // 更新失控状态
-    if (m_status == BoatStatus::UnderWater || m_status == BoatStatus::UnderFlowingWater) {
-        m_outOfControlTicks++;
-        if (m_outOfControlTicks >= OUT_OF_CONTROL_THRESHOLD && !m_passengers.empty()) {
-            // 水下60tick踢下所有乘客
-            // MC: this.removePassengers();
-            // 需要世界引用来执行移除操作
-        }
-    } else {
-        m_outOfControlTicks = 0;
-    }
 
     // 更新桨动画
     for (i32 i = 0; i <= 1; ++i) {
@@ -134,9 +149,6 @@ void BoatEntity::tick() {
             m_paddlePositions[i] = 0.0f;
         }
     }
-
-    // 调用父类tick
-    Entity::tick();
 }
 
 void BoatEntity::handleInput(bool left, bool right, bool forward, bool backward) {
@@ -258,12 +270,12 @@ void BoatEntity::controlBoat() {
         m_speed -= 0.005f;
     }
 
-    // 转向
+    // 转向 (MC 1.16.5: 每tick加减1)
     if (m_leftInputDown) {
-        m_deltaRotation -= 0.1f;
+        m_deltaRotation -= 1.0f;
     }
     if (m_rightInputDown) {
-        m_deltaRotation += 0.1f;
+        m_deltaRotation += 1.0f;
     }
 
     // 没有前进输入时减速
@@ -460,10 +472,11 @@ void BoatEntity::updateAllPassengerPositions() {
             } else {
                 offsetX = PASSENGER2_X_OFFSET;  // 第二个乘客靠后
             }
-            // 动物额外偏移
-            // if (passenger->isAnimal()) {
-            //     offsetX += 0.2f;
-            // }
+            // MC 1.16.5: 动物额外偏移 +0.2D
+            // if (passenger instanceof AnimalEntity) { offsetX += 0.2D; }
+            if (dynamic_cast<const AnimalEntity*>(passenger) != nullptr) {
+                offsetX += 0.2f;
+            }
         }
 
         // 根据船的朝向旋转偏移向量

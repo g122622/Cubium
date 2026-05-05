@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../basic/AnimalEntity.hpp"
-#include "../../../interfaces/IRideable.hpp"
 #include "../../../interfaces/IJumpingMount.hpp"
 #include "../../../interfaces/IEquipable.hpp"
 #include "../../../core/DataParameter.hpp"
@@ -22,10 +21,13 @@ class ItemStack;
  * 所有马类实体（马、驴、骡、羊驼、骷髅马、僵尸马）的抽象基类。
  * 实现可骑乘、可跳跃、装备栏等通用功能。
  *
+ * 【重要】MC 1.16.5 中，AbstractHorseEntity 只实现 IJumpingMount，
+ * 不实现 IRideable 接口。马的控制逻辑通过 MobEntity 的乘客系统实现，
+ * 而不是像猪/炽足兽那样通过 IRideable::ride() 方法。
+ *
  * 参考 MC 1.16.5 AbstractHorseEntity
  */
 class AbstractHorseEntity : public AnimalEntity,
-                            public entity::IRideable,
                             public entity::IJumpingMount,
                             public entity::IEquipable {
 public:
@@ -45,25 +47,14 @@ public:
     AbstractHorseEntity(AbstractHorseEntity&&) = default;
     AbstractHorseEntity& operator=(AbstractHorseEntity&&) = default;
 
-    // ========== IRideable 接口实现 ==========
-
-    [[nodiscard]] bool hasSaddle() const override { return m_saddled; }
-    void setSaddle(bool saddle) override;
-    void onPlayerStartRiding(Player* player) override;
-    void onPlayerStopRiding(Player* player) override;
-    [[nodiscard]] f32 getSteeringSpeed() const override;
-    bool boost() override;
-    [[nodiscard]] i32 getBoostTime() const override { return m_boostTime; }
-    void setBoostTime(i32 time) override { m_boostTime = time; }
-
     // ========== IJumpingMount 接口实现 ==========
 
     void onJump() override;
-    [[nodiscard]] f32 getJumpPower() const override { return m_jumpPower; }
-    void setJumpPower(f32 power) override;
+    [[nodiscard]] i32 getJumpPower() const override { return m_jumpPower; }
+    void setJumpPower(i32 power) override;
     [[nodiscard]] f32 getMaxJumpHeight() const override;
     [[nodiscard]] bool canJump() const override;
-    void startJumping() override;
+    void startJumping(i32 jumpPower) override;
     void stopJumping() override;
 
     // ========== 骑乘系统 ==========
@@ -185,13 +176,24 @@ public:
      */
     [[nodiscard]] bool canEquip(const ItemStack& item, i32 slot) const override;
 
-    // ========== IRideable travelTowards ==========
+    // ========== 鞍系统 ==========
 
     /**
-     * @brief 执行骑乘移动逻辑
-     * MC 1.16.5: travelTowards()
+     * @brief 检查是否装备了鞍
+     * MC 1.16.5: AbstractHorseEntity.isHorseSaddled()
      */
-    void travelTowards(const Vector3& travelVec) override;
+    [[nodiscard]] bool hasSaddle() const { return m_saddled; }
+
+    /**
+     * @brief 设置鞍的状态
+     */
+    void setSaddle(bool saddle);
+
+    /**
+     * @brief 检查是否可以被控制方向
+     * MC 1.16.5: 马需要鞍才能被控制
+     */
+    [[nodiscard]] bool canBeSteered() const { return m_saddled; }
 
     // ========== 生命周期 ==========
 
@@ -273,7 +275,7 @@ protected:
     i32 m_maxTemper = 100;
 
     // 跳跃状态
-    f32 m_jumpPower = 0.0f;
+    i32 m_jumpPower = 0;        // MC 1.16.5: 跳跃力度 (0-100)
     f32 m_jumpStrength = 0.0f;  // 基础跳跃强度
     bool m_isJumping = false;
     bool m_allowStandSliding = false;  // MC 1.16.5: 允许站立滑动
@@ -309,13 +311,17 @@ private:
     static entity::DataParameter<i8> STATUS_PARAM;  // 使用 i8 代替 u8（DataValue 支持的类型）
     static entity::DataParameter<i64> OWNER_UUID_PARAM;  // 0 表示无主人
 
-    // 状态标志位
-    static constexpr i8 STATUS_FLAG_SADDLE = 0b00000001;
-    static constexpr i8 STATUS_FLAG_TAME = 0b00000010;
-    static constexpr i8 STATUS_FLAG_BRED = 0b00000100;
-    static constexpr i8 STATUS_FLAG_EATING = 0b00001000;
-    static constexpr i8 STATUS_FLAG_REARING = 0b00010000;
-    static constexpr i8 STATUS_FLAG_MOUTH_OPEN = 0b00100000;
+    // MC 1.16.5 状态标志位
+    // 参考 AbstractHorseEntity.java 行128-138
+    // getHorseWatchableBoolean(int p_110233_1_) 使用位掩码检查状态
+    // isTame() 使用 getHorseWatchableBoolean(2) -> bit 1
+    // isHorseSaddled() 使用 getHorseWatchableBoolean(4) -> bit 2
+    static constexpr i8 STATUS_FLAG_TAME = 2;        // bit 1: 已驯服
+    static constexpr i8 STATUS_FLAG_SADDLE = 4;      // bit 2: 已装备鞍
+    static constexpr i8 STATUS_FLAG_BRED = 8;        // bit 3: 已繁殖
+    static constexpr i8 STATUS_FLAG_EATING = 16;     // bit 4: 正在吃
+    static constexpr i8 STATUS_FLAG_REARING = 32;    // bit 5: 正在扬蹄
+    static constexpr i8 STATUS_FLAG_MOUTH_OPEN = 64; // bit 6: 嘴张开
 
     // 常量
     static constexpr f32 MIN_SPEED = 0.1127f;       // 最小速度

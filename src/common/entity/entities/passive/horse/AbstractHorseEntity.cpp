@@ -67,40 +67,6 @@ void AbstractHorseEntity::setSaddle(bool saddle) {
     setHorseWatchableBoolean(STATUS_FLAG_SADDLE, saddle);
 }
 
-void AbstractHorseEntity::onPlayerStartRiding(Player* player) {
-    m_rider = player;
-    // TODO: 设置乘客位置
-}
-
-void AbstractHorseEntity::onPlayerStopRiding(Player* player) {
-    m_rider = nullptr;
-    // TODO: 移除乘客
-}
-
-f32 AbstractHorseEntity::getSteeringSpeed() const {
-    if (!m_saddled) return 0.0f;
-
-    f32 speed = getSpeed();
-
-    // 加速时增加速度
-    if (m_isBoosting) {
-        speed *= 1.5f;
-    }
-
-    return speed;
-}
-
-bool AbstractHorseEntity::boost() {
-    if (!m_saddled || m_boostTime > 0) {
-        return false;
-    }
-
-    // 开始加速
-    m_isBoosting = true;
-    m_boostTime = MAX_BOOST_TIME;
-    return true;
-}
-
 void AbstractHorseEntity::onJump() {
     if (!m_saddled || !m_isJumping) {
         return;
@@ -109,8 +75,9 @@ void AbstractHorseEntity::onJump() {
     performJump();
 }
 
-void AbstractHorseEntity::setJumpPower(f32 power) {
-    m_jumpPower = std::clamp(power, 0.0f, 1.0f);
+void AbstractHorseEntity::setJumpPower(i32 power) {
+    // MC 1.16.5: jumpPower 范围 0-100
+    m_jumpPower = std::clamp(power, 0, 100);
 }
 
 f32 AbstractHorseEntity::getMaxJumpHeight() const {
@@ -123,13 +90,14 @@ bool AbstractHorseEntity::canJump() const {
     return m_saddled && m_jumpCooldown <= 0;
 }
 
-void AbstractHorseEntity::startJumping() {
+void AbstractHorseEntity::startJumping(i32 jumpPower) {
     if (!canJump()) {
         return;
     }
 
     m_isJumping = true;
-    m_jumpPower = 0.0f;
+    // MC 1.16.5: 设置初始跳跃力度
+    setJumpPower(jumpPower);
 }
 
 void AbstractHorseEntity::stopJumping() {
@@ -140,7 +108,7 @@ void AbstractHorseEntity::stopJumping() {
     // 执行跳跃
     performJump();
     m_isJumping = false;
-    m_jumpPower = 0.0f;
+    m_jumpPower = 0;
     m_jumpCooldown = 10; // 跳跃冷却
 }
 
@@ -212,12 +180,7 @@ bool AbstractHorseEntity::canEquip(const ItemStack& item, i32 slot) const {
     return true;
 }
 
-// ========== IRideable travelTowards ==========
-
-void AbstractHorseEntity::travelTowards(const Vector3& travelVec) {
-    // MC 1.16.5: travelTowards -> super.travel
-    AnimalEntity::travel(travelVec);
-}
+// ========== 鞍系统 ==========
 
 bool AbstractHorseEntity::increaseTemper(i32 amount) {
     m_temper += amount;
@@ -269,9 +232,8 @@ void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward) {
         return;
     }
 
-    // 检查是否被骑乘且可以控制
-    // 注意：使用IRideable::canBeSteered()来检查鞍状态
-    if (isBeingRidden() && entity::IRideable::canBeSteered() && m_saddled) {
+    // 检查是否被骑乘且可以控制（需要鞍）
+    if (isBeingRidden() && canBeSteered() && m_saddled) {
         // 获取控制乘客（玩家）
         const auto& passengerIds = getPassengers();
         Entity* controllingPassenger = nullptr;
@@ -293,27 +255,30 @@ void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward) {
             }
 
             // 在地面且没有跳跃力且正在扬蹄时不能移动
-            if (onGround() && m_jumpPower == 0.0f && m_isJumping && !m_allowStandSliding) {
+            // MC 1.16.5: jumpPower 是 0-100 的整数
+            if (onGround() && m_jumpPower == 0 && m_isJumping && !m_allowStandSliding) {
                 sideInput = 0.0f;
                 forwardInput = 0.0f;
             }
 
             // 处理跳跃
-            if (m_jumpPower > 0.0f && !m_isJumping && onGround()) {
+            // MC 1.16.5: jumpPower 转换为 0.0-1.0 的比例
+            f32 jumpPowerFactor = static_cast<f32>(m_jumpPower) / 100.0f;
+            if (jumpPowerFactor > 0.0f && !m_isJumping && onGround()) {
                 // 计算跳跃力度
-                f64 jumpForce = static_cast<f64>(getJumpStrength() * m_jumpPower);
+                f64 jumpForce = static_cast<f64>(getJumpStrength() * jumpPowerFactor);
                 // TODO: 跳跃药水效果加成
 
                 // 设置跳跃速度
                 setVelocity(velocityX(), static_cast<f32>(jumpForce), velocityZ());
                 m_isJumping = true;
-                m_jumpPower = 0.0f;
+                m_jumpPower = 0;
 
                 // 前进时额外推力
                 if (forwardInput > 0.0f) {
                     f32 yawRad = math::toRadians(yaw());
-                    f32 pushX = -0.4f * std::sin(yawRad) * m_jumpPower;
-                    f32 pushZ = 0.4f * std::cos(yawRad) * m_jumpPower;
+                    f32 pushX = -0.4f * std::sin(yawRad) * jumpPowerFactor;
+                    f32 pushZ = 0.4f * std::cos(yawRad) * jumpPowerFactor;
                     addVelocity(pushX, 0.0f, pushZ);
                 }
             }
@@ -332,7 +297,7 @@ void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward) {
 
             // 着地时重置跳跃状态
             if (onGround()) {
-                m_jumpPower = 0.0f;
+                m_jumpPower = 0;
                 m_isJumping = false;
             }
         }
@@ -370,20 +335,24 @@ void AbstractHorseEntity::updateRiding() {
 }
 
 void AbstractHorseEntity::updateJumpPower() {
-    if (m_jumpPower < 1.0f) {
+    // MC 1.16.5: jumpPower 范围 0-100
+    if (m_jumpPower < 100) {
         // 蓄力增加
-        m_jumpPower += 0.05f;
-        m_jumpPower = std::min(m_jumpPower, 1.0f);
+        m_jumpPower += 5;
+        m_jumpPower = std::min(m_jumpPower, 100);
     }
 }
 
 void AbstractHorseEntity::performJump() {
-    if (!canJump() || m_jumpPower <= 0.0f) {
+    if (!canJump() || m_jumpPower <= 0) {
         return;
     }
 
+    // MC 1.16.5: jumpPower 转换为 0.0-1.0 的比例
+    f32 jumpPowerFactor = static_cast<f32>(m_jumpPower) / 100.0f;
+
     // 计算跳跃力度
-    f32 jumpForce = m_jumpStrength * m_jumpPower;
+    f32 jumpForce = m_jumpStrength * jumpPowerFactor;
 
     // 设置垂直速度
     setVelocity(velocityX(), jumpForce, velocityZ());

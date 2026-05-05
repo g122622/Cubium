@@ -10,6 +10,9 @@
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"  // 包含 LookRandomlyGoal
 #include "../../../damage/DamageSource.hpp"
+#include "../../../core/Entity.hpp"
+#include "../../player/Player.hpp"
+#include "../../../../world/IWorld.hpp"
 #include <memory>
 
 namespace mc {
@@ -81,7 +84,7 @@ void PigEntity::onPlayerStopRiding(Player* /*player*/) {
     // MC 1.16.5: 当玩家停止骑乘时
     // 重置加速状态
     m_boostHelper.saddledRaw = false;
-    m_boostHelper.boostingTick = 0;
+    m_boostHelper.field_233611_b_ = 0;
 }
 
 f32 PigEntity::getSteeringSpeed() const {
@@ -98,10 +101,52 @@ bool PigEntity::boost() {
 }
 
 bool PigEntity::canBeSteered() const {
-    // MC 1.16.5: 猪需要玩家手持胡萝卜钓竿才能控制
-    // 暂时返回是否有鞍
-    // TODO: 当 Player 和 Items::CARROT_ON_A_STICK 实现后检查玩家手持物品
-    return hasSaddle();
+    // MC 1.16.5 PigEntity.canBeSteered():
+    // Entity entity = this.getControllingPassenger();
+    // if (entity instanceof PlayerEntity) {
+    //     PlayerEntity playerentity = (PlayerEntity)entity;
+    //     return playerentity.getHeldItemMainhand().getItem() == Items.CARROT_ON_A_STICK
+    //         || playerentity.getHeldItemOffhand().getItem() == Items.CARROT_ON_A_STICK;
+    // }
+    // return false;
+
+    // 必须有鞍才能被控制
+    if (!hasSaddle()) {
+        return false;
+    }
+
+    // 获取控制乘客
+    const auto& passengers = getPassengers();
+    if (passengers.empty()) {
+        return false;
+    }
+
+    // 使用 const_cast 来获取非 const 世界指针
+    IWorld* nonConstWorld = const_cast<IWorld*>(world());
+    if (nonConstWorld == nullptr) {
+        return false;
+    }
+
+    Entity* passenger = nonConstWorld->getEntity(passengers[0]);
+    if (passenger == nullptr) {
+        return false;
+    }
+
+    // 检查是否是玩家
+    Player* player = dynamic_cast<Player*>(passenger);
+    if (player == nullptr) {
+        return false;
+    }
+
+    // TODO: 当 Items::CARROT_ON_A_STICK 添加后，检查玩家手持物品
+    // const ItemStack& mainHand = player->getHeldItem(Hand::Main);
+    // const ItemStack& offHand = player->getHeldItem(Hand::Off);
+    // return mainHand.getItem() == Items::CARROT_ON_A_STICK
+    //     || offHand.getItem() == Items::CARROT_ON_A_STICK;
+
+    // 当前实现：有鞍且有玩家骑乘时可以被控制
+    // 这比 MC 原版宽松（原版需要胡萝卜钓竿），但直到物品系统完善前是可接受的
+    return true;
 }
 
 void PigEntity::travelTowards(const Vector3& travelVec) {
@@ -181,6 +226,50 @@ void PigEntity::registerAttributes() {
 
     // MC 1.16.5 PigEntity 属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, PIG_SPEED);
+}
+
+// ========== IEquipable 接口实现 ==========
+
+ItemStack PigEntity::getEquipment(i32 slot) const {
+    // MC 1.16.5: 猪只有一个鞍槽
+    if (slot != 0) {
+        return ItemStack::EMPTY;
+    }
+    // 返回鞍物品（如果有）
+    // TODO: 当物品系统完善后实现实际的库存存储
+    return ItemStack::EMPTY;
+}
+
+void PigEntity::setEquipment(i32 slot, const ItemStack& item) {
+    // MC 1.16.5: 猪只有一个鞍槽
+    if (slot != 0) {
+        return;
+    }
+
+    // 检查是否是鞍
+    // TODO: 检查 item.getItem() == Items::SADDLE
+    bool isSaddle = !item.isEmpty();  // 暂时假设任何物品都是鞍
+
+    // 设置鞍状态
+    setSaddle(isSaddle);
+
+    // TODO: 当物品系统完善后实现实际的库存存储
+    MC_UNUSED(item);
+}
+
+bool PigEntity::canEquip(const ItemStack& item, i32 slot) const {
+    if (item.isEmpty()) {
+        return true;  // 可以清空槽位
+    }
+
+    // MC 1.16.5: 猪只能装备鞍，且只有槽位0
+    if (slot != 0) {
+        return false;
+    }
+
+    // TODO: 检查 item.getItem() == Items::SADDLE
+    // 暂时假设任何物品都可以装备
+    return true;
 }
 
 } // namespace mc
