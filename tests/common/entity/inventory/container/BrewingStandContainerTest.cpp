@@ -40,17 +40,19 @@ TEST_F(BrewingStandContainerTest, SlotIndices_AreCorrect) {
 }
 
 TEST_F(BrewingStandContainerTest, Constants_AreCorrect) {
-    // 验证GUI布局常量存在
-    EXPECT_GT(BrewingStandContainer::POTION_SLOT_X, 0);
+    // 验证GUI布局常量存在 - MC 1.16.5坐标
+    EXPECT_EQ(BrewingStandContainer::POTION_SLOT_X[0], 56);
+    EXPECT_EQ(BrewingStandContainer::POTION_SLOT_X[1], 79);
+    EXPECT_EQ(BrewingStandContainer::POTION_SLOT_X[2], 102);
     EXPECT_EQ(BrewingStandContainer::POTION_SLOT_Y[0], 51);
-    EXPECT_EQ(BrewingStandContainer::POTION_SLOT_Y[1], 69);
-    EXPECT_EQ(BrewingStandContainer::POTION_SLOT_Y[2], 87);
-    EXPECT_GT(BrewingStandContainer::INGREDIENT_SLOT_X, 0);
-    EXPECT_GT(BrewingStandContainer::INGREDIENT_SLOT_Y, 0);
-    EXPECT_GT(BrewingStandContainer::FUEL_SLOT_X, 0);
-    EXPECT_GT(BrewingStandContainer::FUEL_SLOT_Y, 0);
-    EXPECT_GT(BrewingStandContainer::PLAYER_INV_Y, BrewingStandContainer::INGREDIENT_SLOT_Y);
-    EXPECT_GT(BrewingStandContainer::HOTBAR_Y, BrewingStandContainer::PLAYER_INV_Y);
+    EXPECT_EQ(BrewingStandContainer::POTION_SLOT_Y[1], 58);
+    EXPECT_EQ(BrewingStandContainer::POTION_SLOT_Y[2], 51);
+    EXPECT_EQ(BrewingStandContainer::INGREDIENT_SLOT_X, 79);
+    EXPECT_EQ(BrewingStandContainer::INGREDIENT_SLOT_Y, 17);
+    EXPECT_EQ(BrewingStandContainer::FUEL_SLOT_X, 17);
+    EXPECT_EQ(BrewingStandContainer::FUEL_SLOT_Y, 17);
+    EXPECT_EQ(BrewingStandContainer::PLAYER_INV_Y, 84);
+    EXPECT_EQ(BrewingStandContainer::HOTBAR_Y, 142);
 }
 
 TEST_F(BrewingStandContainerTest, GetBrewingStandInventory_ReturnsCorrectInventory) {

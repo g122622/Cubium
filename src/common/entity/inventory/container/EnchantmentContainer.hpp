@@ -43,14 +43,14 @@ public:
 
     /// 物品槽位置
     static constexpr i32 ITEM_SLOT_X = 15;
-    static constexpr i32 ITEM_SLOT_Y = 36;
+    static constexpr i32 ITEM_SLOT_Y = 47;
     /// 青金石槽位置
     static constexpr i32 LAPIS_SLOT_X = 35;
-    static constexpr i32 LAPIS_SLOT_Y = 36;
+    static constexpr i32 LAPIS_SLOT_Y = 47;
     /// 玩家背包起始Y位置
-    static constexpr i32 PLAYER_INV_Y = 85;
+    static constexpr i32 PLAYER_INV_Y = 84;
     /// 快捷栏Y位置
-    static constexpr i32 HOTBAR_Y = 143;
+    static constexpr i32 HOTBAR_Y = 142;
 
     // ========== 构造函数 ==========
 

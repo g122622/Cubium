@@ -13,6 +13,10 @@
 - ✅ **AbstractContainerMenu** - 拖拽分发状态机、变化检测优化、物品丢弃回调
 - ✅ **网络协议** - OpenContainerPacket、ContainerContentPacket 字段类型
 - ✅ **ISidedInventory/ISidedInventoryProvider** - 侧面背包接口，用于漏斗等定向传输
+- ✅ **Slot回调** - onTake、onSwapCraft、onCrafting 回调（对齐 MC 1.16.5）
+- ✅ **FurnaceFuelSlot/FurnaceResultSlot** - 特殊槽位实现
+- ✅ **stillValid距离检查** - isWithinDistance() 方法用于容器访问距离验证
+- ✅ **容器槽位坐标** - 所有容器槽位坐标已与 MC 1.16.5 对齐
 
 ## 目录结构
 

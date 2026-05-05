@@ -103,6 +103,7 @@ class ItemStack;
 class Slot;
 class Container;
 class BlockEntity;
+class BlockPos;
 
 /**
  * @brief 容器菜单基类
@@ -334,6 +335,21 @@ public:
      * @param id 事务ID
      */
     void setTransactionId(i16 id) { m_transactionId = id; }
+
+    // ========== 静态工具方法 ==========
+
+    /**
+     * @brief 检查玩家是否在指定方块位置附近（64格距离内）
+     * @param player 玩家
+     * @param blockPos 方块位置
+     * @param maxDistanceSq 最大距离平方（默认64*64=4096）
+     * @return 如果玩家在指定距离内返回true
+     *
+     * MC 1.16.5: 用于stillValid检查
+     */
+    [[nodiscard]] static bool isWithinDistance(const Player& player,
+                                                const BlockPos& blockPos,
+                                                f32 maxDistanceSq = 4096.0f);
 
 protected:
     /**

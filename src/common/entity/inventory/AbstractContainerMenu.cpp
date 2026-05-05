@@ -4,7 +4,10 @@
 #include "entity/inventory/IInventory.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/entities/player/GameModeUtils.hpp"
+#include "entity/core/Entity.hpp"
+#include "world/block/BlockPos.hpp"
 #include "core/Types.hpp"
+#include <cmath>
 
 namespace mc {
 
@@ -14,6 +17,16 @@ AbstractContainerMenu::AbstractContainerMenu(ContainerId id, PlayerInventory* pl
     , m_carried() {
     // 初始化槽位状态缓存
     m_lastSlotStates.reserve(64);  // 预分配容量
+}
+
+// ========== 静态工具方法 ==========
+
+bool AbstractContainerMenu::isWithinDistance(const Player& player,
+                                              const BlockPos& blockPos,
+                                              f32 maxDistanceSq) {
+    // MC 1.16.5: 检查玩家是否在指定方块附近
+    // 使用 Vector3::distanceSquared 和 BlockPos::center 简化计算
+    return player.position().distanceSquared(blockPos.center()) <= maxDistanceSq;
 }
 
 Slot* AbstractContainerMenu::getSlot(i32 index) {

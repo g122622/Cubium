@@ -179,9 +179,8 @@ ItemStack AnvilContainer::getOutputSlot() const {
 // ========== 容器接口 ==========
 
 bool AnvilContainer::stillValid(const Player& player) const {
-    (void)player;
-    // TODO: 检查玩家是否在铁砧附近
-    return true;
+    // MC 1.16.5: 检查玩家是否在铁砧附近（64格范围内）
+    return isWithinDistance(player, m_position);
 }
 
 void AnvilContainer::slotsChanged(IInventory* inventory) {

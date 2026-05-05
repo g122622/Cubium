@@ -156,43 +156,29 @@ bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager&
     }
 
     i32 containerSize = inventory->getContainerSize();
-    for (const ItemStack& stack : items) {
+    for (ItemStack stack : items) {
         if (stack.isEmpty()) {
             continue;
         }
 
-        // 尝试找到空槽位或可堆叠的槽位
-        bool placed = false;
-        for (i32 slot = 0; slot < containerSize; ++slot) {
-            if (inventory->getItem(slot).isEmpty()) {
-                inventory->setItem(slot, stack.copy());
-                placed = true;
-                break;
-            } else {
-                ItemStack existing = inventory->getItem(slot);
-                if (existing.canMergeWith(stack) && existing.getCount() < existing.getMaxStackSize()) {
-                    // 尝试堆叠
-                    i32 space = existing.getMaxStackSize() - existing.getCount();
-                    i32 toAdd = std::min(space, stack.getCount());
-                    existing.grow(toAdd);
-                    inventory->setItem(slot, existing);
-
-                    if (toAdd >= stack.getCount()) {
-                        placed = true;
-                        break;
-                    }
-                    // 如果还有剩余，继续找下一个槽位
-                }
+        // 尝试找到可堆叠的槽位
+        for (i32 slot = 0; slot < containerSize && !stack.isEmpty(); ++slot) {
+            ItemStack existing = inventory->getItem(slot);
+            if (!existing.isEmpty() && existing.canMergeWith(stack) && existing.getCount() < existing.getMaxStackSize()) {
+                // 尝试堆叠
+                i32 space = existing.getMaxStackSize() - existing.getCount();
+                i32 toAdd = std::min(space, stack.getCount());
+                existing.grow(toAdd);
+                inventory->setItem(slot, existing);
+                stack.shrink(toAdd);
             }
         }
 
-        // 如果没有放置成功且还有剩余物品，尝试找到任意空槽位
-        if (!placed) {
-            for (i32 slot = 0; slot < containerSize; ++slot) {
-                if (inventory->getItem(slot).isEmpty()) {
-                    inventory->setItem(slot, stack.copy());
-                    break;
-                }
+        // 剩余物品放入空槽位
+        for (i32 slot = 0; slot < containerSize && !stack.isEmpty(); ++slot) {
+            if (inventory->getItem(slot).isEmpty()) {
+                inventory->setItem(slot, stack);
+                break;
             }
         }
     }

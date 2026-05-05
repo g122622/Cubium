@@ -1,14 +1,13 @@
 #pragma once
 
-#include "entity/inventory/Container.hpp"
+#include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include <memory>
 
 namespace mc {
 
 class PlayerInventory;
-
-namespace blockentity {
+class IInventory;
 
 /**
  * @brief 漏斗容器
@@ -21,19 +20,21 @@ namespace blockentity {
  *
  * 参考: net.minecraft.inventory.container.HopperContainer
  */
-class HopperContainer : public Container {
+class HopperContainer : public AbstractContainerMenu {
 public:
     /// 漏斗槽位数量
     static constexpr i32 HOPPER_SIZE = 5;
 
-    /// 漏斗槽位起始Y位置
-    static constexpr i32 HOPPER_SLOT_Y = 51;
+    /// 漏斗槽位起始X位置 (MC 1.16.5: 44)
+    static constexpr i32 HOPPER_SLOT_START_X = 44;
+    /// 漏斗槽位Y位置 (MC 1.16.5: 20)
+    static constexpr i32 HOPPER_SLOT_Y = 20;
 
-    /// 玩家背包起始Y位置
-    static constexpr i32 PLAYER_INV_Y = 85;
+    /// 玩家背包起始Y位置 (MC 1.16.5: 51)
+    static constexpr i32 PLAYER_INV_Y = 51;
 
-    /// 快捷栏Y位置
-    static constexpr i32 HOTBAR_Y = 143;
+    /// 快捷栏Y位置 (MC 1.16.5: 109)
+    static constexpr i32 HOTBAR_Y = 109;
 
     /// 槽位宽度
     static constexpr i32 SLOT_SIZE = 18;
@@ -55,6 +56,18 @@ public:
      */
     ~HopperContainer() override = default;
 
+    // ========== 容器接口 ==========
+
+    /**
+     * @brief 检查玩家是否仍可访问漏斗
+     */
+    [[nodiscard]] bool stillValid(const Player& player) const override;
+
+    /**
+     * @brief 容器内容变化时调用
+     */
+    void slotsChanged(IInventory* inventory) override;
+
     // ========== 属性访问 ==========
 
     /**
@@ -62,10 +75,8 @@ public:
      */
     [[nodiscard]] IInventory* getHopperInventory() const { return m_hopperInventory; }
 
-    // ========== 快速移动 ==========
-
 protected:
-    ItemStack doQuickMove(i32 slotIndex, ItemStack cursorItem) override;
+    ItemStack quickMoveStack(i32 slotIndex, Player& player) override;
 
 private:
     /**
@@ -77,5 +88,4 @@ private:
     IInventory* m_hopperInventory;  ///< 漏斗背包
 };
 
-} // namespace blockentity
 } // namespace mc

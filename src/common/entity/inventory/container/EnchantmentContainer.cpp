@@ -220,15 +220,20 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex) {
         return false;
     }
 
+    // MC 1.16.5: 消耗的经验等级为选项索引+1
+    // 消耗青金石数量也为选项索引+1
+    i32 cost = optionIndex + 1;
+
     // 消耗青金石
-    i32 lapisNeeded = optionIndex + 1;
     ItemStack lapis = m_enchantmentInventory->getItem(SLOT_LAPIS);
-    lapis.shrink(lapisNeeded);
+    lapis.shrink(cost);
     m_enchantmentInventory->setItem(SLOT_LAPIS, lapis);
 
     // 消耗玩家经验（创造模式不消耗）
     // TODO: 检查玩家是否是创造模式
-    player.addExperienceLevels(-level);
+    // if (!player.isCreativeMode()) {
+    player.addExperienceLevels(-cost);
+    // }
 
     // 获取物品
     ItemStack item = m_enchantmentInventory->getItem(SLOT_ITEM);
@@ -277,9 +282,9 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex) {
 }
 
 bool EnchantmentContainer::stillValid(const Player& player) const {
-    // TODO: 检查玩家是否在附魔台附近（4格范围内）
-    (void)player;
-    return true;
+    // MC 1.16.5: 检查玩家是否在附魔台附近（64格范围内）
+    // 参考: net.minecraft.inventory.container.EnchantmentContainer.canInteractWith
+    return isWithinDistance(player, m_position);
 }
 
 void EnchantmentContainer::slotsChanged(IInventory* inventory) {
@@ -357,11 +362,11 @@ void EnchantmentContainer::updateEnchantmentOptions() {
 
         // 生成附魔预览
         if (m_enchantmentLevels[i] > 0) {
-            // 使用确定性的种子生成预览
-            // 参考 MC 1.16.5: 每个槽位使用 xpSeed 生成预览
-            math::Random previewRandom(m_enchantmentSeed);
+            // 参考 MC 1.16.5: getEnchantmentList 使用 xpSeed + slot 作为种子
+            // 这样每个槽位的预览是确定性的
+            m_random.setSeed(m_enchantmentSeed + i);
             auto enchantments = item::enchant::EnchantmentHelper::buildEnchantmentList(
-                previewRandom, item, m_enchantmentLevels[i], false);
+                m_random, item, m_enchantmentLevels[i], false);
 
             if (!enchantments.empty()) {
                 // 只显示第一个附魔作为预览

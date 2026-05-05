@@ -2,7 +2,15 @@
 
 提供GUI容器（Container/Menu）的实现，用于客户端-服务端同步玩家与方块实体的交互。
 
-当前这一层里，`ChestContainer`、`FurnaceContainer`、`EnchantmentContainer`、`BrewingStandContainer` 和 `AnvilContainer` 已迁移到 `AbstractContainerMenu` 菜单基类；`Container` 仍保留给旧式槽位容器和 `HopperContainer` 这类轻量实现使用。
+所有容器类已统一迁移到 `AbstractContainerMenu` 基类，提供一致的槽位管理、点击处理和同步机制。
+
+## MC 1.16.5 对齐状态
+
+- ✅ **槽位坐标** - 所有容器槽位坐标已与 MC 1.16.5 对齐
+- ✅ **stillValid距离检查** - 使用 `isWithinDistance()` 方法验证玩家与方块的距离
+- ✅ **特殊槽位类型** - ArmorSlot、ResultSlot、FurnaceFuelSlot、FurnaceResultSlot 已实现
+- ✅ **槽位回调** - onTake、onSwapCraft、onCrafting 回调已实现
+- ✅ **快速移动** - Shift+点击快速移动物品已实现
 
 ## 目录结构
 
@@ -159,12 +167,13 @@ container/
 **主要功能**：
 - 5格漏斗背包
 - 快速移动支持
+- 基于AbstractContainerMenu
 
-**槽位布局**：
+**槽位布局** (MC 1.16.5):
 ```
 漏斗容器 (5格):
 +---------------------+
-| 0  1  2  3  4       |
+| 0  1  2  3  4       |  (Y=20, X从44开始)
 +---------------------+
 ```
 
