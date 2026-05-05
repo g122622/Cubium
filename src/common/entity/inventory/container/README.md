@@ -2,7 +2,15 @@
 
 提供GUI容器（Container/Menu）的实现，用于客户端-服务端同步玩家与方块实体的交互。
 
-当前这一层里，`ChestContainer`、`FurnaceContainer`、`EnchantmentContainer`、`BrewingStandContainer` 和 `AnvilContainer` 已迁移到 `AbstractContainerMenu` 菜单基类；`Container` 仍保留给旧式槽位容器和 `HopperContainer` 这类轻量实现使用。
+所有容器类已统一迁移到 `AbstractContainerMenu` 基类，提供一致的槽位管理、点击处理和同步机制。
+
+## MC 1.16.5 对齐状态
+
+- ✅ **槽位坐标** - 所有容器槽位坐标已与 MC 1.16.5 对齐
+- ✅ **stillValid距离检查** - 使用 `isWithinDistance()` 方法验证玩家与方块的距离
+- ✅ **特殊槽位类型** - ArmorSlot、ResultSlot、FurnaceFuelSlot、FurnaceResultSlot 已实现
+- ✅ **槽位回调** - onTake、onSwapCraft、onCrafting 回调已实现
+- ✅ **快速移动** - Shift+点击快速移动物品已实现
 
 ## 目录结构
 
@@ -87,10 +95,22 @@ container/
 +------------+
 ```
 
-**书架力量计算**：
-- 检测附魔台周围2格范围内的书架
-- 书架与附魔台之间必须有空气
+**书架力量计算**（MC 1.16.5对齐）：
+- 检测附魔台周围5x5区域内的书架
+- 书架必须距离附魔台2格，中间有空气
 - 最大书架力量：15
+
+**附魔等级公式**（MC 1.16.5对齐）：
+- 基础值：`j = rand(1-8) + 1 + floor(power/2) + rand(0-power)`
+- 槽位0：`max(j/3, 1)` - 最便宜
+- 槽位1：`j * 2/3 + 1` - 中等
+- 槽位2：`max(j, power*2)` - 最贵
+
+**附魔列表生成**（MC 1.16.5对齐）：
+- 第一个附魔：加权随机选择
+- 后续附魔：`rand(50) < level` 概率添加
+- 每添加一个附魔，等级减半
+- 移除与已选附魔不兼容的选项
 
 ### BrewingStandContainer.hpp/cpp
 
@@ -147,12 +167,13 @@ container/
 **主要功能**：
 - 5格漏斗背包
 - 快速移动支持
+- 基于AbstractContainerMenu
 
-**槽位布局**：
+**槽位布局** (MC 1.16.5):
 ```
 漏斗容器 (5格):
 +---------------------+
-| 0  1  2  3  4       |
+| 0  1  2  3  4       |  (Y=20, X从44开始)
 +---------------------+
 ```
 

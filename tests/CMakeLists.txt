@@ -66,6 +66,7 @@ add_executable(mc_tests
     common/world/blockentity/ChestEntityTest.cpp
     common/world/blockentity/FurnaceEntityTest.cpp
     common/world/blockentity/HopperEntityTest.cpp
+    common/world/blockentity/DoubleSidedInventoryTest.cpp
     common/world/blockentity/BlockEntityTodoTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/CauldronBlockTest.cpp
@@ -80,6 +81,7 @@ add_executable(mc_tests
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
     entity/EntitySensesTest.cpp
+    entity/RidingSystemTests.cpp
     entity/FlingingSupportTypesTest.cpp
     entity/AttributeTests.cpp
     entity/LivingEntityTests.cpp
@@ -283,6 +285,7 @@ add_executable(mc_tests
     client/sound/SoundTest.cpp
     client/sound/SoundRegistryTest.cpp
     client/sound/TickableSoundTest.cpp
+    client/sound/MovingTickableSoundTest.cpp
     # 皮肤系统测试
     common/skin/test_skin_types.cpp
     common/skin/test_skin_cache.cpp
@@ -704,6 +707,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/sound/instance/SoundInstance.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/instance/UnderwaterLoopSound.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/instance/MinecartSound.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/instance/MovingTickableSound.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/backend/AudioBuffer.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/backend/OpenALBackend.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/BiomeAmbientHandler.cpp

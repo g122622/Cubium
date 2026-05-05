@@ -304,6 +304,9 @@ struct ServerCoreConfig {
 | `handlePacket(sessionId, data, size)` | 处理数据包 |
 | `handleLoginRequest(sessionId, connection, data, size)` | 处理登录请求 |
 | `handlePlayerMove(sessionId, data, size)` | 处理玩家移动 |
+| `handlePlayerInput(sessionId, data, size)` | 处理骑乘输入 |
+| `handleMoveVehicle(sessionId, data, size)` | 处理载具移动同步 |
+| `handleEntityAction(sessionId, data, size)` | 处理实体动作 |
 | `handleTeleportConfirm(sessionId, data, size)` | 处理传送确认 |
 | `handleKeepAlive(sessionId, data, size, currentTimeMs)` | 处理完整心跳响应（包含包头） |
 | `handleChatMessage(sessionId, data, size)` | 处理聊天消息 |

@@ -1,5 +1,7 @@
 #include "EnchantmentHelper.hpp"
 #include "EnchantmentRegistry.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/Items.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -63,6 +65,22 @@ std::vector<std::pair<const Enchantment*, i32>> EnchantmentHelper::getEnchantmen
     }
 
     return result;
+}
+
+void EnchantmentHelper::setEnchantments(const std::vector<std::pair<const Enchantment*, i32>>& enchantments, ItemStack& stack) {
+    if (stack.isEmpty()) {
+        return;
+    }
+
+    // 清除现有附魔
+    stack.getEnchantmentsMutable().clear();
+
+    // 添加新附魔
+    for (const auto& [enchantment, level] : enchantments) {
+        if (enchantment != nullptr && level > 0) {
+            stack.addEnchantment(enchantment->id(), level);
+        }
+    }
 }
 
 // ========== 特定附魔便捷方法 ==========
@@ -286,6 +304,210 @@ void EnchantmentHelper::applyThornsEnchantments(
             thornsEnchant->onUserHurt(user, attacker, thornsLevel);
         }
     }
+}
+
+// ========== 附魔生成（附魔台用） ==========
+
+i32 EnchantmentHelper::calcItemStackEnchantability(
+    math::Random& random, i32 slotIndex, i32 power, const ItemStack& stack) {
+
+    if (stack.isEmpty()) {
+        return 0;
+    }
+
+    const Item* item = stack.getItem();
+    if (item == nullptr) {
+        return 0;
+    }
+
+    // 获取物品的可附魔度
+    i32 enchantability = item->getItemEnchantability();
+    if (enchantability <= 0) {
+        return 0;
+    }
+
+    // 书架力量上限为15
+    power = std::min(power, 15);
+
+    // MC 1.16.5 公式：
+    // j = rand(1-8) + 1 + floor(power/2) + rand(0-power)
+    i32 j = random.nextInt(8) + 1 + (power >> 1) + random.nextInt(power + 1);
+
+    // 根据槽位调整
+    switch (slotIndex) {
+        case 0:
+            return std::max(j / 3, 1);      // 槽位0：1/3
+        case 1:
+            return j * 2 / 3 + 1;           // 槽位1：2/3 + 1
+        case 2:
+            return std::max(j, power * 2);  // 槽位2：最大值
+        default:
+            return 0;
+    }
+}
+
+std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::getEnchantmentDatas(
+    i32 level, const ItemStack& stack, bool allowTreasure) {
+
+    std::vector<EnchantmentData> result;
+
+    if (stack.isEmpty()) {
+        return result;
+    }
+
+    const Item* item = stack.getItem();
+    if (item == nullptr) {
+        return result;
+    }
+
+    bool isBook = item == Items::BOOK;
+
+    // 遍历所有注册的附魔
+    for (const auto& [id, enchantment] : EnchantmentRegistry::all()) {
+        if (enchantment == nullptr) {
+            continue;
+        }
+
+        // 检查是否允许宝藏附魔
+        if (enchantment->isTreasure() && !allowTreasure) {
+            continue;
+        }
+
+        // 检查是否可以生成
+        if (!enchantment->canGenerateInLoot()) {
+            continue;
+        }
+
+        // 检查是否可以应用到物品
+        if (!enchantment->canApplyAtEnchantingTable(stack)) {
+            // 书可以有额外的附魔
+            if (!isBook || !enchantment->isAllowedOnBooks()) {
+                continue;
+            }
+        }
+
+        // 找到最高可用的等级
+        for (i32 lvl = enchantment->maxLevel(); lvl >= enchantment->minLevel(); --lvl) {
+            i32 minCost = enchantment->getMinEnchantability(lvl);
+            i32 maxCost = enchantment->getMaxEnchantability(lvl);
+
+            if (level >= minCost && level <= maxCost) {
+                result.emplace_back(enchantment.get(), lvl);
+                break;  // 只添加最高有效等级
+            }
+        }
+    }
+
+    return result;
+}
+
+std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::buildEnchantmentList(
+    math::Random& random, const ItemStack& stack, i32 level, bool allowTreasure) {
+
+    std::vector<EnchantmentData> result;
+
+    if (stack.isEmpty()) {
+        return result;
+    }
+
+    const Item* item = stack.getItem();
+    if (item == nullptr) {
+        return result;
+    }
+
+    i32 enchantability = item->getItemEnchantability();
+    if (enchantability <= 0) {
+        return result;
+    }
+
+    // MC 1.16.5: 等级调整
+    // level = level + 1 + rand(enchantability/4+1) + rand(enchantability/4+1)
+    level = level + 1 + random.nextInt(enchantability / 4 + 1) + random.nextInt(enchantability / 4 + 1);
+
+    // 随机波动 -15% 到 +15%
+    float f = (random.nextFloat() + random.nextFloat() - 1.0f) * 0.15f;
+    level = std::max(1, static_cast<i32>(level + level * f));
+
+    // 获取可用附魔列表
+    std::vector<EnchantmentData> available = getEnchantmentDatas(level, stack, allowTreasure);
+
+    if (available.empty()) {
+        return result;
+    }
+
+    // 第一个附魔：加权随机选择
+    EnchantmentData firstEnchant = getRandomEnchantment(random, available);
+    if (firstEnchant.enchantment == nullptr) {
+        return result;
+    }
+    result.push_back(firstEnchant);
+
+    // 后续附魔：概率 = level/50
+    while (random.nextInt(50) < level) {
+        // 移除与已选附魔不兼容的
+        removeIncompatible(available, result.back().enchantment);
+
+        if (available.empty()) {
+            break;
+        }
+
+        EnchantmentData nextEnchant = getRandomEnchantment(random, available);
+        if (nextEnchant.enchantment != nullptr) {
+            result.push_back(nextEnchant);
+        }
+
+        // 等级减半用于后续附魔
+        level /= 2;
+    }
+
+    return result;
+}
+
+void EnchantmentHelper::removeIncompatible(std::vector<EnchantmentData>& list, const Enchantment* enchantment) {
+    if (enchantment == nullptr) {
+        return;
+    }
+
+    list.erase(
+        std::remove_if(list.begin(), list.end(),
+            [enchantment](const EnchantmentData& data) {
+                return data.enchantment != nullptr &&
+                       !enchantment->isCompatibleWith(*data.enchantment);
+            }),
+        list.end()
+    );
+}
+
+EnchantmentHelper::EnchantmentData EnchantmentHelper::getRandomEnchantment(
+    math::Random& random, std::vector<EnchantmentData>& list) {
+
+    if (list.empty()) {
+        return EnchantmentData(nullptr, 0);
+    }
+
+    // 计算总权重
+    i32 totalWeight = 0;
+    for (const auto& data : list) {
+        totalWeight += data.weight;
+    }
+
+    if (totalWeight <= 0) {
+        return EnchantmentData(nullptr, 0);
+    }
+
+    // 加权随机选择
+    i32 randomValue = random.nextInt(totalWeight);
+    i32 currentWeight = 0;
+
+    for (auto& data : list) {
+        currentWeight += data.weight;
+        if (randomValue < currentWeight) {
+            return data;
+        }
+    }
+
+    // 不应该到达这里，但返回最后一个作为后备
+    return list.back();
 }
 
 } // namespace enchant

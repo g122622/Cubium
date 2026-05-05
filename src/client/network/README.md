@@ -125,6 +125,11 @@ void sendChatMessage(message);              // 聊天消息
 void sendContainerClick(packet);            // 容器点击
 void sendCreativeInventoryAction(slotIndex, itemStack); // 创造库存槽位写回
 void sendCloseContainer(containerId);       // 关闭容器
+
+// 骑乘相关数据包
+void sendPlayerInput(strafeSpeed, forwardSpeed, jumping, sneaking);  // 骑乘输入
+void sendMoveVehicle(x, y, z, yaw, pitch);  // 载具位置同步
+void sendEntityAction(action, auxData);     // 实体动作（马跳跃等）
 ```
 
 **统计信息**:

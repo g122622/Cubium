@@ -1,4 +1,5 @@
 #include "entity/inventory/CraftingInventory.hpp"
+#include "item/core/Item.hpp"
 #include "network/packet/PacketSerializer.hpp"
 
 namespace mc {
@@ -166,6 +167,28 @@ bool CraftingInventory::getContentBounds(i32& outMinX, i32& outMinY,
     return found;
 }
 
+void CraftingInventory::fillStackedContents(std::unordered_map<i32, i32>& itemCounts) const {
+    // 遍历所有物品，只计数"普通"物品（未损坏、未附魔、无自定义名称）
+    // 参考: net.minecraft.item.crafting.RecipeItemHelper.accountPlainStack
+    for (const ItemStack& stack : m_items) {
+        if (stack.isEmpty()) {
+            continue;
+        }
+        // 检查是否为"普通"物品
+        // accountPlainStack: !stack.isDamaged() && !stack.isEnchanted() && !stack.hasDisplayName()
+        if (!stack.isDamaged() && !stack.hasEnchantments() && !stack.hasDisplayName()) {
+            // 获取物品ID
+            const Item* item = stack.getItem();
+            if (item != nullptr) {
+                i32 itemId = static_cast<i32>(item->itemId());
+                i32 count = stack.getCount();
+                // 累加计数
+                itemCounts[itemId] += count;
+            }
+        }
+    }
+}
+
 // ========== CraftResultInventory ==========
 
 CraftResultInventory::CraftResultInventory(Container* container) {
@@ -173,30 +196,34 @@ CraftResultInventory::CraftResultInventory(Container* container) {
 }
 
 ItemStack CraftResultInventory::getItem(i32 slot) const {
-    if (slot != 0) {
-        return ItemStack();
-    }
+    // MC 1.16.5: CraftResultInventory 只有一个槽位，忽略 slot 参数
+    // 参考: net.minecraft.inventory.CraftResultInventory.getStackInSlot
+    (void)slot;
     return m_result;
 }
 
 void CraftResultInventory::setItem(i32 slot, const ItemStack& stack) {
-    if (slot != 0) {
-        return;
-    }
+    // MC 1.16.5: CraftResultInventory 只有一个槽位，忽略 slot 参数
+    // 参考: net.minecraft.inventory.CraftResultInventory.setInventorySlotContents
+    (void)slot;
     m_result = stack;
     setChanged();
 }
 
 ItemStack CraftResultInventory::removeItem(i32 slot, i32 count) {
+    // MC 1.16.5: CraftResultInventory 的 removeItem 应该移除整个槽位的物品
+    // 忽略 count 参数，直接返回整个结果物品
+    // 参考: net.minecraft.inventory.CraftResultInventory.decrStackSize
     if (slot != 0 || m_result.isEmpty()) {
         return ItemStack();
     }
 
-    ItemStack result = m_result.split(count);
-    if (!result.isEmpty()) {
-        setChanged();
-    }
+    // MC 1.16.5: 使用 getAndRemove 而不是 split
+    ItemStack result = std::move(m_result);
+    m_result = ItemStack();
+    setChanged();
     return result;
+    (void)count; // 忽略count参数
 }
 
 ItemStack CraftResultInventory::removeItemNoUpdate(i32 slot) {

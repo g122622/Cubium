@@ -7,6 +7,7 @@
 #include "TimeManager.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/util/TimeUtils.hpp"
 #include <spdlog/spdlog.h>
 
@@ -58,6 +59,15 @@ PacketHandleResult PacketHandler::handlePacket(u32 sessionId, const u8* data, si
 
         case network::PacketType::PlayerMove:
             return handlePlayerMove(sessionId, payload, payloadSize);
+
+        case network::PacketType::PlayerInput:
+            return handlePlayerInput(sessionId, payload, payloadSize);
+
+        case network::PacketType::MoveVehicle:
+            return handleMoveVehicle(sessionId, payload, payloadSize);
+
+        case network::PacketType::EntityAction:
+            return handleEntityAction(sessionId, payload, payloadSize);
 
         case network::PacketType::TeleportConfirm:
             return handleTeleportConfirm(sessionId, payload, payloadSize);
@@ -158,6 +168,90 @@ PacketHandleResult PacketHandler::handlePlayerMove(u32 sessionId, const u8* data
 
     m_positionTracker.updatePosition(playerId, pos.x, pos.y, pos.z,
                                       pos.yaw, pos.pitch, pos.onGround);
+
+    return PacketHandleResult::Success;
+}
+
+PacketHandleResult PacketHandler::handlePlayerInput(u32 sessionId, const u8* data, size_t size) {
+    PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
+    if (playerId == 0) {
+        spdlog::trace("PacketHandler: Player input from unknown session {}", sessionId);
+        return PacketHandleResult::Ignore;
+    }
+
+    network::PlayerInputPacket packet;
+    auto result = packet.deserialize(data, size);
+
+    if (result.failed()) {
+        spdlog::error("PacketHandler: Failed to parse player input from player {}", playerId);
+        return PacketHandleResult::Error;
+    }
+
+    // MC 1.16.5: PlayerInputPacket 用于控制骑乘中的载具
+    // strafeSpeed: 左右移动（正值=左，负值=右）
+    // forwardSpeed: 前后移动（正值=前，负值=后）
+    // jumping: 是否跳跃
+    // sneaking: 是否潜行（下马）
+
+    // TODO: 将输入传递给玩家骑乘的载具
+    // 这需要通过玩家ID获取玩家实体，然后获取其骑乘的载具
+    spdlog::trace("PacketHandler: Player {} input: strafe={:.2f}, forward={:.2f}, jump={}, sneak={}",
+                  playerId, packet.strafeSpeed(), packet.forwardSpeed(),
+                  packet.isJumping(), packet.isSneaking());
+
+    return PacketHandleResult::Success;
+}
+
+PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* data, size_t size) {
+    PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
+    if (playerId == 0) {
+        spdlog::trace("PacketHandler: Move vehicle from unknown session {}", sessionId);
+        return PacketHandleResult::Ignore;
+    }
+
+    network::MoveVehiclePacket packet;
+    auto result = packet.deserialize(data, size);
+
+    if (result.failed()) {
+        spdlog::error("PacketHandler: Failed to parse move vehicle from player {}", playerId);
+        return PacketHandleResult::Error;
+    }
+
+    // MC 1.16.5: MoveVehiclePacket 由客户端发送以同步载具位置
+    // 服务端需要验证位置并将更新广播给其他玩家
+
+    // TODO: 验证并更新载具位置
+    spdlog::trace("PacketHandler: Player {} move vehicle: ({:.2f}, {:.2f}, {:.2f}) yaw={:.1f} pitch={:.1f}",
+                  playerId, packet.x(), packet.y(), packet.z(), packet.yaw(), packet.pitch());
+
+    return PacketHandleResult::Success;
+}
+
+PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* data, size_t size) {
+    PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
+    if (playerId == 0) {
+        spdlog::trace("PacketHandler: Entity action from unknown session {}", sessionId);
+        return PacketHandleResult::Ignore;
+    }
+
+    network::EntityActionPacket packet;
+    auto result = packet.deserialize(data, size);
+
+    if (result.failed()) {
+        spdlog::error("PacketHandler: Failed to parse entity action from player {}", playerId);
+        return PacketHandleResult::Error;
+    }
+
+    // MC 1.16.5: EntityActionPacket 用于实体动作
+    // - PressShiftKey: 按下潜行键（下马）
+    // - ReleaseShiftKey: 释放潜行键
+    // - StartRidingJump: 开始马跳跃蓄力
+    // - StopRidingJump: 停止马跳跃蓄力（释放跳跃）
+    // - StartSprinting: 开始疾跑
+    // - StopSprinting: 停止疾跑
+
+    spdlog::trace("PacketHandler: Player {} entity action: {} aux={}",
+                  playerId, static_cast<i32>(packet.action()), packet.auxData());
 
     return PacketHandleResult::Success;
 }

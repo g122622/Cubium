@@ -1,6 +1,8 @@
 ﻿#include "world/blockentity/storage/EnderChestEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "world/IWorld.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -42,8 +44,16 @@ bool EnderChestEntity::openContainer(Player* player) {
     // MC 1.16.5: 打开时播放音效
     // 当从 0 变为 1 时播放打开音效
     if (m_openCount == 1) {
-        // TODO: 播放音效 SoundEvents.BLOCK_ENDER_CHEST_OPEN
-        // world.playSound(player, m_pos, SoundEvents.BLOCK_ENDER_CHEST_OPEN, ...);
+        IWorld* world = player->world();
+        if (world != nullptr && !world->isClientSide()) {
+            world->playSound(
+                SoundEvents::BLOCK_ENDER_CHEST_OPEN,
+                sound::SoundCategory::Blocks,
+                m_pos.center(),
+                0.5f,
+                1.0f
+            );
+        }
     }
 
     setChanged();
@@ -92,8 +102,6 @@ f32 EnderChestEntity::getLidAngle(f32 partialTick) const {
 }
 
 void EnderChestEntity::tick(IWorld& world) {
-    MC_UNUSED(world);
-
     m_ticksSinceSync++;
 
     // 计数到阈值后重置，具体网络同步由上层容器/网络系统处理。
@@ -109,9 +117,14 @@ void EnderChestEntity::tick(IWorld& world) {
 
     // MC 1.16.5: 关门时播放音效
     // 当盖子从 >0.5 变为 <=0.5 时播放关闭音效
-    if (prevOpenCount > 0 && m_openCount == 0 && m_prevLidAngle > 0.5f && m_lidAngle <= 0.5f) {
-        // TODO: 播放音效 SoundEvents.BLOCK_ENDER_CHEST_CLOSE
-        // world.playSound(nullptr, m_pos, SoundEvents.BLOCK_ENDER_CHEST_CLOSE, ...);
+    if (!world.isClientSide() && prevOpenCount > 0 && m_openCount == 0 && m_prevLidAngle > 0.5f && m_lidAngle <= 0.5f) {
+        world.playSound(
+            SoundEvents::BLOCK_ENDER_CHEST_CLOSE,
+            sound::SoundCategory::Blocks,
+            m_pos.center(),
+            0.5f,
+            1.0f
+        );
     }
 }
 

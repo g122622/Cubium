@@ -3,6 +3,8 @@
 #include "entity/inventory/Slot.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/core/Item.hpp"
+#include "item/core/ItemStack.hpp"
+#include "item/Items.hpp"
 #include "item/enchantment/EnchantmentHelper.hpp"
 #include "item/enchantment/EnchantmentRegistry.hpp"
 #include "item/enchantment/Enchantment.hpp"
@@ -177,9 +179,8 @@ ItemStack AnvilContainer::getOutputSlot() const {
 // ========== 容器接口 ==========
 
 bool AnvilContainer::stillValid(const Player& player) const {
-    (void)player;
-    // TODO: 检查玩家是否在铁砧附近
-    return true;
+    // MC 1.16.5: 检查玩家是否在铁砧附近（64格范围内）
+    return isWithinDistance(player, m_position);
 }
 
 void AnvilContainer::slotsChanged(IInventory* inventory) {
@@ -289,190 +290,254 @@ void AnvilContainer::initSlots(PlayerInventory* playerInventory) {
 }
 
 void AnvilContainer::updateRepairOutput() {
+    // 参考: net.minecraft.inventory.container.RepairContainer.updateRepairOutput
     ItemStack input1 = getInputSlot1();
-    m_repairCost = 0;
+    m_repairCost = 1;  // 基础成本
+    i32 totalCost = 0;
+    i32 renameCost = 0;
     m_materialCost = 0;
 
     if (input1.isEmpty()) {
         m_anvilInventory->setItem(SLOT_OUTPUT, ItemStack());
+        m_repairCost = 0;
         return;
     }
 
     ItemStack result = input1.copy();
     ItemStack input2 = getInputSlot2();
 
-    // 计算基础修复成本
-    i32 baseCost = input1.getRepairCost();
+    // 获取输入物品的附魔
+    auto enchantments1 = item::enchant::EnchantmentHelper::getEnchantments(result);
+
+    // 计算基础修复成本（两个输入物品的修复成本之和）
+    i32 baseRepairCost = input1.getRepairCost();
     if (!input2.isEmpty()) {
-        baseCost += input2.getRepairCost();
+        baseRepairCost += input2.getRepairCost();
     }
 
     bool hasChanges = false;
 
     if (!input2.isEmpty()) {
-        // 检查是否是附魔书合并
+        // 检查是否是附魔书
         bool isEnchantedBook = input2.getItem() != nullptr &&
-                               input2.getItem()->itemLocation().toString() == "minecraft:enchanted_book" &&
+                               input2.getItem() == Items::ENCHANTED_BOOK &&
                                input2.hasEnchantments();
 
-        // 检查是否可以修复
-        if (input1.isDamageable() && input1.getItem()->isRepairable() &&
-            input1.getItem() == input2.getItem()) {
+        // 检查是否可以用材料修复
+        // 参考: net.minecraft.item.ItemStack.isDamageable() && item.getIsRepairable(stack, material)
+        bool canRepairWithMaterial = false;
+        if (input1.isDamageable() && input1.getItem() != nullptr) {
+            canRepairWithMaterial = input1.getItem()->getIsRepairable(input1, input2);
+        }
+
+        if (canRepairWithMaterial) {
             // 使用相同物品修复耐久度
-            i32 damage1 = input1.getDamage();
-            i32 maxDamage = input1.getMaxDamage();
-            i32 repairAmount = std::min(damage1, maxDamage / 4);
+            // 参考 MC 1.16.5 RepairContainer line 109-125
+            i32 repairAmount = std::min(input1.getDamage(), input1.getMaxDamage() / 4);
+
+            if (repairAmount <= 0) {
+                m_anvilInventory->setItem(SLOT_OUTPUT, ItemStack());
+                m_repairCost = 0;
+                return;
+            }
 
             i32 materialUsed = 0;
             while (repairAmount > 0 && materialUsed < input2.getCount()) {
-                result.setDamage(std::max(0, result.getDamage() - repairAmount));
+                i32 newDamage = result.getDamage() - repairAmount;
+                result.setDamage(std::max(0, newDamage));
                 ++materialUsed;
-                repairAmount = std::min(result.getDamage(), maxDamage / 4);
+                ++totalCost;
+                repairAmount = std::min(result.getDamage(), result.getMaxDamage() / 4);
             }
             m_materialCost = materialUsed;
-            m_repairCost += 2;
-            hasChanges = true;
-        } else if (!isEnchantedBook && input1.getItem() != input2.getItem()) {
-            // 不同物品不能合并（除非是附魔书）
-            m_anvilInventory->setItem(SLOT_OUTPUT, ItemStack());
-            m_repairCost = 0;
-            return;
-        }
+        } else {
+            // 不是材料修复，检查是否可以合并
+            if (!isEnchantedBook && (input1.getItem() != input2.getItem() || !input1.isDamageable())) {
+                // 不同物品不能合并（除非是附魔书）
+                m_anvilInventory->setItem(SLOT_OUTPUT, ItemStack());
+                m_repairCost = 0;
+                return;
+            }
 
-        // 合并附魔
-        auto enchantments1 = item::enchant::EnchantmentHelper::getEnchantments(input1);
-        auto enchantments2 = item::enchant::EnchantmentHelper::getEnchantments(input2);
+            // 合并耐久度（如果不是附魔书）
+            // 参考 MC 1.16.5 RepairContainer line 133-147
+            if (input1.isDamageable() && !isEnchantedBook) {
+                i32 durability1 = input1.getMaxDamage() - input1.getDamage();
+                i32 durability2 = input2.getMaxDamage() - input2.getDamage();
+                i32 bonus = durability2 + input1.getMaxDamage() * 12 / 100;
+                i32 totalDurability = durability1 + bonus;
+                i32 newDamage = input1.getMaxDamage() - totalDurability;
 
-        i32 enchantmentCost = 0;
-        bool hasConflict = false;
-        bool hasValidEnchantment = false;
+                if (newDamage < 0) {
+                    newDamage = 0;
+                }
 
-        for (const auto& [enchant2, level2] : enchantments2) {
-            if (enchant2 == nullptr) continue;
-
-            i32 existingLevel = 0;
-            for (const auto& [enchant1, level1] : enchantments1) {
-                if (enchant1 == enchant2) {
-                    existingLevel = level1;
-                    break;
+                if (newDamage < result.getDamage()) {
+                    result.setDamage(newDamage);
+                    totalCost += 2;
                 }
             }
 
-            i32 newLevel = (existingLevel == level2) ? level2 + 1 : std::max(level2, existingLevel);
-            newLevel = std::min(newLevel, enchant2->maxLevel());
+            // 合并附魔
+            // 参考 MC 1.16.5 RepairContainer line 149-210
+            auto enchantments2 = item::enchant::EnchantmentHelper::getEnchantments(input2);
+            bool hasValidEnchantment = false;
+            bool hasIncompatibleEnchantment = false;
 
-            // 检查附魔兼容性
-            bool isCompatible = true;
-            for (const auto& [enchant1, level1] : enchantments1) {
-                if (enchant1 != enchant2 && !enchant2->isCompatibleWith(*enchant1)) {
-                    isCompatible = false;
-                    ++enchantmentCost;  // 冲突增加成本
-                    break;
+            for (const auto& [enchant2, level2] : enchantments2) {
+                if (enchant2 == nullptr) continue;
+
+                // 查找是否已有此附魔
+                i32 existingLevel = 0;
+                for (const auto& [enchant1, level1] : enchantments1) {
+                    if (enchant1 == enchant2) {
+                        existingLevel = level1;
+                        break;
+                    }
+                }
+
+                // 计算新等级：同等级+1，否则取最大值
+                i32 newLevel = (existingLevel == level2) ? level2 + 1 : std::max(level2, existingLevel);
+                newLevel = std::min(newLevel, enchant2->maxLevel());
+
+                // 检查附魔是否可以应用到结果物品
+                bool canApply = enchant2->canApply(result);
+                // 创造模式或附魔书可以应用任何附魔
+                // TODO: 检查玩家是否是创造模式
+
+                // 检查与现有附魔的兼容性
+                for (const auto& [enchant1, level1] : enchantments1) {
+                    if (enchant1 != enchant2 && !enchant2->isCompatibleWith(*enchant1)) {
+                        canApply = false;
+                        ++totalCost;  // 冲突增加成本
+                        break;
+                    }
+                }
+
+                if (!canApply) {
+                    hasIncompatibleEnchantment = true;
+                } else {
+                    hasValidEnchantment = true;
+
+                    // 更新附魔等级
+                    bool found = false;
+                    for (auto& [enchant, level] : enchantments1) {
+                        if (enchant == enchant2) {
+                            level = newLevel;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        enchantments1.push_back({enchant2, newLevel});
+                    }
+
+                    // 计算附魔成本（基于稀有度）
+                    // 参考 MC 1.16.5 RepairContainer line 179-192
+                    i32 rarityCost = 0;
+                    using namespace item::enchant;
+                    switch (enchant2->rarity()) {
+                        case EnchantmentRarity::Common:
+                            rarityCost = 1;
+                            break;
+                        case EnchantmentRarity::Uncommon:
+                            rarityCost = 2;
+                            break;
+                        case EnchantmentRarity::Rare:
+                            rarityCost = 4;
+                            break;
+                        case EnchantmentRarity::VeryRare:
+                            rarityCost = 8;
+                            break;
+                    }
+
+                    if (isEnchantedBook) {
+                        rarityCost = std::max(1, rarityCost / 2);
+                    }
+
+                    totalCost += rarityCost * newLevel;
+
+                    // 堆叠物品限制（可堆叠物品附魔成本设为40，即"太贵"）
+                    if (input1.getCount() > 1) {
+                        totalCost = 40;
+                    }
                 }
             }
 
-            if (!isCompatible) {
-                hasConflict = true;
-            } else {
-                hasValidEnchantment = true;
-                // 添加附魔到结果
-                result.addEnchantment(enchant2->id(), newLevel);
-
-                // 计算附魔成本
-                i32 rarityCost = 0;
-                using namespace item::enchant;
-                switch (enchant2->rarity()) {
-                    case EnchantmentRarity::Common:
-                        rarityCost = 1;
-                        break;
-                    case EnchantmentRarity::Uncommon:
-                        rarityCost = 2;
-                        break;
-                    case EnchantmentRarity::Rare:
-                        rarityCost = 4;
-                        break;
-                    case EnchantmentRarity::VeryRare:
-                        rarityCost = 8;
-                        break;
-                }
-
-                if (isEnchantedBook) {
-                    rarityCost = std::max(1, rarityCost / 2);
-                }
-
-                enchantmentCost += rarityCost * newLevel;
-
-                // 堆叠物品限制
-                if (input1.getCount() > 1) {
-                    enchantmentCost = 40;  // 太贵
-                }
+            // 如果只有不兼容的附魔，清空结果
+            if (hasIncompatibleEnchantment && !hasValidEnchantment) {
+                m_anvilInventory->setItem(SLOT_OUTPUT, ItemStack());
+                m_repairCost = 0;
+                return;
             }
-        }
 
-        if (hasConflict && !hasValidEnchantment) {
-            m_anvilInventory->setItem(SLOT_OUTPUT, ItemStack());
-            m_repairCost = 0;
-            return;
+            hasChanges = hasValidEnchantment;
         }
-
-        m_repairCost += enchantmentCost;
-        hasChanges = hasChanges || hasValidEnchantment;
     }
 
     // 处理重命名
-    if (!m_itemName.empty() && m_itemName != input1.getCustomName()) {
-        result.setCustomName(m_itemName);
-        m_repairCost += 1;
-        hasChanges = true;
-    } else if (m_itemName.empty() && input1.hasCustomName()) {
+    // 参考 MC 1.16.5 RepairContainer line 214-224
+    if (m_itemName.empty()) {
         // 清除自定义名称
-        result.clearCustomName();
-        m_repairCost += 1;
-        hasChanges = true;
+        if (input1.hasCustomName()) {
+            renameCost = 1;
+            totalCost += renameCost;
+            result.clearCustomName();
+        }
+    } else if (m_itemName != input1.getCustomName()) {
+        // 设置新名称
+        renameCost = 1;
+        totalCost += renameCost;
+        result.setCustomName(m_itemName);
+    }
+
+    // 计算最终修复成本
+    // 参考 MC 1.16.5 RepairContainer line 227-238
+    m_repairCost = baseRepairCost + totalCost;
+
+    if (totalCost <= 0) {
+        result = ItemStack();
+    }
+
+    // 特殊情况：如果只有重命名且成本达到40，降低到39
+    if (renameCost == totalCost && renameCost > 0 && m_repairCost >= MAX_REPAIR_COST) {
+        m_repairCost = 39;
     }
 
     // 检查是否太贵
     if (m_repairCost >= MAX_REPAIR_COST) {
-        m_anvilInventory->setItem(SLOT_OUTPUT, ItemStack());
+        result = ItemStack();
         m_repairCost = 0;
-        return;
     }
 
-    // 计算最终修复成本
-    m_repairCost = baseCost + m_repairCost;
+    if (!result.isEmpty()) {
+        // 计算并设置结果物品的修复成本
+        // 参考 MC 1.16.5 RepairContainer line 240-250
+        i32 newRepairCost = result.getRepairCost();
+        if (!input2.isEmpty() && newRepairCost < input2.getRepairCost()) {
+            newRepairCost = input2.getRepairCost();
+        }
 
-    if (!hasChanges || m_repairCost <= 0) {
-        m_anvilInventory->setItem(SLOT_OUTPUT, ItemStack());
-        m_repairCost = 0;
-        return;
+        // 如果不只是重命名，增加修复成本
+        if (renameCost != totalCost || renameCost == 0) {
+            newRepairCost = getNewRepairCost(newRepairCost);
+        }
+
+        result.setRepairCost(newRepairCost);
+
+        // 应用附魔到结果物品
+        item::enchant::EnchantmentHelper::setEnchantments(enchantments1, result);
     }
 
-    // 设置结果
     m_anvilInventory->setItem(SLOT_OUTPUT, result);
+
+    // 同步变化到客户端
+    detectAndSendChanges();
 }
 
-i32 AnvilContainer::calculateRepairCost() {
-    return m_repairCost;
-}
-
-bool AnvilContainer::tryRepair() {
-    // 修复逻辑已在 updateRepairOutput 中处理
-    return true;
-}
-
-bool AnvilContainer::tryCombine() {
-    // 合并逻辑已在 updateRepairOutput 中处理
-    return true;
-}
-
-bool AnvilContainer::tryCombineEnchantedBooks() {
-    // 附魔书合并逻辑已在 updateRepairOutput 中处理
-    return true;
-}
-
-bool AnvilContainer::tryRename() {
-    // 重命名逻辑已在 updateRepairOutput 中处理
-    return true;
+i32 AnvilContainer::getNewRepairCost(i32 oldRepairCost) {
+    // 参考: net.minecraft.inventory.container.RepairContainer.getNewRepairCost
+    return oldRepairCost * 2 + 1;
 }
 
 bool AnvilContainer::areEnchantmentsCompatible(const String& ench1, const String& ench2) const {

@@ -110,8 +110,10 @@ public:
     static constexpr i32 CREATE_PORTAL_SEARCH_RADIUS = 16;
 
     /// 末地传送门固定位置
+    /// MC 1.16.5 ServerWorld.field_241108_a_ = new BlockPos(100, 50, 0)
+    /// 玩家出生在方块中心，所以加 0.5
     [[nodiscard]] static Vector3d getEndSpawnPosition() {
-        return Vector3d(100.0, 49.0, 0.0);
+        return Vector3d(100.5, 50.0, 0.5);
     }
 
 protected:

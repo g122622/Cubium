@@ -748,12 +748,12 @@ void IntegratedServer::sendContainerContent(const AbstractContainerMenu& menu)
 
 void IntegratedServer::sendOpenContainer(ContainerId containerId, mc::ContainerType type, const String& title, i32 slotCount)
 {
+    (void)slotCount;  // slotCount is no longer sent in the packet (MC 1.16.5 protocol)
     sendGamePacket(m_serverEndpoint,
                    network::PacketType::OpenContainer,
                    ContainerPacketHandler::createOpenContainerPacket(containerId,
                                                                      ContainerTypes::toNetworkType(type),
-                                                                     title,
-                                                                     slotCount));
+                                                                     title));
 }
 
 void IntegratedServer::sendCloseContainer(ContainerId containerId)

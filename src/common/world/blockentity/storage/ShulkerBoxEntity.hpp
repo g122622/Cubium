@@ -1,6 +1,6 @@
 #pragma once
 
-#include "world/blockentity/core/LockableBlockEntity.hpp"
+#include "world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "entity/inventory/ISidedInventory.hpp"
 #include <memory>
@@ -21,10 +21,11 @@ namespace blockentity {
  * - 可以被锁定（需要正确名称的物品打开）
  * - 打开时有动画效果
  * - 实现 ISidedInventory（漏斗可以从任意方向访问所有槽位）
+ * - 支持战利品表填充（继承自 LootableContainerBlockEntity）
  *
  * 参考: net.minecraft.tileentity.ShulkerBoxTileEntity
  */
-class ShulkerBoxEntity : public LockableBlockEntity, public ISidedInventory {
+class ShulkerBoxEntity : public LootableContainerBlockEntity, public ISidedInventory {
 public:
     /// 潜影盒容量（27格）
     static constexpr i32 SHULKER_BOX_SIZE = 27;
@@ -68,7 +69,7 @@ public:
     ItemStack removeItem(i32 slot, i32 count) override { return m_inventory.removeItem(slot, count); }
     ItemStack removeItemNoUpdate(i32 slot) override { return m_inventory.removeItemNoUpdate(slot); }
     void clear() override { m_inventory.clear(); }
-    void setChanged() override { LockableBlockEntity::setChanged(); }
+    void setChanged() override { LootableContainerBlockEntity::setChanged(); }
     [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override { return m_inventory.canPlaceItem(slot, stack); }
     void serialize(network::PacketSerializer& ser) const override { m_inventory.serialize(ser); }
 
@@ -140,6 +141,20 @@ public:
      * @return 如果可以打开返回true
      */
     [[nodiscard]] bool canOpen(IWorld& world) const;
+
+    // ========== 战利品表接口 ==========
+
+    // 注：hasLootTable(), getLootTable(), getLootTableSeed(), setLootTable(), needsLootFill()
+    // 继承自 LootableContainerBlockEntity
+
+    /**
+     * @brief 填充战利品（实现基类纯虚函数）
+     *
+     * 如果设置了战利品表且尚未填充，则填充物品。
+     *
+     * @param player 触发填充的玩家（可为nullptr）
+     */
+    void fillWithLoot(Player* player) override;
 
     // ========== Tick 更新 ==========
 

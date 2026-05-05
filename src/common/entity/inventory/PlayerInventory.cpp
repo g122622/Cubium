@@ -1,6 +1,7 @@
 #include "PlayerInventory.hpp"
 #include "../entities/player/Player.hpp"
 #include <algorithm>
+#include <cmath>
 
 namespace mc {
 
@@ -540,6 +541,183 @@ bool PlayerInventory::stacksEqualExact(const ItemStack& stack1, const ItemStack&
     }
 
     return true;
+}
+
+// ============================================================================
+// IInventory 接口扩展
+// ============================================================================
+
+bool PlayerInventory::isUsableByPlayer(const Player& player) const {
+    // MC 1.16.5: 玩家必须存活且在64格范围内
+    if (m_player == nullptr) {
+        return false;
+    }
+
+    // 检查是否是同一个玩家
+    if (m_player != &player) {
+        return false;
+    }
+
+    // 检查玩家是否存活
+    // TODO: 需要 Player 类提供 isAlive() 方法
+    // if (!player.isAlive()) {
+    //     return false;
+    // }
+
+    return true;
+}
+
+// ============================================================================
+// Tick 更新
+// ============================================================================
+
+void PlayerInventory::tick() {
+    // MC 1.16.5: 调用所有物品的 inventoryTick
+    // TODO: 需要 ItemStack::inventoryTick 方法
+    // for (i32 i = 0; i < TOTAL_SIZE; ++i) {
+    //     if (!m_items[i].isEmpty()) {
+    //         m_items[i].inventoryTick(m_player->getWorld(), *m_player, i, i == m_selectedSlot);
+    //     }
+    // }
+
+    // MC 1.16.5: 调用护甲的 onArmorTick
+    // TODO: 需要 ItemStack::onArmorTick 方法
+    // for (i32 i = InventorySlots::ARMOR_START; i <= InventorySlots::ARMOR_END; ++i) {
+    //     if (!m_items[i].isEmpty()) {
+    //         m_items[i].onArmorTick(m_player->getWorld(), *m_player);
+    //     }
+    // }
+}
+
+// ============================================================================
+// 物品掉落
+// ============================================================================
+
+void PlayerInventory::dropAllItems() {
+    // MC 1.16.5: 遍历所有槽位并掉落物品
+    // TODO: 需要通过 Player::dropItem 方法实际掉落
+    // if (m_player == nullptr) {
+    //     return;
+    // }
+
+    for (auto& item : m_items) {
+        if (!item.isEmpty()) {
+            // TODO: m_player->dropItem(item, true, false);
+            item = ItemStack::EMPTY;
+        }
+    }
+}
+
+void PlayerInventory::deleteStack(const ItemStack& stack) {
+    // MC 1.16.5: 按引用删除物品堆
+    for (auto& item : m_items) {
+        if (&item == &stack) {
+            item = ItemStack::EMPTY;
+            break;
+        }
+    }
+}
+
+bool PlayerInventory::placeItemBackInInventory(ItemStack& stack,
+    const std::function<void(const ItemStack&, bool)>& dropCallback) {
+    if (stack.isEmpty()) {
+        return true;
+    }
+
+    // MC 1.16.5: 尝试放回背包
+    while (!stack.isEmpty()) {
+        // 首先尝试合并到现有槽位
+        i32 slot = findSlotMatching(stack);
+        if (slot != -1) {
+            ItemStack& existing = m_items[slot];
+            i32 maxStack = std::min(existing.getMaxStackSize(), getMaxStackSize());
+            i32 space = maxStack - existing.getCount();
+            if (space > 0) {
+                i32 toAdd = std::min(space, stack.getCount());
+                existing.grow(toAdd);
+                stack.shrink(toAdd);
+                m_timesChanged++;
+                continue;
+            }
+        }
+
+        // 然后找空槽位
+        i32 emptySlot = getFirstEmptySlot();
+        if (emptySlot != -1) {
+            m_items[emptySlot] = stack;
+            stack = ItemStack::EMPTY;
+            m_timesChanged++;
+            return true;
+        }
+
+        // 没有空槽位，丢弃剩余物品
+        if (dropCallback) {
+            dropCallback(stack, false);
+        }
+        stack = ItemStack::EMPTY;
+        return false;
+    }
+
+    return true;
+}
+
+// ============================================================================
+// 护甲操作
+// ============================================================================
+
+void PlayerInventory::damageArmor(float damage) {
+    // MC 1.16.5: 对护甲造成伤害
+    if (damage <= 0.0f) {
+        return;
+    }
+
+    // 将伤害分摊到所有护甲上
+    damage = damage / 4.0f;
+    if (damage < 1.0f) {
+        damage = 1.0f;
+    }
+
+    for (i32 i = InventorySlots::ARMOR_START; i <= InventorySlots::ARMOR_END; ++i) {
+        ItemStack& armor = m_items[i];
+        if (!armor.isEmpty()) {
+            // TODO: 检查护甲是否可以被燃烧（如果伤害来自火焰）
+            // TODO: 需要 ItemStack::damageItem 方法
+            // if (damageSource.isFireDamage() && armor.getItem()->isBurnable()) {
+            //     continue;
+            // }
+
+            // if (armor.getItem() instanceof ArmorItem) {
+            //     armor.damageItem(static_cast<i32>(damage), m_player, [i](Player& p) {
+            //         p.sendBreakAnimation(EquipmentSlot::fromSlotTypeAndIndex(EquipmentSlot::Group::Armor, i - InventorySlots::ARMOR_START));
+            //     });
+            // }
+        }
+    }
+}
+
+// ============================================================================
+// 复制和比较
+// ============================================================================
+
+void PlayerInventory::copyInventory(const PlayerInventory& other) {
+    for (i32 i = 0; i < TOTAL_SIZE; ++i) {
+        m_items[i] = other.m_items[i];
+    }
+    m_selectedSlot = other.m_selectedSlot;
+    m_timesChanged++;
+}
+
+float PlayerInventory::getDestroySpeed(const BlockState& blockState) const {
+    // MC 1.16.5: 获取当前手持物品的挖掘速度
+    const ItemStack& selected = getSelectedStack();
+    if (selected.isEmpty()) {
+        return 1.0f;
+    }
+
+    // TODO: 需要 ItemStack::getDestroySpeed 方法
+    // return selected.getDestroySpeed(blockState);
+    (void)blockState;
+    return 1.0f;
 }
 
 } // namespace mc

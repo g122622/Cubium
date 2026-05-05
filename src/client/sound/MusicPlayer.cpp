@@ -105,13 +105,15 @@ MusicPlayer::~MusicPlayer() {
 // ============================================================================
 
 void MusicPlayer::tick(bool isPaused, bool inMenu, i32 dimension, bool inWater,
-                        bool inCreative, bool inBossFight) {
+                        bool inCreative, bool inBossFight,
+                        const std::optional<world::biome::BiomeMusic>& biomeMusic) {
     if (!m_enabled) {
         return;
     }
 
     // 根据 MC 1.16.5 MusicTicker.func_238178_U_() 选择音乐类型
     MusicType desiredType = MusicType::None;
+    std::optional<MusicSelector> biomeSelector;
 
     if (inMenu) {
         // 主菜单界面
@@ -122,8 +124,16 @@ void MusicPlayer::tick(bool isPaused, bool inMenu, i32 dimension, bool inWater,
             // 末地维度
             desiredType = inBossFight ? MusicType::Dragon : MusicType::End;
         } else if (dimension == -1) {
-            // 下界维度
-            desiredType = MusicType::Nether;
+            // 下界维度 - 使用生物群系音乐
+            if (biomeMusic.has_value() && biomeMusic->isValid()) {
+                // 生物群系有专属音乐（如玄武岩三角洲、绯红森林等）
+                biomeSelector = MusicSelector::fromBiomeMusic(*biomeMusic);
+                desiredType = MusicType::Biome;
+            } else {
+                // 诡异森林没有音乐（sounds.json 中为空数组）
+                // MC 1.16.5: 返回空选择器，不播放音乐
+                desiredType = MusicType::None;
+            }
         } else if (inWater) {
             // 水下 - 检查是否在海洋或河流群系中
             // 注意：水下音乐需要在海洋或河流群系中才能播放
@@ -133,13 +143,22 @@ void MusicPlayer::tick(bool isPaused, bool inMenu, i32 dimension, bool inWater,
             // 创造模式
             desiredType = MusicType::Creative;
         } else {
-            // 主世界普通游戏
-            desiredType = MusicType::Game;
+            // 主世界普通游戏 - 检查生物群系是否有专属音乐
+            if (biomeMusic.has_value() && biomeMusic->isValid()) {
+                // 某些主世界生物群系可能有专属音乐（未来扩展）
+                biomeSelector = MusicSelector::fromBiomeMusic(*biomeMusic);
+                desiredType = MusicType::Biome;
+            } else {
+                // 默认游戏音乐
+                desiredType = MusicType::Game;
+            }
         }
     }
 
     // 获取目标选择器
-    const MusicSelector& desiredSelector = getSelector(desiredType);
+    const MusicSelector& desiredSelector = biomeSelector.has_value()
+        ? biomeSelector.value()
+        : getSelector(desiredType);
 
     // MC 1.16.5: 检查是否需要替换当前音乐
     // 如果当前音乐正在播放，但新选择器要求替换且与当前不同
@@ -352,6 +371,15 @@ void MusicPlayer::updateFade() {
 
     --m_fadeCounter;
 
+    // 计算淡出音量
+    f32 fadeVolume = static_cast<f32>(m_fadeCounter) / static_cast<f32>(FADE_DURATION);
+
+    // 更新声音音量
+    ISoundInstance* sound = m_engine.getSoundInstance(m_currentSoundId);
+    if (sound) {
+        sound->setVolume(fadeVolume);
+    }
+
     if (m_fadeCounter == 0) {
         // 淡出完成，停止音乐
         m_engine.stop(m_currentSoundId);
@@ -359,9 +387,6 @@ void MusicPlayer::updateFade() {
         m_currentType = MusicType::None;
         m_fadingOut = false;
     }
-    // TODO: 实现音量淡出
-    // 当前简化实现：直接停止
-    // 未来可以通过 SoundEngine 设置音量实现平滑淡出
 }
 
 } // namespace mc::client::sound

@@ -1,20 +1,26 @@
 #pragma once
 
-#include "world/blockentity/core/LockableBlockEntity.hpp"
+#include "world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "util/math/random/Random.hpp"
 
 namespace mc {
+
+namespace loot {
+class LootTableManager;
+}
+
 namespace blockentity {
 
 /**
  * @brief 发射器/投掷器方块实体基类
  *
  * 提供9格物品存储和随机选择物品发射/投掷的功能。
+ * 继承自 LootableContainerBlockEntity 以支持战利品表填充。
  *
  * 参考: net.minecraft.tileentity.DispenserTileEntity
  */
-class DispenserBlockEntity : public LockableBlockEntity {
+class DispenserBlockEntity : public LootableContainerBlockEntity {
 public:
     /**
      * @brief 构造函数
@@ -32,7 +38,6 @@ public:
     // ========== 容器接口 ==========
 
     [[nodiscard]] i32 getContainerSize() const override { return INVENTORY_SIZE; }
-    [[nodiscard]] bool isEmpty() const override;
     void clearContainer() override;
 
     // ========== IInventory 接口 ==========
@@ -54,6 +59,8 @@ public:
      * 选择第一个非空槽位，然后以 1/n 概率替换（n为已遍历的非空槽位数）。
      * 这确保每个非空槽位被选中的概率相等。
      *
+     * MC 1.16.5: 在选择槽位前会先填充战利品表
+     *
      * @return 非空槽位索引，如果没有返回 -1
      */
     [[nodiscard]] i32 getDispenseSlot();
@@ -69,27 +76,19 @@ public:
      */
     i32 addItemStack(const ItemStack& stack);
 
-    /**
-     * @brief 设置战利品表
-     * @param lootTable 战利品表ID
-     * @param seed 随机种子
-     */
-    void setLootTable(const String& lootTable, u64 seed = 0);
+    // ========== 战利品表接口 ==========
+
+    // 注：hasLootTable(), getLootTable(), getLootTableSeed(), setLootTable(), needsLootFill()
+    // 继承自 LootableContainerBlockEntity
 
     /**
-     * @brief 获取战利品表ID
+     * @brief 填充战利品（实现基类纯虚函数）
+     *
+     * 如果设置了战利品表且尚未填充，则填充物品。
+     *
+     * @param player 触发填充的玩家（可为nullptr）
      */
-    [[nodiscard]] const String& getLootTable() const { return m_lootTable; }
-
-    /**
-     * @brief 获取战利品表种子
-     */
-    [[nodiscard]] u64 getLootTableSeed() const { return m_lootTableSeed; }
-
-    /**
-     * @brief 是否有战利品表
-     */
-    [[nodiscard]] bool hasLootTable() const { return !m_lootTable.empty(); }
+    void fillWithLoot(Player* player) override;
 
 protected:
     /// 库存大小（9格）
@@ -105,12 +104,6 @@ protected:
 
     /// 随机数生成器
     mutable math::Random m_rng;
-
-    /// 战利品表ID（用于生成内容）
-    String m_lootTable;
-
-    /// 战利品表随机种子
-    u64 m_lootTableSeed = 0;
 };
 
 } // namespace blockentity

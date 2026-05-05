@@ -1,5 +1,6 @@
 #include "Entity.hpp"
 #include "../utils/EntityUtils.hpp"
+#include "../entities/player/Player.hpp"
 #include "../../world/IWorld.hpp"
 #include "../../physics/PhysicsEngine.hpp"
 #include "../../physics/PhysicsConstants.hpp"
@@ -16,6 +17,7 @@
 #include <sstream>
 #include <chrono>
 #include <cmath>
+#include <unordered_set>
 
 namespace mc {
 
@@ -258,10 +260,29 @@ void Entity::baseTick() {
     m_prevYaw = m_yaw;
     m_prevPitch = m_pitch;
 
+    // MC 1.16.5: 检查车辆是否被移除
+    // 如果正在骑乘且车辆已被移除，则下车
+    if (isRiding()) {
+        if (m_world) {
+            Entity* vehicle = m_world->getEntity(m_vehicle);
+            if (vehicle == nullptr || vehicle->isRemoved()) {
+                stopRiding();
+            }
+        } else {
+            stopRiding();
+        }
+    }
+
     // 更新传送冷却
     // 参考 MC 1.16.5 Entity.baseTick() 中的 timeUntilPortal 递减
     if (m_portalCooldown > 0) {
         m_portalCooldown--;
+    }
+
+    // 更新骑乘冷却
+    // MC 1.16.5: rideCooldown 递减
+    if (m_rideCooldown > 0) {
+        m_rideCooldown--;
     }
 
     // 处理着火
@@ -291,28 +312,36 @@ void Entity::baseTick() {
 
     // 重新探测地面状态，避免实体在脚下方块被移除后仍然沿用旧的 onGround 缓存。
     checkOnGround();
+
+    // MC 1.16.5: 如果是乘客，调用 updateRidden()
+    // 注意：这里需要子类重写以实现乘客逻辑
+    // 在 Vehicle/tick() 中应该调用 updatePassengers()
 }
 
 bool Entity::tickPortal() {
-    // 参考 MC 1.16.5 Entity.tickPortal()
-    // 基类实现：非玩家实体只需要 1 tick
+    // 参考 MC 1.16.5 Entity.updatePortal()
+    // 关键行为：inPortal 每帧重置，由 NetherPortalBlock.onEntityCollision 重新设置
+    // 冷却递减在 baseTick() 的 decrementTimeUntilPortal() 中处理
 
-    // 如果不在传送门中，递减传送门计时
     if (!m_inPortal) {
-        // MC: this.portalTime -= 4;
-        m_portalTime = std::max(0, m_portalTime - 4);
+        if (m_portalTime > 0) {
+            m_portalTime = std::max(0, m_portalTime - 4);
+        }
         return false;
     }
 
-    // 在传送门中，检查是否可以传送（冷却完成）
+    // 无论是否传送，都重置 inPortal
+    m_inPortal = false;
+
     if (!canTeleport()) {
         return false;
     }
 
-    // 递增传送门计时
+    // 递增计时并检查阈值（MC: portalCounter++ >= i）
+    // 非玩家：i=0，第一次进入时 1 >= 0 成立
+    // 玩家：i=80，第 80 tick 时 80 >= 80 成立
     m_portalTime++;
 
-    // 检查是否达到传送阈值
     const i32 maxPortalTime = getMaxInPortalTime();
     if (m_portalTime >= maxPortalTime) {
         m_portalTime = maxPortalTime;
@@ -754,8 +783,38 @@ bool Entity::isPassenger(EntityId entityId) const {
 }
 
 bool Entity::addPassenger(Entity& passenger) {
+    // MC 1.16.5: Entity.addPassenger()
+
     // 检查是否已经是乘客
     if (isPassenger(passenger.id())) {
+        return false;
+    }
+
+    // MC 1.16.5: 如果 passenger.getRidingEntity() != this，抛出异常
+    // 这里我们改为：如果乘客正在骑乘其他实体，先停止
+    // 注意：这与MC略有不同，MC期望调用者先设置ridingEntity
+    // 我们的实现：调用者应该使用 startRiding() 而不是直接调用 addPassenger()
+
+    // 循环检测：防止A骑B，B骑A等循环
+    // MC: for(Entity entity = entityIn; entity.ridingEntity != null; entity = entity.ridingEntity)
+    //     if (entity.ridingEntity == this) return false;
+    if (m_world) {
+        Entity* current = &passenger;
+        while (current != nullptr) {
+            EntityId currentVehicle = current->getVehicle();
+            if (currentVehicle == INVALID_ENTITY_ID) {
+                break;
+            }
+            if (currentVehicle == m_id) {
+                // 检测到循环：该实体已经是我们的乘客链中的一员
+                return false;
+            }
+            current = m_world->getEntity(currentVehicle);
+        }
+    }
+
+    // 检查乘客数量限制
+    if (!canFitPassenger()) {
         return false;
     }
 
@@ -764,25 +823,104 @@ bool Entity::addPassenger(Entity& passenger) {
         passenger.stopRiding();
     }
 
-    // 添加乘客
-    m_passengers.push_back(passenger.id());
+    // 设置乘客姿态为站立
+    // MC: passenger.setPose(Pose.STANDING);
+    passenger.setPose(EntityPose::Standing);
+
+    // MC 1.16.5: 服务端玩家优先插入列表头部
+    // if (!this.world.isRemote && passenger instanceof PlayerEntity && !(this.getControllingPassenger() instanceof PlayerEntity)) {
+    //     this.passengers.add(0, passenger);
+    // } else {
+    //     this.passengers.add(passenger);
+    // }
+    bool isServerSide = m_world && !m_world->isClientSide();
+    bool isPlayer = passenger.legacyType() == LegacyEntityType::Player;
+    EntityId controllingId = getControllingPassenger();
+    bool controllingIsPlayer = false;
+    if (controllingId != INVALID_ENTITY_ID && m_world) {
+        Entity* controlling = m_world->getEntity(controllingId);
+        controllingIsPlayer = controlling != nullptr && controlling->legacyType() == LegacyEntityType::Player;
+    }
+
+    if (isServerSide && isPlayer && !controllingIsPlayer) {
+        // 服务端：玩家优先插入头部，成为控制者
+        m_passengers.insert(m_passengers.begin(), passenger.id());
+    } else {
+        // 其他情况：追加到末尾
+        m_passengers.push_back(passenger.id());
+    }
     passenger.setVehicle(m_id);
+
+    // 设置骑乘冷却
+    // MC: passenger.rideCooldown = 60;
+    passenger.m_rideCooldown = 60;
+
+    // 触发回调
+    // MC: this.onAddedPassenger(passenger);
+    // 子类可重写 onAddedPassenger() 来处理特殊逻辑
 
     return true;
 }
 
 void Entity::removePassenger(Entity& passenger) {
+    // MC 1.16.5: Entity.removePassenger()
+
+    // 验证乘客是否确实骑乘此载具
+    if (passenger.getVehicle() != m_id) {
+        // MC: throw new IllegalStateException("Use x.stopRiding(y), not y.removePassenger(x)");
+        return;
+    }
+
     // 查找并移除乘客
     auto it = std::find(m_passengers.begin(), m_passengers.end(), passenger.id());
     if (it != m_passengers.end()) {
         m_passengers.erase(it);
         passenger.setVehicle(INVALID_ENTITY_ID);
+
+        // 设置骑乘冷却（MC 1.16.5: 60 tick = 3秒）
+        passenger.m_rideCooldown = 60;
+
+        // 触发回调
+        // MC: this.onRemovedPassenger(passenger);
     }
 }
 
 bool Entity::startRiding(Entity& vehicle) {
+    // MC 1.16.5: Entity.startRiding(Entity, boolean force)
+
     // 不能骑乘自己
     if (vehicle.id() == m_id) {
+        return false;
+    }
+
+    // MC 1.16.5: 循环检测
+    // for(Entity entity = entityIn; entity.ridingEntity != null; entity = entity.ridingEntity) {
+    //     if (entity.ridingEntity == this) return false;
+    // }
+    if (m_world) {
+        Entity* current = &vehicle;
+        while (current != nullptr) {
+            EntityId currentVehicle = current->getVehicle();
+            if (currentVehicle == INVALID_ENTITY_ID) {
+                break;
+            }
+            if (currentVehicle == m_id) {
+                // 检测到循环：车辆正在骑乘我们（直接或间接）
+                return false;
+            }
+            current = m_world->getEntity(currentVehicle);
+        }
+    }
+
+    // MC 1.16.5: 检查是否可骑乘
+    // if (force || this.canBeRidden(entityIn) && entityIn.canFitPassenger(this))
+    // 注意：canBeRidden() 检查的是乘客是否可以骑乘（潜行状态、冷却等）
+    // 这里我们检查乘客的 canBeRidden()，而不是车辆的
+    if (!canBeRidden(vehicle)) {
+        return false;
+    }
+
+    if (!vehicle.canFitPassenger()) {
         return false;
     }
 
@@ -791,27 +929,281 @@ bool Entity::startRiding(Entity& vehicle) {
         stopRiding();
     }
 
+    // 设置姿态为站立
+    setPose(EntityPose::Standing);
+
+    // 设置骑乘的车辆引用
+    m_vehicle = vehicle.id();
+
     // 添加到车辆的乘客列表
-    return vehicle.addPassenger(*this);
+    // 注意：MC中是先设置ridingEntity，再调用addPassenger
+    // addPassenger会验证ridingEntity是否正确
+    if (!vehicle.addPassenger(*this)) {
+        // 添加失败，清空引用
+        m_vehicle = INVALID_ENTITY_ID;
+        return false;
+    }
+
+    return true;
 }
 
-void Entity::stopRiding(bool clearVehicle) {
+void Entity::stopRiding() {
+    // MC 1.16.5: Entity.stopRiding()
+    dismount();
+}
+
+void Entity::dismount() {
+    // MC 1.16.5: Entity.dismount()
     if (!isRiding()) {
         return;
     }
 
-    // 从车辆中移除自己
-    if (m_world && clearVehicle) {
-        // TODO: 通过世界获取车辆实体并移除
-        // 目前只清除自己的车辆引用
+    // 获取车辆实体
+    if (m_world) {
+        Entity* vehicle = m_world->getEntity(m_vehicle);
+        if (vehicle != nullptr) {
+            // MC: this.ridingEntity = null;
+            //     entity.removePassenger(this);
+            // 注意：先清空vehicle引用，再调用removePassenger
+            m_vehicle = INVALID_ENTITY_ID;
+            vehicle->removePassenger(*this);
+        }
+    } else {
+        m_vehicle = INVALID_ENTITY_ID;
+    }
+}
+
+void Entity::removePassengers() {
+    // MC 1.16.5: Entity.removePassengers()
+    // 没有世界引用时无法操作乘客
+    if (m_world == nullptr) {
+        return;
     }
 
-    m_vehicle = INVALID_ENTITY_ID;
+    // 从后向前遍历，避免索引问题
+    for (i32 i = static_cast<i32>(m_passengers.size()) - 1; i >= 0; --i) {
+        EntityId passengerId = m_passengers[i];
+        Entity* passenger = m_world->getEntity(passengerId);
+        if (passenger != nullptr) {
+            passenger->stopRiding();
+        }
+    }
+}
+
+bool Entity::canBeRidden(const Entity& vehicle) const {
+    // MC 1.16.5: Entity.canBeRidden(Entity)
+    // 参数 vehicle 用于检查是否可以骑乘特定载具
+    // 目前只检查基本条件，未来可扩展检查载具类型等
+    MC_UNUSED(vehicle);
+    // 默认检查：不在潜行状态 + 骑乘冷却为0
+    return !isSneaking() && m_rideCooldown <= 0;
+}
+
+bool Entity::isRidingSameEntity(const Entity& other) const {
+    // MC 1.16.5: Entity.isRidingSameEntity(Entity)
+    return getLowestRidingEntity() == other.getLowestRidingEntity();
+}
+
+Entity* Entity::getLowestRidingEntity() {
+    // MC 1.16.5: Entity.getLowestRidingEntity()
+    Entity* entity = this;
+    while (entity->isRiding()) {
+        EntityId vehicleId = entity->getVehicle();
+        if (vehicleId == INVALID_ENTITY_ID) {
+            break;
+        }
+        // 使用当前实体的世界指针，而不是起始实体的
+        IWorld* world = entity->world();
+        if (world == nullptr) {
+            break;
+        }
+        Entity* vehicle = world->getEntity(vehicleId);
+        if (vehicle == nullptr) {
+            break;
+        }
+        entity = vehicle;
+    }
+    return entity;
+}
+
+const Entity* Entity::getLowestRidingEntity() const {
+    // MC 1.16.5: Entity.getLowestRidingEntity()
+    const Entity* entity = this;
+    while (entity->isRiding()) {
+        EntityId vehicleId = entity->getVehicle();
+        if (vehicleId == INVALID_ENTITY_ID) {
+            break;
+        }
+        // 使用当前实体的世界指针，而不是起始实体的
+        const IWorld* world = entity->world();
+        if (world == nullptr) {
+            break;
+        }
+        const Entity* vehicle = world->getEntity(vehicleId);
+        if (vehicle == nullptr) {
+            break;
+        }
+        entity = vehicle;
+    }
+    return entity;
+}
+
+bool Entity::isRidingOrBeingRiddenBy(const Entity& other) const {
+    // MC 1.16.5: Entity.isRidingOrBeingRiddenBy(Entity)
+    // 使用迭代方式避免递归栈溢出
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    // 使用向量作为栈进行广度优先搜索
+    std::vector<EntityId> toCheck(m_passengers.begin(), m_passengers.end());
+    std::unordered_set<EntityId> visited;  // 防止循环
+
+    while (!toCheck.empty()) {
+        EntityId passengerId = toCheck.back();
+        toCheck.pop_back();
+
+        if (passengerId == other.id()) {
+            return true;
+        }
+
+        // 防止重复检查
+        if (visited.count(passengerId) > 0) {
+            continue;
+        }
+        visited.insert(passengerId);
+
+        // 获取乘客并检查其乘客列表
+        const Entity* passenger = m_world->getEntity(passengerId);
+        if (passenger != nullptr) {
+            const auto& subPassengers = passenger->getPassengers();
+            toCheck.insert(toCheck.end(), subPassengers.begin(), subPassengers.end());
+        }
+    }
+
+    return false;
+}
+
+void Entity::detach() {
+    // MC 1.16.5: Entity.detach()
+    // 先移除所有乘客，再下车
+    if (isBeingRidden()) {
+        removePassengers();
+    }
+    if (isRiding()) {
+        stopRiding();
+    }
+}
+
+f64 Entity::getMountedYOffset() const {
+    // MC 1.16.5: Entity.getMountedYOffset() -> height * 0.75D
+    return static_cast<f64>(height()) * 0.75;
 }
 
 Vector3 Entity::getRidingPosition() const {
     // 默认骑乘位置在实体顶部中心
-    return Vector3(0.0f, height(), 0.0f);
+    return Vector3(m_position.x, m_position.y + static_cast<f32>(getMountedYOffset()), m_position.z);
+}
+
+void Entity::updatePassengers() {
+    // MC 1.16.5: Entity.updatePassengers()
+    // 效率优化：提前检查世界指针，避免在循环内重复检查
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 遍历所有乘客并更新位置
+    for (EntityId passengerId : m_passengers) {
+        Entity* passenger = m_world->getEntity(passengerId);
+        if (passenger == nullptr) {
+            continue;
+        }
+
+        // 更新单个乘客位置
+        positionRider(*passenger);
+    }
+}
+
+void Entity::positionRider(Entity& passenger) {
+    // MC 1.16.5: Entity.positionRider(Entity, MoveCallback)
+
+    if (!isPassenger(passenger.id())) {
+        return;
+    }
+
+    // 计算骑乘位置
+    // MC: double d0 = this.getPosY() + this.getMountedYOffset() + passenger.getYOffset();
+    f64 y = static_cast<f64>(m_position.y) + getMountedYOffset() + passenger.getYOffset();
+
+    // 设置乘客位置
+    passenger.setPosition(m_position.x, static_cast<f32>(y), m_position.z);
+}
+
+void Entity::updateRidden() {
+    // MC 1.16.5: Entity.updateRidden()
+
+    // 设置速度为零
+    setVelocity(Vector3(0.0f, 0.0f, 0.0f));
+
+    // 执行tick
+    if (canUpdate()) {
+        tick();
+    }
+
+    // 如果还在骑乘，更新位置
+    if (isRiding()) {
+        Entity* vehicle = m_world ? m_world->getEntity(m_vehicle) : nullptr;
+        if (vehicle != nullptr) {
+            vehicle->updatePassengerPosition(*this);
+        }
+    }
+}
+
+void Entity::updatePassengerPosition(Entity& passenger) {
+    // MC 1.16.5: Entity.updatePassenger(Entity)
+    positionRider(passenger);
+}
+
+void Entity::applyOrientationToEntity(Entity& passenger) {
+    // MC 1.16.5: Entity.applyOrientationToEntity(Entity)
+    // 默认实现：同步旋转
+    // 子类（如BoatEntity）可以重写此方法以限制旋转范围
+
+    passenger.setRotation(m_yaw, passenger.pitch());
+}
+
+bool Entity::canPassengerSteer() const {
+    // MC 1.16.5: Entity.canPassengerSteer()
+    // Entity entity = this.getControllingPassenger();
+    // if (entity instanceof PlayerEntity) {
+    //     return ((PlayerEntity)entity).isUser();
+    // } else {
+    //     return !this.world.isRemote;
+    // }
+    EntityId controllerId = getControllingPassenger();
+    if (controllerId == INVALID_ENTITY_ID) {
+        return false;
+    }
+
+    // 如果有世界引用，获取控制者并检查
+    if (m_world) {
+        Entity* controller = m_world->getEntity(controllerId);
+        if (controller != nullptr) {
+            // 检查控制者是否是玩家
+            if (controller->legacyType() == LegacyEntityType::Player) {
+                // MC 1.16.5: return ((PlayerEntity)entity).isUser();
+                // 玩家需要检查是否是本地玩家
+                Player* player = dynamic_cast<Player*>(controller);
+                if (player != nullptr) {
+                    return player->isLocalPlayer();
+                }
+            }
+            // 非玩家实体：服务端可以控制，客户端不能
+            return !m_world->isClientSide();
+        }
+    }
+
+    return false;
 }
 
 bool Entity::canSee(const Entity& other) const {

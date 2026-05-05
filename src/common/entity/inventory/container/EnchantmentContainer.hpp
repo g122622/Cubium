@@ -43,14 +43,14 @@ public:
 
     /// 物品槽位置
     static constexpr i32 ITEM_SLOT_X = 15;
-    static constexpr i32 ITEM_SLOT_Y = 36;
+    static constexpr i32 ITEM_SLOT_Y = 47;
     /// 青金石槽位置
     static constexpr i32 LAPIS_SLOT_X = 35;
-    static constexpr i32 LAPIS_SLOT_Y = 36;
+    static constexpr i32 LAPIS_SLOT_Y = 47;
     /// 玩家背包起始Y位置
-    static constexpr i32 PLAYER_INV_Y = 85;
+    static constexpr i32 PLAYER_INV_Y = 84;
     /// 快捷栏Y位置
-    static constexpr i32 HOTBAR_Y = 143;
+    static constexpr i32 HOTBAR_Y = 142;
 
     // ========== 构造函数 ==========
 
@@ -100,6 +100,13 @@ public:
      * @return 附魔ID，无效返回空字符串
      */
     [[nodiscard]] String getEnchantmentClue(i32 index) const;
+
+    /**
+     * @brief 获取附魔预览ID（字符串形式）
+     * @param index 选项索引（0-2）
+     * @return 附魔ID字符串，无效返回空字符串
+     */
+    [[nodiscard]] String getEnchantmentClueId(i32 index) const;
 
     /**
      * @brief 获取附魔预览等级
@@ -164,17 +171,6 @@ private:
     i32 calculateEnchantPower() const;
 
     /**
-     * @brief 生成附魔选项
-     * @param random 随机数生成器
-     * @param itemStack 待附魔物品
-     * @param optionIndex 选项索引
-     * @param power 书架力量
-     * @return 附魔等级
-     */
-    i32 generateEnchantmentOption(math::Random& random, const ItemStack& itemStack,
-                                  i32 optionIndex, i32 power);
-
-    /**
      * @brief 检查方块是否为有效书架
      * @param pos 书架位置
      * @return 如果是有效书架返回true
@@ -188,12 +184,19 @@ private:
      */
     [[nodiscard]] bool isAirBlock(const BlockPos& pos) const;
 
+    /**
+     * @brief 更新附魔种子
+     * @param player 玩家
+     */
+    void updateEnchantmentSeed(Player& player);
+
 private:
     std::unique_ptr<IInventory> m_enchantmentInventory; ///< 附魔台背包
     BlockPos m_position;                                 ///< 附魔台位置
     IWorld* m_world;                                     ///< 世界指针
     i32 m_enchantPower = 0;                              ///< 书架力量
     i64 m_enchantmentSeed = 0;                           ///< 附魔种子
+    mutable math::Random m_random;                       ///< 随机数生成器
 
     /// 附魔选项等级（3个）
     std::array<i32, ENCHANTMENT_OPTIONS> m_enchantmentLevels = {0, 0, 0};

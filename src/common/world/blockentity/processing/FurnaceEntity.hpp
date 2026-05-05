@@ -51,6 +51,11 @@ protected:
     [[nodiscard]] crafting::RecipeType getRecipeType() const override {
         return crafting::RecipeType::Smelting;
     }
+
+    /**
+     * @brief 获取火苗噼啪声
+     */
+    [[nodiscard]] const ResourceLocation& getFireCrackleSound() const override;
 };
 
 } // namespace blockentity

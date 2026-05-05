@@ -84,15 +84,39 @@ AnimalEntity
 
 ## 接口实现
 
-| 实体 | IRideable | IJumpingMount |
-|------|-----------|---------------|
-| AbstractHorseEntity | ✅ | ✅ |
-| HorseEntity | 继承 | 继承 |
-| DonkeyEntity | 继承 | 继承 |
-| MuleEntity | 继承 | 继承 |
-| SkeletonHorseEntity | 继承 | 继承 |
-| ZombieHorseEntity | 继承 | 继承 |
-| LlamaEntity | 继承 | 继承 |
+| 实体 | IRideable | IJumpingMount | IEquipable |
+|------|-----------|---------------|------------|
+| AbstractHorseEntity | ✅ | ✅ | ✅ |
+| HorseEntity | 继承 | 继承 | 继承 |
+| DonkeyEntity | 继承 | 继承 | 继承 |
+| MuleEntity | 继承 | 继承 | 继承 |
+| SkeletonHorseEntity | 继承 | 继承 | 继承 |
+| ZombieHorseEntity | 继承 | 继承 | 继承 |
+| LlamaEntity | 继承 | 继承 | 继承 |
+
+### IEquipable 接口
+
+`IEquipable` 接口提供装备槽管理功能：
+
+```cpp
+class IEquipable {
+public:
+    virtual i32 getEquipmentSlotCount() const = 0;
+    virtual ItemStack getEquipment(i32 slot) const = 0;
+    virtual void setEquipment(i32 slot, const ItemStack& item) = 0;
+    virtual bool canEquip(const ItemStack& item, i32 slot) const = 0;
+};
+```
+
+马类实现：
+- 槽位 0: 鞍
+- 槽位 1: 马铠
+
+### 数据同步
+
+马类实体使用 `DataParameter` 同步状态：
+- `STATUS_PARAM`: 鞍、驯服、繁殖、进食、扬蹄、张嘴状态
+- `OWNER_UUID_PARAM`: 主人 UUID
 
 ## 使用示例
 

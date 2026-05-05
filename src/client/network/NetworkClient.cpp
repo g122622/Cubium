@@ -354,6 +354,42 @@ void NetworkClient::sendCloseContainer(ContainerId containerId) {
     sendRawData(fullPacket.data(), fullPacket.size());
 }
 
+void NetworkClient::sendPlayerInput(f32 strafeSpeed, f32 forwardSpeed, bool jumping, bool sneaking) {
+    network::PlayerInputPacket packet;
+    packet.setStrafeSpeed(strafeSpeed);
+    packet.setForwardSpeed(forwardSpeed);
+    packet.setJumping(jumping);
+    packet.setSneaking(sneaking);
+
+    auto result = packet.serialize();
+    if (result.success()) {
+        sendRawData(result.value().data(), result.value().size());
+    }
+}
+
+void NetworkClient::sendMoveVehicle(f64 x, f64 y, f64 z, f32 yaw, f32 pitch) {
+    network::MoveVehiclePacket packet;
+    packet.setPosition(x, y, z);
+    packet.setRotation(yaw, pitch);
+
+    auto result = packet.serialize();
+    if (result.success()) {
+        sendRawData(result.value().data(), result.value().size());
+    }
+}
+
+void NetworkClient::sendEntityAction(network::EntityActionType action, i32 auxData) {
+    network::EntityActionPacket packet;
+    packet.setEntityId(static_cast<u32>(m_playerId));
+    packet.setAction(action);
+    packet.setAuxData(auxData);
+
+    auto result = packet.serialize();
+    if (result.success()) {
+        sendRawData(result.value().data(), result.value().size());
+    }
+}
+
 void NetworkClient::poll() {
     if (!m_running) return;
 

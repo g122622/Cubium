@@ -29,6 +29,17 @@ processing/
 - 红石比较器信号
 - 锁定功能（继承自LockableBlockEntity）
 - **ISidedInventory 接口支持**
+- **火苗噼啪音效**（燃烧时 1/20 概率播放）
+
+**火苗噼啪音效（MC 1.16.5 对齐）**：
+```cpp
+// AbstractFurnaceEntity::tick() 中实现
+if (isBurning()) {
+    if (!world.isClientSide() && world.getRandom().nextInt(20) == 0) {
+        world.playSound(getFireCrackleSound(), SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+    }
+}
+```
 
 **槽位访问规则（ISidedInventory）**：
 - 上方 (Direction::Up)：输入槽（槽位 0）

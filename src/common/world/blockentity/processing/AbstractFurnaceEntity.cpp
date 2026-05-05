@@ -3,6 +3,8 @@
 #include "item/Items.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "util/assert/AssertAll.hpp"
 #include <algorithm>
 
@@ -10,16 +12,20 @@ namespace mc {
 namespace blockentity {
 
 namespace {
-    /**
-     * @brief 获取指定物品的燃烧时间。
-     *
-     * 参考: MC 1.16.5 AbstractFurnaceTileEntity 燃烧时间表
-     * 燃烧时间单位：tick
-     *
-     * 注意：部分物品（煤炭块、岩浆桶等）尚未在 Items 中注册，
-     * 待相关物品添加后需补充。
-     */
-    [[nodiscard]] i32 getBurnTimeByItem(const Item* item) {
+
+/// 火苗噼啪声概率 (MC 1.16.5: 1/20 per tick when burning)
+constexpr i32 FIRE_CRACKLE_CHANCE = 20;
+
+/**
+ * @brief 获取指定物品的燃烧时间。
+ *
+ * 参考: MC 1.16.5 AbstractFurnaceTileEntity 燃烧时间表
+ * 燃烧时间单位：tick
+ *
+ * 注意：部分物品（煤炭块、岩浆桶等）尚未在 Items 中注册，
+ * 待相关物品添加后需补充。
+ */
+[[nodiscard]] i32 getBurnTimeByItem(const Item* item) {
         if (item == nullptr) {
             return 0;
         }
@@ -95,6 +101,19 @@ void AbstractFurnaceEntity::tick(IWorld& world) {
 
     if (isBurning()) {
         --m_burnTime;
+
+        // MC 1.16.5: 火苗噼啪声 - 燃烧时随机播放
+        // 参考: AbstractFurnaceTileEntity.tick() 中 world.playSound 调用
+        if (!world.isClientSide() && world.getRandom().nextInt(FIRE_CRACKLE_CHANCE) == 0) {
+            ResourceLocation soundEvent = getFireCrackleSound();
+            world.playSound(
+                soundEvent,
+                sound::SoundCategory::Blocks,
+                m_pos.center(),
+                1.0f,
+                1.0f
+            );
+        }
     }
 
     ItemStack fuelItem = m_inventory.getFuelItem();

@@ -3,11 +3,14 @@
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/core/Item.hpp"
+#include "item/Items.hpp"
 #include "item/enchantment/EnchantmentRegistry.hpp"
 #include "item/enchantment/EnchantmentHelper.hpp"
 #include "network/packet/PacketSerializer.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include <algorithm>
 
 namespace mc {
 
@@ -93,8 +96,17 @@ public:
         : Slot(inventory, slotIndex, x, y) {}
 
     bool mayPlace(const ItemStack& stack) const override {
+        if (stack.isEmpty() || stack.getItem() == nullptr) {
+            return false;
+        }
         // 只接受可附魔的物品
-        return !stack.isEmpty() && stack.getItem() != nullptr;
+        i32 enchantability = stack.getItem()->getItemEnchantability();
+        return enchantability > 0;
+    }
+
+    i32 getMaxStackSize(const ItemStack& stack) const override {
+        // 附魔物品只能放一个
+        return 1;
     }
 };
 
@@ -109,7 +121,7 @@ public:
     bool mayPlace(const ItemStack& stack) const override {
         // 只接受青金石
         return !stack.isEmpty() && stack.getItem() != nullptr &&
-               stack.getItem()->itemLocation().toString() == "minecraft:lapis_lazuli";
+               stack.getItem() == Items::LAPIS_LAZULI;
     }
 };
 
@@ -124,7 +136,8 @@ EnchantmentContainer::EnchantmentContainer(ContainerId id,
     : AbstractContainerMenu(id, playerInventory)
     , m_enchantmentInventory(std::make_unique<EnchantmentInventory>())
     , m_position(position)
-    , m_world(world) {
+    , m_world(world)
+    , m_random(0) {  // 初始化随机数生成器，种子稍后设置
     initSlots(playerInventory);
     m_enchantPower = calculateEnchantPower();
 }
@@ -159,6 +172,10 @@ String EnchantmentContainer::getEnchantmentClue(i32 index) const {
         return m_enchantmentClues[index];
     }
     return "";
+}
+
+String EnchantmentContainer::getEnchantmentClueId(i32 index) const {
+    return getEnchantmentClue(index);
 }
 
 i32 EnchantmentContainer::getEnchantmentWorldClue(i32 index) const {
@@ -203,43 +220,76 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex) {
         return false;
     }
 
+    // MC 1.16.5: 消耗的经验等级为选项索引+1
+    // 消耗青金石数量也为选项索引+1
+    i32 cost = optionIndex + 1;
+
     // 消耗青金石
-    i32 lapisNeeded = optionIndex + 1;
     ItemStack lapis = m_enchantmentInventory->getItem(SLOT_LAPIS);
-    lapis.shrink(lapisNeeded);
+    lapis.shrink(cost);
     m_enchantmentInventory->setItem(SLOT_LAPIS, lapis);
 
-    // 消耗玩家经验
-    player.addExperienceLevels(-level);
+    // 消耗玩家经验（创造模式不消耗）
+    // TODO: 检查玩家是否是创造模式
+    // if (!player.isCreativeMode()) {
+    player.addExperienceLevels(-cost);
+    // }
 
-    // 应用附魔
+    // 获取物品
     ItemStack item = m_enchantmentInventory->getItem(SLOT_ITEM);
-    if (!item.isEmpty() && m_enchantmentClues[optionIndex] != "") {
-        // 添加附魔到物品
-        item.addEnchantment(m_enchantmentClues[optionIndex], m_enchantmentWorldClues[optionIndex]);
-        m_enchantmentInventory->setItem(SLOT_ITEM, item);
+    if (item.isEmpty()) {
+        return false;
     }
 
-    // 重置附魔选项
+    // 使用确定性的种子重新生成附魔列表
+    // 参考 MC 1.16.5: rand.setSeed(xpSeed + optionIndex)
+    math::Random enchantRandom(m_enchantmentSeed + optionIndex);
+
+    // 构建附魔列表
+    auto enchantments = item::enchant::EnchantmentHelper::buildEnchantmentList(
+        enchantRandom, item, level, false);
+
+    if (enchantments.empty()) {
+        // 如果没有可用附魔，仍然更新种子
+        updateEnchantmentSeed(player);
+        updateEnchantmentOptions();
+        return true;
+    }
+
+    // 检查是否是书 -> 附魔书转换
+    bool isBook = item.getItem() != nullptr &&
+                  item.getItem() == Items::BOOK;
+
+    if (isBook) {
+        // 转换为附魔书
+        // TODO: 创建附魔书物品
+    }
+
+    // 应用所有附魔
+    for (const auto& data : enchantments) {
+        if (data.enchantment != nullptr && data.level > 0) {
+            item.addEnchantment(data.enchantment->id(), data.level);
+        }
+    }
+
+    m_enchantmentInventory->setItem(SLOT_ITEM, item);
+
+    // 更新种子
+    updateEnchantmentSeed(player);
     updateEnchantmentOptions();
 
     return true;
 }
 
 bool EnchantmentContainer::stillValid(const Player& player) const {
-    // 检查玩家是否在附魔台附近（4格范围内）
-    constexpr f32 VALID_DISTANCE_SQ = 16.0f * 16.0f;  // 16格距离的平方
-    // TODO: 当Player有getPosition方法后实现距离检查
-    // math::Vec3 playerPos = player.getPosition();
-    // math::Vec3 tablePos(m_position.x + 0.5f, m_position.y + 0.5f, m_position.z + 0.5f);
-    // f32 distSq = playerPos.distanceSquared(tablePos);
-    // return distSq <= VALID_DISTANCE_SQ;
-    (void)player;
-    return true;
+    // MC 1.16.5: 检查玩家是否在附魔台附近（64格范围内）
+    // 参考: net.minecraft.inventory.container.EnchantmentContainer.canInteractWith
+    return isWithinDistance(player, m_position);
 }
 
 void EnchantmentContainer::slotsChanged(IInventory* inventory) {
     if (inventory == m_enchantmentInventory.get()) {
+        // 物品变化时更新附魔选项
         updateEnchantmentOptions();
     }
     AbstractContainerMenu::slotsChanged(inventory);
@@ -264,16 +314,16 @@ ItemStack EnchantmentContainer::quickMoveStack(i32 slotIndex, Player& player) {
     } else {
         // 从玩家背包移动到附魔台
         // 尝试放入青金石槽
-        if (slotStack.getItem() && slotStack.getItem()->itemLocation().toString() == "minecraft:lapis_lazuli") {
-            if (!moveItemToRange(slotStack, SLOT_LAPIS, SLOT_LAPIS, false)) {
+        if (slotStack.getItem() && slotStack.getItem() == Items::LAPIS_LAZULI) {
+            if (!moveItemToRange(slotStack, SLOT_LAPIS, SLOT_LAPIS + 1, false)) {
                 // 尝试放入物品槽
-                if (!moveItemToRange(slotStack, SLOT_ITEM, SLOT_ITEM, false)) {
+                if (!moveItemToRange(slotStack, SLOT_ITEM, SLOT_ITEM + 1, false)) {
                     return ItemStack();
                 }
             }
         } else {
             // 放入物品槽
-            if (!moveItemToRange(slotStack, SLOT_ITEM, SLOT_ITEM, false)) {
+            if (!moveItemToRange(slotStack, SLOT_ITEM, SLOT_ITEM + 1, false)) {
                 return ItemStack();
             }
         }
@@ -301,28 +351,34 @@ void EnchantmentContainer::updateEnchantmentOptions() {
     // 计算书架力量
     m_enchantPower = calculateEnchantPower();
 
-    // 使用附魔种子生成附魔选项
-    // 附魔种子会在每次放入新物品时随机变化
-    math::Random random(m_enchantmentSeed);
+    // 使用种子生成附魔选项
+    // 参考 MC 1.16.5: rand.setSeed(xpSeed)
+    m_random.setSeed(m_enchantmentSeed);
 
     for (i32 i = 0; i < ENCHANTMENT_OPTIONS; ++i) {
-        m_enchantmentLevels[i] = generateEnchantmentOption(random, item, i, m_enchantPower);
+        // 计算附魔等级
+        m_enchantmentLevels[i] = item::enchant::EnchantmentHelper::calcItemStackEnchantability(
+            m_random, i, m_enchantPower, item);
 
-        // 生成附魔预览（实际游戏中是从可用附魔中随机选择）
-        // 这里简化处理：根据槽位生成一个预设的附魔
+        // 生成附魔预览
         if (m_enchantmentLevels[i] > 0) {
-            // 生成一个随机的附魔提示
-            // 实际MC中这是从物品可用的附魔中根据权重随机选择
-            auto availableEnchants = item::enchant::EnchantmentHelper::getEnchantments(item);
-            if (!availableEnchants.empty()) {
-                // 如果物品已有附魔，选择一个兼容的附魔升级
-                const auto& [ench, level] = availableEnchants[0];
-                m_enchantmentClues[i] = ench->id();
-                m_enchantmentWorldClues[i] = std::min(level + 1, ench->maxLevel());
+            // 参考 MC 1.16.5: getEnchantmentList 使用 xpSeed + slot 作为种子
+            // 这样每个槽位的预览是确定性的
+            m_random.setSeed(m_enchantmentSeed + i);
+            auto enchantments = item::enchant::EnchantmentHelper::buildEnchantmentList(
+                m_random, item, m_enchantmentLevels[i], false);
+
+            if (!enchantments.empty()) {
+                // 只显示第一个附魔作为预览
+                const auto& first = enchantments[0];
+                if (first.enchantment != nullptr) {
+                    m_enchantmentClues[i] = first.enchantment->id();
+                    m_enchantmentWorldClues[i] = first.level;
+                } else {
+                    m_enchantmentClues[i] = "";
+                    m_enchantmentWorldClues[i] = 0;
+                }
             } else {
-                // 物品没有附魔时，选择一个随机的基础附魔
-                // 简化处理：不生成附魔预览，实际游戏中会根据物品类型选择兼容的附魔
-                // 完整实现需要EnchantmentRegistry::getAvailableForItem()方法
                 m_enchantmentClues[i] = "";
                 m_enchantmentWorldClues[i] = 0;
             }
@@ -331,6 +387,15 @@ void EnchantmentContainer::updateEnchantmentOptions() {
             m_enchantmentWorldClues[i] = 0;
         }
     }
+
+    // 同步变化到客户端
+    detectAndSendChanges();
+}
+
+void EnchantmentContainer::updateEnchantmentSeed(Player& player) {
+    // 使用玩家的 XP 种子更新附魔种子
+    // 参考 MC 1.16.5: container.xpSeed = player.getXPSeed()
+    m_enchantmentSeed = static_cast<i64>(player.xpSeed());
 }
 
 i32 EnchantmentContainer::calculateEnchantPower() const {
@@ -341,26 +406,53 @@ i32 EnchantmentContainer::calculateEnchantPower() const {
     i32 power = 0;
     BlockPos tablePos = m_position;
 
-    // 检查附魔台周围2格范围内的书架
-    for (i32 dx = -2; dx <= 2; ++dx) {
-        for (i32 dz = -2; dz <= 2; ++dz) {
+    // MC 1.16.5 附魔台书架检测逻辑
+    // 检查附魔台周围2格范围内（5x5区域）的书架
+    // 书架必须满足：与附魔台距离为2，中间有空隙
+
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        for (i32 dz = -1; dz <= 1; ++dz) {
             if (dx == 0 && dz == 0) continue;
 
-            // 检查两层高度
+            // 检查两层高度（0和1层）
+            // 中间必须有空气
+            bool hasAirGap = true;
             for (i32 dy = 0; dy <= 1; ++dy) {
-                BlockPos checkPos(tablePos.x + dx, tablePos.y + dy, tablePos.z + dz);
+                BlockPos airPos(tablePos.x + dx, tablePos.y + dy, tablePos.z + dz);
+                if (!isAirBlock(airPos)) {
+                    hasAirGap = false;
+                    break;
+                }
+            }
 
-                // 检查书架和附魔台之间是否有空气
-                i32 airX = tablePos.x + (dx > 0 ? 1 : (dx < 0 ? -1 : 0));
-                i32 airZ = tablePos.z + (dz > 0 ? 1 : (dz < 0 ? -1 : 0));
-                BlockPos airPos1(airX, tablePos.y, airZ);
-                BlockPos airPos2(airX, tablePos.y + 1, airZ);
+            if (!hasAirGap) continue;
 
-                // 检查是否为有效书架
-                if (isValidBookshelf(checkPos) &&
-                    isAirBlock(airPos1) &&
-                    isAirBlock(airPos2)) {
+            // 检查书架（距离为2）
+            // 角落位置有额外的书架检测
+            i32 dx2 = dx * 2;
+            i32 dz2 = dz * 2;
+
+            // 主要书架位置
+            for (i32 dy = 0; dy <= 1; ++dy) {
+                BlockPos shelfPos(tablePos.x + dx2, tablePos.y + dy, tablePos.z + dz2);
+                if (isValidBookshelf(shelfPos)) {
                     power++;
+                }
+            }
+
+            // 角落位置额外书架
+            if (dx != 0 && dz != 0) {
+                // 角落有三个额外的书架位置
+                for (i32 dy = 0; dy <= 1; ++dy) {
+                    BlockPos shelfPos1(tablePos.x + dx2, tablePos.y + dy, tablePos.z + dz);
+                    BlockPos shelfPos2(tablePos.x + dx, tablePos.y + dy, tablePos.z + dz2);
+
+                    if (isValidBookshelf(shelfPos1)) {
+                        power++;
+                    }
+                    if (isValidBookshelf(shelfPos2)) {
+                        power++;
+                    }
                 }
             }
         }
@@ -381,7 +473,7 @@ bool EnchantmentContainer::isValidBookshelf(const BlockPos& pos) const {
 
     // 检查是否为书架
     const Block& block = blockState->getBlock();
-    return block.blockLocation().toString() == "minecraft:bookshelf";
+    return &block == VanillaBlocks::BOOKSHELF;
 }
 
 bool EnchantmentContainer::isAirBlock(const BlockPos& pos) const {
@@ -389,42 +481,10 @@ bool EnchantmentContainer::isAirBlock(const BlockPos& pos) const {
         return false;
     }
     const BlockState* blockState = m_world->getBlockState(pos);
-    return blockState && blockState->getBlock().blockLocation().toString() == "minecraft:air";
-}
-
-i32 EnchantmentContainer::generateEnchantmentOption(math::Random& random,
-                                                   const ItemStack& item,
-                                                   i32 optionIndex,
-                                                   i32 power) {
-    if (item.isEmpty()) {
-        return 0;
+    if (!blockState) {
+        return true;  // 未加载的区块视为空气
     }
-
-    // MC 1.16.5 附魔等级计算公式
-    i32 enchantability = 10;  // 默认物品可附魔度
-    if (item.getItem()) {
-        // TODO: 获取物品的可附魔度
-        enchantability = 10;
-    }
-
-    if (enchantability <= 0) {
-        return 0;
-    }
-
-    // 基础附魔等级
-    i32 base = random.nextInt(8) + 1 + (power >> 1) + random.nextInt(power + 1);
-
-    // 根据槽位调整
-    switch (optionIndex) {
-        case 0:
-            return std::max(base / 3, 1);
-        case 1:
-            return base * 2 / 3 + 1;
-        case 2:
-            return std::max(base, power * 2);
-        default:
-            return 0;
-    }
+    return blockState->getBlock().isAir(*blockState);
 }
 
 } // namespace mc

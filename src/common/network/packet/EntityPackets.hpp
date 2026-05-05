@@ -495,4 +495,194 @@ private:
     i32 m_pickupItemCount = 1;     // 拾取物品数量
 };
 
+// ============================================================================
+// 玩家输入包 (客户端 -> 服务端)
+// ============================================================================
+
+/**
+ * @brief 玩家输入包
+ *
+ * 客户端发送玩家的移动输入给服务端，用于骑乘控制。
+ * 包含前后左右移动、跳跃和潜行状态。
+ *
+ * 参考 MC 1.16.5 CInputPacket
+ */
+class PlayerInputPacket : public Packet {
+public:
+    PlayerInputPacket() : Packet(PacketType::PlayerInput) {}
+
+    [[nodiscard]] Result<std::vector<u8>> serialize() const override;
+    [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
+
+    /**
+     * @brief 获取左右移动速度
+     * @return 正值表示向左，负值表示向右
+     */
+    f32 strafeSpeed() const { return m_strafeSpeed; }
+    void setStrafeSpeed(f32 speed) { m_strafeSpeed = speed; }
+
+    /**
+     * @brief 获取前后移动速度
+     * @return 正值表示前进，负值表示后退
+     */
+    f32 forwardSpeed() const { return m_forwardSpeed; }
+    void setForwardSpeed(f32 speed) { m_forwardSpeed = speed; }
+
+    /**
+     * @brief 是否正在跳跃
+     */
+    bool isJumping() const { return m_jumping; }
+    void setJumping(bool jumping) { m_jumping = jumping; }
+
+    /**
+     * @brief 是否正在潜行
+     */
+    bool isSneaking() const { return m_sneaking; }
+    void setSneaking(bool sneaking) { m_sneaking = sneaking; }
+
+private:
+    f32 m_strafeSpeed = 0.0f;   // 左右移动 (正值=左, 负值=右)
+    f32 m_forwardSpeed = 0.0f;  // 前后移动 (正值=前, 负值=后)
+    bool m_jumping = false;      // 跳跃状态
+    bool m_sneaking = false;     // 潜行状态
+};
+
+// ============================================================================
+// 载具移动包 (客户端 -> 服务端)
+// ============================================================================
+
+/**
+ * @brief 载具移动包
+ *
+ * 客户端发送载具（马、船、矿车等）的位置和旋转给服务端。
+ * 当玩家骑乘载具时，客户端每tick发送此包同步载具位置。
+ *
+ * 参考 MC 1.16.5 CMoveVehiclePacket
+ */
+class MoveVehiclePacket : public Packet {
+public:
+    MoveVehiclePacket() : Packet(PacketType::MoveVehicle) {}
+
+    [[nodiscard]] Result<std::vector<u8>> serialize() const override;
+    [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
+
+    // 位置
+    f64 x() const { return m_x; }
+    f64 y() const { return m_y; }
+    f64 z() const { return m_z; }
+    void setPosition(f64 x, f64 y, f64 z) { m_x = x; m_y = y; m_z = z; }
+
+    // 旋转（角度）
+    f32 yaw() const { return m_yaw; }
+    f32 pitch() const { return m_pitch; }
+    void setRotation(f32 yaw, f32 pitch) { m_yaw = yaw; m_pitch = pitch; }
+
+private:
+    f64 m_x = 0.0;
+    f64 m_y = 0.0;
+    f64 m_z = 0.0;
+    f32 m_yaw = 0.0f;
+    f32 m_pitch = 0.0f;
+};
+
+// ============================================================================
+// 载具移动同步包 (服务端 -> 客户端)
+// ============================================================================
+
+/**
+ * @brief 载具移动同步包
+ *
+ * 服务端向客户端同步载具的位置和旋转。
+ * 当服务端校正载具位置时发送此包。
+ *
+ * 参考 MC 1.16.5 SMoveVehiclePacket
+ */
+class VehicleMovePacket : public Packet {
+public:
+    VehicleMovePacket() : Packet(PacketType::VehicleMove) {}
+
+    [[nodiscard]] Result<std::vector<u8>> serialize() const override;
+    [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
+
+    // 位置
+    f64 x() const { return m_x; }
+    f64 y() const { return m_y; }
+    f64 z() const { return m_z; }
+    void setPosition(f64 x, f64 y, f64 z) { m_x = x; m_y = y; m_z = z; }
+
+    // 旋转（角度）
+    f32 yaw() const { return m_yaw; }
+    f32 pitch() const { return m_pitch; }
+    void setRotation(f32 yaw, f32 pitch) { m_yaw = yaw; m_pitch = pitch; }
+
+private:
+    f64 m_x = 0.0;
+    f64 m_y = 0.0;
+    f64 m_z = 0.0;
+    f32 m_yaw = 0.0f;
+    f32 m_pitch = 0.0f;
+};
+
+// ============================================================================
+// 实体动作包 (客户端 -> 服务端)
+// ============================================================================
+
+/**
+ * @brief 实体动作类型枚举
+ *
+ * 参考 MC 1.16.5 CEntityActionPacket.Action
+ */
+enum class EntityActionType : i32 {
+    PressShiftKey = 0,      // 按下潜行键
+    ReleaseShiftKey = 1,    // 释放潜行键
+    StopSleeping = 2,       // 停止睡觉
+    StartSprinting = 3,     // 开始疾跑
+    StopSprinting = 4,      // 停止疾跑
+    StartRidingJump = 5,    // 开始骑乘跳跃（马跳跃蓄力）
+    StopRidingJump = 6,     // 停止骑乘跳跃（马跳跃释放）
+    OpenInventory = 7,      // 打开背包
+    StartFallFlying = 8     // 开始滑翔（鞘翅）
+};
+
+/**
+ * @brief 实体动作包
+ *
+ * 客户端发送实体动作给服务端。
+ * 用于潜行、疾跑、马跳跃蓄力等动作。
+ *
+ * 参考 MC 1.16.5 CEntityActionPacket
+ */
+class EntityActionPacket : public Packet {
+public:
+    EntityActionPacket() : Packet(PacketType::EntityAction) {}
+
+    [[nodiscard]] Result<std::vector<u8>> serialize() const override;
+    [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
+
+    /**
+     * @brief 获取实体ID
+     */
+    u32 entityId() const { return m_entityId; }
+    void setEntityId(u32 id) { m_entityId = id; }
+
+    /**
+     * @brief 获取动作类型
+     */
+    EntityActionType action() const { return m_action; }
+    void setAction(EntityActionType action) { m_action = action; }
+
+    /**
+     * @brief 获取辅助数据
+     *
+     * 对于 StartRidingJump，表示跳跃力度 (0-100)
+     */
+    i32 auxData() const { return m_auxData; }
+    void setAuxData(i32 data) { m_auxData = data; }
+
+private:
+    u32 m_entityId = 0;
+    EntityActionType m_action = EntityActionType::PressShiftKey;
+    i32 m_auxData = 0;
+};
+
 } // namespace mc::network

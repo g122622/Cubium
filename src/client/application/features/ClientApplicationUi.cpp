@@ -267,8 +267,19 @@ void ClientApplication::handleMouseAndMovementInput()
     if (m_input.isKeyPressed(GLFW_KEY_SPACE)) jumping = true;
     if (m_input.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) sneaking = true;
 
-    // 传递输入给玩家
-    m_player->handleMovementInput(forward, strafe, jumping, sneaking);
+    // 检查玩家是否正在骑乘
+    // MC 1.16.5: 当玩家骑乘载具时，输入需要发送到服务器以控制载具
+    if (m_player->isRiding() && m_networkClient && m_networkClient->isLoggedIn()) {
+        // 骑乘状态：发送 PlayerInputPacket 到服务器
+        m_networkClient->sendPlayerInput(strafe, forward, jumping, sneaking);
+
+        // 同时发送 MoveVehiclePacket 同步载具位置
+        const auto& pos = m_player->position();
+        m_networkClient->sendMoveVehicle(pos.x, pos.y, pos.z, m_player->yaw(), m_player->pitch());
+    } else {
+        // 正常状态：传递输入给玩家进行本地移动
+        m_player->handleMovementInput(forward, strafe, jumping, sneaking);
+    }
 
     // 滚轮选择物品栏槽位（scrollDeltaY 返回 f64）
     const f64 scrollDelta = m_input.scrollDeltaY();

@@ -115,6 +115,16 @@ public:
     [[nodiscard]] virtual EnchantmentRarity rarity() const { return EnchantmentRarity::Common; }
 
     /**
+     * @brief 获取稀有度对应的权重
+     *
+     * 用于附魔台加权随机选择。
+     * 普通=10, 稀有=5, 罕见=2, 极罕见=1
+     *
+     * @return 权重值
+     */
+    [[nodiscard]] i32 rarityWeight() const { return getRarityWeight(rarity()); }
+
+    /**
      * @brief 是否为宝藏附魔
      * @return 如果只能从箱子或交易获得返回true
      */
@@ -134,6 +144,18 @@ public:
      * @return 如果可以应用返回true
      */
     [[nodiscard]] virtual bool canApplyTo(u32 itemType) const;
+
+    /**
+     * @brief 检查附魔是否可以应用到物品堆
+     *
+     * 这是铁砧合并附魔时使用的方法。
+     * 默认实现调用 canApplyAtEnchantingTable。
+     * 参考: net.minecraft.enchantment.Enchantment.canApply
+     *
+     * @param stack 物品堆
+     * @return 如果可以应用返回true
+     */
+    [[nodiscard]] virtual bool canApply(const ItemStack& stack) const;
 
     /**
      * @brief 检查是否可以在附魔台获得

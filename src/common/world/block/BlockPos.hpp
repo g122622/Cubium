@@ -122,6 +122,37 @@ public:
         return std::abs(x - other.x) + std::abs(y - other.y) + std::abs(z - other.z);
     }
 
+    /**
+     * @brief 计算到另一个位置的欧几里得距离平方
+     *
+     * 使用 i64 避免大坐标溢出。
+     *
+     * @param other 另一个位置
+     * @return 距离的平方
+     */
+    [[nodiscard]] i64 distanceSq(const BlockPos& other) const noexcept
+    {
+        const i64 dx = static_cast<i64>(x) - static_cast<i64>(other.x);
+        const i64 dy = static_cast<i64>(y) - static_cast<i64>(other.y);
+        const i64 dz = static_cast<i64>(z) - static_cast<i64>(other.z);
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    /**
+     * @brief 计算到另一个位置的水平距离平方（仅 XZ）
+     *
+     * 使用 i64 避免大坐标溢出。
+     *
+     * @param other 另一个位置
+     * @return 水平距离的平方
+     */
+    [[nodiscard]] i64 distanceHorizontalSq(const BlockPos& other) const noexcept
+    {
+        const i64 dx = static_cast<i64>(x) - static_cast<i64>(other.x);
+        const i64 dz = static_cast<i64>(z) - static_cast<i64>(other.z);
+        return dx * dx + dz * dz;
+    }
+
     // 获取相邻方块
     [[nodiscard]] BlockPos up(i32 offset = 1) const noexcept { return {x, y + offset, z}; }
     [[nodiscard]] BlockPos down(i32 offset = 1) const noexcept { return {x, y - offset, z}; }

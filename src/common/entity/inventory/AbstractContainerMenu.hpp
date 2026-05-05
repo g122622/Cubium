@@ -8,10 +8,11 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace mc {
 
-// 拖拽相关常量 (MC 1.16.5)
+// 拖拽相关常量 (MC 1.16.5 对齐)
 namespace DragConstants {
     constexpr i32 EVENT_MASK = 0x3;          // button 低2位是拖拽事件
     constexpr i32 MODE_SHIFT = 2;            // button 高位是拖拽模式的位移
@@ -24,7 +25,76 @@ namespace DragConstants {
     constexpr i32 MODE_EVEN = 0;             // 均匀分发 (左键)
     constexpr i32 MODE_SINGLE = 1;           // 逐个分发 (右键)
     constexpr i32 MODE_FILL = 2;             // 全部分发 (中键，仅创造模式)
+
+    constexpr i32 DRAG_MODE_NONE = -1;       // 未开始拖拽
 }
+
+// Forward declarations
+class Player;
+
+/**
+ * @brief 物品丢弃回调类型
+ *
+ * 当物品需要丢弃到世界中时调用此回调。
+ * @param stack 要丢弃的物品堆
+ * @param player 触发丢弃的玩家
+ * @param retainOwnership 是否保留所有权（如创造模式删除）
+ */
+using ItemDropCallback = std::function<void(const ItemStack& stack, Player& player, bool retainOwnership)>;
+
+/**
+ * @brief 整型引用持有者
+ *
+ * 用于容器中整型数据的同步（如熔炉燃烧进度、酿造时间等）。
+ * 参考: net.minecraft.inventory.container.IntReferenceHolder
+ */
+class IntReferenceHolder {
+public:
+    virtual ~IntReferenceHolder() = default;
+
+    /**
+     * @brief 获取当前值
+     */
+    [[nodiscard]] virtual i32 get() const = 0;
+
+    /**
+     * @brief 设置值
+     */
+    virtual void set(i32 value) = 0;
+
+    /**
+     * @brief 检查是否已修改
+     */
+    [[nodiscard]] virtual bool isDirty() const {
+        i32 current = get();
+        bool dirty = current != m_lastValue;
+        m_lastValue = current;
+        return dirty;
+    }
+
+private:
+    mutable i32 m_lastValue = 0;
+};
+
+/**
+ * @brief 基于函数的整型引用持有者
+ */
+class FunctionalIntReferenceHolder : public IntReferenceHolder {
+public:
+    using Getter = std::function<i32()>;
+    using Setter = std::function<void(i32)>;
+
+    FunctionalIntReferenceHolder(Getter getter, Setter setter)
+        : m_getter(std::move(getter))
+        , m_setter(std::move(setter)) {}
+
+    [[nodiscard]] i32 get() const override { return m_getter(); }
+    void set(i32 value) override { m_setter(value); }
+
+private:
+    Getter m_getter;
+    Setter m_setter;
+};
 
 class Player;
 class PlayerInventory;
@@ -33,6 +103,7 @@ class ItemStack;
 class Slot;
 class Container;
 class BlockEntity;
+class BlockPos;
 
 /**
  * @brief 容器菜单基类
@@ -154,11 +225,49 @@ public:
     void setCarriedItem(const ItemStack& stack);
 
     /**
+     * @brief 设置物品丢弃回调
+     * @param callback 回调函数
+     *
+     * 当物品需要丢弃到世界中时调用此回调。
+     * 上层（ServerWorld/IntegratedServer）应注入实现来生成物品实体。
+     */
+    void setItemDropCallback(ItemDropCallback callback) {
+        m_itemDropCallback = std::move(callback);
+    }
+
+    /**
+     * @brief 获取物品丢弃回调
+     * @return 回调函数
+     */
+    [[nodiscard]] const ItemDropCallback& getItemDropCallback() const {
+        return m_itemDropCallback;
+    }
+
+    /**
+     * @brief 丢弃物品到世界
+     * @param stack 要丢弃的物品堆
+     * @param player 触发丢弃的玩家
+     * @param retainOwnership 是否保留所有权（如创造模式删除）
+     *
+     * 如果设置了丢弃回调，则调用回调；否则什么都不做。
+     */
+    void dropItem(const ItemStack& stack, Player& player, bool retainOwnership = false);
+
+    /**
      * @brief 广播容器变化
      *
      * 同步状态到所有观察者（客户端）。
+     * 只通知实际变化的槽位，优化网络同步效率。
      */
     virtual void broadcastChanges();
+
+    /**
+     * @brief 检测并发送所有变化
+     *
+     * 比较 m_lastSlotStates 和当前槽位状态，只发送变化的槽位。
+     * 同时检查 IntReferenceHolder 的变化。
+     */
+    void detectAndSendChanges();
 
     /**
      * @brief 添加槽位变化监听器
@@ -172,6 +281,42 @@ public:
      * @param listenerId 监听器ID
      */
     void removeListener(i32 listenerId);
+
+    /**
+     * @brief 追踪一个整型数据引用
+     * @param holder 整型引用持有者
+     * @return 引用的索引
+     *
+     * 用于同步熔炉燃烧时间、酿造进度等数据。
+     */
+    i32 trackInt(std::unique_ptr<IntReferenceHolder> holder);
+
+    /**
+     * @brief 追踪一个整型数据引用（使用 getter/setter）
+     * @param getter 获取值的函数
+     * @param setter 设置值的函数
+     * @return 引用的索引
+     */
+    i32 trackInt(std::function<i32()> getter, std::function<void(i32)> setter);
+
+    /**
+     * @brief 获取追踪的整型数据数量
+     */
+    [[nodiscard]] i32 getTrackedIntCount() const { return static_cast<i32>(m_trackedInts.size()); }
+
+    /**
+     * @brief 获取追踪的整型数据
+     * @param index 索引
+     */
+    [[nodiscard]] IntReferenceHolder* getTrackedInt(i32 index);
+    [[nodiscard]] const IntReferenceHolder* getTrackedInt(i32 index) const;
+
+    /**
+     * @brief 更新追踪的整型数据
+     * @param index 索引
+     * @param value 新值
+     */
+    void setTrackedInt(i32 index, i32 value);
 
     /**
      * @brief 获取当前事务ID并递增
@@ -190,6 +335,21 @@ public:
      * @param id 事务ID
      */
     void setTransactionId(i16 id) { m_transactionId = id; }
+
+    // ========== 静态工具方法 ==========
+
+    /**
+     * @brief 检查玩家是否在指定方块位置附近（64格距离内）
+     * @param player 玩家
+     * @param blockPos 方块位置
+     * @param maxDistanceSq 最大距离平方（默认64*64=4096）
+     * @return 如果玩家在指定距离内返回true
+     *
+     * MC 1.16.5: 用于stillValid检查
+     */
+    [[nodiscard]] static bool isWithinDistance(const Player& player,
+                                                const BlockPos& blockPos,
+                                                f32 maxDistanceSq = 4096.0f);
 
 protected:
     /**
@@ -248,6 +408,67 @@ protected:
      * @param stack 新物品堆
      */
     void notifySlotChanged(i32 slotIndex, const ItemStack& stack);
+
+    /**
+     * @brief 通知整型数据变化
+     * @param index 数据索引
+     * @param value 新值
+     */
+    void notifyIntChanged(i32 index, i32 value);
+
+    /**
+     * @brief 检查物品是否可以合并到指定槽位
+     * @param stack 物品堆
+     * @param slot 槽位
+     * @return 如果可以合并返回true
+     *
+     * 子类可重写此方法以实现特殊合并逻辑。
+     * 参考: net.minecraft.inventory.container.Container.canMergeSlot
+     */
+    [[nodiscard]] virtual bool canMergeSlot(const ItemStack& stack, const Slot& slot) const {
+        (void)stack;
+        (void)slot;
+        return true;
+    }
+
+    /**
+     * @brief 检查玩家是否可以进行合成操作
+     * @param player 玩家
+     * @return 如果可以合成返回true
+     *
+     * 用于防止多名玩家同时操作同一个容器。
+     */
+    [[nodiscard]] bool getCanCraft(const Player& player) const;
+
+    /**
+     * @brief 设置玩家是否可以进行合成操作
+     * @param player 玩家
+     * @param canCraft 是否可以合成
+     */
+    void setCanCraft(const Player& player, bool canCraft);
+
+    /**
+     * @brief 设置槽位物品（客户端同步用）
+     * @param slotIndex 槽位索引
+     * @param stack 物品堆
+     */
+    void putStackInSlot(i32 slotIndex, const ItemStack& stack);
+
+    /**
+     * @brief 设置所有槽位物品（客户端同步用）
+     * @param stacks 物品堆列表
+     */
+    void setAll(const std::vector<ItemStack>& stacks);
+
+    /**
+     * @brief 清理容器内容
+     * @param player 玩家
+     * @param inventory 要清理的背包
+     *
+     * 将容器内容返回给玩家或丢弃到世界。
+     * 参考: net.minecraft.inventory.container.Container.clearContainer
+     */
+    void clearContainer(Player& player, IInventory* inventory);
 
 private:
     /**
@@ -325,8 +546,17 @@ protected:
     std::vector<std::unique_ptr<Slot>> m_slots;
     ItemStack m_carried;  // 玩家鼠标持有的物品
 
+    // 槽位变化检测缓存（用于优化网络同步）
+    std::vector<ItemStack> m_lastSlotStates;
+
+    // 整型数据追踪（用于同步熔炉进度、酿造时间等）
+    std::vector<std::unique_ptr<IntReferenceHolder>> m_trackedInts;
+
+    // 监听器
     std::unordered_map<i32, std::function<void(i32, ItemStack)>> m_listeners;
+    std::unordered_map<i32, std::function<void(i32, i32)>> m_intListeners;
     i32 m_nextListenerId = 0;
+    i32 m_nextIntListenerId = 0;
 
     // 槽位范围
     i32 m_playerInvStart = -1;   // 玩家背包起始索引
@@ -334,13 +564,19 @@ protected:
     i32 m_hotbarStart = -1;      // 快捷栏起始索引
     i32 m_hotbarEnd = -1;        // 快捷栏结束索引
 
-    // 拖拽状态
+    // 拖拽状态 (MC 1.16.5 对齐)
     i32 m_dragEvent = 0;         // 拖拽事件状态 (0=无, 1=添加槽位, 2=结束)
-    i32 m_dragMode = 0;          // 拖拽模式 (0=均匀分发, 1=逐个分发, 2=全部分发)
+    i32 m_dragMode = DragConstants::DRAG_MODE_NONE;  // 拖拽模式 (-1=无, 0=均匀分发, 1=逐个分发, 2=全部分发)
     std::vector<i32> m_dragSlots; // 拖拽目标槽位列表
 
 private:
     i16 m_transactionId = 0;  // 事务ID计数器，用于防重放
+
+    // 不能进行合成操作的玩家UUID集合
+    std::unordered_set<String> m_cannotCraftPlayers;
+
+    // 物品丢弃回调
+    ItemDropCallback m_itemDropCallback;
 };
 
 } // namespace mc

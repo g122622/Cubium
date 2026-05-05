@@ -277,7 +277,8 @@ void AudioService::setBubbleColumnState(bool inBubbleColumn, bool isDrag)
     enqueue(std::move(command));
 }
 
-void AudioService::updateMusicState(i32 dimension, bool inCreative, bool inBossFight)
+void AudioService::updateMusicState(i32 dimension, bool inCreative, bool inBossFight,
+                                     const std::optional<world::biome::BiomeMusic>& biomeMusic)
 {
     if (!m_loaded.load()) {
         return;
@@ -288,6 +289,7 @@ void AudioService::updateMusicState(i32 dimension, bool inCreative, bool inBossF
     command.dimension = dimension;
     command.inCreative = inCreative;
     command.inBossFight = inBossFight;
+    command.biomeMusic = biomeMusic;
     enqueue(std::move(command));
 }
 
@@ -441,6 +443,26 @@ void AudioService::updateGuardianTarget(u32 entityId, u32 targetEntityId)
     enqueue(std::move(command));
 }
 
+void AudioService::playMovingSound(const ResourceLocation& soundEventId,
+                                   SoundCategory category,
+                                   u32 entityId,
+                                   f32 volume,
+                                   f32 pitch)
+{
+    if (!m_loaded.load() || !m_entitySoundHandler) {
+        return;
+    }
+
+    Command command;
+    command.type = CommandType::MovingSound;
+    command.soundEventId = soundEventId;
+    command.category = category;
+    command.entityId = entityId;
+    command.volume = volume;
+    command.pitch = pitch;
+    enqueue(std::move(command));
+}
+
 void AudioService::updateEntityRidingState(u32 entityId, bool isRiding, u32 vehicleId)
 {
     if (!m_loaded.load() || !m_entitySoundHandler) {
@@ -552,8 +574,14 @@ void AudioService::runWorker()
                 // 注意：inWater 状态通过 setUnderwater 传递
                 // dimension/inCreative/inBossFight/inMenu 通过相应命令更新
                 if (m_musicPlayer) {
+                    // 获取生物群系音乐
+                    std::optional<world::biome::BiomeMusic> biomeMusic;
+                    {
+                        std::lock_guard<std::mutex> lock(m_biomeMusicMutex);
+                        biomeMusic = m_savedBiomeMusic;
+                    }
                     m_musicPlayer->tick(m_paused.load(), m_savedInMenu.load(), m_savedDimension, m_savedUnderwater,
-                                        m_savedCreative, m_savedBossFight);
+                                        m_savedCreative, m_savedBossFight, biomeMusic);
                 }
 
                 nextTickTime = now + AUDIO_TICK_INTERVAL;
@@ -666,6 +694,10 @@ void AudioService::processCommand(Command& command)
             m_savedDimension.store(command.dimension);
             m_savedCreative.store(command.inCreative);
             m_savedBossFight.store(command.inBossFight);
+            {
+                std::unique_lock lock(m_biomeMusicMutex);
+                m_savedBiomeMusic = command.biomeMusic;
+            }
             break;
 
         case CommandType::SetAmbientLightLevel:
@@ -730,6 +762,20 @@ void AudioService::processCommand(Command& command)
         case CommandType::RidingStateChanged:
             // 骑乘状态已通过 getMutableEntityState 更新
             // EntitySoundHandler 会在 onEntitySpawn 时检查骑乘状态
+            break;
+
+        case CommandType::MovingSound:
+            // 播放移动声音
+            if (m_entitySoundHandler && m_soundEngine) {
+                m_entitySoundHandler->playMovingSound(
+                    *m_soundEngine,
+                    command.soundEventId,
+                    command.category,
+                    static_cast<EntityId>(command.entityId),
+                    command.volume,
+                    command.pitch
+                );
+            }
             break;
     }
 }

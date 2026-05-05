@@ -1,5 +1,6 @@
 #include "world/blockentity/processing/BlastFurnaceEntity.hpp"
 #include "item/core/ItemStack.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -7,6 +8,10 @@ namespace blockentity {
 
 BlastFurnaceEntity::BlastFurnaceEntity(const BlockPos& pos)
     : AbstractFurnaceEntity(BlockEntityType::BlastFurnace, pos) {
+}
+
+const ResourceLocation& BlastFurnaceEntity::getFireCrackleSound() const {
+    return SoundEvents::BLOCK_BLASTFURNACE_FIRE_CRACKLE;
 }
 
 std::unique_ptr<BlockEntity> BlastFurnaceEntity::clone() const {

@@ -3,11 +3,13 @@
 #include "../../core/Types.hpp"
 #include "../../item/core/ItemStack.hpp"
 #include <functional>
+#include <unordered_set>
 
 namespace mc {
 
 // Forward declarations
 class Player;
+class Item;
 
 /**
  * @brief 背包接口
@@ -92,6 +94,34 @@ public:
      */
     virtual void setChanged() {}
 
+    // ========== 玩家访问控制 ==========
+
+    /**
+     * @brief 检查玩家是否可以使用此容器
+     * @param player 玩家
+     * @return 是否可以使用
+     *
+     * 默认实现返回 true，子类应重写以检查距离。
+     * 例如：箱子检查玩家是否在8格范围内。
+     */
+    [[nodiscard]] virtual bool isUsableByPlayer(const Player& player) const;
+
+    /**
+     * @brief 玩家打开容器时调用
+     * @param player 玩家
+     *
+     * 用于实现容器打开计数、音效等功能。
+     */
+    virtual void openInventory(Player& player);
+
+    /**
+     * @brief 玩家关闭容器时调用
+     * @param player 玩家
+     *
+     * 用于实现容器关闭计数、物品返还等功能。
+     */
+    virtual void closeInventory(Player& player);
+
     // ========== 物品查找 ==========
 
     /**
@@ -131,6 +161,21 @@ public:
     [[nodiscard]] virtual bool hasItem(const Item& item) const {
         for (i32 i = 0; i < getContainerSize(); ++i) {
             if (getItem(i).getItem() == &item) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @brief 检查是否包含物品集合中的任意物品
+     * @param items 物品集合
+     * @return 是否包含
+     */
+    [[nodiscard]] virtual bool hasAny(const std::unordered_set<const Item*>& items) const {
+        for (i32 i = 0; i < getContainerSize(); ++i) {
+            const ItemStack& stack = getItem(i);
+            if (!stack.isEmpty() && items.count(stack.getItem()) > 0) {
                 return true;
             }
         }

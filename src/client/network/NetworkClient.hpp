@@ -6,6 +6,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
 #include "common/network/packet/ParticlePacket.hpp"
 #include "common/skin/network/SkinPackets.hpp"
@@ -194,6 +195,33 @@ public:
     void sendCreativeInventoryAction(const CreativeInventoryActionPacket& packet);
     void sendContainerClick(const ContainerClickPacket& packet);
     void sendCloseContainer(ContainerId containerId);
+
+    // 骑乘相关数据包
+    /**
+     * @brief 发送玩家输入包（骑乘时使用）
+     * @param strafeSpeed 左右移动速度（正值=左，负值=右）
+     * @param forwardSpeed 前后移动速度（正值=前，负值=后）
+     * @param jumping 是否跳跃
+     * @param sneaking 是否潜行
+     */
+    void sendPlayerInput(f32 strafeSpeed, f32 forwardSpeed, bool jumping, bool sneaking);
+
+    /**
+     * @brief 发送载具移动包（骑乘时客户端同步载具位置）
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @param yaw 偏航角
+     * @param pitch 俯仰角
+     */
+    void sendMoveVehicle(f64 x, f64 y, f64 z, f32 yaw, f32 pitch);
+
+    /**
+     * @brief 发送实体动作包
+     * @param action 动作类型
+     * @param auxData 辅助数据（如马跳跃蓄力）
+     */
+    void sendEntityAction(network::EntityActionType action, i32 auxData = 0);
 
     // 主循环更新
     void poll();

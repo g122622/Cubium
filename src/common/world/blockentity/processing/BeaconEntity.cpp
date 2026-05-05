@@ -9,6 +9,8 @@
 #include "item/core/Item.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/core/ItemStack.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "util/assert/AssertAll.hpp"
 
 #include <algorithm>
@@ -189,12 +191,49 @@ i32 BeaconEntity::getEffectRange() const {
 void BeaconEntity::tick(IWorld& world) {
     m_tickCount++;
 
+    const i32 oldLevel = m_level;
+
     if (m_tickCount % BEACON_UPDATE_INTERVAL == 0) {
         updateLevels(world);
     }
 
+    // 激活/取消激活音效
+    if (m_level != oldLevel) {
+        const Vector3 center = m_pos.center();
+        if (m_level > 0 && oldLevel == 0) {
+            // 激活
+            world.playSound(
+                SoundEvents::BLOCK_BEACON_ACTIVATE,
+                sound::SoundCategory::Blocks,
+                center,
+                1.0f,
+                1.0f
+            );
+        } else if (m_level == 0 && oldLevel > 0) {
+            // 取消激活
+            world.playSound(
+                SoundEvents::BLOCK_BEACON_DEACTIVATE,
+                sound::SoundCategory::Blocks,
+                center,
+                1.0f,
+                1.0f
+            );
+        }
+    }
+
     if (isActive() && m_tickCount % BEACON_UPDATE_INTERVAL == 0) {
         applyEffects(world);
+    }
+
+    // 激活状态下播放环境音效 (MC 1.16.5: 每80 ticks播放一次)
+    if (isActive() && !world.isClientSide() && m_tickCount % BEACON_UPDATE_INTERVAL == 0) {
+        world.playSound(
+            SoundEvents::BLOCK_BEACON_AMBIENT,
+            sound::SoundCategory::Blocks,
+            m_pos.center(),
+            1.0f,
+            1.0f
+        );
     }
 }
 
@@ -249,10 +288,7 @@ void BeaconEntity::applyEffects(IWorld& world) {
 
     const i32 durationTicks = (9 + m_level * 2) * 20;
     const i32 range = getEffectRange();
-    const Vector3 center(
-        static_cast<f32>(m_pos.x) + 0.5f,
-        static_cast<f32>(m_pos.y) + 0.5f,
-        static_cast<f32>(m_pos.z) + 0.5f);
+    const Vector3 center = m_pos.center();
 
     const std::vector<Entity*> entities = world.getEntitiesInRange(center, static_cast<f32>(range), nullptr);
     for (Entity* entity : entities) {

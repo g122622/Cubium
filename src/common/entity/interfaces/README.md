@@ -67,7 +67,7 @@ public:
 | `ICrossbowUser` | - | 接口已定义，待PiglinEntity/PillagerEntity实现 |
 | `IFlyingAnimal` | BeeEntity, ParrotEntity | 蜜蜂、鹦鹉已实现 |
 | `IJumpingMount` | AbstractHorseEntity | 马类跳跃系统已实现 |
-| `IEquipable` | - | 接口已定义，待实现 |
+| `IEquipable` | AbstractHorseEntity | 马类装备系统已实现（鞍槽+马铠槽） |
 
 ## 目录结构
 
@@ -111,6 +111,53 @@ IJumpingMount
 IEquipable
     └── 需要: ItemStack (前向声明)
 ```
+## BoostHelper 辅助类
+
+`BoostHelper` 位于 `entity/core/BoostHelper.hpp`，管理可骑乘实体的鞍和加速状态。
+
+### 功能
+
+| 方法 | 说明 |
+|------|------|
+| `init(manager, boostTimeParam, saddledParam)` | 初始化数据管理器引用 |
+| `syncFromDataManager()` | 从 EntityDataManager 同步数据 |
+| `setSaddledFromBoolean(bool)` | 设置鞍状态（通过DataManager同步） |
+| `getSaddled()` | 获取鞍状态 |
+| `boost(Random&)` | 触发加速，返回是否成功 |
+| `tick()` | 每tick更新加速状态 |
+| `isBoosting()` | 是否正在加速 |
+| `getBoostTime()` | 获取加速总时间 |
+| `setBoostTime(i32)` | 设置加速时间 |
+
+**注意**: `BoostHelper` 现在需要与 `EntityDataManager` 集成以支持网络同步。使用前必须调用 `init()` 方法初始化。
+
+### 使用示例
+
+```cpp
+// 在可骑乘实体中使用
+class PigEntity : public AnimalEntity, public IRideable {
+    BoostHelper m_boostHelper;
+    
+    void registerData() override {
+        AnimalEntity::registerData();
+        m_boostTimeParam = m_dataManager.registerParam(i32(0));
+        m_saddledParam = m_dataManager.registerParam(false);
+        m_boostHelper.init(m_dataManager, m_boostTimeParam, m_saddledParam);
+    }
+
+    bool boost() override {
+        math::Random rng = getRandom();
+        return m_boostHelper.boost(rng);
+    }
+
+    void tick() override {
+        AnimalEntity::tick();
+        m_boostHelper.tick();
+    }
+};
+```
+
 ## 最新补充
 - 已补 `IFlinging.hpp/.cpp`，对齐 1.16.5 Hoglin / Zoglin 的撞飞型近战公共接口。
 - `IFlinging` 当前提供最小公共语义：攻击动画 tick 查询、成年个体的撞飞辅助、基于攻击伤害与击退属性的命中逻辑。
+- `BoostHelper` 用于猪和炽足兽的加速控制，与胡萝卜钓竿配合使用。

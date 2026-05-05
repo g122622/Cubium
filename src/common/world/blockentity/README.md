@@ -131,7 +131,7 @@ blockentity/
 
 提供箱子、陷阱箱等存储类方块实体：
 
-- **ChestEntity** - 箱子实体，27格存储，双箱合并
+- **ChestEntity** - 箱子实体，27格存储，双箱合并，战利品表填充
 - **TrappedChestEntity** - 陷阱箱，输出红石信号
 - **DoubleSidedInventory** - 双箱合并容器，54格
 
@@ -142,7 +142,7 @@ blockentity/
 提供漏斗等传输类方块实体：
 
 - **IHopper** - 漏斗接口，统一处理漏斗方块和漏斗矿车
-- **HopperEntity** - 漏斗实体，物品传输机制
+- **HopperEntity** - 漏斗实体，物品传输机制，支持 ISidedInventoryProvider
 
 详见 [transport/README.md](transport/README.md)
 
@@ -164,7 +164,8 @@ blockentity/
 
 - **EnchantingTableEntity** - 附魔台，书本动画
 - **PistonBlockEntity** - 活塞，方块移动动画
-- **DispenserBlockEntity** - 发射器/投掷器，物品发射
+- **DispenserBlockEntity** - 发射器方块实体基类，物品发射，战利品表填充
+- **DropperBlockEntity** - 投掷器方块实体，继承自DispenserBlockEntity
 
 详见 [interactive/README.md](interactive/README.md)
 
@@ -186,8 +187,17 @@ BlockEntity (基类)
 │   │
 │   ├── LockableBlockEntity (可锁定容器基类)
 │   │   │
-│   │   ├── ChestEntity (箱子)
-│   │   │   └── TrappedChestEntity (陷阱箱)
+│   │   ├── LootableContainerBlockEntity (可填充战利品表的容器基类)
+│   │   │   │
+│   │   │   ├── ChestEntity (箱子)
+│   │   │   │   └── TrappedChestEntity (陷阱箱)
+│   │   │   │
+│   │   │   ├── BarrelEntity (木桶)
+│   │   │   │
+│   │   │   ├── ShulkerBoxEntity (潜影盒)
+│   │   │   │
+│   │   │   └── DispenserBlockEntity (发射器)
+│   │   │       └── DropperBlockEntity (投掷器)
 │   │   │
 │   │   ├── HopperEntity (漏斗)
 │   │   │
@@ -201,8 +211,6 @@ BlockEntity (基类)
 ├── EnchantingTableEntity (附魔台)
 │
 ├── PistonBlockEntity (活塞)
-│
-├── DispenserBlockEntity (发射器/投掷器)
 │
 ├── ComparatorEntity (比较器)
 │

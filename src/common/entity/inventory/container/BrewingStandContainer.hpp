@@ -39,9 +39,9 @@ public:
     /// 酿造台槽位总数
     static constexpr i32 BREWING_SLOTS = 5;
 
-    /// 药水槽位置
-    static constexpr i32 POTION_SLOT_X = 56;
-    static constexpr i32 POTION_SLOT_Y[] = {51, 69, 87};  // 三个药水槽的Y坐标
+    /// 药水槽位置 (MC 1.16.5: (56, 51), (79, 58), (102, 51))
+    static constexpr i32 POTION_SLOT_X[] = {56, 79, 102};
+    static constexpr i32 POTION_SLOT_Y[] = {51, 58, 51};
     /// 材料槽位置
     static constexpr i32 INGREDIENT_SLOT_X = 79;
     static constexpr i32 INGREDIENT_SLOT_Y = 17;

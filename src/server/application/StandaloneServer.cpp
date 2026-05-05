@@ -282,6 +282,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                                                  mc::ContainerType type,
                                                  const String& title,
                                                  i32 slotCount) {
+        (void)slotCount;  // slotCount is no longer sent in the packet (MC 1.16.5 protocol)
         const String resolvedTitle = title.empty()
             ? String(ContainerTypes::getDefaultTitle(type))
             : title;
@@ -290,8 +291,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         auto packet = ContainerPacketHandler::createOpenContainerPacket(
             containerId,
             ContainerTypes::toNetworkType(type),
-            resolvedTitle,
-            slotCount);
+            resolvedTitle);
         packet.serialize(ser);
 
         auto fullPacket = core::ConnectionManager::encapsulatePacket(

@@ -252,6 +252,19 @@ public:
      */
     void setAmbientSounds(const world::biome::BiomeAmbientSounds& sounds) { m_ambientSounds = sounds; }
 
+    /**
+     * @brief 获取生物群系音乐
+     *
+     * MC 1.16.5: Biome.getMusic() -> Optional<BackgroundMusicSelector>
+     * 每个生物群系可以定义专属音乐（如玄武岩三角洲、绯红森林等）。
+     * 某些生物群系（如诡异森林）没有音乐。
+     *
+     * @return 音乐配置，如果没有专属音乐返回空 optional
+     */
+    [[nodiscard]] const std::optional<world::biome::BiomeMusic>& getMusic() const {
+        return m_ambientSounds.music();
+    }
+
 private:
     BiomeId m_id = 0;
     String m_name;

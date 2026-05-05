@@ -67,7 +67,8 @@ public:
     // 序列化
     void serialize(network::PacketSerializer& ser) const {
         ser.writeU8(static_cast<ContainerIdU8>(m_containerId));
-        ser.writeVarUInt(static_cast<u32>(m_items.size()));
+        // MC 1.16.5: count 是 i16 (short)，不是 VarUInt
+        ser.writeI16(static_cast<i16>(m_items.size()));
 
         for (const auto& item : m_items) {
             item.serialize(ser);
@@ -82,16 +83,17 @@ public:
         if (idResult.failed()) return idResult.error();
         packet.m_containerId = idResult.value();
 
-        auto countResult = deser.readVarUInt();
+        // MC 1.16.5: count 是 i16 (short)
+        auto countResult = deser.readI16();
         if (countResult.failed()) return countResult.error();
-        u32 count = countResult.value();
+        i16 count = countResult.value();
 
-        if (count > static_cast<u32>(inventory::MAX_SLOTS)) {
-            return Error(ErrorCode::InvalidData, "Too many slots in container content packet");
+        if (count < 0 || count > static_cast<i16>(inventory::MAX_SLOTS)) {
+            return Error(ErrorCode::InvalidData, "Invalid slot count in container content packet");
         }
 
-        packet.m_items.reserve(count);
-        for (u32 i = 0; i < count; ++i) {
+        packet.m_items.reserve(static_cast<size_t>(count));
+        for (i16 i = 0; i < count; ++i) {
             auto itemResult = ItemStack::deserialize(deser);
             if (itemResult.failed()) return itemResult.error();
             packet.m_items.push_back(itemResult.value());
@@ -220,7 +222,9 @@ private:
  * @brief 创造模式背包动作包
  *
  * 用于在创造模式下将客户端的槽位编辑同步到服务端。
- * 仅承载“哪个槽位被改成了什么物品”，具体语义由服务端根据玩家模式判断。
+ * 仅承载”哪个槽位被改成了什么物品”，具体语义由服务端根据玩家模式判断。
+ * 参考: MC 1.16.5 CCreativeInventoryActionPacket
+ * 协议格式: slotId(i16) + item
  */
 class CreativeInventoryActionPacket {
 public:
@@ -245,9 +249,9 @@ public:
     void setSlotIndex(i32 slotIndex) { m_slotIndex = slotIndex; }
     void setItem(ItemStack item) { m_item = std::move(item); }
 
-    // 序列化
+    // 序列化 (MC 1.16.5 对齐: slotId 是 i16)
     void serialize(network::PacketSerializer& ser) const {
-        ser.writeVarInt(m_slotIndex);
+        ser.writeI16(static_cast<i16>(m_slotIndex));
         m_item.serialize(ser);
     }
 
@@ -255,9 +259,9 @@ public:
     [[nodiscard]] static Result<CreativeInventoryActionPacket> deserialize(network::PacketDeserializer& deser) {
         CreativeInventoryActionPacket packet;
 
-        auto slotResult = deser.readVarInt();
+        auto slotResult = deser.readI16();
         if (slotResult.failed()) return slotResult.error();
-        packet.m_slotIndex = slotResult.value();
+        packet.m_slotIndex = static_cast<i32>(slotResult.value());
 
         auto itemResult = ItemStack::deserialize(deser);
         if (itemResult.failed()) return itemResult.error();
@@ -427,6 +431,8 @@ private:
  * @brief 打开容器包
  *
  * 服务端通知客户端打开一个容器窗口。
+ * 参考: MC 1.16.5 SOpenWindowPacket
+ * 协议格式: windowId(VarInt) + type(VarInt) + title(Component)
  */
 class OpenContainerPacket {
 public:
@@ -437,44 +443,39 @@ public:
      * @param containerId 容器ID
      * @param type 容器类型
      * @param title 容器标题
-     * @param slotCount 槽位数量
      */
-    OpenContainerPacket(ContainerId containerId, u8 type, const String& title, i32 slotCount)
+    OpenContainerPacket(ContainerId containerId, i32 type, const String& title)
         : m_containerId(containerId)
         , m_type(type)
         , m_title(title)
-        , m_slotCount(slotCount)
     {}
 
     // Getters
     [[nodiscard]] ContainerId containerId() const { return m_containerId; }
-    [[nodiscard]] u8 type() const { return m_type; }
+    [[nodiscard]] i32 type() const { return m_type; }
     [[nodiscard]] const String& title() const { return m_title; }
-    [[nodiscard]] i32 slotCount() const { return m_slotCount; }
 
     // Setters
     void setContainerId(ContainerId id) { m_containerId = id; }
-    void setType(u8 type) { m_type = type; }
+    void setType(i32 type) { m_type = type; }
     void setTitle(const String& title) { m_title = title; }
-    void setSlotCount(i32 count) { m_slotCount = count; }
 
-    // 序列化
+    // 序列化 (MC 1.16.5 对齐: VarInt windowId, VarInt type, Component title)
     void serialize(network::PacketSerializer& ser) const {
-        ser.writeU8(static_cast<ContainerIdU8>(m_containerId));
-        ser.writeU8(m_type);
+        ser.writeVarInt(m_containerId);
+        ser.writeVarInt(m_type);
         ser.writeString(m_title);
-        ser.writeVarInt(m_slotCount);
     }
 
     // 反序列化
     [[nodiscard]] static Result<OpenContainerPacket> deserialize(network::PacketDeserializer& deser) {
         OpenContainerPacket packet;
 
-        auto idResult = deser.readU8();
+        auto idResult = deser.readVarInt();
         if (idResult.failed()) return idResult.error();
         packet.m_containerId = idResult.value();
 
-        auto typeResult = deser.readU8();
+        auto typeResult = deser.readVarInt();
         if (typeResult.failed()) return typeResult.error();
         packet.m_type = typeResult.value();
 
@@ -482,18 +483,13 @@ public:
         if (titleResult.failed()) return titleResult.error();
         packet.m_title = titleResult.value();
 
-        auto countResult = deser.readVarInt();
-        if (countResult.failed()) return countResult.error();
-        packet.m_slotCount = countResult.value();
-
         return packet;
     }
 
 private:
     ContainerId m_containerId = 0;
-    u8 m_type = 0;
+    i32 m_type = 0;
     String m_title;
-    i32 m_slotCount = 0;
 };
 
 // ============================================================================
@@ -505,6 +501,7 @@ private:
  *
  * 客户端通知服务端切换选中的快捷栏槽位。
  * 参考: MC 1.16.5 CPacketHeldItemChange
+ * 协议格式: slotId(i16)
  */
 class HotbarSelectPacket {
 public:
@@ -524,18 +521,18 @@ public:
     // Setters
     void setSlot(i32 slot) { m_slot = slot; }
 
-    // 序列化
+    // 序列化 (MC 1.16.5 对齐: slotId 是 i16)
     void serialize(network::PacketSerializer& ser) const {
-        ser.writeVarInt(m_slot);
+        ser.writeI16(static_cast<i16>(m_slot));
     }
 
     // 反序列化
     [[nodiscard]] static Result<HotbarSelectPacket> deserialize(network::PacketDeserializer& deser) {
         HotbarSelectPacket packet;
 
-        auto slotResult = deser.readVarInt();
+        auto slotResult = deser.readI16();
         if (slotResult.failed()) return slotResult.error();
-        packet.m_slot = slotResult.value();
+        packet.m_slot = static_cast<i32>(slotResult.value());
 
         // 验证槽位范围
         if (packet.m_slot < 0 || packet.m_slot > 8) {
@@ -600,6 +597,262 @@ public:
 
 private:
     i32 m_slot = 0;
+};
+
+// ============================================================================
+// 事务确认包 (服务端 -> 客户端)
+// ============================================================================
+
+/**
+ * @brief 服务端事务确认包
+ *
+ * 服务端确认或拒绝事务。
+ * 参考: MC 1.16.5 SConfirmTransactionPacket
+ * 协议格式: windowId(u8) + actionNumber(i16) + accepted(bool)
+ */
+class ServerConfirmTransactionPacket {
+public:
+    ServerConfirmTransactionPacket() = default;
+
+    /**
+     * @brief 构造事务确认包
+     * @param containerId 容器ID
+     * @param actionNumber 事务ID
+     * @param accepted 是否接受
+     */
+    ServerConfirmTransactionPacket(ContainerId containerId, i16 actionNumber, bool accepted)
+        : m_containerId(containerId)
+        , m_actionNumber(actionNumber)
+        , m_accepted(accepted)
+    {}
+
+    // Getters
+    [[nodiscard]] ContainerId containerId() const { return m_containerId; }
+    [[nodiscard]] i16 actionNumber() const { return m_actionNumber; }
+    [[nodiscard]] bool accepted() const { return m_accepted; }
+
+    // Setters
+    void setContainerId(ContainerId id) { m_containerId = id; }
+    void setActionNumber(i16 number) { m_actionNumber = number; }
+    void setAccepted(bool accepted) { m_accepted = accepted; }
+
+    // 序列化
+    void serialize(network::PacketSerializer& ser) const {
+        ser.writeU8(static_cast<ContainerIdU8>(m_containerId));
+        ser.writeI16(m_actionNumber);
+        ser.writeBool(m_accepted);
+    }
+
+    // 反序列化
+    [[nodiscard]] static Result<ServerConfirmTransactionPacket> deserialize(network::PacketDeserializer& deser) {
+        ServerConfirmTransactionPacket packet;
+
+        auto idResult = deser.readU8();
+        if (idResult.failed()) return idResult.error();
+        packet.m_containerId = idResult.value();
+
+        auto actionResult = deser.readI16();
+        if (actionResult.failed()) return actionResult.error();
+        packet.m_actionNumber = actionResult.value();
+
+        auto acceptedResult = deser.readBool();
+        if (acceptedResult.failed()) return acceptedResult.error();
+        packet.m_accepted = acceptedResult.value();
+
+        return packet;
+    }
+
+private:
+    ContainerId m_containerId = 0;
+    i16 m_actionNumber = 0;
+    bool m_accepted = false;
+};
+
+// ============================================================================
+// 事务确认包 (客户端 -> 服务端)
+// ============================================================================
+
+/**
+ * @brief 客户端事务确认包
+ *
+ * 客户端确认事务处理结果。
+ * 参考: MC 1.16.5 CConfirmTransactionPacket
+ * 协议格式: windowId(i8) + uid(i16) + accepted(u8)
+ */
+class ClientConfirmTransactionPacket {
+public:
+    ClientConfirmTransactionPacket() = default;
+
+    /**
+     * @brief 构造事务确认包
+     * @param containerId 容器ID
+     * @param uid 事务ID
+     * @param accepted 是否接受
+     */
+    ClientConfirmTransactionPacket(i8 containerId, i16 uid, bool accepted)
+        : m_containerId(containerId)
+        , m_uid(uid)
+        , m_accepted(accepted)
+    {}
+
+    // Getters
+    [[nodiscard]] i8 containerId() const { return m_containerId; }
+    [[nodiscard]] i16 uid() const { return m_uid; }
+    [[nodiscard]] bool accepted() const { return m_accepted; }
+
+    // Setters
+    void setContainerId(i8 id) { m_containerId = id; }
+    void setUid(i16 uid) { m_uid = uid; }
+    void setAccepted(bool accepted) { m_accepted = accepted; }
+
+    // 序列化
+    void serialize(network::PacketSerializer& ser) const {
+        ser.writeI8(m_containerId);
+        ser.writeI16(m_uid);
+        ser.writeU8(m_accepted ? 1 : 0);  // MC 1.16.5 使用 u8 而非 bool
+    }
+
+    // 反序列化
+    [[nodiscard]] static Result<ClientConfirmTransactionPacket> deserialize(network::PacketDeserializer& deser) {
+        ClientConfirmTransactionPacket packet;
+
+        auto idResult = deser.readI8();
+        if (idResult.failed()) return idResult.error();
+        packet.m_containerId = idResult.value();
+
+        auto uidResult = deser.readI16();
+        if (uidResult.failed()) return uidResult.error();
+        packet.m_uid = uidResult.value();
+
+        auto acceptedResult = deser.readU8();
+        if (acceptedResult.failed()) return acceptedResult.error();
+        packet.m_accepted = (acceptedResult.value() != 0);
+
+        return packet;
+    }
+
+private:
+    i8 m_containerId = 0;
+    i16 m_uid = 0;
+    bool m_accepted = false;
+};
+
+// ============================================================================
+// 窗口属性包 (服务端 -> 客户端)
+// ============================================================================
+
+/**
+ * @brief 窗口属性包
+ *
+ * 同步容器属性（如熔炉燃烧进度、酿造台状态等）。
+ * 参考: MC 1.16.5 SWindowPropertyPacket
+ * 协议格式: windowId(u8) + property(i16) + value(i16)
+ */
+class WindowPropertyPacket {
+public:
+    WindowPropertyPacket() = default;
+
+    /**
+     * @brief 构造窗口属性包
+     * @param containerId 容器ID
+     * @param property 属性ID
+     * @param value 属性值
+     */
+    WindowPropertyPacket(ContainerId containerId, i16 property, i16 value)
+        : m_containerId(containerId)
+        , m_property(property)
+        , m_value(value)
+    {}
+
+    // Getters
+    [[nodiscard]] ContainerId containerId() const { return m_containerId; }
+    [[nodiscard]] i16 property() const { return m_property; }
+    [[nodiscard]] i16 value() const { return m_value; }
+
+    // Setters
+    void setContainerId(ContainerId id) { m_containerId = id; }
+    void setProperty(i16 property) { m_property = property; }
+    void setValue(i16 value) { m_value = value; }
+
+    // 序列化
+    void serialize(network::PacketSerializer& ser) const {
+        ser.writeU8(static_cast<ContainerIdU8>(m_containerId));
+        ser.writeI16(m_property);
+        ser.writeI16(m_value);
+    }
+
+    // 反序列化
+    [[nodiscard]] static Result<WindowPropertyPacket> deserialize(network::PacketDeserializer& deser) {
+        WindowPropertyPacket packet;
+
+        auto idResult = deser.readU8();
+        if (idResult.failed()) return idResult.error();
+        packet.m_containerId = idResult.value();
+
+        auto propertyResult = deser.readI16();
+        if (propertyResult.failed()) return propertyResult.error();
+        packet.m_property = propertyResult.value();
+
+        auto valueResult = deser.readI16();
+        if (valueResult.failed()) return valueResult.error();
+        packet.m_value = valueResult.value();
+
+        return packet;
+    }
+
+private:
+    ContainerId m_containerId = 0;
+    i16 m_property = 0;
+    i16 m_value = 0;
+};
+
+// ============================================================================
+// 拾取物品包 (客户端 -> 服务端)
+// ============================================================================
+
+/**
+ * @brief 拾取物品包
+ *
+ * 玩家使用中键拾取方块时发送。
+ * 参考: MC 1.16.5 CPickItemPacket
+ * 协议格式: pickIndex(VarInt)
+ */
+class PickItemPacket {
+public:
+    PickItemPacket() = default;
+
+    /**
+     * @brief 构造拾取物品包
+     * @param pickIndex 拾取索引（玩家背包中的槽位）
+     */
+    explicit PickItemPacket(i32 pickIndex)
+        : m_pickIndex(pickIndex)
+    {}
+
+    // Getters
+    [[nodiscard]] i32 pickIndex() const { return m_pickIndex; }
+
+    // Setters
+    void setPickIndex(i32 index) { m_pickIndex = index; }
+
+    // 序列化
+    void serialize(network::PacketSerializer& ser) const {
+        ser.writeVarInt(m_pickIndex);
+    }
+
+    // 反序列化
+    [[nodiscard]] static Result<PickItemPacket> deserialize(network::PacketDeserializer& deser) {
+        PickItemPacket packet;
+
+        auto indexResult = deser.readVarInt();
+        if (indexResult.failed()) return indexResult.error();
+        packet.m_pickIndex = indexResult.value();
+
+        return packet;
+    }
+
+private:
+    i32 m_pickIndex = 0;
 };
 
 } // namespace mc

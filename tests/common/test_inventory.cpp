@@ -17,6 +17,7 @@
 #include "../src/common/core/Constants.hpp"
 #include "../src/common/world/block/Block.hpp"
 #include "../src/common/util/math/random/Random.hpp"
+#include "../src/common/world/blockentity/core/SimpleInventory.hpp"
 
 #include <array>
 
@@ -688,4 +689,176 @@ TEST(ElytraItemTest, InventoryTickDamagesOnlyWhenGlidingInChestSlot) {
     elytra.inventoryTick(carriedElytra, world, entity, 0, false);
 
     EXPECT_EQ(carriedElytra.getDamage(), 0);
+}
+
+// ============================================================================
+// IInventory 接口测试
+// ============================================================================
+
+class IInventoryInterfaceTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        Items::initialize();
+        m_inventory = std::make_unique<PlayerInventory>(nullptr);
+    }
+
+    std::unique_ptr<PlayerInventory> m_inventory;
+};
+
+TEST_F(IInventoryInterfaceTest, HasAny_WorksWithIInventory) {
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+
+    IInventory* inv = m_inventory.get();
+    std::unordered_set<const Item*> items = {diamond};
+
+    EXPECT_FALSE(inv->hasAny(items));
+
+    m_inventory->setItem(0, ItemStack(*diamond, 10));
+    EXPECT_TRUE(inv->hasAny(items));
+}
+
+TEST_F(IInventoryInterfaceTest, HasAny_EmptySet) {
+    IInventory* inv = m_inventory.get();
+    std::unordered_set<const Item*> empty;
+    EXPECT_FALSE(inv->hasAny(empty));
+}
+
+TEST_F(IInventoryInterfaceTest, HasAny_MultipleItems) {
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
+    ASSERT_NE(diamond, nullptr);
+    ASSERT_NE(coal, nullptr);
+
+    IInventory* inv = m_inventory.get();
+    std::unordered_set<const Item*> items = {diamond, coal};
+
+    // 空背包不包含任何物品
+    EXPECT_FALSE(inv->hasAny(items));
+
+    // 添加钻石
+    m_inventory->setItem(0, ItemStack(*diamond, 10));
+    EXPECT_TRUE(inv->hasAny(items));
+
+    // 清空后添加煤炭
+    m_inventory->clear();
+    m_inventory->setItem(5, ItemStack(*coal, 5));
+    EXPECT_TRUE(inv->hasAny(items));
+}
+
+TEST_F(IInventoryInterfaceTest, HasAny_AfterPartialRemove) {
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+
+    IInventory* inv = m_inventory.get();
+    std::unordered_set<const Item*> items = {diamond};
+
+    // 添加物品然后部分移除
+    m_inventory->setItem(0, ItemStack(*diamond, 10));
+    EXPECT_TRUE(inv->hasAny(items));
+
+    // 部分移除
+    m_inventory->removeItem(0, 5);
+    EXPECT_TRUE(inv->hasAny(items));
+
+    // 完全移除
+    m_inventory->removeItem(0, 5);
+    EXPECT_FALSE(inv->hasAny(items));
+}
+
+TEST_F(IInventoryInterfaceTest, HasAny_WithNullItemInSet) {
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+
+    IInventory* inv = m_inventory.get();
+    // 集合中包含空指针（边界情况）
+    std::unordered_set<const Item*> items = {diamond, nullptr};
+
+    m_inventory->setItem(0, ItemStack(*diamond, 10));
+    // 应该仍然能找到钻石
+    EXPECT_TRUE(inv->hasAny(items));
+}
+
+// ============================================================================
+// IInventory 边界测试 - 空背包和空集合
+// ============================================================================
+
+class IInventoryEdgeCaseTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        Items::initialize();
+        m_inventory = std::make_unique<PlayerInventory>(nullptr);
+    }
+
+    std::unique_ptr<PlayerInventory> m_inventory;
+};
+
+TEST_F(IInventoryEdgeCaseTest, HasAny_EmptyInventory) {
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+
+    IInventory* inv = m_inventory.get();
+    std::unordered_set<const Item*> items = {diamond};
+
+    // 空背包不包含任何物品
+    EXPECT_FALSE(inv->hasAny(items));
+}
+
+TEST_F(IInventoryEdgeCaseTest, HasAny_EmptySet) {
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+
+    IInventory* inv = m_inventory.get();
+
+    // 添加物品到背包
+    m_inventory->setItem(0, ItemStack(*diamond, 10));
+
+    // 空集合不匹配任何物品
+    std::unordered_set<const Item*> empty;
+    EXPECT_FALSE(inv->hasAny(empty));
+}
+
+TEST_F(IInventoryEdgeCaseTest, HasAny_AllNullItems) {
+    IInventory* inv = m_inventory.get();
+
+    // 集合中只有空指针
+    std::unordered_set<const Item*> items = {nullptr};
+
+    // 添加物品到背包
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    if (diamond != nullptr) {
+        m_inventory->setItem(0, ItemStack(*diamond, 10));
+    }
+
+    // 空指针集合应该返回 false
+    EXPECT_FALSE(inv->hasAny(items));
+}
+
+TEST_F(IInventoryEdgeCaseTest, HasAny_MultipleItemsInDifferentSlots) {
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
+    Item* iron = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
+    ASSERT_NE(diamond, nullptr);
+    ASSERT_NE(coal, nullptr);
+
+    IInventory* inv = m_inventory.get();
+
+    // 将物品放在不同槽位
+    m_inventory->setItem(0, ItemStack(*diamond, 10));
+    m_inventory->setItem(20, ItemStack(*coal, 5));
+
+    // 检查包含钻石和铁的集合（应该找到钻石）
+    std::unordered_set<const Item*> items1 = {diamond, iron};
+    EXPECT_TRUE(inv->hasAny(items1));
+
+    // 检查只包含铁的集合（不应该找到）
+    std::unordered_set<const Item*> items2;
+    if (iron != nullptr) {
+        items2.insert(iron);
+    }
+    EXPECT_FALSE(inv->hasAny(items2));
+
+    // 清空后检查
+    m_inventory->clear();
+    EXPECT_FALSE(inv->hasAny(items1));
 }

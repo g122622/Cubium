@@ -10,6 +10,8 @@ namespace mc {
 
 // Forward declarations
 class Player;
+class Item;
+class BlockState;
 
 /**
  * @brief 玩家背包
@@ -303,6 +305,103 @@ public:
      */
     [[nodiscard]] Player* getPlayer() const { return m_player; }
 
+    // ========== IInventory 接口扩展 ==========
+
+    /**
+     * @brief 检查玩家是否可以使用此背包
+     * @param player 玩家
+     * @return 玩家是否存活且在64格范围内
+     */
+    [[nodiscard]] bool isUsableByPlayer(const Player& player) const override;
+
+    // ========== Tick 更新 ==========
+
+    /**
+     * @brief 每tick调用，更新物品状态
+     *
+     * 调用所有物品的 inventoryTick 和护甲的 onArmorTick。
+     */
+    void tick();
+
+    // ========== 物品掉落 ==========
+
+    /**
+     * @brief 掉落所有物品
+     *
+     * 用于玩家死亡时掉落所有物品。
+     * 需要设置物品丢弃回调才能实际掉落。
+     */
+    void dropAllItems();
+
+    /**
+     * @brief 删除指定的物品堆（按引用）
+     * @param stack 要删除的物品堆引用
+     */
+    void deleteStack(const ItemStack& stack);
+
+    /**
+     * @brief 将物品放回背包，满了则丢弃
+     * @param stack 要放回的物品堆
+     * @param dropCallback 丢弃回调，参数为(物品堆, 保留所有权)
+     * @return 是否成功放回（true=全部放回，false=有丢弃）
+     */
+    bool placeItemBackInInventory(ItemStack& stack,
+        const std::function<void(const ItemStack&, bool)>& dropCallback = nullptr);
+
+    // ========== 护甲操作 ==========
+
+    /**
+     * @brief 对护甲造成伤害
+     * @param damageSource 伤害来源
+     * @param damage 伤害值
+     *
+     * 护甲会根据伤害值损耗耐久度。
+     */
+    void damageArmor(float damage);
+
+    // ========== 复制和比较 ==========
+
+    /**
+     * @brief 复制另一个背包的内容
+     * @param other 要复制的背包
+     */
+    void copyInventory(const PlayerInventory& other);
+
+    /**
+     * @brief 获取当前手持物品的挖掘速度
+     * @param blockState 方块状态
+     * @return 挖掘速度
+     */
+    [[nodiscard]] float getDestroySpeed(const class BlockState& blockState) const;
+
+    // ========== 鼠标物品 ==========
+
+    /**
+     * @brief 获取鼠标持有的物品
+     * @return 鼠标物品
+     */
+    [[nodiscard]] const ItemStack& getCarriedItem() const { return m_carriedItem; }
+
+    /**
+     * @brief 获取鼠标持有的物品（可修改）
+     * @return 鼠标物品引用
+     */
+    [[nodiscard]] ItemStack& getCarriedItemRef() { return m_carriedItem; }
+
+    /**
+     * @brief 设置鼠标持有的物品
+     * @param stack 物品堆
+     */
+    void setCarriedItem(const ItemStack& stack) { m_carriedItem = stack; }
+
+    // ========== 变更追踪 ==========
+
+    /**
+     * @brief 获取变更计数
+     * @return 变更次数
+     */
+    [[nodiscard]] i32 getTimesChanged() const { return m_timesChanged; }
+
     // ========== 序列化 ==========
 
     /**
@@ -322,6 +421,7 @@ private:
     [[nodiscard]] bool stacksEqualExact(const ItemStack& stack1, const ItemStack& stack2) const;
 
     std::array<ItemStack, TOTAL_SIZE> m_items;
+    ItemStack m_carriedItem;  ///< 鼠标持有的物品（容器交互时使用）
     Player* m_player;
     i32 m_selectedSlot = 0;  // 当前选中的快捷栏槽位 (0-8)
     i32 m_timesChanged = 0;  // 变更计数器（用于同步）

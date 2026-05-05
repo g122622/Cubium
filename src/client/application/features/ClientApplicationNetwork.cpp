@@ -361,7 +361,19 @@ void ClientApplication::setupNetworkCallbacks()
             case ContainerType::Generic9x5:
             case ContainerType::Generic9x6:
             case ContainerType::ShulkerBox: {
-                const i32 rows = std::max(1, packet.slotCount() / mc::blockentity::ChestContainer::SLOTS_PER_ROW);
+                // 根据容器类型计算行数（MC 1.16.5 对齐：不再传输 slotCount）
+                const ContainerType containerType = static_cast<ContainerType>(packet.type());
+                i32 rows = 3;  // 默认3行
+                switch (containerType) {
+                    case ContainerType::Generic9x1: rows = 1; break;
+                    case ContainerType::Generic9x2: rows = 2; break;
+                    case ContainerType::Generic9x3: rows = 3; break;
+                    case ContainerType::Generic9x4: rows = 4; break;
+                    case ContainerType::Generic9x5: rows = 5; break;
+                    case ContainerType::Generic9x6: rows = 6; break;
+                    case ContainerType::ShulkerBox: rows = 3; break;
+                    default: rows = 3; break;
+                }
                 screen = std::make_unique<ChestScreen>(
                     packet.containerId(),
                     &m_player->inventory(),
@@ -795,25 +807,15 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
-        // 获取实体位置
-        ClientEntity* entity = m_world.entityManager().getEntity(static_cast<EntityId>(entityId));
-        if (!entity) {
-            spdlog::debug("Received moving sound for unknown entity {}", entityId);
-            return;
-        }
-
-        // 创建跟随实体的声音
-        // 注意：这是一个简化实现，完整的实现需要创建 TickableSound 跟随实体位置
-        auto sound = sound::SoundInstance::createLocated(
+        // 使用 AudioService 的 playMovingSound 方法
+        // 这会创建一个跟随实体位置的 TickableSound
+        m_audioService->playMovingSound(
             soundEventId,
             category,
-            entity->x(),
-            entity->y(),
-            entity->z(),
+            static_cast<u32>(entityId),
             volume,
-            pitch);
-
-        m_audioService->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
+            pitch
+        );
     };
 
     callbacks.onSetExperience = [this](f32 progress, i32 totalXp, i32 level) {

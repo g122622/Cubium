@@ -2,11 +2,32 @@
 
 本模块实现了 Minecraft 的物品存储和容器交互系统，参考 MC Java 1.16.5 的背包系统架构。
 
+## MC 1.16.5 对齐状态
+
+本模块已完成与 MC 1.16.5 的核心对齐：
+
+- ✅ **IRecipeHolder/IRecipeHelperPopulator** - 配方追踪和配方书支持
+- ✅ **IntReferenceHolder** - 整型数据同步器（熔炉进度、酿造时间等）
+- ✅ **AnvilContainer** - 完整的修复成本计算和附魔合并算法
+- ✅ **EnchantmentContainer** - 书架力量计算、附魔等级公式、多附魔生成
+- ✅ **AbstractContainerMenu** - 拖拽分发状态机、变化检测优化、物品丢弃回调
+- ✅ **网络协议** - OpenContainerPacket、ContainerContentPacket 字段类型
+- ✅ **ISidedInventory/ISidedInventoryProvider** - 侧面背包接口，用于漏斗等定向传输
+- ✅ **Slot回调** - onTake、onSwapCraft、onCrafting 回调（对齐 MC 1.16.5）
+- ✅ **FurnaceFuelSlot/FurnaceResultSlot** - 特殊槽位实现
+- ✅ **stillValid距离检查** - isWithinDistance() 方法用于容器访问距离验证
+- ✅ **容器槽位坐标** - 所有容器槽位坐标已与 MC 1.16.5 对齐
+
 ## 目录结构
 
 ```
 inventory/
 ├── IInventory.hpp              # 背包接口（抽象基类）
+├── ISidedInventory.hpp         # 侧面背包接口
+├── ISidedInventoryProvider.hpp # 侧面背包提供者接口
+├── IRecipeHolder.hpp           # 配方持有者接口
+├── IRecipeHolder.cpp           # 配方持有者实现
+├── IRecipeHelperPopulator.hpp  # 配方辅助填充器接口
 ├── ContainerTypes.hpp          # 容器相关类型定义
 ├── Container.hpp               # 容器类（槽位管理）
 ├── Container.cpp
@@ -14,7 +35,7 @@ inventory/
 ├── Slot.cpp
 ├── PlayerInventory.hpp         # 玩家背包
 ├── PlayerInventory.cpp
-├── CraftingInventory.hpp       # 合成网格背包
+├── CraftingInventory.hpp       # 合成网格背包（实现 IRecipeHelperPopulator）
 ├── CraftingInventory.cpp
 ├── CreativeInventory.hpp       # 创造模式物品库辅助
 ├── CreativeInventory.cpp
@@ -24,7 +45,7 @@ inventory/
 
 ## 文件详细介绍
 
-### 1. IInventory.hpp
+### 1. IInventory.hpp / IInventory.cpp
 
 **职责**: 定义背包接口，所有背包容器的抽象基类。
 
@@ -35,12 +56,36 @@ inventory/
 - 容器操作：`clear()`, `setChanged()`
 - 物品查找：`getFirstEmptySlot()`, `countItem()`, `hasItem()`, `findSlot()`, `canPlaceItem()`
 - 序列化支持
+- **新增方法**（MC 1.16.5 对齐）：
+  - `isUsableByPlayer()`: 检查玩家是否可以访问此背包（默认返回 true）
+  - `openInventory()`: 打开背包时的回调（默认空实现）
+  - `closeInventory()`: 关闭背包时的回调（默认空实现）
+  - `hasAny()`: 检查是否包含指定物品集合中的任意物品
 
 **依赖项**:
 - `core/Types.hpp` - 基础类型
 - `item/ItemStack.hpp` - 物品堆类型
 
-### 2. ContainerTypes.hpp
+### 2. IRecipeHolder.hpp
+
+**职责**: 配方持有者接口，用于追踪当前使用的配方。
+
+**主要内容**:
+- `setRecipeUsed()` - 设置当前使用的配方
+- `getRecipeUsed()` - 获取当前使用的配方
+
+**实现类**: `CraftResultInventory`
+
+### 3. IRecipeHelperPopulator.hpp
+
+**职责**: 配方辅助填充器接口，用于配方书查找可用配方。
+
+**主要内容**:
+- `fillStackedContents()` - 将背包内容填充到物品计数器
+
+**实现类**: `CraftingInventory`
+
+### 4. ContainerTypes.hpp
 
 **职责**: 定义容器系统相关类型常量。
 
@@ -87,8 +132,17 @@ inventory/
   - 显示坐标（x, y）
   - 物品操作：`getItem()`, `set()`, `remove()`, `isEmpty()`
   - 可放置性检查：`mayPlace()`, `isValid()`, `getMaxStackSize()`
+  - 回调方法：`onTake()`, `onCrafting()`, `onSwapCraft()`, `onSlotChange()`
 - `ArmorSlot` 类：护甲槽位，只接受对应类型护甲
 - `ResultSlot` 类：合成结果槽位，只能取出不能放入
+- `FurnaceFuelSlot` 类：熔炉燃料槽位，只接受燃料物品
+  - `mayPlace()`: 检查物品是否为有效燃料
+  - `isFuel()`: 静态方法检查物品燃料属性
+  - `isBucket()`: 检查是否为桶类物品
+- `FurnaceResultSlot` 类：熔炉输出槽位
+  - `mayPlace()`: 始终返回 false，不能放入物品
+  - `remove()`: 重写以支持经验值累积
+  - `onTake()`: 触发熔炼成就和经验奖励
 
 **依赖项**:
 - `IInventory.hpp` - 背包接口
@@ -131,6 +185,14 @@ inventory/
 - 槽位操作：`swapSlots()`, `placeItem()`
 - 统计：`countItem()`, `hasItem()`
 - 序列化：`serialize()`, `deserialize()`
+- **新增方法**（MC 1.16.5 对齐）：
+  - `tick()`: 背包 tick 处理（用于物品冷却、耐久恢复等）
+  - `dropAllItems()`: 丢弃所有物品
+  - `deleteStack()`: 删除指定物品堆
+  - `placeItemBackInInventory()`: 将物品放回背包
+  - `damageArmor()`: 护甲损伤处理
+  - `containsAny()`: 检查是否包含指定物品集合中的任意物品
+  - `isUsableByPlayer()`: 检查玩家是否可用（覆盖 IInventory 接口）
 
 **依赖项**:
 - `IInventory.hpp`, `Slot.hpp`
@@ -427,28 +489,28 @@ container.broadcastChanges();  // 广播到客户端
 
 `ArmorSlot` 通过 `mayPlace()` 方法检查护甲类型，头盔/胸甲/护腿/靴子只能放入对应槽位。
 
-### 8. 物品丢弃（Future Work）
+### 8. 物品丢弃
 
-`AbstractContainerMenu` 和 `Container` 中的 `handleThrow()` 方法当前仅更新背包状态，不生成物品实体。
+`AbstractContainerMenu` 和 `Container` 中的物品丢弃功能已通过回调实现。
 
-**待实现功能**：
-- `AbstractContainerMenu.cpp:131` - 点击屏幕外部丢弃鼠标物品
-- `AbstractContainerMenu.cpp:328` - Q键丢弃槽位物品
-- `Container.cpp:504,512,525` - 丢弃物品
-
-**设计方案**：
+**使用方法**：
 ```cpp
-// 添加丢弃回调接口到 AbstractContainerMenu
-using ItemDropCallback = std::function<void(const ItemStack& stack, const Player& player)>;
-void setItemDropCallback(ItemDropCallback callback);
-
-// 上层（ServerWorld/IntegratedServer）注入实现
-menu->setItemDropCallback([this, player](const ItemStack& stack, const Player& p) {
-    BlockDropHandler::spawnDrops(*entityManager, nullptr, player.blockPos(), {stack}, p.uuid());
+// 上层（ServerWorld/IntegratedServer）注入物品丢弃回调
+menu->setItemDropCallback([this, player](const ItemStack& stack, Player& p, bool retainOwnership) {
+    // 在世界中生成物品实体
+    spawnItemEntity(world, p.blockPos(), stack, retainOwnership);
 });
+
+// AbstractContainerMenu 内部会自动调用
+// - Q键丢弃槽位物品：handleThrow()
+// - 点击屏幕外部丢弃鼠标物品：clicked() 中 ClickType::Throw
+// - 容器关闭时丢弃无法放入背包的物品：removed()
 ```
 
-此功能依赖 World/EntityManager 集成，标记为后续迭代任务。
+**回调参数**：
+- `stack`: 要丢弃的物品堆
+- `player`: 触发丢弃的玩家
+- `retainOwnership`: 是否保留所有权（如创造模式删除物品）
 
 ### 9. 坐标转换
 
@@ -484,7 +546,13 @@ BlockItemRegistry::instance().initializeVanillaBlockItems();
   - 槽位交换
   - 护甲和副手槽操作
   - 序列化/反序列化
+- `PlayerInventoryNewMethodsTest`: 玩家背包新方法测试
+  - `containsAny()`: 检查是否包含指定物品集合
+  - `isUsableByPlayer()`: 玩家可用性检查
 - `SlotTest`: 槽位基础测试
+- `ArmorSlotTest`: 护甲槽位测试
+- `IInventoryInterfaceTest`: IInventory 接口测试
+  - `hasAny()`: 接口方法测试
 
 ### tests/common/entity/inventory/CraftingInventoryTest.cpp
 
@@ -497,6 +565,22 @@ BlockItemRegistry::instance().initializeVanillaBlockItems();
 - `CraftResultInventoryTest`: 合成结果背包测试
   - 单槽位操作
   - 结果设置和获取
+
+### tests/common/entity/inventory/container/FurnaceContainerTest.cpp
+
+- `FurnaceContainerTest`: 熔炉容器测试
+  - 槽位数量验证
+  - 容器类型验证
+  - 槽位索引常量验证
+- `FurnaceFuelSlotTest`: 熔炉燃料槽位测试
+  - 创建槽位
+  - `mayPlace()`: 只接受燃料物品
+  - `getMaxStackSize()`: 燃料物品堆叠上限
+  - `isFuel()`: 静态方法测试
+- `FurnaceResultSlotTest`: 熔炉输出槽位测试
+  - 创建槽位
+  - `mayPlace()`: 始终返回 false
+  - `remove()`: 物品移除和经验累积
 
 ### tests/common/test_container.cpp
 

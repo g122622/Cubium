@@ -1,0 +1,217 @@
+#pragma once
+
+#include "common/core/Types.hpp"
+#include "DataParameter.hpp"
+#include "EntityDataManager.hpp"
+#include <memory>
+
+namespace mc {
+
+// Forward declarations
+class MobEntity;  // MobEntity 定义在 mc 命名空间，不是 mc::entity
+
+/**
+ * @brief 加速辅助类
+ *
+ * 管理可骑乘实体的鞍和加速状态。
+ * 用于猪、炽足兽等可骑乘实体。
+ *
+ * 数据同步：
+ * - BOOST_TIME_PARAM: 加速时间，由 boost() 设置并同步到客户端
+ * - SADDLED_PARAM: 鞍状态，由 setSaddledFromBoolean() 设置
+ *
+ * 客户端通过 syncFromDataManager() 从 EntityDataManager 读取数据并重置状态。
+ *
+ * 参考 MC 1.16.5 BoostHelper
+ */
+class BoostHelper {
+public:
+    /**
+     * @brief 默认构造函数
+     *
+     * 用于延迟初始化场景。必须稍后调用 init() 设置数据管理器。
+     */
+    BoostHelper() = default;
+
+    /**
+     * @brief 构造函数
+     * @param manager EntityDataManager 引用
+     * @param boostTimeParam 加速时间数据参数
+     * @param saddledParam 鞍状态数据参数
+     */
+    BoostHelper(entity::EntityDataManager& manager,
+                entity::DataParameter<i32> boostTimeParam,
+                entity::DataParameter<bool> saddledParam)
+        : m_manager(&manager)
+        , m_boostTimeParam(boostTimeParam)
+        , m_saddledParam(saddledParam)
+        , m_initialized(true)
+    {}
+
+    /**
+     * @brief 初始化数据管理器引用
+     * @param manager EntityDataManager 引用
+     * @param boostTimeParam 加速时间数据参数
+     * @param saddledParam 鞍状态数据参数
+     */
+    void init(entity::EntityDataManager& manager,
+              entity::DataParameter<i32> boostTimeParam,
+              entity::DataParameter<bool> saddledParam) {
+        m_manager = &manager;
+        m_boostTimeParam = boostTimeParam;
+        m_saddledParam = saddledParam;
+        m_initialized = true;
+    }
+
+    /**
+     * @brief 检查是否已初始化
+     */
+    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+
+    /**
+     * @brief 从数据管理器同步数据
+     *
+     * MC 1.16.5: func_233616_a_()
+     * 在客户端调用，从 EntityDataManager 读取加速时间并重置状态。
+     *
+     * 此方法应在实体注册数据参数后调用。
+     */
+    void syncFromDataManager() {
+        if (!m_initialized) return;
+        saddledRaw = true;
+        field_233611_b_ = 0;
+        boostTimeRaw = m_manager->get(m_boostTimeParam);
+    }
+
+    /**
+     * @brief 触发加速
+     *
+     * MC 1.16.5: boost(Random)
+     * @tparam Random 随机数生成器类型
+     * @param rng 随机数生成器
+     * @return 如果成功加速返回true
+     */
+    template<typename Random>
+    bool boost(Random& rng) {
+        if (saddledRaw) {
+            return false;
+        }
+
+        saddledRaw = true;
+        field_233611_b_ = 0;
+        // MC 1.16.5: rand.nextInt(841) + 140 -> [140, 980]
+        boostTimeRaw = rng.nextInt(841) + 140;
+        if (m_initialized) {
+            m_manager->set(m_boostTimeParam, boostTimeRaw);
+        }
+        return true;
+    }
+
+    /**
+     * @brief 写入NBT
+     *
+     * MC 1.16.5: func_233618_a_()
+     * TODO: 待NBT系统完善后实现
+     */
+    void writeToNBT(/* CompoundNBT& nbt */) const {
+        // nbt.putBoolean("Saddle", getSaddled());
+    }
+
+    /**
+     * @brief 从NBT读取
+     *
+     * MC 1.16.5: func_233621_b_()
+     * TODO: 待NBT系统完善后实现
+     */
+    void readFromNBT(/* const CompoundNBT& nbt */) const {
+        // setSaddledFromBoolean(nbt.getBoolean("Saddle"));
+    }
+
+    /**
+     * @brief 从布尔值设置鞍状态
+     *
+     * MC 1.16.5: setSaddledFromBoolean(boolean)
+     * 通过 EntityDataManager 同步鞍状态到客户端。
+     *
+     * @param saddled 是否有鞍
+     */
+    void setSaddledFromBoolean(bool saddled) {
+        if (m_initialized) {
+            m_manager->set(m_saddledParam, saddled);
+        }
+    }
+
+    /**
+     * @brief 获取鞍状态
+     * @return 是否有鞍
+     *
+     * MC 1.16.5: getSaddled()
+     * 从 EntityDataManager 读取鞍状态。
+     */
+    [[nodiscard]] bool getSaddled() const {
+        if (m_initialized) {
+            return m_manager->get(m_saddledParam);
+        }
+        return false;
+    }
+
+    /**
+     * @brief 设置加速时间
+     * @param time 加速时间
+     */
+    void setBoostTime(i32 time) {
+        if (m_initialized) {
+            m_manager->set(m_boostTimeParam, time);
+        }
+    }
+
+    /**
+     * @brief 获取加速时间
+     * @return 加速时间（ticks）
+     */
+    [[nodiscard]] i32 getBoostTime() const {
+        if (m_initialized) {
+            return m_manager->get(m_boostTimeParam);
+        }
+        return 0;
+    }
+
+    /**
+     * @brief 是否正在加速
+     * @return 是否正在加速
+     */
+    [[nodiscard]] bool isBoosting() const {
+        return saddledRaw && field_233611_b_ < boostTimeRaw;
+    }
+
+    /**
+     * @brief Tick更新
+     *
+     * 每tick调用以更新加速状态。
+     * @return 是否需要继续加速
+     */
+    bool tick() {
+        if (saddledRaw) {
+            field_233611_b_++;
+            if (field_233611_b_ > boostTimeRaw) {
+                saddledRaw = false;
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    // 公开成员（与MC保持一致）
+    bool saddledRaw = false;     ///< 原始鞍状态（加速中时为true）
+    i32 field_233611_b_ = 0;     ///< 当前加速tick (MC命名: field_233611_b_)
+    i32 boostTimeRaw = 0;        ///< 原始加速时间
+
+private:
+    entity::EntityDataManager* m_manager = nullptr;
+    entity::DataParameter<i32> m_boostTimeParam{0};
+    entity::DataParameter<bool> m_saddledParam{0};
+    bool m_initialized = false;
+};
+
+} // namespace mc

@@ -142,9 +142,10 @@ private:
 
     /**
      * @brief 设置激活状态
+     * @param world 世界引用
      * @param active 激活状态
      */
-    void setActive(bool active);
+    void setActive(IWorld& world, bool active);
 
     /**
      * @brief 设置眼睛状态
@@ -158,6 +159,7 @@ private:
     bool m_eyeOpen = false;             ///< 眼睛是否睁开
     i32 m_ticksExisted = 0;             ///< 存在时间（tick）
     f32 m_activeRotation = 0.0f;        ///< 激活时的旋转角度
+    i64 m_ambientSoundCounter = 0;      ///< 环境音效计数器
     std::vector<BlockPos> m_prismarinePositions; ///< 海晶石框架位置
 
     // ========== 目标追踪 ==========

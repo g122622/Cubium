@@ -1,6 +1,8 @@
 #include "Slot.hpp"
 #include "IInventory.hpp"
+#include "../entities/player/Player.hpp"
 #include "../../item/items/armor/ArmorItem.hpp"
+#include "../../item/enchantment/EnchantmentHelper.hpp"
 
 namespace mc {
 
@@ -22,7 +24,12 @@ ItemStack Slot::getItem() const {
 void Slot::set(const ItemStack& stack) {
     if (m_inventory != nullptr) {
         m_inventory->setItem(m_slotIndex, stack);
+        setChanged();
     }
+}
+
+bool Slot::hasItem() const {
+    return !isEmpty();
 }
 
 bool Slot::isEmpty() const {
@@ -69,6 +76,47 @@ i32 Slot::getMaxStackSize(const ItemStack& stack) const {
     return std::min(stack.getMaxStackSize(), getMaxStackSize());
 }
 
+void Slot::onSlotChange(const ItemStack& oldStack, const ItemStack& newStack) {
+    // MC 1.16.5: 如果数量增加，调用 onCrafting
+    i32 countDiff = newStack.getCount() - oldStack.getCount();
+    if (countDiff > 0) {
+        onCrafting(newStack, countDiff);
+    }
+}
+
+void Slot::onCrafting(const ItemStack& stack, i32 amount) {
+    // 默认空实现，子类可重写
+    (void)stack;
+    (void)amount;
+}
+
+void Slot::onSwapCraft(i32 numItemsCrafted) {
+    // 默认空实现，子类可重写
+    (void)numItemsCrafted;
+}
+
+void Slot::onCrafting(const ItemStack& stack) {
+    // 默认空实现，子类可重写
+    (void)stack;
+}
+
+ItemStack Slot::onTake(Player& player, ItemStack stack) {
+    // MC 1.16.5: 默认只调用 setChanged
+    (void)player;
+    setChanged();
+    return stack;
+}
+
+Slot& Slot::setBackground(const ResourceLocation& atlas, const ResourceLocation& sprite) {
+    m_background.atlas = atlas;
+    m_background.sprite = sprite;
+    return *this;
+}
+
+bool Slot::isSameInventory(const Slot& other) const {
+    return m_inventory == other.m_inventory;
+}
+
 // ============================================================================
 // ArmorSlot
 // ============================================================================
@@ -103,15 +151,169 @@ bool ArmorSlot::mayPlace(const ItemStack& stack) const {
     return false;
 }
 
+bool ArmorSlot::mayPickup(Player& player) const {
+    // MC 1.16.5: 有绑定诅咒的护甲无法取下（除非创造模式）
+    const ItemStack& stack = getItem();
+    if (stack.isEmpty()) {
+        return true;
+    }
+
+    // TODO: 检查玩家是否是创造模式
+    // if (player.isCreativeMode()) {
+    //     return true;
+    // }
+
+    // TODO: 检查绑定诅咒
+    // if (EnchantmentHelper::hasBindingCurse(stack)) {
+    //     return false;
+    // }
+
+    (void)player;
+    return true;
+}
+
 // ============================================================================
 // ResultSlot
 // ============================================================================
 
 ResultSlot::ResultSlot(IInventory* inventory, i32 slotIndex, i32 x, i32 y,
-                       CraftingInventory* craftingGrid)
+                       CraftingInventory* craftingGrid, Player* player)
     : Slot(inventory, slotIndex, x, y)
     , m_craftingGrid(craftingGrid)
+    , m_player(player)
 {
+}
+
+void ResultSlot::onCrafting(const ItemStack& stack, i32 amount) {
+    // MC 1.16.5: 追踪合成数量
+    m_amountCrafted += amount;
+    onCrafting(stack);
+}
+
+void ResultSlot::onSwapCraft(i32 numItemsCrafted) {
+    // MC 1.16.5: 数字键交换时追踪数量
+    m_amountCrafted += numItemsCrafted;
+}
+
+void ResultSlot::onCrafting(const ItemStack& stack) {
+    // MC 1.16.5: 触发成就和配方解锁
+    if (m_amountCrafted > 0) {
+        // TODO: 触发成就
+        // stack.onCrafting(m_player->getWorld(), m_player, m_amountCrafted);
+
+        // TODO: 触发配方解锁事件
+        // if (m_player instanceof ServerPlayer) {
+        //     CriteriaTriggers.RECIPE_UNLOCKED.trigger(...);
+        // }
+    }
+    m_amountCrafted = 0;
+
+    // TODO: 通知 IRecipeHolder
+    // if (m_inventory instanceof IRecipeHolder) {
+    //     ((IRecipeHolder)m_inventory).onCrafting(m_player);
+    // }
+
+    (void)stack;
+}
+
+ItemStack ResultSlot::onTake(Player& player, ItemStack stack) {
+    // MC 1.16.5: 触发合成完成事件
+    onCrafting(stack);
+
+    // TODO: 从合成网格消耗材料
+    // 这需要访问配方管理器和合成网格
+    // NonNullList<ItemStack> remaining = player.getWorld().getRecipeManager()
+    //     .getRecipeNonNull(IRecipeType.CRAFTING, m_craftingGrid, player.getWorld());
+    // for (int i = 0; i < remaining.size(); ++i) {
+    //     处理容器物品返还等
+    // }
+
+    (void)player;
+    setChanged();
+    return stack;
+}
+
+// ============================================================================
+// FurnaceFuelSlot
+// ============================================================================
+
+FurnaceFuelSlot::FurnaceFuelSlot(IInventory* inventory, i32 slotIndex, i32 x, i32 y)
+    : Slot(inventory, slotIndex, x, y)
+{
+}
+
+bool FurnaceFuelSlot::mayPlace(const ItemStack& stack) const {
+    // MC 1.16.5: 只接受燃料或空桶
+    return isFuel(stack) || isBucket(stack);
+}
+
+i32 FurnaceFuelSlot::getMaxStackSize(const ItemStack& stack) const {
+    // MC 1.16.5: 桶只能放1个
+    if (isBucket(stack)) {
+        return 1;
+    }
+    return Slot::getMaxStackSize(stack);
+}
+
+bool FurnaceFuelSlot::isFuel(const ItemStack& stack) {
+    // TODO: 需要实现燃料检查
+    // return AbstractFurnaceBlockEntity::isFuel(stack);
+    (void)stack;
+    return false;
+}
+
+bool FurnaceFuelSlot::isBucket(const ItemStack& stack) {
+    // TODO: 检查物品是否是桶
+    // return stack.getItem() == Items.BUCKET;
+    (void)stack;
+    return false;
+}
+
+// ============================================================================
+// FurnaceResultSlot
+// ============================================================================
+
+// 注意：这是 mc::FurnaceResultSlot，与 mc::ResultSlot（合成结果槽）是不同的类
+
+mc::FurnaceResultSlot::FurnaceResultSlot(Player* player, IInventory* inventory, i32 slotIndex, i32 x, i32 y)
+    : Slot(inventory, slotIndex, x, y)
+    , m_player(player)
+{
+}
+
+ItemStack mc::FurnaceResultSlot::remove(i32 amount) {
+    // MC 1.16.5: 追踪取出数量
+    if (hasItem()) {
+        m_removeCount += std::min(amount, getItem().getCount());
+    }
+    return Slot::remove(amount);
+}
+
+void mc::FurnaceResultSlot::onCrafting(const ItemStack& stack, i32 amount) {
+    m_removeCount += amount;
+    onCrafting(stack);
+}
+
+void mc::FurnaceResultSlot::onCrafting(const ItemStack& stack) {
+    // MC 1.16.5: 触发熔炼成就和经验
+    if (m_removeCount > 0) {
+        // TODO: 触发熔炼成就
+        // stack.onCrafting(m_player->getWorld(), m_player, m_removeCount);
+
+        // TODO: 从熔炉方块实体发放经验
+        // if (!m_player->getWorld().isRemote && m_inventory instanceof AbstractFurnaceBlockEntity) {
+        //     ((AbstractFurnaceBlockEntity)m_inventory).grantExperience(m_player);
+        // }
+    }
+    m_removeCount = 0;
+    (void)stack;
+}
+
+ItemStack mc::FurnaceResultSlot::onTake(Player& player, ItemStack stack) {
+    onCrafting(stack);
+    setChanged();
+    (void)player;
+    return stack;
 }
 
 } // namespace mc

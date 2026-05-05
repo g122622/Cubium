@@ -6,6 +6,8 @@
 #include "item/potion/PotionBrewing.hpp"
 #include "item/potion/PotionUtils.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/property/Properties.hpp"
 #include <algorithm>
@@ -120,12 +122,12 @@ bool BrewingStandEntity::canBrew() const {
 }
 
 void BrewingStandEntity::doBrew(IWorld& world) {
-    MC_UNUSED(world);
-
     ItemStack ingredientStack = m_inventory.getItem(INGREDIENT_SLOT);
     if (ingredientStack.isEmpty()) {
         return;
     }
+
+    bool anyBrewed = false;
 
     for (i32 i = 0; i < BOTTLE_SLOTS; ++i) {
         ItemStack bottleStack = m_inventory.getItem(i);
@@ -140,7 +142,19 @@ void BrewingStandEntity::doBrew(IWorld& world) {
         if (potion::PotionBrewing::canBrew(bottleStack, ingredientStack)) {
             ItemStack result = potion::PotionBrewing::brew(bottleStack, ingredientStack);
             m_inventory.setItem(i, result);
+            anyBrewed = true;
         }
+    }
+
+    // MC 1.16.5: 酿造完成时播放音效
+    if (!world.isClientSide() && anyBrewed) {
+        world.playSound(
+            SoundEvents::BLOCK_BREWING_STAND_BREW,
+            sound::SoundCategory::Blocks,
+            m_pos.center(),
+            1.0f,
+            1.0f
+        );
     }
 
     ingredientStack.shrink(1);

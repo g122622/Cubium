@@ -174,11 +174,11 @@ ItemStack BrewingStandContainer::quickMoveStack(i32 slotIndex, Player& player) {
 void BrewingStandContainer::initSlots(PlayerInventory* playerInventory) {
     // ========== 酿造台槽位 ==========
 
-    // 药水槽（3个，从上到下排列）
-    // 位置参考 MC 1.16.5: (56, 51), (79, 58), (102, 51)
-    addSlot(std::make_unique<PotionSlot>(m_brewingStandInventory, 0, POTION_SLOT_X, POTION_SLOT_Y[0]));
-    addSlot(std::make_unique<PotionSlot>(m_brewingStandInventory, 1, 79, POTION_SLOT_Y[1]));
-    addSlot(std::make_unique<PotionSlot>(m_brewingStandInventory, 2, 102, POTION_SLOT_Y[2]));
+    // 药水槽（3个，中间的槽位更低）
+    // MC 1.16.5坐标: (56, 51), (79, 58), (102, 51)
+    addSlot(std::make_unique<PotionSlot>(m_brewingStandInventory, 0, POTION_SLOT_X[0], POTION_SLOT_Y[0]));
+    addSlot(std::make_unique<PotionSlot>(m_brewingStandInventory, 1, POTION_SLOT_X[1], POTION_SLOT_Y[1]));
+    addSlot(std::make_unique<PotionSlot>(m_brewingStandInventory, 2, POTION_SLOT_X[2], POTION_SLOT_Y[2]));
 
     // 材料槽（顶部中央）
     addSlot(std::make_unique<IngredientSlot>(m_brewingStandInventory, SLOT_INGREDIENT,

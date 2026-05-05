@@ -1511,6 +1511,13 @@ Biome createNetherWastes()
         ResourceLocation("minecraft:ambient.nether_wastes.additions"),
         0.0111  // tick_chance
     ));
+    // 下界荒地专属音乐 (MC 1.16.5)
+    sounds.setMusic(world::biome::BiomeMusic(
+        ResourceLocation("minecraft:music.nether.nether_wastes"),
+        12000,  // min_delay_ticks
+        24000,  // max_delay_ticks
+        false   // replace_current
+    ));
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -1552,6 +1559,13 @@ Biome createSoulSandValley()
     sounds.setAdditionsSound(world::biome::SoundAdditionsAmbience(
         ResourceLocation("minecraft:ambient.soul_sand_valley.additions"),
         0.0111  // tick_chance
+    ));
+    // 灵魂沙谷专属音乐 (MC 1.16.5)
+    sounds.setMusic(world::biome::BiomeMusic(
+        ResourceLocation("minecraft:music.nether.soul_sand_valley"),
+        12000,  // min_delay_ticks
+        24000,  // max_delay_ticks
+        false   // replace_current
     ));
     biome.setAmbientSounds(sounds);
 
@@ -1595,6 +1609,13 @@ Biome createCrimsonForest()
         ResourceLocation("minecraft:ambient.crimson_forest.additions"),
         0.0111  // tick_chance
     ));
+    // 绯红森林专属音乐 (MC 1.16.5)
+    sounds.setMusic(world::biome::BiomeMusic(
+        ResourceLocation("minecraft:music.nether.crimson_forest"),
+        12000,  // min_delay_ticks
+        24000,  // max_delay_ticks
+        false   // replace_current
+    ));
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -1637,6 +1658,15 @@ Biome createWarpedForest()
         ResourceLocation("minecraft:ambient.warped_forest.additions"),
         0.0111  // tick_chance
     ));
+    // 诡异森林专属音乐 (MC 1.16.5)
+    // 注意: sounds.json 中 music.nether.warped_forest 定义为空数组，实际上不会播放音乐
+    // 但游戏代码中仍然注册了这个音乐选择器
+    sounds.setMusic(world::biome::BiomeMusic(
+        ResourceLocation("minecraft:music.nether.warped_forest"),
+        12000,  // min_delay_ticks
+        24000,  // max_delay_ticks
+        false   // replace_current
+    ));
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -1678,6 +1708,13 @@ Biome createBasaltDeltas()
     sounds.setAdditionsSound(world::biome::SoundAdditionsAmbience(
         ResourceLocation("minecraft:ambient.basalt_deltas.additions"),
         0.0111  // tick_chance
+    ));
+    // 玄武岩三角洲专属音乐 (MC 1.16.5)
+    sounds.setMusic(world::biome::BiomeMusic(
+        ResourceLocation("minecraft:music.nether.basalt_deltas"),
+        12000,  // min_delay_ticks
+        24000,  // max_delay_ticks
+        false   // replace_current
     ));
     biome.setAmbientSounds(sounds);
 

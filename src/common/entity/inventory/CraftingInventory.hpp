@@ -1,9 +1,12 @@
 #pragma once
 
 #include "entity/inventory/IInventory.hpp"
+#include "entity/inventory/IRecipeHelperPopulator.hpp"
+#include "entity/inventory/IRecipeHolder.hpp"
 #include "entity/inventory/Slot.hpp"
 #include <vector>
 #include <functional>
+#include <unordered_map>
 
 namespace mc {
 
@@ -11,7 +14,7 @@ namespace mc {
  * @brief 合成网格背包
  *
  * 用于工作台(3x3)和玩家背包(2x2)的合成网格。
- * 继承自IInventory，提供网格坐标访问方法。
+ * 继承自IInventory和IRecipeHelperPopulator，提供网格坐标访问方法。
  *
  * 使用示例：
  * @code
@@ -34,7 +37,7 @@ namespace mc {
  * - 坐标(0,0)在左上角
  * - 内容变更时会触发回调，用于更新合成结果
  */
-class CraftingInventory : public IInventory {
+class CraftingInventory : public IInventory, public IRecipeHelperPopulator {
 public:
     /**
      * @brief 构造合成网格
@@ -177,6 +180,17 @@ public:
     bool getContentBounds(i32& outMinX, i32& outMinY,
                           i32& outMaxX, i32& outMaxY) const;
 
+    // ========== IRecipeHelperPopulator接口 ==========
+
+    /**
+     * @brief 将背包内容填充到物品计数器
+     * @param itemCounts 物品ID到数量的映射（输出参数）
+     *
+     * 遍历所有物品，只计数未损坏、未附魔、无自定义名称的物品。
+     * 参考: net.minecraft.inventory.CraftingInventory.fillStackedContents
+     */
+    void fillStackedContents(std::unordered_map<i32, i32>& itemCounts) const override;
+
 private:
     std::vector<ItemStack> m_items;
     i32 m_width;
@@ -189,10 +203,12 @@ private:
  *
  * 单槽位背包，用于存储合成结果。
  * 在工作台UI中显示在右侧结果槽位。
+ * 实现IRecipeHolder接口以追踪当前使用的配方。
  *
  * 特殊行为：
  * - 只有一个槽位（槽位0）
  * - 存储当前匹配配方的结果
+ * - 追踪使用的配方（用于解锁配方成就）
  *
  * 使用示例：
  * @code
@@ -203,7 +219,7 @@ private:
  * ItemStack taken = result.removeItem(0, 1);
  * @endcode
  */
-class CraftResultInventory : public IInventory {
+class CraftResultInventory : public IInventory, public IRecipeHolder {
 public:
     CraftResultInventory() = default;
     explicit CraftResultInventory(class Container* container);
@@ -255,8 +271,27 @@ public:
         return !m_result.isEmpty();
     }
 
+    // ========== IRecipeHolder接口 ==========
+
+    /**
+     * @brief 设置当前使用的配方
+     * @param recipe 配方指针，nullptr表示清除
+     */
+    void setRecipeUsed(const crafting::IRecipe<IInventory>* recipe) override {
+        m_recipeUsed = recipe;
+    }
+
+    /**
+     * @brief 获取当前使用的配方
+     * @return 配方指针，如果没有返回nullptr
+     */
+    [[nodiscard]] const crafting::IRecipe<IInventory>* getRecipeUsed() const override {
+        return m_recipeUsed;
+    }
+
 private:
     ItemStack m_result;
+    const crafting::IRecipe<IInventory>* m_recipeUsed = nullptr;
 };
 
 } // namespace mc

@@ -437,6 +437,79 @@ public:
 **MC 1.16.5 参考**: `SSetPassengersPacket`
 ```
 
+#### 骑乘相关数据包
+
+##### PlayerInputPacket (C->S)
+
+客户端发送玩家输入状态，用于骑乘控制：
+
+```cpp
+class PlayerInputPacket : public Packet {
+public:
+    f32 strafeSpeed() const;    // 左右移动 (-1.0 到 1.0)
+    f32 forwardSpeed() const;   // 前后移动 (-1.0 到 1.0)
+    bool isJumping() const;     // 跳跃状态
+    bool isSneaking() const;    // 潜行状态
+};
+```
+
+**参考**: MC 1.16.5 `CInputPacket`
+
+##### MoveVehiclePacket (C->S)
+
+客户端发送载具位置同步：
+
+```cpp
+class MoveVehiclePacket : public Packet {
+public:
+    f64 x() const;    f64 y() const;    f64 z() const;
+    f32 yaw() const;  f32 pitch() const;
+};
+```
+
+**参考**: MC 1.16.5 `CMoveVehiclePacket`
+
+##### VehicleMovePacket (S->C)
+
+服务端校正载具位置：
+
+```cpp
+class VehicleMovePacket : public Packet {
+public:
+    f64 x() const;    f64 y() const;    f64 z() const;
+    f32 yaw() const;  f32 pitch() const;
+};
+```
+
+**参考**: MC 1.16.5 `SMoveVehiclePacket`
+
+##### EntityActionPacket (C->S)
+
+客户端发送实体动作（潜行、疾跑、马跳跃等）：
+
+```cpp
+enum class EntityActionType : i32 {
+    PressShiftKey = 0,      // 按下潜行键
+    ReleaseShiftKey = 1,    // 释放潜行键
+    StopSleeping = 2,       // 停止睡觉
+    StartSprinting = 3,     // 开始疾跑
+    StopSprinting = 4,      // 停止疾跑
+    StartRidingJump = 5,    // 开始骑乘跳跃（马跳跃蓄力）
+    StopRidingJump = 6,     // 停止骑乘跳跃（马跳跃释放）
+    OpenInventory = 7,      // 打开背包
+    StartFallFlying = 8     // 开始滑翔（鞘翅）
+};
+
+class EntityActionPacket : public Packet {
+public:
+    u32 entityId() const;
+    EntityActionType action() const;
+    i32 auxData() const;  // 辅助数据（如跳跃力度）
+};
+```
+
+**参考**: MC 1.16.5 `CEntityActionPacket`
+
 ---
 
 ### sync/ - 同步层

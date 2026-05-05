@@ -91,6 +91,15 @@ public:
     [[nodiscard]] double getZPos() const override { return static_cast<double>(getPos().z) + 0.5; }
     [[nodiscard]] BlockPos getHopperPos() const override { return getPos(); }
 
+    /**
+     * @brief 获取漏斗输出方向
+     * @return 输出方向（从方块状态获取）
+     *
+     * 漏斗可以朝向除上方外的任何方向。
+     * 默认为向下，但可以通过放置时面向的方块决定输出方向。
+     */
+    [[nodiscard]] Direction getOutputDirection() const override;
+
     // ========== 漏斗特定方法 ==========
 
     /**

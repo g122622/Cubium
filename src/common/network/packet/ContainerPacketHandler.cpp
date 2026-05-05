@@ -60,9 +60,9 @@ ContainerSlotPacket ContainerPacketHandler::createSlotPacket(const AbstractConta
     return ContainerSlotPacket(menu.getId(), slotIndex, item);
 }
 
-OpenContainerPacket ContainerPacketHandler::createOpenContainerPacket(ContainerId containerId, u8 type,
-                                                                       const String& title, i32 slotCount) {
-    return OpenContainerPacket(containerId, type, title, slotCount);
+OpenContainerPacket ContainerPacketHandler::createOpenContainerPacket(ContainerId containerId, i32 type,
+                                                                       const String& title) {
+    return OpenContainerPacket(containerId, type, title);
 }
 
 RecipeListSyncPacket ContainerPacketHandler::createRecipeListPacket() {

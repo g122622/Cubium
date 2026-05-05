@@ -1,6 +1,7 @@
 #pragma once
 
 #include "client/sound/instance/ISoundInstance.hpp"
+#include "common/world/biome/BiomeAmbientSounds.hpp"
 
 #include <glm/glm.hpp>
 
@@ -9,6 +10,7 @@
 #include <deque>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <thread>
 
 namespace mc {
@@ -95,8 +97,10 @@ public:
      * @param dimension 当前维度ID (0=主世界, -1=下界, 1=末地)
      * @param inCreative 是否在创造模式
      * @param inBossFight 是否在Boss战斗中
+     * @param biomeMusic 当前生物群系的音乐配置（可选）
      */
-    void updateMusicState(i32 dimension, bool inCreative, bool inBossFight);
+    void updateMusicState(i32 dimension, bool inCreative, bool inBossFight,
+                         const std::optional<world::biome::BiomeMusic>& biomeMusic = std::nullopt);
 
     /**
      * @brief 设置菜单状态
@@ -191,6 +195,23 @@ public:
      */
     void updateGuardianTarget(u32 entityId, u32 targetEntityId);
 
+    /**
+     * @brief 播放移动声音
+     *
+     * 创建跟随实体位置移动的声音。当实体被移除时自动停止。
+     *
+     * @param soundEventId 声音事件ID
+     * @param category 声音类别
+     * @param entityId 实体ID
+     * @param volume 音量
+     * @param pitch 音调
+     */
+    void playMovingSound(const ResourceLocation& soundEventId,
+                         SoundCategory category,
+                         u32 entityId,
+                         f32 volume,
+                         f32 pitch);
+
 private:
     enum class CommandType : u8 {
         Play,
@@ -220,6 +241,7 @@ private:
         GuardianAttack,
         GuardianTargetUpdate,
         RidingStateChanged,
+        MovingSound,
     };
 
     struct Command {
@@ -233,6 +255,7 @@ private:
         glm::vec3 up{0.0f};
         glm::vec3 velocity{0.0f};
         f32 volume = 1.0f;
+        f32 pitch = 1.0f;
         u32 delayTicks = 0;
         u32 biomeId = 0;
         bool underwater = false;
@@ -247,6 +270,8 @@ private:
         bool inCreative = false;
         bool inBossFight = false;
         bool inMenu = false;
+        // 生物群系音乐
+        std::optional<world::biome::BiomeMusic> biomeMusic;
         // 环境音效光照等级
         u8 skyLight = 15;
         u8 blockLight = 15;
@@ -296,6 +321,10 @@ private:
     std::atomic<bool> m_savedCreative{false};
     std::atomic<bool> m_savedBossFight{false};
     std::atomic<bool> m_savedInMenu{false};
+
+    // 生物群系音乐（需要互斥锁保护）
+    std::mutex m_biomeMusicMutex;
+    std::optional<world::biome::BiomeMusic> m_savedBiomeMusic;
 
     std::mutex m_initMutex;
     std::condition_variable m_initConditionVariable;

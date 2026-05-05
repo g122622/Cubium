@@ -2,6 +2,8 @@
 #include "../../../IWorld.hpp"
 #include "../../WaterLoggableHelpers.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../sound/SoundCategory.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -112,7 +114,10 @@ void CampfireBlock::light(IWorld& world, const BlockPos& pos, BlockState& state)
     if (!isLit(state) && !state.get(BlockStateProperties::WATERLOGGED())) {
         BlockState newState = state.with(BlockStateProperties::LIT(), true);
         world.setBlockState(pos, &newState, 3);
-        // TODO: 播放点燃音效和粒子效果
+        // MC 1.16.5: 点燃音效
+        // 参考: CampfireBlock.onBlockAdded 和 FireBlock.onBlockAdded
+        // 注: 点燃音效使用通用的火焰点燃声，此处不播放特定音效
+        // 粒子效果由客户端渲染器处理
     }
 }
 
@@ -122,7 +127,19 @@ void CampfireBlock::extinguish(IWorld& world, const BlockPos& pos, BlockState& s
             .with(BlockStateProperties::LIT(), false)
             .with(BlockStateProperties::AGE_0_4(), 0);
         world.setBlockState(pos, &newState, 3);
-        // TODO: 播放熄灭音效和烟雾粒子效果
+
+        // MC 1.16.5: 熄灭时播放音效
+        // 参考: CampfireBlock.receiveFluid 和 extinguish 方法
+        // 注: 原版使用 ENTITY_GENERIC_EXTINGUISH_FIRE 音效
+        if (!world.isClientSide()) {
+            world.playSound(
+                SoundEvents::ENTITY_GENERIC_EXTINGUISH_FIRE,
+                sound::SoundCategory::Blocks,
+                pos.center(),
+                1.0f,
+                1.0f
+            );
+        }
     }
 }
 
