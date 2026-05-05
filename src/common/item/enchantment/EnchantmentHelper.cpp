@@ -1,6 +1,7 @@
 #include "EnchantmentHelper.hpp"
 #include "EnchantmentRegistry.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/Items.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -359,7 +360,7 @@ std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::getEnchantmen
         return result;
     }
 
-    bool isBook = item->itemLocation().toString() == "minecraft:book";
+    bool isBook = item == Items::BOOK;
 
     // 遍历所有注册的附魔
     for (const auto& [id, enchantment] : EnchantmentRegistry::all()) {

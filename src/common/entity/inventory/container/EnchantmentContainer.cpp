@@ -3,11 +3,13 @@
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/core/Item.hpp"
+#include "item/Items.hpp"
 #include "item/enchantment/EnchantmentRegistry.hpp"
 #include "item/enchantment/EnchantmentHelper.hpp"
 #include "network/packet/PacketSerializer.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
+#include "world/block/VanillaBlocks.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -119,7 +121,7 @@ public:
     bool mayPlace(const ItemStack& stack) const override {
         // 只接受青金石
         return !stack.isEmpty() && stack.getItem() != nullptr &&
-               stack.getItem()->itemLocation().toString() == "minecraft:lapis_lazuli";
+               stack.getItem() == Items::LAPIS_LAZULI;
     }
 };
 
@@ -251,7 +253,7 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex) {
 
     // 检查是否是书 -> 附魔书转换
     bool isBook = item.getItem() != nullptr &&
-                  item.getItem()->itemLocation().toString() == "minecraft:book";
+                  item.getItem() == Items::BOOK;
 
     if (isBook) {
         // 转换为附魔书
@@ -307,7 +309,7 @@ ItemStack EnchantmentContainer::quickMoveStack(i32 slotIndex, Player& player) {
     } else {
         // 从玩家背包移动到附魔台
         // 尝试放入青金石槽
-        if (slotStack.getItem() && slotStack.getItem()->itemLocation().toString() == "minecraft:lapis_lazuli") {
+        if (slotStack.getItem() && slotStack.getItem() == Items::LAPIS_LAZULI) {
             if (!moveItemToRange(slotStack, SLOT_LAPIS, SLOT_LAPIS + 1, false)) {
                 // 尝试放入物品槽
                 if (!moveItemToRange(slotStack, SLOT_ITEM, SLOT_ITEM + 1, false)) {
@@ -466,7 +468,7 @@ bool EnchantmentContainer::isValidBookshelf(const BlockPos& pos) const {
 
     // 检查是否为书架
     const Block& block = blockState->getBlock();
-    return block.blockLocation().toString() == "minecraft:bookshelf";
+    return &block == VanillaBlocks::BOOKSHELF;
 }
 
 bool EnchantmentContainer::isAirBlock(const BlockPos& pos) const {
@@ -477,7 +479,7 @@ bool EnchantmentContainer::isAirBlock(const BlockPos& pos) const {
     if (!blockState) {
         return true;  // 未加载的区块视为空气
     }
-    return blockState->getBlock().blockLocation().toString() == "minecraft:air";
+    return blockState->getBlock().isAir(*blockState);
 }
 
 } // namespace mc

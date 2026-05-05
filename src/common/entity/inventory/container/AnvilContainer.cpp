@@ -4,6 +4,7 @@
 #include "entity/entities/player/Player.hpp"
 #include "item/core/Item.hpp"
 #include "item/core/ItemStack.hpp"
+#include "item/Items.hpp"
 #include "item/enchantment/EnchantmentHelper.hpp"
 #include "item/enchantment/EnchantmentRegistry.hpp"
 #include "item/enchantment/Enchantment.hpp"
@@ -320,7 +321,7 @@ void AnvilContainer::updateRepairOutput() {
     if (!input2.isEmpty()) {
         // 检查是否是附魔书
         bool isEnchantedBook = input2.getItem() != nullptr &&
-                               input2.getItem()->itemLocation().toString() == "minecraft:enchanted_book" &&
+                               input2.getItem() == Items::ENCHANTED_BOOK &&
                                input2.hasEnchantments();
 
         // 检查是否可以用材料修复
