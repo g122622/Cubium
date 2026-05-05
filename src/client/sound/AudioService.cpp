@@ -8,6 +8,7 @@
 #include "client/sound/handler/UnderwaterAmbientHandler.hpp"
 #include "client/sound/handler/BubbleColumnAmbientHandler.hpp"
 #include "client/sound/handler/EntitySoundHandler.hpp"
+#include "client/sound/handler/WeatherSoundHandler.hpp"
 
 #include "common/resource/ResourcePackList.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -80,6 +81,7 @@ void AudioService::shutdown()
     m_running.store(false);
     m_biomeAmbientHandler = nullptr;
     m_underwaterAmbientHandler = nullptr;
+    m_weatherSoundHandler = nullptr;
 }
 
 void AudioService::play(std::unique_ptr<ISoundInstance> sound)
@@ -332,6 +334,21 @@ void AudioService::setInMenu(bool inMenu)
     enqueue(std::move(command));
 }
 
+void AudioService::updateWeatherState(f32 rainStrength, f32 thunderStrength, f32 playerY, bool canSeeSky)
+{
+    if (!m_loaded.load()) {
+        return;
+    }
+
+    Command command;
+    command.type = CommandType::UpdateWeatherState;
+    command.rainStrength = rainStrength;
+    command.thunderStrength = thunderStrength;
+    command.weatherPlayerY = playerY;
+    command.canSeeSky = canSeeSky;
+    enqueue(std::move(command));
+}
+
 void AudioService::onEntitySpawn(u32 entityId, const String& typeId, f32 x, f32 y, f32 z)
 {
     if (!m_loaded.load() || !m_entitySoundHandler) {
@@ -527,6 +544,11 @@ void AudioService::runWorker()
         m_entitySoundHandler = entitySoundHandler.get();
         m_soundEngine->addAmbientHandler(std::move(entitySoundHandler));
 
+        // 创建天气声音处理器
+        auto weatherSoundHandler = std::make_unique<WeatherSoundHandler>();
+        m_weatherSoundHandler = weatherSoundHandler.get();
+        m_soundEngine->addAmbientHandler(std::move(weatherSoundHandler));
+
         // 创建音乐播放器
         m_musicPlayer = std::make_unique<MusicPlayer>(*m_soundEngine);
 
@@ -714,6 +736,17 @@ void AudioService::processCommand(Command& command)
 
         case CommandType::SetInMenu:
             m_savedInMenu.store(command.inMenu);
+            break;
+
+        case CommandType::UpdateWeatherState:
+            if (m_weatherSoundHandler) {
+                m_weatherSoundHandler->updateWeatherState(
+                    command.rainStrength,
+                    command.thunderStrength,
+                    command.weatherPlayerY,
+                    command.canSeeSky
+                );
+            }
             break;
 
         case CommandType::EntitySpawn:

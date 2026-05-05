@@ -4,6 +4,7 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/blocks/ocean/SeaPickleBlock.hpp"
 #include "client/sound/AudioService.hpp"
@@ -232,6 +233,16 @@ void ClientApplication::updateWorldAudio()
             }
         }
         m_audioService->setBubbleColumnState(inBubbleColumn, bubbleColumnDrag);
+
+        // 更新天气音效状态（雨声/雷声）
+        const f32 rainStrength = m_world.weather().rainStrength();
+        const f32 thunderStrength = m_world.weather().thunderStrength();
+        const bool canSeeSky = m_world.canSeeSky(BlockPos(
+            static_cast<i32>(std::floor(m_player->x())),
+            static_cast<i32>(std::floor(m_player->y() + m_player->eyeHeight())),
+            static_cast<i32>(std::floor(m_player->z()))
+        ));
+        m_audioService->updateWeatherState(rainStrength, thunderStrength, m_player->y(), canSeeSky);
     }
 
     m_wasPlayerInWater = inWater;

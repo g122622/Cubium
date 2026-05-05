@@ -23,7 +23,8 @@ src/client/sound/
 │   ├── BiomeAmbientHandler.hpp/cpp
 │   ├── UnderwaterAmbientHandler.hpp/cpp
 │   ├── BubbleColumnAmbientHandler.hpp/cpp
-│   └── EntitySoundHandler.hpp/cpp  # 实体声音处理器
+│   ├── EntitySoundHandler.hpp/cpp  # 实体声音处理器
+│   └── WeatherSoundHandler.hpp/cpp  # 天气音效处理器
 ├── instance/                     # 声音实例定义
 │   ├── ISoundInstance.hpp
 │   ├── SoundInstance.hpp/cpp     # 包含 TickableSound 基类
@@ -178,6 +179,37 @@ MC 1.16.5 群系环境音实现三种类型：
 | 向下气泡柱 (drag=true) | `block.bubble_column.whirlpool.inside` |
 
 **触发逻辑**：只在玩家刚进入气泡柱时播放一次音效，不会持续播放。
+
+### 天气音效处理器 (WeatherSoundHandler)
+
+处理雨天和雷暴时的环境音效。
+
+**雨声**：
+- 根据降雨强度 (0.0-1.0) 动态调整音量
+- 高空（Y > SEA_LEVEL + 63）使用 `weather.rain.above`
+- 地面使用 `weather.rain`
+- 只有当玩家能看到天空时才播放
+
+**雷声**：
+- 只在雷暴时播放（thunderStrength > 0.9）
+- 间隔 5-30 秒随机播放
+- 音量根据雷暴和降雨强度计算
+- 音调随机变化 0.8-1.2
+
+**参考**：
+- MC 1.16.5 `ClientWorld.playWeatherSounds()`
+- MC 1.16.5 `BackgroundMusicSelector`
+
+**客户端调用**：
+```cpp
+// 在 ClientApplication::updateWorldAudio() 中调用
+audioService.updateWeatherState(
+    m_world.weather().rainStrength(),
+    m_world.weather().thunderStrength(),
+    m_player->y(),
+    m_world.canSeeSky(blockPos)
+);
+```
 
 ### 实体声音处理器 (EntitySoundHandler)
 

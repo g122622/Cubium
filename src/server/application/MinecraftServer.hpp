@@ -573,6 +573,33 @@ protected:
      */
     void broadcastEntityStatusInRange(EntityId entityId, u8 status, const Vector3& pos, f32 range = 64.0f);
 
+    // ========== 世界事件广播方法 ==========
+
+    /**
+     * @brief 广播世界事件给所有玩家
+     *
+     * 世界事件包括音效和粒子效果，如门开关声音、唱片播放、方块破坏等。
+     *
+     * @param eventId 事件ID，参见 WorldEvents 命名空间
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @param data 事件数据（含义因事件而异）
+     */
+    void broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data);
+
+    /**
+     * @brief 广播世界事件给指定范围内的玩家
+     *
+     * @param eventId 事件ID
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @param data 事件数据
+     * @param range 广播范围（格），默认 64 格
+     */
+    void broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 z, i32 data, f32 range = 64.0f);
+
     /**
      * @brief 发送粒子给指定玩家
      *

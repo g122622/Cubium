@@ -231,6 +231,7 @@ add_executable(minecraft-client
     sound/handler/UnderwaterAmbientHandler.cpp
     sound/handler/BubbleColumnAmbientHandler.cpp
     sound/handler/EntitySoundHandler.cpp
+    sound/handler/WeatherSoundHandler.cpp
     # 世界
     world/ClientWorld.cpp
     world/player/LocalPlayerIdentity.cpp

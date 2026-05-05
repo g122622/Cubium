@@ -1565,4 +1565,48 @@ void MinecraftServer::broadcastEntityStatusInRange(EntityId entityId, u8 status,
     });
 }
 
+// ============================================================================
+// 世界事件广播
+// ============================================================================
+
+void MinecraftServer::broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data) {
+    sound::WorldEventPacket packet(eventId, x, y, z, data);
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize WorldEventPacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(
+        network::PacketType::WorldEvent, result.value());
+    broadcastPacket(fullPacket.data(), fullPacket.size());
+}
+
+void MinecraftServer::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 z, i32 data, f32 range) {
+    sound::WorldEventPacket packet(eventId, x, y, z, data);
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize WorldEventPacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(
+        network::PacketType::WorldEvent, result.value());
+
+    f32 rangeSq = range * range;
+    Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+        }
+    });
+}
+
 } // namespace mc::server

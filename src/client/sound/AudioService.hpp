@@ -29,6 +29,7 @@ class MusicPlayer;
 class SoundEngine;
 class SoundHandler;
 class UnderwaterAmbientHandler;
+class WeatherSoundHandler;
 
 /**
  * @brief 音频服务
@@ -108,6 +109,22 @@ public:
      * @param inMenu 是否在菜单界面
      */
     void setInMenu(bool inMenu);
+
+    // ========================================================================
+    // 天气音效处理
+    // ========================================================================
+
+    /**
+     * @brief 更新天气状态
+     *
+     * 用于天气音效处理器（雨声/雷声）。
+     *
+     * @param rainStrength 降雨强度 (0.0 - 1.0)
+     * @param thunderStrength 雷暴强度 (0.0 - 1.0)
+     * @param playerY 玩家Y坐标（用于判断是否在高空）
+     * @param canSeeSky 是否能看到天空
+     */
+    void updateWeatherState(f32 rainStrength, f32 thunderStrength, f32 playerY, bool canSeeSky);
 
     // ========================================================================
     // 实体声音处理
@@ -232,6 +249,7 @@ private:
         SetAmbientLightLevel,
         SetAmbientPlayerPosition,
         SetInMenu,
+        UpdateWeatherState,
         // 实体声音
         EntitySpawn,
         EntityRemove,
@@ -293,6 +311,11 @@ private:
         // 骑乘状态
         bool isRiding = false;
         u32 vehicleId = 0;
+        // 天气状态
+        f32 rainStrength = 0.0f;
+        f32 thunderStrength = 0.0f;
+        f32 weatherPlayerY = 0.0f;
+        bool canSeeSky = true;
     };
 
     void enqueue(Command command);
@@ -314,6 +337,7 @@ private:
     UnderwaterAmbientHandler* m_underwaterAmbientHandler = nullptr;
     BubbleColumnAmbientHandler* m_bubbleColumnAmbientHandler = nullptr;
     EntitySoundHandler* m_entitySoundHandler = nullptr;
+    WeatherSoundHandler* m_weatherSoundHandler = nullptr;
 
     // 音乐状态（跨线程共享）
     std::atomic<i32> m_savedDimension{0};

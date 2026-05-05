@@ -169,6 +169,9 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
             broadcastEntityStatusInRange(entityId, status, entity->position());
         }
     });
+    m_world->setOnBroadcastWorldEvent([this](i32 eventId, i32 x, i32 y, i32 z, i32 data) {
+        broadcastWorldEventInRange(eventId, x, y, z, data);
+    });
 
     // 设置 TimeManager 引用
     m_world->setTimeManager(m_timeManager.get());
