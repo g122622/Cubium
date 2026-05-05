@@ -20,7 +20,7 @@ struct PortalSizeResult {
     BlockPos corner;        ///< 传送门内部左下角位置
     i32 width = 0;          ///< 内部宽度 (2-21)
     i32 height = 0;         ///< 内部高度 (3-21)
-    Direction axis;         ///< 传送门朝向
+    Axis axis;              ///< 传送门轴向 (X 或 Z)
     i32 portalBlockCount = 0; ///< 已存在的传送门方块数量
     bool valid = false;     ///< 是否有效
 

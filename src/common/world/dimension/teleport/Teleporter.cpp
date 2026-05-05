@@ -184,15 +184,19 @@ std::optional<PortalInfo> NetherTeleporter::findPortal(IWorld& world, const Vect
         return std::nullopt;
     }
 
-    // 找到最近的传送门（使用平方距离避免开方）
+    // 找到最近的传送门（使用 3D 距离，MC 1.16.5 使用 distanceSq）
+    // 次排序键：Y 坐标（距离相同时选择 Y 更小的）
     BlockPos closest = portalBlocks[0];
     i64 closestDistSq = static_cast<i64>(closest.x - blockPos.x) * (closest.x - blockPos.x) +
+                        static_cast<i64>(closest.y - blockPos.y) * (closest.y - blockPos.y) +
                         static_cast<i64>(closest.z - blockPos.z) * (closest.z - blockPos.z);
 
     for (size_t i = 1; i < portalBlocks.size(); ++i) {
         i64 distSq = static_cast<i64>(portalBlocks[i].x - blockPos.x) * (portalBlocks[i].x - blockPos.x) +
+                     static_cast<i64>(portalBlocks[i].y - blockPos.y) * (portalBlocks[i].y - blockPos.y) +
                      static_cast<i64>(portalBlocks[i].z - blockPos.z) * (portalBlocks[i].z - blockPos.z);
-        if (distSq < closestDistSq) {
+        if (distSq < closestDistSq ||
+            (distSq == closestDistSq && portalBlocks[i].y < closest.y)) {
             closestDistSq = distSq;
             closest = portalBlocks[i];
         }
@@ -364,8 +368,9 @@ std::optional<PortalInfo> EndTeleporter::findPortal(IWorld& world, const Vector3
     MC_UNUSED(pos);
     // 末地传送门是固定的，不需要搜索
     // 返回固定的出生位置
+    // MC 1.16.5 ServerWorld.field_241108_a_ = new BlockPos(100, 50, 0)
     PortalInfo info;
-    info.position = getEndSpawnPosition();
+    info.position = getEndSpawnPosition();  // (100.5, 50.0, 0.5)
     info.yaw = 90.0f;  // 面向末地岛
     info.pitch = 0.0f;
     info.valid = true;
@@ -395,8 +400,9 @@ void EndTeleporter::createExitPortal(IWorld& world, const BlockPos& pos) {
 
 void EndTeleporter::createEndSpawnPlatform(IWorld& world) {
     // 创建末地出生平台（黑曜石平台）
-    // 位置: (100, 49, 0)
-    // 平台大小: 5x5
+    // MC 1.16.5 ServerWorld.func_241121_a_:
+    // 出生点 (100, 50, 0)，平台在 y = 48（spawnY - 2）
+    // 清空空间 y = 49, 50, 51（spawnY - 1 到 spawnY + 1）
 
     // 检查黑曜石方块是否已注册
     if (VanillaBlocks::OBSIDIAN == nullptr) {
@@ -405,20 +411,26 @@ void EndTeleporter::createEndSpawnPlatform(IWorld& world) {
 
     const BlockState* obsidian = &VanillaBlocks::OBSIDIAN->defaultState();
 
-    // 放置黑曜石平台
+    // MC 1.16.5 常量
+    constexpr i32 SPAWN_X = 100;
+    constexpr i32 SPAWN_Y = 50;  // 出生点 Y 坐标
+    constexpr i32 SPAWN_Z = 0;
+    constexpr i32 PLATFORM_Y = SPAWN_Y - 2;  // y = 48
+
+    // 放置黑曜石平台 (y = 48)
     for (i32 x = -2; x <= 2; ++x) {
         for (i32 z = -2; z <= 2; ++z) {
-            BlockPos pos(100 + x, 49, 0 + z);
+            BlockPos pos(SPAWN_X + x, PLATFORM_Y, SPAWN_Z + z);
             world.setBlockState(pos, obsidian);
         }
     }
 
-    // 清空上方空间（确保玩家不会被方块卡住）
-    // 空气方块通过设置 nullptr 实现
+    // 清空上方空间 (y = 49, 50, 51)
+    // MC 1.16.5: for (int k = -1; k < 3; ++k) 即 y = spawnY - 1 到 spawnY + 1
     for (i32 x = -2; x <= 2; ++x) {
         for (i32 z = -2; z <= 2; ++z) {
-            for (i32 y = 50; y <= 53; ++y) {
-                BlockPos pos(100 + x, y, 0 + z);
+            for (i32 y = SPAWN_Y - 1; y <= SPAWN_Y + 1; ++y) {
+                BlockPos pos(SPAWN_X + x, y, SPAWN_Z + z);
                 world.setBlockState(pos, nullptr);
             }
         }

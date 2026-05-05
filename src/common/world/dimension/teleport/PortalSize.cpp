@@ -19,11 +19,14 @@ std::vector<BlockPos> PortalSizeResult::getPortalBlocks() const {
 
     blocks.reserve(static_cast<size_t>(width) * static_cast<size_t>(height));
 
+    // 根据轴向确定遍历方向
+    Direction widthDir = (axis == Axis::X) ? Direction::East : Direction::South;
+
     for (i32 h = 0; h < height; ++h) {
         for (i32 w = 0; w < width; ++w) {
             BlockPos pos = corner;
             pos = pos.offset(Direction::Up, h);
-            pos = pos.offset(axis, w);
+            pos = pos.offset(widthDir, w);
             blocks.push_back(pos);
         }
     }
@@ -40,15 +43,17 @@ std::optional<PortalSizeResult> PortalSize::findNetherPortal(
     const BlockPos& pos,
     bool preferXAxis)
 {
-    // 先尝试优先轴向
-    Direction firstDir = preferXAxis ? Direction::East : Direction::South;
+    // MC 1.16.5 PortalSize.func_242964_a:
+    // 先尝试 X 轴 (rightDir = WEST)，再尝试 Z 轴 (rightDir = SOUTH)
+    // 注意：MC 中 axis 为 X 时，rightDir 为 WEST（向左方向）
+    Direction firstDir = preferXAxis ? Direction::West : Direction::South;
     auto result = tryFindPortalOnAxis(world, pos, firstDir);
     if (result.has_value() && result->valid && result->portalBlockCount == 0) {
         return result;
     }
 
     // 再尝试另一个轴向
-    Direction secondDir = preferXAxis ? Direction::South : Direction::East;
+    Direction secondDir = preferXAxis ? Direction::South : Direction::West;
     result = tryFindPortalOnAxis(world, pos, secondDir);
     if (result.has_value() && result->valid && result->portalBlockCount == 0) {
         return result;
@@ -66,9 +71,9 @@ bool PortalSize::lightNetherPortal(IWorld& world, const PortalSizeResult& portal
     if (VanillaBlocks::NETHER_PORTAL == nullptr) return false;
 
     // 设置传送门方块轴向
-    Axis axis = (portal.axis == Direction::East) ? Axis::X : Axis::Z;
+    // MC 1.16.5: NetherPortalBlock.AXIS = portalSize.axis
     const BlockState* portalState = &VanillaBlocks::NETHER_PORTAL->defaultState().with(
-        BlockStateProperties::HORIZONTAL_AXIS(), axis);
+        BlockStateProperties::HORIZONTAL_AXIS(), portal.axis);
 
     for (const BlockPos& pos : blocks) {
         // Block update flags: 2 = notify neighbors, 16 = prevent recursion
@@ -99,6 +104,10 @@ std::optional<PortalSizeResult> PortalSize::tryFindPortalOnAxis(
     const BlockPos& pos,
     Direction rightDir)
 {
+    // MC 1.16.5 PortalSize 构造函数：
+    // this.rightDir = axis == X ? WEST : SOUTH
+    // 传入的 rightDir 已经是正确的方向
+
     auto bottomLeft = findBottomLeft(world, pos, rightDir);
     if (!bottomLeft.has_value()) return std::nullopt;
 
@@ -111,11 +120,14 @@ std::optional<PortalSizeResult> PortalSize::tryFindPortalOnAxis(
 
     if (!checkTopFrame(world, *bottomLeft, rightDir, width, height)) return std::nullopt;
 
+    // 将 Direction 转换为 Axis
+    Axis axis = (rightDir == Direction::West || rightDir == Direction::East) ? Axis::X : Axis::Z;
+
     PortalSizeResult result;
     result.corner = *bottomLeft;
     result.width = width;
     result.height = height;
-    result.axis = rightDir;
+    result.axis = axis;
     result.portalBlockCount = portalBlockCount;
     result.valid = true;
     return result;
@@ -128,7 +140,8 @@ std::optional<BlockPos> PortalSize::findBottomLeft(
 {
     Direction leftDir = Directions::opposite(rightDir);
 
-    // 向下搜索找到内部底部
+    // MC 1.16.5 PortalSize.func_242971_a:
+    // 第一步：向下搜索找到内部底部
     BlockPos currentPos = pos;
     i32 minY = std::max(world::MIN_BUILD_HEIGHT, pos.y - MAX_SEARCH_DOWN);
 
@@ -139,21 +152,48 @@ std::optional<BlockPos> PortalSize::findBottomLeft(
         currentPos = belowPos;
     }
 
-    // 向左找到左边界框架
-    i32 leftDistance = 0;
+    // 第二步：向左（opposite of rightDir）搜索框架
+    // MC 1.16.5 逻辑：
+    // - 遇到连接方块（空气/火/传送门）→ 检查底部框架 → 继续下一个位置
+    // - 遇到框架方块 → 返回当前距离（框架右边的位置就是内部左下角）
+    i32 leftDistance = -1;
     for (i32 i = 0; i <= MAX_WIDTH + 1; ++i) {
         BlockPos checkPos = currentPos.offset(leftDir, i);
         const BlockState* state = world.getBlockState(checkPos);
-        if (state != nullptr && isPortalFrame(*state)) {
-            leftDistance = i;
-        } else {
+
+        if (state == nullptr) {
+            // 空状态，无法判断
             break;
         }
+
+        if (canConnect(*state)) {
+            // 是连接方块（空气/火/传送门），检查底部是否是框架
+            BlockPos belowCheckPos = checkPos.offset(Direction::Down);
+            const BlockState* belowState = world.getBlockState(belowCheckPos);
+            if (belowState == nullptr || !isPortalFrame(*belowState)) {
+                // 底部不是框架，传送门无效
+                break;
+            }
+            // 底部是框架，继续向左搜索
+            continue;
+        }
+
+        if (isPortalFrame(*state)) {
+            // 找到框架方块
+            leftDistance = i;
+            break;
+        }
+
+        // 既不是连接方块也不是框架，停止搜索
+        break;
     }
 
-    if (leftDistance <= 0) return std::nullopt;
+    if (leftDistance <= 0) {
+        // 没有找到有效的左边框架
+        return std::nullopt;
+    }
 
-    // 内部左下角 = 左边框架位置向右偏移 1
+    // 内部左下角 = 框架位置向右偏移 1
     return currentPos.offset(leftDir, leftDistance - 1);
 }
 

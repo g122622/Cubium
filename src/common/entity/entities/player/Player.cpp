@@ -369,9 +369,15 @@ bool Player::tickPortal() {
     // 如果不在传送门中，递减传送门计时
     // MC: this.portalTime -= 4;（与 Entity 基类一致）
     if (!m_inPortal) {
-        m_portalTime = std::max(0, m_portalTime - 4);
+        if (m_portalTime > 0) {
+            m_portalTime = std::max(0, m_portalTime - 4);
+        }
         return false;
     }
+
+    // ★ MC 1.16.5: 无论是否传送，都重置 inPortal
+    // 这样下一帧如果玩家仍在传送门方块中，会由 NetherPortalBlock.onEntityCollision 重新设置
+    m_inPortal = false;
 
     // 在传送门中，检查是否可以传送（冷却完成）
     if (!canTeleport()) {
@@ -383,10 +389,10 @@ bool Player::tickPortal() {
 
     // 检查是否达到传送阈值
     // 使用 getMaxInPortalTime() 而非硬编码，以支持创造模式
+    // MC 1.16.5: portalCounter++ >= i
     const i32 maxPortalTime = getMaxInPortalTime();
     if (m_portalTime >= maxPortalTime) {
-        // 传送触发，保持 portalTime 为最大值（与 Entity 基类一致）
-        // 实际重置在 onPortalTriggered() 中完成
+        // 传送触发
         m_portalTime = maxPortalTime;
         return true;
     }

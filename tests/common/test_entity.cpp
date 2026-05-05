@@ -628,8 +628,10 @@ TEST(Entity, PortalTime) {
 
 TEST(Entity, GetMaxInPortalTime) {
     Entity entity(LegacyEntityType::Pig, 1);
-    // 非玩家实体需要 1 tick
-    EXPECT_EQ(entity.getMaxInPortalTime(), 1);
+    // MC 1.16.5: 非玩家实体基类返回 0
+    // 检查条件 portalCounter++ >= 0 第一次进入就满足
+    // 实际效果：非玩家实体需要 1 tick 传送
+    EXPECT_EQ(entity.getMaxInPortalTime(), 0);
 
     Player player(1, "TestPlayer");
     // 玩家需要 80 tick (4秒)
@@ -666,14 +668,18 @@ TEST(Entity, TickPortalNotInPortalZero) {
 TEST(Entity, TickPortalInPortal) {
     Entity entity(LegacyEntityType::Pig, 1);
 
-    // 非玩家实体在传送门中 1 tick 后传送
+    // MC 1.16.5: 非玩家实体基类 getMaxInPortalTime() 返回 0
+    // 检查条件 portalCounter++ > maxPortalTime
+    // 第一次进入：portalTime 从 0 变为 1，然后 1 > 0 成立
+    // 实际效果：非玩家实体需要 1 tick 传送
     entity.setInPortal(true);
     entity.triggerPortalCooldown();  // 设置冷却
     entity.setPortalCooldown(0);     // 清除冷却以允许传送
 
     bool shouldTeleport = entity.tickPortal();
     EXPECT_TRUE(shouldTeleport);
-    EXPECT_EQ(entity.portalTime(), 1);
+    // 传送后 portalTime 被设置为 maxPortalTime（即 0）
+    EXPECT_EQ(entity.portalTime(), 0);
 }
 
 TEST(Entity, TickPortalInPortalWithCooldown) {
@@ -683,25 +689,35 @@ TEST(Entity, TickPortalInPortalWithCooldown) {
     entity.setInPortal(true);
     entity.setPortalCooldown(100);  // 冷却中
 
+    // tickPortal 会重置 inPortal = false
     bool shouldTeleport = entity.tickPortal();
-    EXPECT_FALSE(shouldTeleport);  // 冷却中，不增加时间
-    EXPECT_EQ(entity.portalTime(), 0);  // 时间不增加
+    EXPECT_FALSE(shouldTeleport);  // 冷却中，不传送
+    EXPECT_FALSE(entity.isInPortal());  // inPortal 被重置
+    EXPECT_EQ(entity.portalTime(), 0);  // 时间不增加（因为冷却阻止了传送）
 }
 
 TEST(Entity, TickPortalPlayer) {
     Player player(1, "TestPlayer");
 
-    // 玩家需要 80 tick
-    player.setInPortal(true);
+    // 玩家需要 80 tick (4秒)
+    // MC 1.16.5 行为：
+    // 1. NetherPortalBlock.onEntityCollision 每帧设置 inPortal = true
+    // 2. tickPortal 重置 inPortal = false
+    // 所以要持续在传送门中，每帧都需要重新设置 inPortal = true
+
     player.setPortalCooldown(0);
 
     // 79 ticks 后不传送
     for (int i = 0; i < 79; ++i) {
+        player.setInPortal(true);  // 模拟 onEntityCollision 每帧设置
         bool shouldTeleport = player.tickPortal();
         EXPECT_FALSE(shouldTeleport);
+        // tickPortal 内部已重置 inPortal = false
     }
+    EXPECT_EQ(player.portalTime(), 79);
 
     // 第 80 tick 传送
+    player.setInPortal(true);
     bool shouldTeleport = player.tickPortal();
     EXPECT_TRUE(shouldTeleport);
     EXPECT_EQ(player.portalTime(), 80);
@@ -711,24 +727,34 @@ TEST(Entity, TickPortalPlayerInterrupted) {
     Player player(1, "TestPlayer");
 
     // 玩家在传送门中 40 tick
-    player.setInPortal(true);
     player.setPortalCooldown(0);
     for (int i = 0; i < 40; ++i) {
+        player.setInPortal(true);  // 每帧设置 inPortal
         player.tickPortal();
+        // tickPortal 内部已重置 inPortal = false
     }
     EXPECT_EQ(player.portalTime(), 40);
 
-    // 离开传送门
-    player.setInPortal(false);
-
-    // 时间递减
+    // 离开传送门（不再设置 inPortal）
+    // tickPortal 会检测到 inPortal=false 并递减时间
     player.tickPortal();
+    // 注意：循环最后一次 setInPortal(true) 后 tickPortal 重置为 false
+    // 所以这里 isInPortal() 应该是 false
+    EXPECT_FALSE(player.isInPortal());
     EXPECT_EQ(player.portalTime(), 36);  // 40 - 4 = 36
 
-    // 再次进入传送门，从 36 继续
-    player.setInPortal(true);
-    player.tickPortal();
-    EXPECT_EQ(player.portalTime(), 37);
+    // 再过几帧不在传送门
+    for (int i = 0; i < 5; ++i) {
+        player.tickPortal();
+    }
+    EXPECT_EQ(player.portalTime(), 16);  // 36 - 4*5 = 16
+
+    // 再次进入传送门
+    for (int i = 0; i < 10; ++i) {
+        player.setInPortal(true);
+        player.tickPortal();
+    }
+    EXPECT_EQ(player.portalTime(), 26);  // 16 + 10 = 26
 }
 
 TEST(Entity, PortalPos) {

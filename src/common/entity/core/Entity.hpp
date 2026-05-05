@@ -642,11 +642,14 @@ public:
      * @brief 获取在传送门中停留所需的最大时间
      *
      * 玩家需要 80 tick (4秒) 在传送门中才能传送。
-     * 其他实体只需要 1 tick。
+     * 其他实体只需要 1 tick（因为基类返回 0，递增后立即满足条件）。
+     *
+     * MC 1.16.5: Entity.getMaxInPortalTime() 返回 0，
+     * 检查条件为 portalCounter++ >= i，即 0 >= 0 立即满足。
      *
      * @return 传送所需的最大时间（tick）
      */
-    [[nodiscard]] virtual i32 getMaxInPortalTime() const { return 1; }
+    [[nodiscard]] virtual i32 getMaxInPortalTime() const { return 0; }
 
     /**
      * @brief 处理传送门 tick
