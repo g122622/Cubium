@@ -356,12 +356,15 @@ audioService.setAmbientPlayerPosition(x, y, z);
 - 熊猫喷嚏声音
 
 ### 方块实体音效
-部分方块实体音效待实现：
+部分方块实体音效已实现/待实现：
 - ✅ 信标激活/取消激活/环境音效 (BeaconEntity)
 - ✅ 潮涌核心激活/取消激活/环境/攻击音效 (ConduitEntity)
-- 熔炉/高炉/烟熏炉火苗噼啪声 (客户端 animateTick)
-- 下界传送门环境音效 (客户端 animateTick)
-- 营火噼啪声 (客户端 animateTick)
+- ✅ 熔炉/高炉/烟熏炉火苗噼啪声 (AbstractFurnaceEntity::tick，服务端实现)
+- ✅ 酿造台酿造完成音效 (BrewingStandEntity::doBrew)
+- ✅ 末影箱打开/关闭音效 (EnderChestEntity::openContainer/tick)
+- 下界传送门环境音效 (客户端 animateTick，待实现)
+- 营火噼啪声 (客户端 animateTick，待实现)
+- 铁砧使用/损坏/落地音效 (需要 playEvent 系统)
 
 ## 测试用例
 

@@ -46,6 +46,11 @@ storage/
 - 打开动画与普通箱子相同
 - 爆破抗性高（600）
 - 每个玩家有独立的物品存储
+- **打开/关闭音效**（MC 1.16.5 对齐）
+
+**MC 1.16.5 音效对齐**：
+- `openContainer()`: 当打开计数从 0→1 时播放 `BLOCK_ENDER_CHEST_OPEN`
+- `tick()`: 当盖子角度从 >0.5 变为 ≤0.5 时播放 `BLOCK_ENDER_CHEST_CLOSE`
 
 ### ShulkerBoxEntity.hpp/cpp
 

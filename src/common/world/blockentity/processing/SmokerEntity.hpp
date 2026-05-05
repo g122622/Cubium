@@ -71,6 +71,11 @@ protected:
     [[nodiscard]] i32 getBurnTimeForFuel(const ItemStack& stack) const override {
         return getBurnTime(stack) / 2;
     }
+
+    /**
+     * @brief 获取火苗噼啪声（烟熏炉使用烟雾声）
+     */
+    [[nodiscard]] const ResourceLocation& getFireCrackleSound() const override;
 };
 
 } // namespace blockentity

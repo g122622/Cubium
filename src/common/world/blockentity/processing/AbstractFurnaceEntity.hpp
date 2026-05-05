@@ -4,6 +4,7 @@
 #include "world/blockentity/processing/FurnaceInventory.hpp"
 #include "entity/inventory/ISidedInventory.hpp"
 #include "item/crafting/SmeltingRecipe.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 
 namespace mc {
@@ -273,6 +274,12 @@ protected:
      * @param world 世界
      */
     void updateBurnState(IWorld& world);
+
+    /**
+     * @brief 获取火苗噼啪声（子类重写）
+     * @return 音效事件
+     */
+    [[nodiscard]] virtual const ResourceLocation& getFireCrackleSound() const = 0;
 
     /**
      * @brief 获取熔炼配方类型（子类重写）

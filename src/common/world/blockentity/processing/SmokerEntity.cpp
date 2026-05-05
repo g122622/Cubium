@@ -1,5 +1,6 @@
 #include "world/blockentity/processing/SmokerEntity.hpp"
 #include "item/core/ItemStack.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -7,6 +8,10 @@ namespace blockentity {
 
 SmokerEntity::SmokerEntity(const BlockPos& pos)
     : AbstractFurnaceEntity(BlockEntityType::Smoker, pos) {
+}
+
+const ResourceLocation& SmokerEntity::getFireCrackleSound() const {
+    return SoundEvents::BLOCK_SMOKER_SMOKE;
 }
 
 std::unique_ptr<BlockEntity> SmokerEntity::clone() const {
