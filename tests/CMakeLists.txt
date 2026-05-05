@@ -705,6 +705,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/sound/instance/SoundInstance.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/instance/UnderwaterLoopSound.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/instance/MinecartSound.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/instance/MovingTickableSound.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/backend/AudioBuffer.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/backend/OpenALBackend.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/BiomeAmbientHandler.cpp

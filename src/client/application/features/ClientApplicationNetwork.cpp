@@ -807,25 +807,15 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
-        // 获取实体位置
-        ClientEntity* entity = m_world.entityManager().getEntity(static_cast<EntityId>(entityId));
-        if (!entity) {
-            spdlog::debug("Received moving sound for unknown entity {}", entityId);
-            return;
-        }
-
-        // 创建跟随实体的声音
-        // 注意：这是一个简化实现，完整的实现需要创建 TickableSound 跟随实体位置
-        auto sound = sound::SoundInstance::createLocated(
+        // 使用 AudioService 的 playMovingSound 方法
+        // 这会创建一个跟随实体位置的 TickableSound
+        m_audioService->playMovingSound(
             soundEventId,
             category,
-            entity->x(),
-            entity->y(),
-            entity->z(),
+            static_cast<u32>(entityId),
             volume,
-            pitch);
-
-        m_audioService->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
+            pitch
+        );
     };
 
     callbacks.onSetExperience = [this](f32 progress, i32 totalXp, i32 level) {

@@ -206,7 +206,13 @@ void ClientApplication::updateWorldAudio()
         // Boss战检查（当前未实现Boss战检测系统）
         const bool inBossFight = false;
 
-        m_audioService->updateMusicState(dimension, inCreative, inBossFight);
+        // 获取生物群系音乐（MC 1.16.5: 下界各生物群系有专属音乐）
+        std::optional<world::biome::BiomeMusic> biomeMusic;
+        if (biome) {
+            biomeMusic = biome->getMusic();
+        }
+
+        m_audioService->updateMusicState(dimension, inCreative, inBossFight, biomeMusic);
 
         // 更新气泡柱状态
         // 检测玩家碰撞箱范围内是否有气泡柱

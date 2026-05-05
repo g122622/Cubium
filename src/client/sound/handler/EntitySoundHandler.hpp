@@ -125,6 +125,25 @@ public:
      */
     void onGuardianTargetChanged(EntityId entityId, EntityId targetEntityId);
 
+    /**
+     * @brief 播放移动声音
+     *
+     * 创建跟随实体位置移动的声音。当实体被移除时自动停止。
+     *
+     * @param engine 声音引擎
+     * @param soundEventId 声音事件ID
+     * @param category 声音类别
+     * @param entityId 实体ID
+     * @param volume 音量
+     * @param pitch 音调
+     */
+    void playMovingSound(SoundEngine& engine,
+                         const ResourceLocation& soundEventId,
+                         SoundCategory category,
+                         EntityId entityId,
+                         f32 volume,
+                         f32 pitch);
+
     // ========================================================================
     // 音频线程调用 - tick 更新
     // ========================================================================

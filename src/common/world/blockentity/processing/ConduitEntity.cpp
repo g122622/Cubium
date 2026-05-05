@@ -7,6 +7,8 @@
 #include "entity/entities/player/Player.hpp"
 #include "entity/effect/EffectInstance.hpp"
 #include "entity/damage/DamageSource.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "util/math/random/Random.hpp"
 #include "util/assert/AssertAll.hpp"
 
@@ -77,7 +79,7 @@ void ConduitEntity::tick(IWorld& world) {
     // 每40tick重新检测激活状态
     if (gameTime % UPDATE_INTERVAL == 0) {
         const bool wasActive = m_active;
-        setActive(shouldBeActive(world));
+        setActive(world, shouldBeActive(world));
 
         // 服务端：激活时应用效果和攻击
         if (!world.isClientSide() && m_active) {
@@ -96,10 +98,26 @@ void ConduitEntity::tick(IWorld& world) {
     }
 
     // 激活状态下播放环境音效
-    // TODO: 实现音效
-    // if (m_active && gameTime % 80 == 0) {
-    //     world.playSound(pos, SoundEvents::BLOCK_CONDUIT_AMBIENT);
-    // }
+    // MC 1.16.5: 每隔随机间隔（60-100 ticks）播放一次
+    if (m_active && !world.isClientSide()) {
+        if (m_ambientSoundCounter <= 0) {
+            // 播放环境音效
+            world.playSound(
+                SoundEvents::BLOCK_CONDUIT_AMBIENT,
+                sound::SoundCategory::Blocks,
+                m_pos.center(),
+                1.0f,
+                1.0f
+            );
+            // 重置计数器为随机间隔
+            m_ambientSoundCounter = AMBIENT_SOUND_INTERVAL_MIN +
+                world.getRandom().nextInt(
+                    static_cast<i32>(AMBIENT_SOUND_INTERVAL_MAX - AMBIENT_SOUND_INTERVAL_MIN + 1)
+                );
+        } else {
+            --m_ambientSoundCounter;
+        }
+    }
 }
 
 bool ConduitEntity::shouldBeActive(IWorld& world) {
@@ -167,11 +185,7 @@ void ConduitEntity::addEffectsToPlayers(IWorld& world) {
     const i32 range = calculateEffectRange(frameCount);
 
     // 计算效果范围（轴对齐包围盒）
-    const Vector3 center(
-        static_cast<f32>(m_pos.x) + 0.5f,
-        static_cast<f32>(m_pos.y) + 0.5f,
-        static_cast<f32>(m_pos.z) + 0.5f
-    );
+    const Vector3 center = m_pos.center();
 
     // 获取范围内的玩家
     const std::vector<Entity*> entities = world.getEntitiesInRange(
@@ -223,11 +237,7 @@ void ConduitEntity::attackMobs(IWorld& world) {
 
     // 选择新目标
     if (m_target == nullptr) {
-        const Vector3 center(
-            static_cast<f32>(m_pos.x) + 0.5f,
-            static_cast<f32>(m_pos.y) + 0.5f,
-            static_cast<f32>(m_pos.z) + 0.5f
-        );
+        const Vector3 center = m_pos.center();
 
         const std::vector<Entity*> entities = world.getEntitiesInRange(
             center,
@@ -267,11 +277,7 @@ void ConduitEntity::attackMobs(IWorld& world) {
     if (m_target != nullptr) {
         // 检查目标是否还活着且在范围内
         const Vector3 targetPos = m_target->position();
-        const Vector3 center(
-            static_cast<f32>(m_pos.x) + 0.5f,
-            static_cast<f32>(m_pos.y) + 0.5f,
-            static_cast<f32>(m_pos.z) + 0.5f
-        );
+        const Vector3 center = m_pos.center();
 
         const f32 distanceSq = center.distanceSquared(targetPos);
         const bool targetValid = m_target->isAlive() && distanceSq <= ATTACK_RANGE * ATTACK_RANGE;
@@ -285,6 +291,13 @@ void ConduitEntity::attackMobs(IWorld& world) {
 
             // TODO: 播放攻击音效
             // world.playSound(m_target->getPosition(), SoundEvents::BLOCK_CONDUIT_ATTACK_TARGET);
+            world.playSound(
+                SoundEvents::BLOCK_CONDUIT_ATTACK_TARGET,
+                sound::SoundCategory::Blocks,
+                m_target->position(),
+                1.0f,
+                1.0f
+            );
         }
     }
 }
@@ -317,17 +330,29 @@ bool ConduitEntity::isValidFrameBlock(IWorld& world, const BlockPos& pos) const 
            block == VanillaBlocks::SEA_LANTERN;
 }
 
-void ConduitEntity::setActive(bool active) {
+void ConduitEntity::setActive(IWorld& world, bool active) {
     if (m_active != active) {
         m_active = active;
         setChanged();
 
-        // TODO: 播放激活/取消激活音效
-        // if (active) {
-        //     world.playSound(pos, SoundEvents::BLOCK_CONDUIT_ACTIVATE);
-        // } else {
-        //     world.playSound(pos, SoundEvents::BLOCK_CONDUIT_DEACTIVATE);
-        // }
+        // 播放激活/取消激活音效
+        if (active) {
+            world.playSound(
+                SoundEvents::BLOCK_CONDUIT_ACTIVATE,
+                sound::SoundCategory::Blocks,
+                m_pos.center(),
+                1.0f,
+                1.0f
+            );
+        } else {
+            world.playSound(
+                SoundEvents::BLOCK_CONDUIT_DEACTIVATE,
+                sound::SoundCategory::Blocks,
+                m_pos.center(),
+                1.0f,
+                1.0f
+            );
+        }
     }
 }
 

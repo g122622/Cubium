@@ -326,23 +326,42 @@ audioService.setAmbientPlayerPosition(x, y, z);
 
 ## 待完成事项
 
-### MovingSoundPacket 跟踪实现
-当前 `MovingSoundPacket` 客户端处理是简化版本，声音只播放一次不跟随实体移动。完整实现需要：
-- 创建 `MovingTickableSound` 类跟踪实体位置
-- 在 `EntitySoundHandler` 中管理移动声音
-- 声音随实体位置实时更新
+### ~~MovingSoundPacket 跟踪实现~~ ✅ 已完成
+- ✅ 创建 `MovingTickableSound` 类跟踪实体位置
+- ✅ 在 `EntitySoundHandler` 中添加 `playMovingSound()` 方法
+- ✅ `AudioService` 添加 `MovingSound` 命令处理
+- ✅ 声音随实体位置实时更新
 
-### 服务端 GuardianSound 同步
-当前客户端已实现 `GuardianSoundStateful`，但服务端需要：
-- 在 `GuardianEntity` 的 `AttackGoal` 中发送 `EntityStatusPacket::GuardianAttack` (状态 21)
-- 发送 TARGET_ENTITY 元数据更新以同步攻击目标
+### ~~服务端 GuardianSound 同步~~ ✅ 已完成
+- ✅ 服务端 `GuardianAttackGoal` 已发送 `EntityStatus::GuardianAttack` (状态 21)
+- ✅ 客户端 `ClientApplicationNetwork` 正确处理并调用 `AudioService::onGuardianAttack()`
+- ✅ `GuardianSoundStateful` 实现完整攻击动画音效
+
+### ~~下界生物群系音乐~~ ✅ 已完成
+- ✅ 为 `BiomeAmbientSounds` 添加 `BiomeMusic` 类
+- ✅ 下界各群系配置专属音乐
+- ✅ `MusicPlayer` 支持生物群系音乐选择
+- ✅ 诡异森林音乐（sounds.json 中为空数组，不播放）
+
+### ~~音乐淡入淡出~~ ✅ 已完成
+- ✅ `ISoundInstance` 添加 `setVolume()` 和 `setPitch()` 接口
+- ✅ `MusicPlayer::updateFade()` 实现渐进式音量淡出
 
 ### 更多实体声音
-部分实体声音尚未实现：
-- 海豚跳跃/游泳声音
-- 河豚膨胀/放气声音
-- 羊驼吐口水声音
-- 凋灵Boss声音
+部分实体声音尚未实现（详见分析报告）：
+- 海豚跳跃/游泳声音（高优先级）
+- 河豚膨胀/放气声音（高优先级）
+- 狐狸尖叫/睡眠声音
+- 兔子跳跃声音
+- 熊猫喷嚏声音
+
+### 方块实体音效
+部分方块实体音效待实现：
+- ✅ 信标激活/取消激活/环境音效 (BeaconEntity)
+- ✅ 潮涌核心激活/取消激活/环境/攻击音效 (ConduitEntity)
+- 熔炉/高炉/烟熏炉火苗噼啪声 (客户端 animateTick)
+- 下界传送门环境音效 (客户端 animateTick)
+- 营火噼啪声 (客户端 animateTick)
 
 ## 测试用例
 

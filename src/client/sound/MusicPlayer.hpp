@@ -5,9 +5,11 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/biome/BiomeAmbientSounds.hpp"
 
 #include <memory>
 #include <vector>
+#include <optional>
 
 namespace mc {
 
@@ -31,6 +33,7 @@ namespace client::sound {
  * - 音乐淡入淡出
  * - 播放间隔控制
  * - 根据游戏状态选择音乐（主菜单、游戏、创造模式等）
+ * - 根据生物群系选择音乐（下界各生物群系有专属音乐）
  *
  * 参考: net.minecraft.client.audio.MusicTicker
  */
@@ -46,9 +49,10 @@ public:
         Creative,   // 创造模式音乐
         Credits,    // 制作人员名单音乐
         End,        // 末地音乐
-        Nether,     // 下界音乐
+        Nether,     // 下界音乐（已弃用，使用生物群系音乐）
         Underwater, // 水下音乐
-        Dragon      // 末影龙战斗音乐
+        Dragon,     // 末影龙战斗音乐
+        Biome       // 生物群系专属音乐
     };
 
     /**
@@ -61,6 +65,22 @@ public:
         u32 minDelayTicks = 12000;       // 最小延迟（ticks，600秒 = 10分钟）
         u32 maxDelayTicks = 24000;       // 最大延迟（ticks，1200秒 = 20分钟）
         bool replaceCurrent = false;     // 是否替换当前音乐
+
+        MusicSelector() = default;
+        MusicSelector(const ResourceLocation& id, u32 minDelay, u32 maxDelay, bool replace)
+            : soundEventId(id), minDelayTicks(minDelay), maxDelayTicks(maxDelay), replaceCurrent(replace) {}
+
+        /**
+         * @brief 从生物群系音乐配置创建选择器
+         */
+        static MusicSelector fromBiomeMusic(const world::biome::BiomeMusic& biomeMusic) {
+            return MusicSelector(
+                biomeMusic.soundEvent(),
+                biomeMusic.minDelayTicks(),
+                biomeMusic.maxDelayTicks(),
+                biomeMusic.replaceCurrent()
+            );
+        }
     };
 
     /**
@@ -92,9 +112,11 @@ public:
      * @param inWater 是否在水中
      * @param inCreative 是否在创造模式
      * @param inBossFight 是否在Boss战斗中
+     * @param biomeMusic 当前生物群系的音乐配置（可选）
      */
     void tick(bool isPaused, bool inMenu, i32 dimension = 0, bool inWater = false,
-              bool inCreative = false, bool inBossFight = false);
+              bool inCreative = false, bool inBossFight = false,
+              const std::optional<world::biome::BiomeMusic>& biomeMusic = std::nullopt);
 
     /**
      * @brief 停止当前音乐

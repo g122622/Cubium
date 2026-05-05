@@ -174,12 +174,12 @@ public:
     /**
      * @brief 设置音量
      */
-    void setVolume(f32 volume) { m_volume = volume; }
+    void setVolume(f32 volume) override { m_volume = volume; }
 
     /**
      * @brief 设置音调
      */
-    void setPitch(f32 pitch) { m_pitch = pitch; }
+    void setPitch(f32 pitch) override { m_pitch = pitch; }
 
     /**
      * @brief 设置循环

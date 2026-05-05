@@ -2,10 +2,19 @@
 #include "client/sound/SoundEngine.hpp"
 #include "client/sound/SoundPool.hpp"
 #include "client/sound/instance/MinecartSound.hpp"
+#include "client/sound/instance/MovingTickableSound.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::client::sound {
+
+namespace {
+/// 移动声音键的高位标记（用于区分移动声音和其他实体声音）
+constexpr u32 MOVING_SOUND_KEY_MASK = 0x40000000;
+
+/// 骑乘声音键的高位标记（用于区分骑乘声音和其他实体声音）
+constexpr u32 RIDING_SOUND_KEY_MASK = 0x80000000;
+} // namespace
 
 // ============================================================================
 // 内部声音类 - 使用状态快照而非实体引用
@@ -491,7 +500,7 @@ void EntitySoundHandler::checkAndCreateSound(SoundEngine& engine, EntityId entit
                 SoundInstanceId ridingSoundId = engine.play(std::move(ridingSound));
                 if (ridingSoundId != 0) {
                     // 使用复合键存储骑乘声音
-                    m_activeSounds[static_cast<EntityId>(static_cast<u32>(playerId) | 0x80000000)] = ridingSoundId;
+                    m_activeSounds[static_cast<EntityId>(static_cast<u32>(playerId) | RIDING_SOUND_KEY_MASK)] = ridingSoundId;
                 }
             }
         }
@@ -560,6 +569,38 @@ void EntitySoundHandler::onGuardianTargetChanged(EntityId entityId, EntityId tar
     if (stateIt != m_entityStates.end()) {
         stateIt->second.targetEntityId = targetEntityId;
         stateIt->second.attackAnimScale = 0.0f;
+    }
+}
+
+void EntitySoundHandler::playMovingSound(SoundEngine& engine,
+                                          const ResourceLocation& soundEventId,
+                                          SoundCategory category,
+                                          EntityId entityId,
+                                          f32 volume,
+                                          f32 pitch) {
+    // 检查是否已有该实体的移动声音
+    // 使用特殊的键来区分移动声音和其他声音
+    EntityId movingSoundKey = static_cast<EntityId>(static_cast<u32>(entityId) | MOVING_SOUND_KEY_MASK);
+    auto soundIt = m_activeSounds.find(movingSoundKey);
+    if (soundIt != m_activeSounds.end()) {
+        // 已有移动声音，先停止
+        engine.stop(soundIt->second);
+        m_activeSounds.erase(soundIt);
+    }
+
+    // 创建新的移动声音
+    auto sound = std::make_unique<MovingTickableSound>(
+        soundEventId,
+        category,
+        this,
+        entityId,
+        volume,
+        pitch
+    );
+
+    SoundInstanceId soundId = engine.play(std::move(sound));
+    if (soundId != 0) {
+        m_activeSounds[movingSoundKey] = soundId;
     }
 }
 

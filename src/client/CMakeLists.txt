@@ -225,6 +225,7 @@ add_executable(minecraft-client
     sound/instance/ElytraSound.cpp
     sound/instance/UnderwaterLoopSound.cpp
     sound/instance/MinecartSound.cpp
+    sound/instance/MovingTickableSound.cpp
     sound/handler/BiomeAmbientHandler.cpp
     sound/handler/UnderwaterAmbientHandler.cpp
     sound/handler/BubbleColumnAmbientHandler.cpp
