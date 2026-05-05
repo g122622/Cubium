@@ -56,16 +56,21 @@ public:
 
 ### BoostHelper 辅助类
 
-`BoostHelper`（定义在 `entity/core/BoostHelper.hpp`）管理可骑乘实体的加速状态：
+`BoostHelper`（定义在 `entity/core/BoostHelper.hpp`）管理可骑乘实体的鞍和加速状态：
 
 | 方法 | 说明 |
 |------|------|
-| `setSaddled(bool)` | 设置鞍状态 |
-| `getSaddled()` | 获取鞍状态 |
+| `init(manager, boostTimeParam, saddledParam)` | 初始化数据管理器引用 |
+| `syncFromDataManager()` | 从 EntityDataManager 同步数据 |
 | `boost(Random&)` | 触发加速，返回是否成功 |
 | `tick()` | 每tick更新加速状态 |
 | `isBoosting()` | 是否正在加速 |
-| `getBoostProgress()` | 获取加速进度 (0.0-1.0) |
+| `setSaddledFromBoolean(bool)` | 设置鞍状态（通过DataManager同步） |
+| `getSaddled()` | 获取鞍状态 |
+| `getBoostTime()` | 获取加速时间 |
+| `setBoostTime(i32)` | 设置加速时间 |
+
+**注意**: `BoostHelper` 现在需要与 `EntityDataManager` 集成以支持网络同步。使用前必须调用 `init()` 方法初始化。
 
 ### 网络同步
 

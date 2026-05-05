@@ -119,14 +119,17 @@ IEquipable
 
 | 方法 | 说明 |
 |------|------|
-| `setSaddled(bool)` | 设置鞍状态 |
+| `init(manager, boostTimeParam, saddledParam)` | 初始化数据管理器引用 |
+| `syncFromDataManager()` | 从 EntityDataManager 同步数据 |
+| `setSaddledFromBoolean(bool)` | 设置鞍状态（通过DataManager同步） |
 | `getSaddled()` | 获取鞍状态 |
 | `boost(Random&)` | 触发加速，返回是否成功 |
 | `tick()` | 每tick更新加速状态 |
 | `isBoosting()` | 是否正在加速 |
-| `getBoostProgress()` | 获取加速进度 (0.0-1.0) |
 | `getBoostTime()` | 获取加速总时间 |
 | `setBoostTime(i32)` | 设置加速时间 |
+
+**注意**: `BoostHelper` 现在需要与 `EntityDataManager` 集成以支持网络同步。使用前必须调用 `init()` 方法初始化。
 
 ### 使用示例
 
@@ -134,6 +137,13 @@ IEquipable
 // 在可骑乘实体中使用
 class PigEntity : public AnimalEntity, public IRideable {
     BoostHelper m_boostHelper;
+    
+    void registerData() override {
+        AnimalEntity::registerData();
+        m_boostTimeParam = m_dataManager.registerParam(i32(0));
+        m_saddledParam = m_dataManager.registerParam(false);
+        m_boostHelper.init(m_dataManager, m_boostTimeParam, m_saddledParam);
+    }
 
     bool boost() override {
         math::Random rng = getRandom();
