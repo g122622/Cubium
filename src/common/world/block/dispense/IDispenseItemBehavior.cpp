@@ -3,6 +3,8 @@
 #include "../Block.hpp"
 #include "../../../util/property/Properties.hpp"
 #include "../../../entity/entities/item/ItemEntity.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "../../../sound/SoundCategory.hpp"
 
 namespace mc {
 namespace blocks {
@@ -62,9 +64,18 @@ ItemStack DefaultDispenseItemBehavior::doDispense(IBlockSource& source, ItemStac
 }
 
 void DefaultDispenseItemBehavior::playSound(IBlockSource& source) {
-    MC_UNUSED(source);
-    // TODO: 播放发射音效
-    // world.playSound(source.getBlockPos(), SoundEvents::BLOCK_DISPENSER_DISPENSE, 1.0f, 1.0f);
+    // MC 1.16.5: 播放发射音效
+    // 参考: DefaultDispenseItemBehavior.playSound()
+    IWorld& world = source.getWorld();
+    if (!world.isClientSide()) {
+        world.playSound(
+            SoundEvents::BLOCK_DISPENSER_DISPENSE,
+            sound::SoundCategory::Blocks,
+            source.getBlockPos().center(),
+            1.0f,
+            1.0f
+        );
+    }
 }
 
 void DefaultDispenseItemBehavior::spawnParticles(IBlockSource& source) {

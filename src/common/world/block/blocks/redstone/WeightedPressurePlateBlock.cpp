@@ -2,6 +2,8 @@
 #include "../../../IWorld.hpp"
 #include "../../../../entity/core/Entity.hpp"
 #include "../../../../util/AxisAlignedBB.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../sound/SoundCategory.hpp"
 
 namespace mc {
 namespace blocks {
@@ -42,13 +44,17 @@ i32 WeightedPressurePlateBlock::getTickDelay(i32 oldSignal, i32 newSignal) const
 }
 
 void WeightedPressurePlateBlock::playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(pressed);
-    // TODO: 播放测重压力板音效
-    // world.playSound(pos, pressed ? SoundEvents::BLOCK_METAL_PRESSURE_PLATE_CLICK_ON
-    //                              : SoundEvents::BLOCK_METAL_PRESSURE_PLATE_CLICK_OFF,
-    //                 0.3f, 0.6f);
+    // MC 1.16.5: 测重压力板（金属）点击音效
+    if (!world.isClientSide()) {
+        world.playSound(
+            pressed ? SoundEvents::BLOCK_METAL_PRESSURE_PLATE_CLICK_ON
+                    : SoundEvents::BLOCK_METAL_PRESSURE_PLATE_CLICK_OFF,
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            0.3f,
+            0.6f
+        );
+    }
 }
 
 i32 WeightedPressurePlateBlock::getEntityCount(IWorld& world, const BlockPos& pos) const {

@@ -57,13 +57,6 @@ protected:
      */
     bool tryDispense(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
-    /**
-     * @brief 播放投掷音效（重写发射器的音效）
-     *
-     * @param world 世界引用
-     * @param pos 方块位置
-     */
-    void playDispenseSound(IWorld& world, const BlockPos& pos) override;
 };
 
 } // namespace blocks

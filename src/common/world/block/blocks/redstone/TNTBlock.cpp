@@ -2,6 +2,8 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../sound/SoundCategory.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -74,8 +76,16 @@ void TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
     // TODO: 生成 PrimedTntEntity
     // world.spawnEntity(std::make_unique<PrimedTntEntity>(world, pos, ...));
 
-    // 播放点燃音效
-    // world.playSound(pos, SoundEvents::ENTITY_TNT_PRIMED, 1.0f, 1.0f);
+    // MC 1.16.5: 播放点燃音效
+    if (!world.isClientSide()) {
+        world.playSound(
+            SoundEvents::ENTITY_TNT_PRIMED,
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            1.0f,
+            1.0f
+        );
+    }
 
     MC_UNUSED(world);
     MC_UNUSED(pos);

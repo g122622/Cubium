@@ -108,6 +108,34 @@ player.playSound(SoundEvents::ENTITY_PLAYER_HURT, 1.0f, 1.0f);
 - 末地音乐：`MUSIC_END`, `MUSIC_DRAGON`
 - 水下音乐：`MUSIC_UNDER_WATER`
 
+## 已实现的方块音效触发
+
+以下方块已在服务端实现了音效触发逻辑：
+
+### 机械类方块
+
+| 方块 | 音效事件 | 触发时机 | 文件 |
+|------|----------|----------|------|
+| 发射器 | `BLOCK_DISPENSER_DISPENSE` | 发射物品时 | `DispenserBlock.cpp` |
+| 投掷器 | `BLOCK_DISPENSER_DISPENSE` | 投掷物品时 | 继承自 `DispenserBlock` |
+| 木压力板 | `BLOCK_WOODEN_PRESSURE_PLATE_CLICK_ON/OFF` | 按下/抬起时 | `WoodPressurePlateBlock.cpp` |
+| 测重压力板 | `BLOCK_METAL_PRESSURE_PLATE_CLICK_ON/OFF` | 按下/抬起时 | `WeightedPressurePlateBlock.cpp` |
+| TNT | `ENTITY_TNT_PRIMED` | 被点燃时 | `TNTBlock.cpp` |
+
+### 生物相关方块
+
+| 方块 | 音效事件 | 触发时机 | 文件 |
+|------|----------|----------|------|
+| 海龟蛋 | `ENTITY_TURTLE_EGG_CRACK` | 孵化进度增加时 | `MobBlocks.cpp` |
+| 海龟蛋 | `ENTITY_TURTLE_EGG_HATCH` | 孵化完成时 | `MobBlocks.cpp` |
+| 海龟蛋 | `ENTITY_TURTLE_EGG_BREAK` | 被踩破时 | `MobBlocks.cpp` |
+
+### 投掷物发射行为
+
+| 行为 | 音效事件 | 触发时机 | 文件 |
+|------|----------|----------|------|
+| 默认发射 | `BLOCK_DISPENSER_DISPENSE` | 发射物品时 | `IDispenseItemBehavior.cpp` |
+
 ## 网络数据包
 
 ### PlaySoundPacket
@@ -164,6 +192,43 @@ MovingSoundPacket packet(
 
 - `common/resource/ResourceLocation.hpp` - 资源位置标识
 - `common/core/Types.hpp` - 基础类型定义
+
+## 技术限制
+
+以下音效因需要客户端基础设施而暂未实现：
+
+### 需要 animateTick 的音效
+
+`animateTick` 是 MC 客户端专用方法，用于在方块附近播放粒子效果和环境音效。当前项目尚未实现此基础设施。
+
+| 方块 | 音效事件 | 说明 |
+|------|----------|------|
+| 传送门 | `BLOCK_PORTAL_AMBIENT` | 需要在传送门方块附近随机播放 |
+| 传送门 | `BLOCK_PORTAL_TRIGGER` | 玩家站在传送门中时播放 |
+| 营火 | `BLOCK_CAMPFIRE_CRACKLE` | 营火燃烧时的噼啪声 |
+| 岩浆块 | `BLOCK_LAVA_AMBIENT` | 岩浆冒泡声 |
+| 末地传送门框架 | `BLOCK_END_PORTAL_FRAME_FILL` | 放置末影之眼时 |
+
+**实现方案**：
+1. 在 `Block` 基类添加 `animateTick(IWorld&, BlockPos, BlockState&, IRandom&)` 虚方法
+2. 在客户端区块渲染器中调用 `animateTick`
+3. 在服务端通过 `playEvent` 广播事件给客户端
+
+### 需要 playEvent 的音效
+
+`playEvent` 是服务端向客户端广播游戏事件（音效/粒子）的系统，用于非方块状态变化的事件。
+
+| 方块 | 音效事件 | 说明 |
+|------|----------|------|
+| 铁砧 | `BLOCK_ANVIL_USE` | 修复/重命名物品时 |
+| 铁砧 | `BLOCK_ANVIL_DESTROY` | 铁砧损坏时 |
+| 铁砧 | `BLOCK_ANVIL_LAND` | 铁砧落地时 |
+| 营火 | `BLOCK_FIRE_EXTINGUISH` | 用水/雨熄灭时 |
+
+**实现方案**：
+1. 在 `IWorld` 添加 `playEvent(i32 eventId, BlockPos, i32 data)` 方法
+2. 定义事件ID常量（对齐 MC 1.16.5 `Events.java`）
+3. 客户端处理 `PlayEventPacket` 并播放对应音效/粒子
 
 ## 测试用例
 

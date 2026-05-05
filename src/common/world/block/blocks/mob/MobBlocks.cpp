@@ -6,6 +6,8 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../sound/SoundCategory.hpp"
 
 namespace mc {
 namespace blocks {
@@ -181,12 +183,30 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
     i32 hatch = getHatch(state);
     if (hatch < 2) {
         // 孵化进度增加
-        // TODO: 播放 ENTITY_TURTLE_EGG_CRACK 声音
+        // MC 1.16.5: 播放裂开音效
+        if (!world.isClientSide()) {
+            world.playSound(
+                SoundEvents::ENTITY_TURTLE_EGG_CRACK,
+                sound::SoundCategory::Blocks,
+                pos.center(),
+                0.7f,
+                0.9f + random.nextFloat() * 0.2f
+            );
+        }
         const BlockState& newState = state.with(BlockStateProperties::HATCH_0_2(), hatch + 1);
         world.setBlockState(pos, &newState, 2);
     } else {
         // 孵化完成，生成海龟
-        // TODO: 播放 ENTITY_TURTLE_EGG_HATCH 声音
+        // MC 1.16.5: 播放孵化音效
+        if (!world.isClientSide()) {
+            world.playSound(
+                SoundEvents::ENTITY_TURTLE_EGG_HATCH,
+                sound::SoundCategory::Blocks,
+                pos.center(),
+                0.7f,
+                0.9f + random.nextFloat() * 0.2f
+            );
+        }
         i32 eggs = getEggs(state);
 
         // 移除方块
@@ -266,7 +286,16 @@ void TurtleEggBlock::tryTrample(IWorld& world, const BlockPos& pos, const BlockS
 
 void TurtleEggBlock::removeOneEgg(IWorld& world, const BlockPos& pos, const BlockState& state) const {
     // MC 1.16.5: 移除一个蛋
-    // TODO: 播放 ENTITY_TURTLE_EGG_BREAK 声音
+    // 播放破碎音效
+    if (!world.isClientSide()) {
+        world.playSound(
+            SoundEvents::ENTITY_TURTLE_EGG_BREAK,
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            0.7f,
+            0.9f + world.getRandom().nextFloat() * 0.2f
+        );
+    }
 
     i32 eggs = getEggs(state);
     if (eggs > 1) {

@@ -134,13 +134,5 @@ bool DropperBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockSt
     return true;
 }
 
-void DropperBlock::playDispenseSound(IWorld& world, const BlockPos& pos) {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    // TODO: 播放投掷音效
-    // 投掷器使用与发射器不同的音效
-    // world.playSound(pos, SoundEvents::BLOCK_DISPENSER_DROP, 1.0f, 1.0f);
-}
-
 } // namespace blocks
 } // namespace mc

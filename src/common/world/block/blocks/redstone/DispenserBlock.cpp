@@ -10,6 +10,8 @@
 #include "../../../../entity/entities/item/ItemEntity.hpp"
 #include "../../../../entity/inventory/IInventory.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../sound/SoundCategory.hpp"
 #include "../../dispense/DispenseItemBehaviorRegistry.hpp"
 #include "../../dispense/IBlockSource.hpp"
 #include <unordered_map>
@@ -262,10 +264,14 @@ void DispenserBlock::spawnItemEntity(
 }
 
 void DispenserBlock::playDispenseSound(IWorld& world, const BlockPos& pos) {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    // TODO: 播放发射音效
-    // world.playSound(pos, SoundEvents::BLOCK_DISPENSER_DISPENSE, 1.0f, 1.0f);
+    // MC 1.16.5: 播放发射音效
+    world.playSound(
+        SoundEvents::BLOCK_DISPENSER_DISPENSE,
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        1.0f,
+        1.0f
+    );
 }
 
 } // namespace blocks
