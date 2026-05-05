@@ -284,6 +284,7 @@ add_executable(mc_tests
     client/sound/SoundTest.cpp
     client/sound/SoundRegistryTest.cpp
     client/sound/TickableSoundTest.cpp
+    client/sound/MovingTickableSoundTest.cpp
     # 皮肤系统测试
     common/skin/test_skin_types.cpp
     common/skin/test_skin_cache.cpp
