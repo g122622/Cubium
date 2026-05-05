@@ -149,6 +149,45 @@ TEST_F(FurnaceResultSlotTest, Remove_UpdatesExperience) {
     EXPECT_EQ(inventory_->getItem(2).getCount(), 5);
 }
 
+TEST_F(FurnaceResultSlotTest, Remove_FromEmptySlot) {
+    FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
+
+    // 从空槽移除
+    ItemStack removed = slot.remove(5);
+    EXPECT_TRUE(removed.isEmpty());
+}
+
+TEST_F(FurnaceResultSlotTest, Remove_MoreThanAvailable) {
+    FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
+
+    Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
+    if (ironIngot == nullptr) {
+        GTEST_SKIP() << "Iron ingot not registered";
+    }
+
+    // 设置输出槽物品
+    ItemStack stack(*ironIngot, 3);
+    inventory_->setItem(2, stack);
+
+    // 请求移除比可用更多的物品
+    ItemStack removed = slot.remove(10);
+    EXPECT_EQ(removed.getCount(), 3);
+    EXPECT_TRUE(inventory_->getItem(2).isEmpty());
+}
+
+TEST_F(FurnaceResultSlotTest, GetMaxStackSize_AlwaysOne) {
+    FurnaceResultSlot slot(nullptr, inventory_.get(), 2, 10, 10);
+
+    Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
+    if (ironIngot == nullptr) {
+        GTEST_SKIP() << "Iron ingot not registered";
+    }
+
+    ItemStack stack(*ironIngot, 1);
+    // 结果槽堆叠上限应该继承自基础槽位
+    EXPECT_EQ(slot.getMaxStackSize(stack), 64);
+}
+
 TEST_F(FurnaceContainerTest, Create_HasCorrectSlotCount) {
     // 注意: 在Release模式下MC_ASSERT不起作用
     // 容器实际槽位数量 = 熔炉槽位 + 玩家背包槽位 = 3 + 36 = 39

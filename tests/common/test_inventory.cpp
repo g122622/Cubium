@@ -17,6 +17,7 @@
 #include "../src/common/core/Constants.hpp"
 #include "../src/common/world/block/Block.hpp"
 #include "../src/common/util/math/random/Random.hpp"
+#include "../src/common/world/blockentity/core/SimpleInventory.hpp"
 
 #include <array>
 
@@ -743,4 +744,87 @@ TEST_F(IInventoryInterfaceTest, HasAny_MultipleItems) {
     m_inventory->clear();
     m_inventory->setItem(5, ItemStack(*coal, 5));
     EXPECT_TRUE(inv->hasAny(items));
+}
+
+TEST_F(IInventoryInterfaceTest, HasAny_AfterPartialRemove) {
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+
+    IInventory* inv = m_inventory.get();
+    std::unordered_set<const Item*> items = {diamond};
+
+    // 添加物品然后部分移除
+    m_inventory->setItem(0, ItemStack(*diamond, 10));
+    EXPECT_TRUE(inv->hasAny(items));
+
+    // 部分移除
+    m_inventory->removeItem(0, 5);
+    EXPECT_TRUE(inv->hasAny(items));
+
+    // 完全移除
+    m_inventory->removeItem(0, 5);
+    EXPECT_FALSE(inv->hasAny(items));
+}
+
+TEST_F(IInventoryInterfaceTest, HasAny_WithNullItemInSet) {
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+
+    IInventory* inv = m_inventory.get();
+    // 集合中包含空指针（边界情况）
+    std::unordered_set<const Item*> items = {diamond, nullptr};
+
+    m_inventory->setItem(0, ItemStack(*diamond, 10));
+    // 应该仍然能找到钻石
+    EXPECT_TRUE(inv->hasAny(items));
+}
+
+// ============================================================================
+// FurnaceFuelSlot 边界测试
+// ============================================================================
+
+class FurnaceFuelSlotEdgeCaseTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        Items::initialize();
+    }
+
+    void TearDown() override {
+        // 确保清理
+    }
+};
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, MayPlace_EmptyStack) {
+    blockentity::SimpleInventory inventory(3);
+    FurnaceFuelSlot slot(&inventory, 0, 10, 10);
+
+    // 空物品堆
+    ItemStack emptyStack;
+    EXPECT_FALSE(slot.mayPlace(emptyStack));
+}
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, GetMaxStackSize_EmptyStack) {
+    blockentity::SimpleInventory inventory(3);
+    FurnaceFuelSlot slot(&inventory, 0, 10, 10);
+
+    // 空物品堆的堆叠上限
+    ItemStack emptyStack;
+    EXPECT_EQ(slot.getMaxStackSize(emptyStack), 64);
+}
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, SetAndGetItem) {
+    blockentity::SimpleInventory inventory(3);
+    FurnaceFuelSlot slot(&inventory, 0, 10, 10);
+
+    Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
+    if (coal == nullptr) {
+        GTEST_SKIP() << "Coal not registered";
+    }
+
+    // 设置物品到槽位
+    ItemStack stack(*coal, 32);
+    inventory.setItem(0, stack);
+
+    EXPECT_FALSE(slot.isEmpty());
+    EXPECT_EQ(slot.getItem().getCount(), 32);
 }
