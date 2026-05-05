@@ -6,6 +6,7 @@
 #include "entity/entities/player/Player.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
 #include "entity/loot/LootTable.hpp"
+#include "entity/loot/LootContext.hpp"
 #include "util/property/Properties.hpp"
 #include <cmath>
 
@@ -30,7 +31,7 @@ ChestEntity::ChestEntity(const BlockPos& pos)
 }
 
 ChestEntity::ChestEntity(BlockEntityType type, const BlockPos& pos)
-    : LockableBlockEntity(type, pos)
+    : LootableContainerBlockEntity(type, pos)
     , m_inventory(CHEST_SIZE, [this]() { setChanged(); }) {
 }
 
@@ -250,7 +251,7 @@ void ChestEntity::tick(IWorld& world) {
 // ========== 序列化 ==========
 
 bool ChestEntity::load(const nlohmann::json& data) {
-    if (!LockableBlockEntity::load(data)) {
+    if (!LootableContainerBlockEntity::load(data)) {
         return false;
     }
 
@@ -277,20 +278,11 @@ bool ChestEntity::load(const nlohmann::json& data) {
         }
     }
 
-    // 加载战利品表
-    if (data.contains("LootTable") && data["LootTable"].is_string()) {
-        m_lootTable = ResourceLocation(data["LootTable"].get<String>());
-        m_hasLootTable = true;
-    }
-    if (data.contains("LootTableSeed") && data["LootTableSeed"].is_number_integer()) {
-        m_lootTableSeed = data["LootTableSeed"].get<i64>();
-    }
-
     return true;
 }
 
 void ChestEntity::save(nlohmann::json& data) const {
-    LockableBlockEntity::save(data);
+    LootableContainerBlockEntity::save(data);
 
     nlohmann::json itemsJson = nlohmann::json::array();
     for (i32 i = 0; i < CHEST_SIZE; ++i) {
@@ -304,12 +296,6 @@ void ChestEntity::save(nlohmann::json& data) const {
         itemsJson.push_back(std::move(itemJson));
     }
     data["Items"] = std::move(itemsJson);
-
-    // 保存战利品表
-    if (m_hasLootTable) {
-        data["LootTable"] = m_lootTable.toString();
-        data["LootTableSeed"] = m_lootTableSeed;
-    }
 }
 
 std::unique_ptr<BlockEntity> ChestEntity::clone() const {
@@ -359,41 +345,26 @@ void ChestEntity::playSound(IWorld& world, bool open) {
 
 // ========== 战利品表 ==========
 
-void ChestEntity::setLootTable(const ResourceLocation& lootTable, i64 seed) {
-    m_hasLootTable = true;
-    m_lootTable = lootTable;
-    m_lootTableSeed = seed;
-    setChanged();
-}
-
-void ChestEntity::fillWithLoot(IWorld& world, math::Random& rng) {
-    // 如果没有战利品表或已经填充过，则不执行
-    if (!m_hasLootTable) {
+void ChestEntity::fillWithLoot(Player* player) {
+    // 需要世界引用来获取服务器
+    if (m_world == nullptr) {
         return;
     }
 
-    // 检查是否有物品（已填充过）
-    bool hasItems = false;
-    for (i32 i = 0; i < CHEST_SIZE; ++i) {
-        if (!m_inventory.getItem(i).isEmpty()) {
-            hasItems = true;
-            break;
-        }
-    }
+    // 获取战利品表管理器（需要从服务器获取）
+    // 注：目前简化实现，待服务器基础设施完善后改进
+    // MC 1.16.5: this.world.getServer().getLootTableManager()
+    MC_UNUSED(player);
 
-    if (hasItems) {
+    // 如果没有战利品表，不执行
+    if (!hasLootTable()) {
         return;
     }
 
-    // TODO: 当 LootTableManager 单例实现后，使用战利品表填充物品
-    // 当前仅清除战利品表标记，保留 NBT 数据供后续填充
-    // 完整实现需要：
-    // 1. LootTableManager::instance() 单例
-    // 2. 从数据包加载战利品表
-    // 3. 使用种子生成物品
-
-    MC_UNUSED(world);
-    MC_UNUSED(rng);
+    // TODO: 需要从服务器获取 LootTableManager
+    // 目前使用 fillWithLootFromTable 作为占位符
+    // 当 LootTableManager 可用时，应该调用：
+    // fillWithLootFromTable(lootTableManager, player);
 }
 
 } // namespace blockentity

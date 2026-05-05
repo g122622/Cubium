@@ -6,6 +6,9 @@ namespace mc {
 
 // 前向声明
 class IInventory;
+class Player;
+class ServerPlayer;
+class IWorld;
 
 namespace crafting {
     template<typename C>
@@ -21,9 +24,6 @@ namespace crafting {
  * - 熔炉等方块实体追踪当前配方
  *
  * 参考: net.minecraft.inventory.IRecipeHolder
- *
- * 注意：onCrafting 和 canUseRecipe 的默认实现需要访问 ServerPlayer 和 World，
- * 这些在服务端模块中实现。此类只提供接口定义，具体逻辑在服务端处理。
  */
 class IRecipeHolder {
 public:
@@ -40,6 +40,27 @@ public:
      * @return 配方指针，如果没有返回nullptr
      */
     [[nodiscard]] virtual const crafting::IRecipe<IInventory>* getRecipeUsed() const = 0;
+
+    /**
+     * @brief 合成完成时调用
+     * @param player 玩家
+     *
+     * 解锁配方成就并清除当前配方。
+     * MC 1.16.5: 如果配方不是动态的，解锁配方并清除。
+     */
+    virtual void onCrafting(Player& player);
+
+    /**
+     * @brief 检查是否可以使用配方
+     * @param world 世界
+     * @param player 服务端玩家
+     * @param recipe 要使用的配方
+     * @return 如果可以使用返回true
+     *
+     * MC 1.16.5: 如果开启了有限合成且配方未解锁，返回false。
+     * 否则设置当前配方并返回true。
+     */
+    [[nodiscard]] virtual bool canUseRecipe(IWorld& world, ServerPlayer& player, const crafting::IRecipe<IInventory>* recipe);
 };
 
 } // namespace mc

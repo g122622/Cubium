@@ -94,7 +94,7 @@ namespace {
 // ========== ShulkerBoxEntity 实现 ==========
 
 ShulkerBoxEntity::ShulkerBoxEntity(const BlockPos& pos)
-    : LockableBlockEntity(BlockEntityType::ShulkerBox, pos)
+    : LootableContainerBlockEntity(BlockEntityType::ShulkerBox, pos)
     , m_inventory(SHULKER_BOX_SIZE) {
 }
 
@@ -105,28 +105,31 @@ f32 ShulkerBoxEntity::getProgress(f32 partialTick) const {
 }
 
 void ShulkerBoxEntity::openContainer(Player* player) {
+    // 触发战利品表填充
+    fillWithLoot(player);
+
     // 检查锁定状态
-    if (player != nullptr && !LockableBlockEntity::canOpen(player, ItemStack())) {
+    if (player != nullptr && !LootableContainerBlockEntity::canOpen(player, ItemStack())) {
         return;
     }
 
     // 基类已处理观察者检查和负数保护
-    ContainerBlockEntity::openContainer(player);
+    LootableContainerBlockEntity::openContainer(player);
 
     if (m_openCount == 1) {
         m_animationStatus = AnimationStatus::Opening;
     }
-    LockableBlockEntity::setChanged();
+    LootableContainerBlockEntity::setChanged();
 }
 
 void ShulkerBoxEntity::closeContainer(Player* player) {
     // 基类已处理观察者检查
-    ContainerBlockEntity::closeContainer(player);
+    LootableContainerBlockEntity::closeContainer(player);
 
     if (m_openCount == 0) {
         m_animationStatus = AnimationStatus::Closing;
     }
-    LockableBlockEntity::setChanged();
+    LootableContainerBlockEntity::setChanged();
 }
 
 bool ShulkerBoxEntity::canOpen(IWorld& world) const {
@@ -264,8 +267,30 @@ bool ShulkerBoxEntity::checkCanOpen(IWorld& world) const {
     return collidingEntities.empty();
 }
 
+void ShulkerBoxEntity::fillWithLoot(Player* player) {
+    // 需要世界引用来获取服务器
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 获取战利品表管理器（需要从服务器获取）
+    // 注：目前简化实现，待服务器基础设施完善后改进
+    // MC 1.16.5: this.world.getServer().getLootTableManager()
+    MC_UNUSED(player);
+
+    // 如果没有战利品表，不执行
+    if (!hasLootTable()) {
+        return;
+    }
+
+    // TODO: 需要从服务器获取 LootTableManager
+    // 目前使用 fillWithLootFromTable 作为占位符
+    // 当 LootTableManager 可用时，应该调用：
+    // fillWithLootFromTable(lootTableManager, player);
+}
+
 bool ShulkerBoxEntity::load(const nlohmann::json& data) {
-    if (!LockableBlockEntity::load(data)) {
+    if (!LootableContainerBlockEntity::load(data)) {
         return false;
     }
 
@@ -278,7 +303,7 @@ bool ShulkerBoxEntity::load(const nlohmann::json& data) {
 }
 
 void ShulkerBoxEntity::save(nlohmann::json& data) const {
-    LockableBlockEntity::save(data);
+    LootableContainerBlockEntity::save(data);
 
     // 保存物品
     nlohmann::json itemsJson;

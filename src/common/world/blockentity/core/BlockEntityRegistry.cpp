@@ -2,6 +2,7 @@
 #include "world/blockentity/CraftingTableEntity.hpp"
 #include "world/blockentity/interactive/PistonBlockEntity.hpp"
 #include "world/blockentity/interactive/DispenserBlockEntity.hpp"
+#include "world/blockentity/interactive/DropperBlockEntity.hpp"
 #include "world/blockentity/interactive/EnchantingTableEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
 #include "world/blockentity/storage/TrappedChestEntity.hpp"
@@ -59,9 +60,9 @@ void BlockEntityRegistry::registerBuiltinTypes() {
         return std::make_unique<DispenserBlockEntity>(BlockEntityType::Dispenser, pos);
     });
 
-    // 注册投掷器方块实体（复用 DispenserBlockEntity）
+    // 注册投掷器方块实体
     registerType(BlockEntityType::Dropper, [](const BlockPos& pos) {
-        return std::make_unique<DispenserBlockEntity>(BlockEntityType::Dropper, pos);
+        return std::make_unique<DropperBlockEntity>(pos);
     });
 
     // 注册熔炉方块实体

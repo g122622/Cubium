@@ -268,14 +268,12 @@ void AbstractContainerMenu::notifySlotChanged(i32 slotIndex, const ItemStack& st
 }
 
 ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType clickType, Player& player) {
-    (void)player;
-
     // 特殊槽位索引：-999 表示点击了屏幕外部
     if (slotIndex == -999) {
         // 点击屏幕外部 - 丢弃鼠标物品
         if (clickType == ClickType::Throw) {
             ItemStack toDrop = m_carried.split(button == 1 ? m_carried.getCount() : 1);
-            // TODO: 生成物品实体 - 见 README "物品丢弃（Future Work）"
+            dropItem(toDrop, player, false);
             return m_carried;
         }
         return m_carried;
@@ -472,8 +470,8 @@ ItemStack AbstractContainerMenu::handleThrow(Slot& slot, i32 slotIndex, const It
         ItemStack dropped = slot.remove(toDrop);
         slot.setChanged();
         notifySlotChanged(slotIndex, slot.getItem());
-        // TODO: 生成物品实体 - 见 README "物品丢弃（Future Work）"
-        (void)dropped;
+        // 丢弃物品到世界
+        dropItem(dropped, *m_playerInventory->getPlayer(), false);
     }
 
     return m_carried;
@@ -785,20 +783,27 @@ void AbstractContainerMenu::removed(Player& player) {
             if (remaining > 0) {
                 // 放不下的物品掉落
                 m_carried.setCount(remaining);
-                // TODO: 调用玩家掉落物品的方法
-                // player.dropItem(m_carried, false);
+                dropItem(m_carried, player, false);
             }
             m_carried = ItemStack();
         } else {
             // 没有玩家背包，直接掉落
-            // TODO: 调用玩家掉落物品的方法
-            // player.dropItem(m_carried, false);
+            dropItem(m_carried, player, false);
             m_carried = ItemStack();
         }
     }
 
     // 清理不能合成玩家列表
     m_cannotCraftPlayers.clear();
+}
+
+void AbstractContainerMenu::dropItem(const ItemStack& stack, Player& player, bool retainOwnership) {
+    if (stack.isEmpty()) {
+        return;
+    }
+    if (m_itemDropCallback) {
+        m_itemDropCallback(stack, player, retainOwnership);
+    }
 }
 
 } // namespace mc

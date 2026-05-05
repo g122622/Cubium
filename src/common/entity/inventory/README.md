@@ -10,15 +10,19 @@
 - ✅ **IntReferenceHolder** - 整型数据同步器（熔炉进度、酿造时间等）
 - ✅ **AnvilContainer** - 完整的修复成本计算和附魔合并算法
 - ✅ **EnchantmentContainer** - 书架力量计算、附魔等级公式、多附魔生成
-- ✅ **AbstractContainerMenu** - 拖拽分发状态机、变化检测优化
+- ✅ **AbstractContainerMenu** - 拖拽分发状态机、变化检测优化、物品丢弃回调
 - ✅ **网络协议** - OpenContainerPacket、ContainerContentPacket 字段类型
+- ✅ **ISidedInventory/ISidedInventoryProvider** - 侧面背包接口，用于漏斗等定向传输
 
 ## 目录结构
 
 ```
 inventory/
 ├── IInventory.hpp              # 背包接口（抽象基类）
+├── ISidedInventory.hpp         # 侧面背包接口
+├── ISidedInventoryProvider.hpp # 侧面背包提供者接口
 ├── IRecipeHolder.hpp           # 配方持有者接口
+├── IRecipeHolder.cpp           # 配方持有者实现
 ├── IRecipeHelperPopulator.hpp  # 配方辅助填充器接口
 ├── ContainerTypes.hpp          # 容器相关类型定义
 ├── Container.hpp               # 容器类（槽位管理）
@@ -459,28 +463,28 @@ container.broadcastChanges();  // 广播到客户端
 
 `ArmorSlot` 通过 `mayPlace()` 方法检查护甲类型，头盔/胸甲/护腿/靴子只能放入对应槽位。
 
-### 8. 物品丢弃（Future Work）
+### 8. 物品丢弃
 
-`AbstractContainerMenu` 和 `Container` 中的 `handleThrow()` 方法当前仅更新背包状态，不生成物品实体。
+`AbstractContainerMenu` 和 `Container` 中的物品丢弃功能已通过回调实现。
 
-**待实现功能**：
-- `AbstractContainerMenu.cpp:131` - 点击屏幕外部丢弃鼠标物品
-- `AbstractContainerMenu.cpp:328` - Q键丢弃槽位物品
-- `Container.cpp:504,512,525` - 丢弃物品
-
-**设计方案**：
+**使用方法**：
 ```cpp
-// 添加丢弃回调接口到 AbstractContainerMenu
-using ItemDropCallback = std::function<void(const ItemStack& stack, const Player& player)>;
-void setItemDropCallback(ItemDropCallback callback);
-
-// 上层（ServerWorld/IntegratedServer）注入实现
-menu->setItemDropCallback([this, player](const ItemStack& stack, const Player& p) {
-    BlockDropHandler::spawnDrops(*entityManager, nullptr, player.blockPos(), {stack}, p.uuid());
+// 上层（ServerWorld/IntegratedServer）注入物品丢弃回调
+menu->setItemDropCallback([this, player](const ItemStack& stack, Player& p, bool retainOwnership) {
+    // 在世界中生成物品实体
+    spawnItemEntity(world, p.blockPos(), stack, retainOwnership);
 });
+
+// AbstractContainerMenu 内部会自动调用
+// - Q键丢弃槽位物品：handleThrow()
+// - 点击屏幕外部丢弃鼠标物品：clicked() 中 ClickType::Throw
+// - 容器关闭时丢弃无法放入背包的物品：removed()
 ```
 
-此功能依赖 World/EntityManager 集成，标记为后续迭代任务。
+**回调参数**：
+- `stack`: 要丢弃的物品堆
+- `player`: 触发丢弃的玩家
+- `retainOwnership`: 是否保留所有权（如创造模式删除物品）
 
 ### 9. 坐标转换
 

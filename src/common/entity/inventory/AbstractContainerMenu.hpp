@@ -29,6 +29,19 @@ namespace DragConstants {
     constexpr i32 DRAG_MODE_NONE = -1;       // 未开始拖拽
 }
 
+// Forward declarations
+class Player;
+
+/**
+ * @brief 物品丢弃回调类型
+ *
+ * 当物品需要丢弃到世界中时调用此回调。
+ * @param stack 要丢弃的物品堆
+ * @param player 触发丢弃的玩家
+ * @param retainOwnership 是否保留所有权（如创造模式删除）
+ */
+using ItemDropCallback = std::function<void(const ItemStack& stack, Player& player, bool retainOwnership)>;
+
 /**
  * @brief 整型引用持有者
  *
@@ -209,6 +222,35 @@ public:
      * @param stack 物品堆
      */
     void setCarriedItem(const ItemStack& stack);
+
+    /**
+     * @brief 设置物品丢弃回调
+     * @param callback 回调函数
+     *
+     * 当物品需要丢弃到世界中时调用此回调。
+     * 上层（ServerWorld/IntegratedServer）应注入实现来生成物品实体。
+     */
+    void setItemDropCallback(ItemDropCallback callback) {
+        m_itemDropCallback = std::move(callback);
+    }
+
+    /**
+     * @brief 获取物品丢弃回调
+     * @return 回调函数
+     */
+    [[nodiscard]] const ItemDropCallback& getItemDropCallback() const {
+        return m_itemDropCallback;
+    }
+
+    /**
+     * @brief 丢弃物品到世界
+     * @param stack 要丢弃的物品堆
+     * @param player 触发丢弃的玩家
+     * @param retainOwnership 是否保留所有权（如创造模式删除）
+     *
+     * 如果设置了丢弃回调，则调用回调；否则什么都不做。
+     */
+    void dropItem(const ItemStack& stack, Player& player, bool retainOwnership = false);
 
     /**
      * @brief 广播容器变化
@@ -516,6 +558,9 @@ private:
 
     // 不能进行合成操作的玩家UUID集合
     std::unordered_set<String> m_cannotCraftPlayers;
+
+    // 物品丢弃回调
+    ItemDropCallback m_itemDropCallback;
 };
 
 } // namespace mc

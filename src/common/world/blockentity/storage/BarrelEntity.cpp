@@ -12,15 +12,18 @@ namespace blockentity {
 // ========== BarrelEntity 实现 ==========
 
 BarrelEntity::BarrelEntity(const BlockPos& pos)
-    : LockableBlockEntity(BlockEntityType::Barrel, pos)
+    : LootableContainerBlockEntity(BlockEntityType::Barrel, pos)
     , m_inventory(BARREL_SIZE) {
 }
 
 BarrelEntity::~BarrelEntity() = default;
 
 void BarrelEntity::openContainer(Player* player) {
+    // 触发战利品表填充
+    fillWithLoot(player);
+
     // 基类已处理观察者检查和负数保护
-    ContainerBlockEntity::openContainer(player);
+    LootableContainerBlockEntity::openContainer(player);
 
     if (m_world != nullptr) {
         updateBlockState(*m_world, true);
@@ -31,7 +34,7 @@ void BarrelEntity::openContainer(Player* player) {
 
 void BarrelEntity::closeContainer(Player* player) {
     // 基类已处理观察者检查
-    ContainerBlockEntity::closeContainer(player);
+    LootableContainerBlockEntity::closeContainer(player);
 
     if (m_world != nullptr) {
         updateBlockState(*m_world, m_openCount > 0);
@@ -60,6 +63,28 @@ i32 BarrelEntity::getComparatorSignal(IWorld& world) const {
 
     const f32 fillRatio = static_cast<f32>(filledSlots) / static_cast<f32>(BARREL_SIZE);
     return static_cast<i32>(fillRatio * 14.0f) + (totalCount > 0 ? 1 : 0);
+}
+
+void BarrelEntity::fillWithLoot(Player* player) {
+    // 需要世界引用来获取服务器
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 获取战利品表管理器（需要从服务器获取）
+    // 注：目前简化实现，待服务器基础设施完善后改进
+    // MC 1.16.5: this.world.getServer().getLootTableManager()
+    MC_UNUSED(player);
+
+    // 如果没有战利品表，不执行
+    if (!hasLootTable()) {
+        return;
+    }
+
+    // TODO: 需要从服务器获取 LootTableManager
+    // 目前使用 fillWithLootFromTable 作为占位符
+    // 当 LootTableManager 可用时，应该调用：
+    // fillWithLootFromTable(lootTableManager, player);
 }
 
 void BarrelEntity::tick(IWorld& world) {
@@ -97,7 +122,7 @@ void BarrelEntity::updateBlockState(IWorld& world, bool open) {
 }
 
 bool BarrelEntity::load(const nlohmann::json& data) {
-    if (!LockableBlockEntity::load(data)) {
+    if (!LootableContainerBlockEntity::load(data)) {
         return false;
     }
 
@@ -113,7 +138,7 @@ bool BarrelEntity::load(const nlohmann::json& data) {
 }
 
 void BarrelEntity::save(nlohmann::json& data) const {
-    LockableBlockEntity::save(data);
+    LootableContainerBlockEntity::save(data);
 
     nlohmann::json itemsJson;
     m_inventory.save(itemsJson);
@@ -122,15 +147,15 @@ void BarrelEntity::save(nlohmann::json& data) const {
 }
 
 std::unique_ptr<BlockEntity> BarrelEntity::clone() const {
-    auto clone = std::make_unique<BarrelEntity>(m_pos);
-    clone->m_openCount = m_openCount;
+    auto cloned = std::make_unique<BarrelEntity>(m_pos);
+    cloned->m_openCount = m_openCount;
     for (i32 slot = 0; slot < BARREL_SIZE; ++slot) {
         const ItemStack stack = m_inventory.getItem(slot);
         if (!stack.isEmpty()) {
-            clone->m_inventory.setItem(slot, stack.copy());
+            cloned->m_inventory.setItem(slot, stack.copy());
         }
     }
-    return clone;
+    return cloned;
 }
 
 } // namespace blockentity

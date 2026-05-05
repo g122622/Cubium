@@ -3,6 +3,7 @@
 #include "world/IWorld.hpp"
 #include "entity/entities/item/ItemEntity.hpp"
 #include "entity/inventory/ISidedInventory.hpp"
+#include "entity/inventory/ISidedInventoryProvider.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
 #include "util/assert/AssertAll.hpp"
@@ -167,6 +168,19 @@ void HopperEntity::setTransferCooldown(i32 cooldown) {
     m_transferCooldown = cooldown;
 }
 
+Direction HopperEntity::getOutputDirection() const {
+    // 从方块状态获取输出方向
+    // 漏斗的 FACING 属性表示输出方向（不能向上）
+    if (m_world != nullptr) {
+        const BlockState* state = m_world->getBlockState(getPos());
+        if (state != nullptr && state->hasProperty(BlockStateProperties::FACING_EXCEPT_UP())) {
+            return state->get(BlockStateProperties::FACING_EXCEPT_UP());
+        }
+    }
+    // 默认向下
+    return Direction::Down;
+}
+
 // ========== 静态工具方法 ==========
 
 bool HopperEntity::pullItems(IHopper& hopper) {
@@ -247,6 +261,26 @@ bool HopperEntity::captureItem(IInventory* inventory, ItemEntity* itemEntity) {
 IInventory* HopperEntity::getInventoryAtPosition(IWorld* world, const BlockPos& pos) {
     if (world == nullptr) {
         return nullptr;
+    }
+
+    // 获取方块状态
+    const BlockState* blockState = world->getBlockState(pos);
+
+    // MC 1.16.5: 首先检查方块是否实现 ISidedInventoryProvider
+    // 例如堆肥桶（ComposterBlock）实现此接口
+    if (blockState != nullptr) {
+        // 注意：getBlock() 返回 const Block&，但 createInventory 需要非 const
+        // MC 1.16.5 中 block 本身是 final 的，不会修改 block 状态
+        Block& block = const_cast<Block&>(blockState->getBlock());
+        ISidedInventoryProvider* provider = dynamic_cast<ISidedInventoryProvider*>(&block);
+        if (provider != nullptr) {
+            std::unique_ptr<ISidedInventory> inventory = provider->createInventory(*blockState, *world, pos);
+            if (inventory != nullptr) {
+                // 注意：这里返回原始指针，调用者需要注意生命周期
+                // 当前实现假设 inventory 的生命周期由调用者管理
+                return inventory.release();
+            }
+        }
     }
 
     // 尝试获取方块实体

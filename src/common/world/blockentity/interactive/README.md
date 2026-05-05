@@ -7,7 +7,8 @@
 ```
 interactive/
 ├── EnchantingTableEntity.hpp/cpp  # 附魔台
-├── DispenserBlockEntity.hpp/cpp    # 发射器/投掷器
+├── DispenserBlockEntity.hpp/cpp    # 发射器方块实体基类
+├── DropperBlockEntity.hpp/cpp      # 投掷器方块实体（继承自DispenserBlockEntity）
 ├── PistonBlockEntity.hpp/cpp       # 活塞实体
 ├── SignEntity.hpp/cpp              # 告示牌
 ├── BannerEntity.hpp/cpp            # 旗帜
@@ -41,7 +42,7 @@ interactive/
 
 ### DispenserBlockEntity.hpp/cpp
 
-**职责**：发射器/投掷器方块实体基类。
+**职责**：发射器方块实体基类。
 
 **主要功能**：
 - 9格物品存储
@@ -52,6 +53,21 @@ interactive/
 **MC 1.16.5 对齐**：
 - addItemStack 返回 int（槽位索引或 -1），而非剩余物品堆
 - getDispenseSlot 使用储水池采样算法确保等概率选择
+- 支持战利品表填充（fillWithLoot方法）
+
+### DropperBlockEntity.hpp/cpp
+
+**职责**：投掷器方块实体，继承自 DispenserBlockEntity。
+
+**与发射器的区别**：
+- 投掷器只投掷物品，没有特殊行为
+- 发射器对特定物品有特殊行为（如箭矢发射、火焰球等）
+- 投掷器会尝试向相邻容器输出物品
+- 显示名称不同：`container.dropper` vs `container.dispenser`
+
+**关键方法**：
+- `clone()` - 克隆投掷器实体
+- 继承自 DispenserBlockEntity 的所有功能
 
 ### PistonBlockEntity.hpp/cpp
 

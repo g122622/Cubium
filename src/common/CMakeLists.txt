@@ -257,6 +257,7 @@ add_library(mc_common STATIC
     entity/inventory/Container.cpp
     entity/inventory/CraftingInventory.cpp
     entity/inventory/AbstractContainerMenu.cpp
+    entity/inventory/IRecipeHolder.cpp
     entity/inventory/container/ChestContainer.cpp
     entity/inventory/container/HopperContainer.cpp
     entity/inventory/container/FurnaceContainer.cpp
@@ -564,9 +565,11 @@ add_library(mc_common STATIC
     # World - Block Entity
     world/blockentity/core/SimpleInventory.cpp
     world/blockentity/core/LockableBlockEntity.cpp
+    world/blockentity/core/LootableContainerBlockEntity.cpp
     world/blockentity/core/BlockEntityRegistry.cpp
     world/blockentity/interactive/EnchantingTableEntity.cpp
     world/blockentity/interactive/DispenserBlockEntity.cpp
+    world/blockentity/interactive/DropperBlockEntity.cpp
     world/blockentity/interactive/PistonBlockEntity.cpp
     world/blockentity/interactive/SignEntity.cpp
     world/blockentity/interactive/BannerEntity.cpp

@@ -1,4 +1,6 @@
 #include "DispenserBlockEntity.hpp"
+#include "entity/loot/LootTable.hpp"
+#include "entity/loot/LootContext.hpp"
 #include "item/core/ItemStack.hpp"
 #include <random>
 
@@ -6,13 +8,13 @@ namespace mc {
 namespace blockentity {
 
 DispenserBlockEntity::DispenserBlockEntity(BlockEntityType type, const BlockPos& pos)
-    : LockableBlockEntity(type, pos)
+    : LootableContainerBlockEntity(type, pos)
     , m_inventory(INVENTORY_SIZE)
     , m_rng(std::random_device{}()) {
 }
 
 bool DispenserBlockEntity::load(const nlohmann::json& data) {
-    if (!LockableBlockEntity::load(data)) {
+    if (!LootableContainerBlockEntity::load(data)) {
         return false;
     }
 
@@ -32,19 +34,11 @@ bool DispenserBlockEntity::load(const nlohmann::json& data) {
         }
     }
 
-    // 加载战利品表
-    if (data.contains("LootTable") && data["LootTable"].is_string()) {
-        m_lootTable = data["LootTable"].get<String>();
-    }
-    if (data.contains("LootTableSeed") && data["LootTableSeed"].is_number()) {
-        m_lootTableSeed = data["LootTableSeed"].get<u64>();
-    }
-
     return true;
 }
 
 void DispenserBlockEntity::save(nlohmann::json& data) const {
-    LockableBlockEntity::save(data);
+    LootableContainerBlockEntity::save(data);
 
     // 保存库存
     nlohmann::json itemsJson = nlohmann::json::array();
@@ -57,12 +51,6 @@ void DispenserBlockEntity::save(nlohmann::json& data) const {
         }
     }
     data["Items"] = itemsJson;
-
-    // 保存战利品表
-    if (!m_lootTable.empty()) {
-        data["LootTable"] = m_lootTable;
-        data["LootTableSeed"] = m_lootTableSeed;
-    }
 }
 
 std::unique_ptr<BlockEntity> DispenserBlockEntity::clone() const {
@@ -76,15 +64,7 @@ std::unique_ptr<BlockEntity> DispenserBlockEntity::clone() const {
         }
     }
 
-    // 复制战利品表信息
-    cloned->m_lootTable = m_lootTable;
-    cloned->m_lootTableSeed = m_lootTableSeed;
-
     return cloned;
-}
-
-bool DispenserBlockEntity::isEmpty() const {
-    return m_inventory.isEmpty();
 }
 
 void DispenserBlockEntity::clearContainer() {
@@ -154,9 +134,26 @@ i32 DispenserBlockEntity::addItemStack(const ItemStack& stack) {
     return -1;
 }
 
-void DispenserBlockEntity::setLootTable(const String& lootTable, u64 seed) {
-    m_lootTable = lootTable;
-    m_lootTableSeed = seed;
+void DispenserBlockEntity::fillWithLoot(Player* player) {
+    // 需要世界引用来获取服务器
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 获取战利品表管理器（需要从服务器获取）
+    // 注：目前简化实现，待服务器基础设施完善后改进
+    // MC 1.16.5: this.world.getServer().getLootTableManager()
+    MC_UNUSED(player);
+
+    // 如果没有战利品表，不执行
+    if (!hasLootTable()) {
+        return;
+    }
+
+    // TODO: 需要从服务器获取 LootTableManager
+    // 目前使用 fillWithLootFromTable 作为占位符
+    // 当 LootTableManager 可用时，应该调用：
+    // fillWithLootFromTable(lootTableManager, player);
 }
 
 } // namespace blockentity

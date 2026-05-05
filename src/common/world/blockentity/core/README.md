@@ -1,21 +1,23 @@
 # 方块实体核心模块
 
-方块实体系统的基础设施组件，提供方块实体的注册、锁定、存储等功能。
+方块实体系统的基础设施组件，提供方块实体的注册、锁定、存储、战利品表填充等功能。
 
 ## 目录结构
 
 ```
 core/
-├── BlockEntity.hpp           # 方块实体基类（已有）
+├── BlockEntity.hpp              # 方块实体基类
 ├── BlockEntity.cpp
-├── BlockEntityType.hpp       # 类型枚举（已有）
+├── BlockEntityType.hpp          # 类型枚举
 ├── BlockEntityType.cpp
-├── ContainerBlockEntity.hpp  # 容器基类（已有）
-├── BlockEntityRegistry.hpp   # 方块实体注册表（新增）
+├── ContainerBlockEntity.hpp     # 容器基类
+├── BlockEntityRegistry.hpp      # 方块实体注册表
 ├── BlockEntityRegistry.cpp
-├── LockableBlockEntity.hpp   # 可锁定容器基类（新增）
+├── LockableBlockEntity.hpp      # 可锁定容器基类
 ├── LockableBlockEntity.cpp
-├── SimpleInventory.hpp       # 简单背包实现（新增）
+├── LootableContainerBlockEntity.hpp  # 可填充战利品表的容器基类
+├── LootableContainerBlockEntity.cpp
+├── SimpleInventory.hpp          # 简单背包实现
 ├── SimpleInventory.cpp
 └── README.md
 ```
@@ -56,8 +58,8 @@ auto entity = BlockEntityRegistry::instance().createFromJson(data);
 ```
 BlockEntity
   └── ContainerBlockEntity
-        └── LockableBlockEntity  ← 新增
-              ├── ChestEntity
+        └── LockableBlockEntity
+              ├── LootableContainerBlockEntity
               ├── HopperEntity
               └── AbstractFurnaceEntity
 ```
@@ -72,6 +74,41 @@ BlockEntity
 **锁定机制**：
 - 锁定的容器需要手持正确名称的物品才能打开
 - 物品显示名匹配锁定钥匙名即为正确钥匙
+
+### LootableContainerBlockEntity.hpp/cpp
+
+**职责**：为容器方块实体提供战利品表自动填充功能。
+
+**继承关系**：
+```
+LockableBlockEntity
+  └── LootableContainerBlockEntity
+        ├── ChestEntity
+        ├── TrappedChestEntity
+        ├── BarrelEntity
+        ├── ShulkerBoxEntity
+        └── DispenserBlockEntity
+```
+
+**主要功能**：
+- `hasLootTable()` - 检查是否设置了战利品表
+- `getLootTable()` / `getLootTableSeed()` - 获取战利品表信息
+- `setLootTable()` - 设置战利品表（结构生成时调用）
+- `fillWithLoot()` - 填充战利品（子类实现，玩家打开时自动调用）
+- `isEmpty()` - 重写，自动触发战利品表填充
+- `openContainer()` - 重写，打开时自动填充
+
+**战利品表填充机制**：
+```
+1. 结构生成时设置 lootTable 和 lootTableSeed
+2. 玩家首次访问容器时自动填充
+3. 填充后清除 lootTable 标记，避免重复填充
+```
+
+**MC 1.16.5 对齐**：
+- 参考 `LockableLootTileEntity.java`
+- `isEmpty()`, `getStackInSlot()`, `decrStackSize()`, `removeStackFromSlot()`, `setInventorySlotContents()` 都会触发填充
+- `createMenu()` 打开容器时填充
 
 ### SimpleInventory.hpp/cpp
 
@@ -105,12 +142,14 @@ graph TB
     BlockEntity[BlockEntity 基类]
     ContainerBlockEntity[ContainerBlockEntity 容器基类]
     LockableBlockEntity[LockableBlockEntity 可锁定基类]
+    LootableContainerBlockEntity[LootableContainerBlockEntity 战利品表基类]
     SimpleInventory[SimpleInventory 简单背包]
     BlockEntityRegistry[BlockEntityRegistry 注册表]
 
     BlockEntity --> ContainerBlockEntity
     ContainerBlockEntity --> LockableBlockEntity
-    LockableBlockEntity -.使用.-> SimpleInventory
+    LockableBlockEntity --> LootableContainerBlockEntity
+    LootableContainerBlockEntity -.使用.-> SimpleInventory
     BlockEntityRegistry -.创建.-> BlockEntity
 ```
 
@@ -120,6 +159,8 @@ graph TB
 - `world/block/BlockPos.hpp` - 方块位置
 - `world/blockentity/BlockEntity.hpp` - 方块实体基类
 - `entity/inventory/IInventory.hpp` - 背包接口
+- `entity/loot/LootTable.hpp` - 战利品表
+- `entity/loot/LootContext.hpp` - 战利品上下文
 - `item/ItemStack.hpp` - 物品堆
 - `resource/ResourceLocation.hpp` - 资源位置
 - `network/PacketSerializer.hpp` - 网络序列化
@@ -178,7 +219,24 @@ DoubleSidedInventory getDoubleInventory() {
 }
 ```
 
-### 4. 注册时序
+### 4. 战利品表填充时机
+
+`LootableContainerBlockEntity` 的 `fillWithLoot()` 是纯虚函数，子类必须实现：
+
+```cpp
+// 正确：子类实现 fillWithLoot
+void ChestEntity::fillWithLoot(Player* player) {
+    if (!hasLootTable() || m_world == nullptr) {
+        return;
+    }
+    // 获取 LootTableManager 并填充
+    fillWithLootFromTable(lootTableManager, player);
+}
+
+// 错误：忘记实现，编译失败
+```
+
+### 5. 注册时序
 
 方块实体注册应在游戏启动时完成：
 
@@ -200,3 +258,4 @@ void initializeBlockEntities() {
 - `BlockEntityRegistryTest.cpp` - 注册表测试
 - `LockableBlockEntityTest.cpp` - 锁定功能测试
 - `SimpleInventoryTest.cpp` - 背包功能测试
+- `LootableContainerBlockEntityTest.cpp` - 战利品表填充测试

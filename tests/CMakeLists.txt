@@ -66,6 +66,7 @@ add_executable(mc_tests
     common/world/blockentity/ChestEntityTest.cpp
     common/world/blockentity/FurnaceEntityTest.cpp
     common/world/blockentity/HopperEntityTest.cpp
+    common/world/blockentity/DoubleSidedInventoryTest.cpp
     common/world/blockentity/BlockEntityTodoTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/CauldronBlockTest.cpp
