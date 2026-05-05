@@ -27,6 +27,15 @@ bool WaterMobEntity::isInWaterOrBubble() const {
 void WaterMobEntity::tick() {
     CreatureEntity::tick();
 
+    // 检测水状态变化并触发回调
+    bool inWater = isInWater();
+    if (inWater && !m_wasInWater) {
+        onEnterWater();
+    } else if (!inWater && m_wasInWater) {
+        onLeaveWater();
+    }
+    m_wasInWater = inWater;
+
     // 更新空气供应
     updateAirSupply();
 }

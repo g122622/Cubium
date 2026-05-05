@@ -125,6 +125,9 @@ private:
     // 溺水伤害计时器
     i32 m_drownDamageTimer = 0;
 
+    // 水状态追踪（用于 onEnterWater/onLeaveWater 回调）
+    bool m_wasInWater = false;
+
     // 溺水伤害量（水生生物比玩家少）
     // MC 1.16.5: 水生生物每次受到 1.0F 伤害，玩家受到 2.0F
     static constexpr f32 DROWN_DAMAGE_AMOUNT = 1.0f;

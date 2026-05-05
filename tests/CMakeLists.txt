@@ -146,6 +146,7 @@ add_executable(mc_tests
     client/resource/test_resource_manager_cloud_texture.cpp
     network/EntityPacketsTest.cpp
     network/ParticlePacketTest.cpp
+    network/WorldEventPacketTest.cpp
     network/SpawnPositionPacketTest.cpp
     network/LocalServerConnectionTest.cpp
     common/entity/loot/LootTest.cpp

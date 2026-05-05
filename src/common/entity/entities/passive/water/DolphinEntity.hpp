@@ -3,6 +3,7 @@
 #include "../water/WaterMobEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 #include <memory>
 
 namespace mc {
@@ -21,6 +22,18 @@ class LivingEntity;
  * - 救助：会将溺水的玩家推向水面
  * - 群居：会形成小群体
  * - 掉落：生鳕鱼
+ *
+ * 音效：
+ * - ENTITY_DOLPHIN_AMBIENT: 陆地环境音
+ * - ENTITY_DOLPHIN_AMBIENT_WATER: 水中环境音
+ * - ENTITY_DOLPHIN_ATTACK: 攻击音效
+ * - ENTITY_DOLPHIN_DEATH: 死亡音效
+ * - ENTITY_DOLPHIN_EAT: 进食音效
+ * - ENTITY_DOLPHIN_HURT: 受伤音效
+ * - ENTITY_DOLPHIN_JUMP: 跳跃落水音效
+ * - ENTITY_DOLPHIN_PLAY: 玩耍物品音效
+ * - ENTITY_DOLPHIN_SPLASH: 溅水音效
+ * - ENTITY_DOLPHIN_SWIM: 游泳音效
  *
  * 参考 MC 1.16.5 DolphinEntity
  */
@@ -128,6 +141,19 @@ public:
      */
     [[nodiscard]] f32 height() const override { return 0.6f; }
 
+    // ========== 音效 ==========
+
+    /**
+     * @brief 获取环境音效
+     * 在水中和陆地播放不同的音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
+     * @brief 播放攻击音效
+     */
+    void playAttackSound(LivingEntity& target) override;
+
     // ========== 生命周期 ==========
 
     void tick() override;
@@ -138,6 +164,9 @@ protected:
 
     // ========== 属性注册 ==========
     void registerAttributes() override;
+
+    // ========== 水状态回调 ==========
+    void onLeaveWater() override;
 
 private:
     // 跳跃状态

@@ -1,5 +1,7 @@
 #include "PufferfishEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -28,30 +30,51 @@ f32 PufferfishEntity::getPuffSize() const {
 void PufferfishEntity::tick() {
     AbstractFishEntity::tick();
 
-    // 更新膨胀状态
-    if (m_puffState != PuffState::Deflated) {
-        m_puffTimer++;
-        if (m_puffTimer >= PUFF_DURATION) {
-            // 开始收缩
-            m_deflateTimer++;
-            if (m_deflateTimer >= DEFLATE_DELAY) {
-                // 收缩一级
-                if (m_puffState == PuffState::FullyPuffed) {
-                    m_puffState = PuffState::SemiPuffed;
-                } else if (m_puffState == PuffState::SemiPuffed) {
-                    m_puffState = PuffState::Deflated;
-                }
-                m_deflateTimer = 0;
-                m_puffTimer = 0;
-            }
-        }
+    if (m_puffState == PuffState::Deflated) {
+        return;
     }
 
-    // TODO: 检测附近玩家，如果靠近则膨胀
-    // if (nearbyPlayer && m_puffState == PuffState::Deflated) {
-    //     m_puffState = PuffState::SemiPuffed;
-    //     m_puffTimer = 0;
-    // }
+    m_puffTimer++;
+
+    // TODO: 实现 PuffGoal，检测 2 格内的敌人并触发膨胀
+
+    if (m_puffTimer < PUFF_DURATION) {
+        return;
+    }
+
+    m_deflateTimer++;
+
+    // MC 1.16.5: 收缩逻辑
+    if (m_deflateTimer > DEFLATE_FULL_TO_SEMI && m_puffState == PuffState::FullyPuffed) {
+        m_puffState = PuffState::SemiPuffed;
+        playSound(SoundEvents::ENTITY_PUFFER_FISH_BLOW_OUT, 1.0f, 1.0f);
+        m_deflateTimer = 0;
+    } else if (m_deflateTimer > DEFLATE_SEMI_TO_DEFLATE && m_puffState == PuffState::SemiPuffed) {
+        m_puffState = PuffState::Deflated;
+        playSound(SoundEvents::ENTITY_PUFFER_FISH_BLOW_OUT, 1.0f, 1.0f);
+        m_deflateTimer = 0;
+        m_puffTimer = 0;
+    }
+}
+
+void PufferfishEntity::setPuffState(PuffState state) {
+    if (state == m_puffState) {
+        return;
+    }
+
+    PuffState oldState = m_puffState;
+    m_puffState = state;
+
+    if (static_cast<i32>(state) > static_cast<i32>(oldState)) {
+        playSound(SoundEvents::ENTITY_PUFFER_FISH_BLOW_UP, 1.0f, 1.0f);
+    }
+}
+
+std::optional<ResourceLocation> PufferfishEntity::getAmbientSound() const {
+    if (!isInWater()) {
+        return SoundEvents::ENTITY_PUFFER_FISH_FLOP;
+    }
+    return SoundEvents::ENTITY_PUFFER_FISH_AMBIENT;
 }
 
 void PufferfishEntity::registerAttributes() {

@@ -361,6 +361,47 @@ bool isThunder = weather.isThundering();   // strength > 0.9
 u8 skyLight = weather.skyLightLimit();     // 15/12/10 based on weather
 ```
 
+### WorldEvents 系统
+
+`WorldEvents` 命名空间定义了世界事件ID常量，用于 `playEvent()` 方法触发音效和粒子效果。
+
+**事件分类：**
+
+| 范围 | 类型 | 示例 |
+|------|------|------|
+| 1000-1039 | 音效事件 | 门开关、唱片、铁砧、传送门等 |
+| 1500-1503 | 特殊效果事件 | 堆肥桶、岩浆熄灭、红石火把熄灭等 |
+| 2000-2008 | 粒子/效果事件 | 发射器烟雾、方块破坏、药水效果等 |
+| 3000-3001 | 末地传送门事件 | 传送门生成效果、末影人咆哮 |
+
+**常用事件ID：**
+
+```cpp
+#include "common/world/WorldEvents.hpp"
+
+using namespace mc::world::WorldEvents;
+
+// 门音效
+IRON_DOOR_OPEN_SOUND      // 1005
+IRON_DOOR_CLOSE_SOUND     // 1011
+WOODEN_DOOR_OPEN_SOUND    // 1006
+WOODEN_DOOR_CLOSE_SOUND   // 1012
+
+// 方块效果
+BREAK_BLOCK_EFFECTS       // 2001 - data 为方块状态ID
+DISPENSER_SMOKE           // 2000 - data 为方向
+BONEMEAL_PARTICLES        // 2005 - data 为粒子数量
+
+// 特殊事件
+COMPOSTER_FILLED_UP       // 1500 - data>0 有空间, data<=0 已满
+END_PORTAL_FRAME_FILL     // 1503 - 放置末影之眼
+PORTAL_TRAVEL_SOUND       // 1032 - 传送门传送
+```
+
+**参考：**
+- MC 1.16.5 `net.minecraft.client.renderer.WorldRenderer.playEvent`
+- MC 1.16.5 `net.minecraftforge.common.util.Constants.WorldEvents`
+
 ### Storage System
 
 World persistence layer for save/load functionality:

@@ -192,6 +192,47 @@ MovingSoundPacket packet(
 
 用于播放与实体或方块关联的声音效果，格式与 PlaySoundPacket 相同。
 
+### WorldEventPacket
+
+服务端向客户端发送的世界事件数据包，用于播放音效和粒子效果：
+
+```cpp
+#include "common/sound/network/SoundPackets.hpp"
+#include "common/world/WorldEvents.hpp"
+
+// 播放铁门开关音效
+WorldEventPacket packet(
+    WorldEvents::IRON_DOOR_OPEN_SOUND,
+    BlockPos(100, 64, 200),
+    0  // data（此事件不需要额外数据）
+);
+
+// 播放唱片
+WorldEventPacket recordPacket(
+    WorldEvents::PLAY_RECORD_SOUND,
+    BlockPos(100, 64, 200),
+    itemId  // data 为唱片物品ID
+);
+
+// 方块破坏效果
+WorldEventPacket breakPacket(
+    WorldEvents::BREAK_BLOCK_EFFECTS,
+    BlockPos(100, 64, 200),
+    Block::getStateId(blockState)  // data 为方块状态ID
+);
+```
+
+**事件ID常量**（定义在 `WorldEvents` 命名空间）：
+
+| 范围 | 类型 | 示例事件 |
+|------|------|----------|
+| 1000-1039 | 音效事件 | 门开关、唱片、铁砧、传送门等 |
+| 1500-1503 | 特殊效果事件 | 堆肥桶填充、岩浆熄灭、红石火把熄灭等 |
+| 2000-2008 | 粒子/效果事件 | 发射器烟雾、方块破坏、药水效果等 |
+| 3000-3001 | 末地传送门事件 | 传送门生成效果、末影人咆哮 |
+
+参见 `src/common/world/WorldEvents.hpp` 获取完整事件列表。
+
 ## 依赖项
 
 - `common/resource/ResourceLocation.hpp` - 资源位置标识
@@ -211,28 +252,34 @@ MovingSoundPacket packet(
 | 传送门 | `BLOCK_PORTAL_TRIGGER` | 玩家站在传送门中时播放 |
 | 营火 | `BLOCK_CAMPFIRE_CRACKLE` | 营火燃烧时的噼啪声 |
 | 岩浆块 | `BLOCK_LAVA_AMBIENT` | 岩浆冒泡声 |
-| 末地传送门框架 | `BLOCK_END_PORTAL_FRAME_FILL` | 放置末影之眼时 |
 
 **实现方案**：
 1. 在 `Block` 基类添加 `animateTick(IWorld&, BlockPos, BlockState&, IRandom&)` 虚方法
 2. 在客户端区块渲染器中调用 `animateTick`
 3. 在服务端通过 `playEvent` 广播事件给客户端
 
-### 需要 playEvent 的音效
+### 已实现的 playEvent 事件
 
-`playEvent` 是服务端向客户端广播游戏事件（音效/粒子）的系统，用于非方块状态变化的事件。
+`playEvent` 系统已实现，通过 `WorldEventPacket` 广播游戏事件（音效/粒子）：
 
-| 方块 | 音效事件 | 说明 |
-|------|----------|------|
-| 铁砧 | `BLOCK_ANVIL_USE` | 修复/重命名物品时 |
-| 铁砧 | `BLOCK_ANVIL_DESTROY` | 铁砧损坏时 |
-| 铁砧 | `BLOCK_ANVIL_LAND` | 铁砧落地时 |
-| 营火 | `BLOCK_FIRE_EXTINGUISH` | 用水/雨熄灭时 |
+| 事件类型 | 事件ID | 触发位置 |
+|----------|--------|----------|
+| 铁砧使用 | `ANVIL_USE_SOUND` (1030) | AnvilBlock（待接入） |
+| 铁砧损坏 | `ANVIL_DESTROYED_SOUND` (1029) | AnvilBlock（待接入） |
+| 铁砧落地 | `ANVIL_LAND_SOUND` (1031) | FallingBlockEntity |
+| 传送门传送 | `PORTAL_TRAVEL_SOUND` (1032) | NetherPortalBlock |
+| 火焰熄灭 | `FIRE_EXTINGUISH_SOUND` (1009) | FireBlock |
+| 方块破坏 | `BREAK_BLOCK_EFFECTS` (2001) | 方块破坏时 |
 
-**实现方案**：
-1. 在 `IWorld` 添加 `playEvent(i32 eventId, BlockPos, i32 data)` 方法
-2. 定义事件ID常量（对齐 MC 1.16.5 `Events.java`）
-3. 客户端处理 `PlayEventPacket` 并播放对应音效/粒子
+**使用方式**：
+
+```cpp
+// 服务端调用
+world.playEvent(WorldEvents::IRON_DOOR_OPEN_SOUND, pos, 0);
+
+// 或通过 MinecraftServer 广播
+server.broadcastWorldEvent(eventId, pos, data);
+```
 
 ## 测试用例
 

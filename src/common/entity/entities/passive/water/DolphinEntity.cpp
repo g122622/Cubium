@@ -4,6 +4,7 @@
 #include "../../../../world/block/BlockPos.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 
 namespace mc {
 
@@ -54,6 +55,22 @@ bool DolphinEntity::isFoodItem(const ItemStack& itemStack) const {
     //        itemStack.getItem() == Items::TROPICAL_FISH;
     (void)itemStack;
     return false;
+}
+
+void DolphinEntity::onLeaveWater() {
+    WaterMobEntity::onLeaveWater();
+    playSound(SoundEvents::ENTITY_DOLPHIN_JUMP, 1.0f, 1.0f);
+}
+
+std::optional<ResourceLocation> DolphinEntity::getAmbientSound() const {
+    if (isInWater()) {
+        return SoundEvents::ENTITY_DOLPHIN_AMBIENT_WATER;
+    }
+    return SoundEvents::ENTITY_DOLPHIN_AMBIENT;
+}
+
+void DolphinEntity::playAttackSound(LivingEntity& /*target*/) {
+    playSound(SoundEvents::ENTITY_DOLPHIN_ATTACK, 1.0f, 1.0f);
 }
 
 void DolphinEntity::tick() {

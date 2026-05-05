@@ -2,6 +2,7 @@
 
 #include "AbstractFishEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../sound/SoundEvents.hpp"
 #include <memory>
 
 namespace mc {
@@ -15,6 +16,15 @@ namespace mc {
  * - 膨胀：玩家靠近时会膨胀
  * - 中毒：接触会导致中毒
  * - 掉落：河豚、骨头
+ *
+ * 音效：
+ * - ENTITY_PUFFER_FISH_AMBIENT: 水中环境音
+ * - ENTITY_PUFFER_FISH_BLOW_UP: 膨胀音效
+ * - ENTITY_PUFFER_FISH_BLOW_OUT: 收缩音效
+ * - ENTITY_PUFFER_FISH_DEATH: 死亡音效
+ * - ENTITY_PUFFER_FISH_FLOP: 陆地扑腾音效
+ * - ENTITY_PUFFER_FISH_HURT: 受伤音效
+ * - ENTITY_PUFFER_FISH_STING: 刺击音效
  *
  * 参考 MC 1.16.5 PufferfishEntity
  */
@@ -61,8 +71,10 @@ public:
 
     /**
      * @brief 设置膨胀状态
+     *
+     * 当状态变化时会自动播放膨胀/收缩音效。
      */
-    void setPuffState(PuffState state) { m_puffState = state; }
+    void setPuffState(PuffState state);
 
     /**
      * @brief 获取膨胀尺寸
@@ -89,6 +101,14 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override { return 0.15f; }
 
+    // ========== 音效 ==========
+
+    /**
+     * @brief 获取环境音效
+     * 在水中和陆地播放不同的音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
     // ========== 生命周期 ==========
 
     void tick() override;
@@ -102,8 +122,10 @@ private:
     i32 m_puffTimer = 0;
     i32 m_deflateTimer = 0;
 
-    static constexpr i32 PUFF_DURATION = 60;   // 膨胀持续时间
-    static constexpr i32 DEFLATE_DELAY = 20;   // 收缩延迟
+    // MC 1.16.5: 收缩延迟常量
+    static constexpr i32 PUFF_DURATION = 60;              // 膨胀持续时间（ticks）
+    static constexpr i32 DEFLATE_SEMI_TO_DEFLATE = 100;   // 半膨胀到未膨胀的延迟
+    static constexpr i32 DEFLATE_FULL_TO_SEMI = 60;       // 完全膨胀到半膨胀的延迟
 };
 
 } // namespace mc
