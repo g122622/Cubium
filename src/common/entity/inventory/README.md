@@ -45,7 +45,7 @@ inventory/
 
 ## 文件详细介绍
 
-### 1. IInventory.hpp
+### 1. IInventory.hpp / IInventory.cpp
 
 **职责**: 定义背包接口，所有背包容器的抽象基类。
 
@@ -56,6 +56,11 @@ inventory/
 - 容器操作：`clear()`, `setChanged()`
 - 物品查找：`getFirstEmptySlot()`, `countItem()`, `hasItem()`, `findSlot()`, `canPlaceItem()`
 - 序列化支持
+- **新增方法**（MC 1.16.5 对齐）：
+  - `isUsableByPlayer()`: 检查玩家是否可以访问此背包（默认返回 true）
+  - `openInventory()`: 打开背包时的回调（默认空实现）
+  - `closeInventory()`: 关闭背包时的回调（默认空实现）
+  - `hasAny()`: 检查是否包含指定物品集合中的任意物品
 
 **依赖项**:
 - `core/Types.hpp` - 基础类型
@@ -127,8 +132,17 @@ inventory/
   - 显示坐标（x, y）
   - 物品操作：`getItem()`, `set()`, `remove()`, `isEmpty()`
   - 可放置性检查：`mayPlace()`, `isValid()`, `getMaxStackSize()`
+  - 回调方法：`onTake()`, `onCrafting()`, `onSwapCraft()`, `onSlotChange()`
 - `ArmorSlot` 类：护甲槽位，只接受对应类型护甲
 - `ResultSlot` 类：合成结果槽位，只能取出不能放入
+- `FurnaceFuelSlot` 类：熔炉燃料槽位，只接受燃料物品
+  - `mayPlace()`: 检查物品是否为有效燃料
+  - `isFuel()`: 静态方法检查物品燃料属性
+  - `isBucket()`: 检查是否为桶类物品
+- `FurnaceResultSlot` 类：熔炉输出槽位
+  - `mayPlace()`: 始终返回 false，不能放入物品
+  - `remove()`: 重写以支持经验值累积
+  - `onTake()`: 触发熔炼成就和经验奖励
 
 **依赖项**:
 - `IInventory.hpp` - 背包接口
@@ -171,6 +185,14 @@ inventory/
 - 槽位操作：`swapSlots()`, `placeItem()`
 - 统计：`countItem()`, `hasItem()`
 - 序列化：`serialize()`, `deserialize()`
+- **新增方法**（MC 1.16.5 对齐）：
+  - `tick()`: 背包 tick 处理（用于物品冷却、耐久恢复等）
+  - `dropAllItems()`: 丢弃所有物品
+  - `deleteStack()`: 删除指定物品堆
+  - `placeItemBackInInventory()`: 将物品放回背包
+  - `damageArmor()`: 护甲损伤处理
+  - `containsAny()`: 检查是否包含指定物品集合中的任意物品
+  - `isUsableByPlayer()`: 检查玩家是否可用（覆盖 IInventory 接口）
 
 **依赖项**:
 - `IInventory.hpp`, `Slot.hpp`
@@ -524,7 +546,13 @@ BlockItemRegistry::instance().initializeVanillaBlockItems();
   - 槽位交换
   - 护甲和副手槽操作
   - 序列化/反序列化
+- `PlayerInventoryNewMethodsTest`: 玩家背包新方法测试
+  - `containsAny()`: 检查是否包含指定物品集合
+  - `isUsableByPlayer()`: 玩家可用性检查
 - `SlotTest`: 槽位基础测试
+- `ArmorSlotTest`: 护甲槽位测试
+- `IInventoryInterfaceTest`: IInventory 接口测试
+  - `hasAny()`: 接口方法测试
 
 ### tests/common/entity/inventory/CraftingInventoryTest.cpp
 
@@ -537,6 +565,22 @@ BlockItemRegistry::instance().initializeVanillaBlockItems();
 - `CraftResultInventoryTest`: 合成结果背包测试
   - 单槽位操作
   - 结果设置和获取
+
+### tests/common/entity/inventory/container/FurnaceContainerTest.cpp
+
+- `FurnaceContainerTest`: 熔炉容器测试
+  - 槽位数量验证
+  - 容器类型验证
+  - 槽位索引常量验证
+- `FurnaceFuelSlotTest`: 熔炉燃料槽位测试
+  - 创建槽位
+  - `mayPlace()`: 只接受燃料物品
+  - `getMaxStackSize()`: 燃料物品堆叠上限
+  - `isFuel()`: 静态方法测试
+- `FurnaceResultSlotTest`: 熔炉输出槽位测试
+  - 创建槽位
+  - `mayPlace()`: 始终返回 false
+  - `remove()`: 物品移除和经验累积
 
 ### tests/common/test_container.cpp
 

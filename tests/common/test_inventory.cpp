@@ -689,3 +689,58 @@ TEST(ElytraItemTest, InventoryTickDamagesOnlyWhenGlidingInChestSlot) {
 
     EXPECT_EQ(carriedElytra.getDamage(), 0);
 }
+
+// ============================================================================
+// IInventory 接口测试
+// ============================================================================
+
+class IInventoryInterfaceTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        Items::initialize();
+        m_inventory = std::make_unique<PlayerInventory>(nullptr);
+    }
+
+    std::unique_ptr<PlayerInventory> m_inventory;
+};
+
+TEST_F(IInventoryInterfaceTest, HasAny_WorksWithIInventory) {
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+
+    IInventory* inv = m_inventory.get();
+    std::unordered_set<const Item*> items = {diamond};
+
+    EXPECT_FALSE(inv->hasAny(items));
+
+    m_inventory->setItem(0, ItemStack(*diamond, 10));
+    EXPECT_TRUE(inv->hasAny(items));
+}
+
+TEST_F(IInventoryInterfaceTest, HasAny_EmptySet) {
+    IInventory* inv = m_inventory.get();
+    std::unordered_set<const Item*> empty;
+    EXPECT_FALSE(inv->hasAny(empty));
+}
+
+TEST_F(IInventoryInterfaceTest, HasAny_MultipleItems) {
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
+    ASSERT_NE(diamond, nullptr);
+    ASSERT_NE(coal, nullptr);
+
+    IInventory* inv = m_inventory.get();
+    std::unordered_set<const Item*> items = {diamond, coal};
+
+    // 空背包不包含任何物品
+    EXPECT_FALSE(inv->hasAny(items));
+
+    // 添加钻石
+    m_inventory->setItem(0, ItemStack(*diamond, 10));
+    EXPECT_TRUE(inv->hasAny(items));
+
+    // 清空后添加煤炭
+    m_inventory->clear();
+    m_inventory->setItem(5, ItemStack(*coal, 5));
+    EXPECT_TRUE(inv->hasAny(items));
+}
