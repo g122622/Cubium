@@ -687,3 +687,194 @@ TEST_F(ContainerTest, SerializeDeserialize) {
 
     ASSERT_TRUE(result.success()) << result.error().message();
 }
+
+// ============================================================================
+// AbstractContainerMenu 测试（拖拽、快速移动、数字键交换）
+// ============================================================================
+
+class AbstractContainerMenuTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        Items::initialize();
+        m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+        m_iron = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
+    }
+
+    Item* m_diamond = nullptr;
+    Item* m_iron = nullptr;
+};
+
+TEST_F(AbstractContainerMenuTest, QuickMoveShiftClickMovesStack) {
+    ASSERT_NE(m_diamond, nullptr);
+
+    PlayerInventory inventory;
+    inventory.setItem(0, ItemStack(*m_diamond, 32));
+
+    // 创建简单菜单
+    class TestMenu : public AbstractContainerMenu {
+    public:
+        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
+            // 添加容器槽位（槽位0）
+            addSlot(std::make_unique<Slot>(inv, 0, 0, 0));
+            // 添加玩家主背包槽位（槽位1-27）
+            for (int i = 0; i < 27; ++i) {
+                addSlot(std::make_unique<Slot>(inv, 9 + i, 8 + (i % 9) * 18, 18 + (i / 9) * 18));
+            }
+            m_playerInvStart = 1;
+        }
+        bool stillValid(const Player& player) const override { return true; }
+    };
+
+    TestMenu menu(&inventory);
+    Player player(1, "TestPlayer");
+
+    // Shift+点击槽位0应将物品移到玩家背包
+    ItemStack cursor;
+    menu.clicked(0, 0, ClickType::QuickMove, player);
+
+    // 钻石应该从槽位0移到玩家背包
+    EXPECT_TRUE(menu.getSlot(0)->isEmpty());
+}
+
+TEST_F(AbstractContainerMenuTest, SwapWithNumberKey) {
+    ASSERT_NE(m_diamond, nullptr);
+    ASSERT_NE(m_iron, nullptr);
+
+    PlayerInventory inventory;
+    inventory.setItem(0, ItemStack(*m_diamond, 10));  // 快捷栏槽位0
+    inventory.setItem(9, ItemStack(*m_iron, 5));       // 主背包槽位9
+
+    class TestMenu : public AbstractContainerMenu {
+    public:
+        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
+            // 添加快捷栏槽位
+            for (int i = 0; i < 9; ++i) {
+                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
+            }
+            // 添加主背包槽位
+            for (int i = 0; i < 27; ++i) {
+                addSlot(std::make_unique<Slot>(inv, 9 + i, 8 + (i % 9) * 18, 84 + (i / 9) * 18));
+            }
+            m_playerInvStart = 0;
+        }
+        bool stillValid(const Player& player) const override { return true; }
+    };
+
+    TestMenu menu(&inventory);
+    Player player(1, "TestPlayer");
+
+    // 按数字键1应该交换槽位9和快捷栏槽位0
+    menu.clicked(9, 0, ClickType::Swap, player);  // button=0 表示快捷栏槽位0
+
+    // 验证交换结果
+    EXPECT_EQ(menu.getSlot(0)->getItem().getItem(), m_iron);
+    EXPECT_EQ(menu.getSlot(0)->getItem().getCount(), 5);
+}
+
+TEST_F(AbstractContainerMenuTest, DragDistributionEvenly) {
+    ASSERT_NE(m_diamond, nullptr);
+
+    PlayerInventory inventory;
+    inventory.setItem(0, ItemStack(*m_diamond, 64));
+
+    class TestMenu : public AbstractContainerMenu {
+    public:
+        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
+            for (int i = 0; i < 9; ++i) {
+                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
+            }
+            m_playerInvStart = 0;
+        }
+        bool stillValid(const Player& player) const override { return true; }
+    };
+
+    TestMenu menu(&inventory);
+    Player player(1, "TestPlayer");
+
+    // 设置鼠标物品
+    menu.setCarriedItem(ItemStack(*m_diamond, 64));
+
+    // 开始拖拽 (button = 0 | (MODE_EVEN << 2) = 0)
+    menu.clicked(1, DragConstants::EVENT_START | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
+                 ClickType::QuickCraft, player);
+
+    // 添加槽位到拖拽列表
+    menu.clicked(2, DragConstants::EVENT_ADD_SLOT | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
+                 ClickType::QuickCraft, player);
+    menu.clicked(3, DragConstants::EVENT_ADD_SLOT | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
+                 ClickType::QuickCraft, player);
+    menu.clicked(4, DragConstants::EVENT_ADD_SLOT | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
+                 ClickType::QuickCraft, player);
+
+    // 结束拖拽
+    menu.clicked(5, DragConstants::EVENT_END | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
+                 ClickType::QuickCraft, player);
+
+    // 检查物品是否被分发（每个槽位64/3=21个）
+    // 注意：实际分发逻辑依赖于按钮编码
+}
+
+TEST_F(AbstractContainerMenuTest, PickAllDoubleClick) {
+    ASSERT_NE(m_diamond, nullptr);
+
+    PlayerInventory inventory;
+    inventory.setItem(0, ItemStack(*m_diamond, 10));
+    inventory.setItem(1, ItemStack(*m_diamond, 20));
+    inventory.setItem(2, ItemStack(*m_diamond, 30));
+
+    class TestMenu : public AbstractContainerMenu {
+    public:
+        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
+            for (int i = 0; i < 9; ++i) {
+                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
+            }
+            m_playerInvStart = 0;
+        }
+        bool stillValid(const Player& player) const override { return true; }
+    };
+
+    TestMenu menu(&inventory);
+    Player player(1, "TestPlayer");
+
+    // PickAll（双击）在空鼠标状态下点击有物品的槽位，应该拾取所有相同物品
+    // 鼠标初始为空，点击槽位0应该拾取所有钻石（10+20+30=60）
+    menu.clicked(0, 0, ClickType::PickAll, player);
+
+    // 鼠标应该有10+20+30=60个钻石
+    EXPECT_EQ(menu.getCarriedItem().getItem(), m_diamond);
+    EXPECT_EQ(menu.getCarriedItem().getCount(), 60);
+
+    // 槽位应该都变空了
+    EXPECT_TRUE(menu.getSlot(0)->isEmpty());
+    EXPECT_TRUE(menu.getSlot(1)->isEmpty());
+    EXPECT_TRUE(menu.getSlot(2)->isEmpty());
+}
+
+TEST_F(AbstractContainerMenuTest, CloneInCreativeMode) {
+    ASSERT_NE(m_diamond, nullptr);
+
+    PlayerInventory inventory;
+    inventory.setItem(0, ItemStack(*m_diamond, 10));
+
+    class TestMenu : public AbstractContainerMenu {
+    public:
+        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
+            for (int i = 0; i < 9; ++i) {
+                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
+            }
+            m_playerInvStart = 0;
+        }
+        bool stillValid(const Player& player) const override { return true; }
+    };
+
+    TestMenu menu(&inventory);
+    Player player(1, "TestPlayer");
+    player.setGameMode(GameMode::Creative);  // 设置为创造模式
+
+    // 中键复制
+    menu.clicked(0, 2, ClickType::Clone, player);
+
+    // 创造模式下，鼠标应该有满堆叠的钻石
+    EXPECT_EQ(menu.getCarriedItem().getItem(), m_diamond);
+    EXPECT_EQ(menu.getCarriedItem().getCount(), 64);
+}

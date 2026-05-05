@@ -2,6 +2,17 @@
 
 本模块实现了 Minecraft 的物品存储和容器交互系统，参考 MC Java 1.16.5 的背包系统架构。
 
+## MC 1.16.5 对齐状态
+
+本模块已完成与 MC 1.16.5 的核心对齐：
+
+- ✅ **IRecipeHolder/IRecipeHelperPopulator** - 配方追踪和配方书支持
+- ✅ **IntReferenceHolder** - 整型数据同步器（熔炉进度、酿造时间等）
+- ✅ **AnvilContainer** - 完整的修复成本计算和附魔合并算法
+- ✅ **EnchantmentContainer** - 书架力量计算、附魔等级公式、多附魔生成
+- ✅ **AbstractContainerMenu** - 拖拽分发状态机、变化检测优化
+- ✅ **网络协议** - OpenContainerPacket、ContainerContentPacket 字段类型
+
 ## 目录结构
 
 ```
