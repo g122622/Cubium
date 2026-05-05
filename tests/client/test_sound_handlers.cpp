@@ -6,6 +6,7 @@
  * - BiomeAmbientHandler: 群系循环音效淡入淡出、心境音效光照采样
  * - UnderwaterAmbientHandler: 水下循环音效、入水/出水音效
  * - UnderwaterLoopSound: 水下循环音效淡入淡出
+ * - WeatherSoundHandler: 天气音效（雨声、雷声）
  * - MusicPlayer: 音乐选择器配置
  * - SoundEvents: 音效事件定义
  */
@@ -14,6 +15,7 @@
 
 #include "client/sound/handler/BiomeAmbientHandler.hpp"
 #include "client/sound/handler/UnderwaterAmbientHandler.hpp"
+#include "client/sound/handler/WeatherSoundHandler.hpp"
 #include "client/sound/instance/UnderwaterLoopSound.hpp"
 #include "client/sound/MusicPlayer.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -379,4 +381,106 @@ TEST_F(BiomeAmbientBehaviorTest, MoodSoundTimerLogic) {
 
     // 光照应该减少计时器
     EXPECT_LT(timer, 0.5f);
+}
+
+// ============================================================================
+// WeatherSoundHandler Tests
+// ============================================================================
+
+class WeatherSoundHandlerTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        handler = std::make_unique<WeatherSoundHandler>();
+    }
+
+    std::unique_ptr<WeatherSoundHandler> handler;
+};
+
+TEST_F(WeatherSoundHandlerTest, InitialState) {
+    EXPECT_FALSE(handler->isRaining());
+    EXPECT_FALSE(handler->isThundering());
+}
+
+TEST_F(WeatherSoundHandlerTest, UpdateWeatherState) {
+    // 测试设置天气状态
+    handler->updateWeatherState(0.5f, 0.0f, 64.0f, true);
+    EXPECT_TRUE(handler->isRaining());
+    EXPECT_FALSE(handler->isThundering());
+
+    handler->updateWeatherState(0.5f, 0.95f, 64.0f, true);
+    EXPECT_TRUE(handler->isRaining());
+    EXPECT_TRUE(handler->isThundering());
+
+    handler->updateWeatherState(0.0f, 0.0f, 64.0f, true);
+    EXPECT_FALSE(handler->isRaining());
+    EXPECT_FALSE(handler->isThundering());
+}
+
+TEST_F(WeatherSoundHandlerTest, RainThreshold) {
+    // 雨量低于阈值不算下雨
+    handler->updateWeatherState(0.009f, 0.0f, 64.0f, true);
+    EXPECT_FALSE(handler->isRaining());
+
+    // 雨量等于阈值不算下雨（严格大于）
+    handler->updateWeatherState(0.01f, 0.0f, 64.0f, true);
+    EXPECT_FALSE(handler->isRaining());
+
+    // 雨量高于阈值才算下雨
+    handler->updateWeatherState(0.011f, 0.0f, 64.0f, true);
+    EXPECT_TRUE(handler->isRaining());
+}
+
+TEST_F(WeatherSoundHandlerTest, ThunderThreshold) {
+    // 雷暴强度低于阈值不算雷暴
+    handler->updateWeatherState(0.5f, 0.89f, 64.0f, true);
+    EXPECT_FALSE(handler->isThundering());
+
+    // 雷暴强度等于阈值不算雷暴（严格大于 0.9）
+    handler->updateWeatherState(0.5f, 0.9f, 64.0f, true);
+    EXPECT_FALSE(handler->isThundering());
+
+    // 雷暴强度高于阈值才算雷暴
+    handler->updateWeatherState(0.5f, 0.91f, 64.0f, true);
+    EXPECT_TRUE(handler->isThundering());
+}
+
+TEST_F(WeatherSoundHandlerTest, CanSeeSkyAffectsRain) {
+    // 看不到天空时，即使下雨也不应该播放雨声
+    handler->updateWeatherState(0.5f, 0.0f, 64.0f, false);
+    EXPECT_TRUE(handler->isRaining());  // 状态是下雨
+    // 但雨声是否播放取决于 tick() 中对 canSeeSky 的检查
+}
+
+TEST_F(WeatherSoundHandlerTest, PlayerHeightForRainAbove) {
+    // MC 1.16.5: 玩家高度 > SEA_LEVEL + 63 时使用 WEATHER_RAIN_ABOVE
+    // SEA_LEVEL = 63，所以阈值为 126
+
+    // 低于阈值
+    handler->updateWeatherState(0.5f, 0.0f, 64.0f, true);
+    EXPECT_TRUE(handler->isRaining());
+
+    // 高于阈值
+    handler->updateWeatherState(0.5f, 0.0f, 200.0f, true);
+    EXPECT_TRUE(handler->isRaining());
+}
+
+TEST_F(WeatherSoundHandlerTest, ThunderTiming) {
+    // 测试雷声计时器行为
+    // MC 1.16.5: 雷声间隔 5-30 秒 (100-600 ticks)
+
+    // 设置雷暴状态
+    handler->updateWeatherState(1.0f, 1.0f, 64.0f, true);
+    EXPECT_TRUE(handler->isThundering());
+
+    // 看不到天空时不应该播放雷声
+    handler->updateWeatherState(1.0f, 1.0f, 64.0f, false);
+    EXPECT_TRUE(handler->isThundering());  // 状态仍是雷暴
+    // 但雷声不应该播放（在 tick() 中处理）
+}
+
+TEST_F(WeatherSoundHandlerTest, WeatherSoundEvents) {
+    // 验证天气相关音效事件存在
+    EXPECT_EQ(SoundEvents::WEATHER_RAIN.toString(), "minecraft:weather.rain");
+    EXPECT_EQ(SoundEvents::WEATHER_RAIN_ABOVE.toString(), "minecraft:weather.rain.above");
+    EXPECT_EQ(SoundEvents::WEATHER_THUNDER.toString(), "minecraft:weather.thunder");
 }

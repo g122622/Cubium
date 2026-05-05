@@ -717,6 +717,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/UnderwaterAmbientHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/BubbleColumnAmbientHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/EntitySoundHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/sound/handler/WeatherSoundHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/command/ClientCommandManager.cpp
         # TemplateInstance.cpp 依赖 Widget 实现，暂时不纳入该测试目标
 )
