@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cctype>
 #include <utility>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::command {
 
@@ -18,8 +19,10 @@ Result<void> ClientCommandManager::applyCommandTreeJson(StringView jsonText) {
     auto snapshotResult = mc::command::CommandTreeSnapshot::fromJsonString(jsonText);
     if (snapshotResult.failed()) {
         clear();
+        spdlog::error("Failed to apply command tree from JSON: {}", snapshotResult.error().message());
         return snapshotResult.error();
     }
+    spdlog::info("Successfully applied command tree with {} nodes", snapshotResult.value().nodes.size());
 
     m_snapshot = std::move(snapshotResult.value());
     return Result<void>::ok();

@@ -795,8 +795,20 @@ void StandaloneServer::handleHotbarSelectPacket(PlayerId playerId, const u8* dat
         return;
     }
 
+    const i32 slot = result.value().slot();
+
     // 使用 InventoryManager 设置选中槽位
-    inventoryManager().setSelectedSlot(playerId, result.value().slot());
+    inventoryManager().setSelectedSlot(playerId, slot);
+
+    // MC 1.16.5 对齐：服务端必须回送 HotbarSetPacket 确认
+    // 参考 ServerPlayNetHandler.processHeldItemChange
+    HotbarSetPacket response(slot);
+    network::PacketSerializer ser;
+    response.serialize(ser);
+
+    const auto fullPacket = core::ConnectionManager::encapsulatePacket(
+        network::PacketType::HotbarSet, ser.buffer());
+    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
 }
 
 void StandaloneServer::handleCreativeInventoryActionPacket(PlayerId playerId, const u8* data, size_t size)

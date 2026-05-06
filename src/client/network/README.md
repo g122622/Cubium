@@ -91,6 +91,12 @@ src/client/network/
 - `onLightUpdate(...)`: 光照更新
 - `onBlockBreakAnim(breakerEntityId, x, y, z, stage)`: 方块破坏动画
 - `onEntityMetadata(entityId, metadata)`: 实体元数据，既用于 spawn 后的初始状态，也用于后续脏数据增量更新
+- `onRespawn(dimensionType, dimension, hashedSeed, gameMode, previousGameMode, isDebug, isFlat, keepData)`: 重生/维度切换
+- `onDimensionInfo(dimensions)`: 维度信息同步
+- `onSpawnPosition(x, y, z, angle)`: 世界出生点（包含偏航角，用于指南针）
+- `onVehicleMove(x, y, z, yaw, pitch)`: 载具移动同步
+- `onSleep(entityId, isSleeping, bedX, bedY, bedZ)`: 睡眠状态
+- `onHotbarSet(slot)`: 快捷栏设置
 
 #### 4. NetworkClient 类
 
@@ -241,6 +247,12 @@ processPacket(data, size)
 | `handleLightUpdate` | LightUpdate | 光照更新 |
 | `handleBlockBreakAnim` | BlockBreakAnim | 方块破坏动画 |
 | `handleCommandTree` | CommandTree | 命令树同步（处理包体，外层网络头已在 `processPacket()` 中剥离） |
+| `handleRespawn` | Respawn | 重生/维度切换 |
+| `handleDimensionInfo` | DimensionInfo | 维度信息 |
+| `handleSpawnPosition` | SpawnPosition | 世界出生点 |
+| `handleVehicleMove` | VehicleMove | 载具移动同步 |
+| `handleSleep` | Sleep | 睡眠状态 |
+| `handleHotbarSet` | HotbarSet | 快捷栏设置 |
 
 ## 文件关系图
 

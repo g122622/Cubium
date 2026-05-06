@@ -987,6 +987,111 @@ void ClientApplication::setupNetworkCallbacks()
         }
     };
 
+    // ========== 重生/维度切换事件 ==========
+
+    callbacks.onRespawn = [this](i32 dimensionType, DimensionId dimension, u64 hashedSeed,
+                                  GameMode gameMode, GameMode previousGameMode,
+                                  bool isDebug, bool isFlat, bool keepData) {
+        spdlog::info("Received Respawn: dimensionType={}, dimension={}, gameMode={}, keepData={}",
+                     dimensionType, static_cast<i32>(dimension), static_cast<i32>(gameMode), keepData);
+
+        // TODO: 实现完整的重生/维度切换逻辑
+        // 1. 如果维度改变，清空世界区块和实体
+        // 2. 重置玩家状态（如果 keepData 为 false）
+        // 3. 更新游戏模式
+        // 4. 更新预测器
+        // 目前仅更新玩家游戏模式
+        if (m_player) {
+            m_player->setGameMode(gameMode);
+        }
+    };
+
+    callbacks.onDimensionInfo = [this](const std::vector<std::tuple<DimensionId, String, bool, bool, f32>>& dimensions) {
+        spdlog::info("Received DimensionInfo: {} dimensions available", dimensions.size());
+        // TODO: 更新维度管理器的可用维度列表
+        // 目前仅记录日志
+        for (const auto& [id, name, hasSkyLight, hasCeiling, ambientLight] : dimensions) {
+            spdlog::debug("  Dimension: id={}, name={}, hasSkyLight={}, hasCeiling={}, ambientLight={}",
+                          static_cast<i32>(id), name, hasSkyLight, hasCeiling, ambientLight);
+        }
+    };
+
+    callbacks.onSpawnPosition = [this](i32 x, i32 y, i32 z, f32 angle) {
+        spdlog::info("Received SpawnPosition: ({}, {}, {}), angle={:.1f}", x, y, z, angle);
+        m_world.setSpawnPoint(x, y, z, angle);
+    };
+
+    callbacks.onVehicleMove = [this](f64 x, f64 y, f64 z, f32 yaw, f32 pitch) {
+        // 获取本地玩家正在骑乘的载具
+        const EntityId localPlayerEntityId = m_localIdentity.entityId();
+        ClientEntity* localPlayer = m_world.entityManager().getEntity(localPlayerEntityId);
+        if (!localPlayer) {
+            return;
+        }
+
+        EntityId vehicleId = localPlayer->vehicleId();
+        if (vehicleId == 0) {
+            return;
+        }
+
+        ClientEntity* vehicle = m_world.entityManager().getEntity(vehicleId);
+        if (!vehicle) {
+            return;
+        }
+
+        // 设置载具位置（服务端校正）
+        vehicle->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+        vehicle->setRotation(yaw, pitch);
+
+        // 回发确认包
+        if (m_networkClient) {
+            m_networkClient->sendMoveVehicle(x, y, z, yaw, pitch);
+        }
+    };
+
+    callbacks.onSleep = [this](u32 entityId, bool isSleeping, i32 bedX, i32 bedY, i32 bedZ) {
+        const EntityId eid = static_cast<EntityId>(entityId);
+
+        // 本地玩家睡眠状态
+        if (m_localIdentity.isLocalPlayerEntity(eid)) {
+            if (m_player) {
+                if (isSleeping) {
+                    m_player->startSleeping(BlockPos(bedX, bedY, bedZ));
+                    spdlog::info("Local player sleeping at ({}, {}, {})", bedX, bedY, bedZ);
+                } else {
+                    m_player->stopSleeping();
+                    spdlog::info("Local player woke up");
+                }
+            }
+            return;
+        }
+
+        // 远程实体睡眠状态
+        ClientEntity* entity = m_world.entityManager().getEntity(eid);
+        if (!entity) {
+            return;
+        }
+
+        entity->setSleeping(isSleeping);
+        if (isSleeping) {
+            entity->setSleepingPosition(BlockPos(bedX, bedY, bedZ));
+            spdlog::info("Entity {} sleeping at ({}, {}, {})", entityId, bedX, bedY, bedZ);
+        } else {
+            entity->clearSleepingPosition();
+            spdlog::info("Entity {} woke up", entityId);
+        }
+    };
+
+    callbacks.onHotbarSet = [this](i32 slot) {
+        if (!m_player) {
+            return;
+        }
+
+        // 更新本地玩家的选中槽位
+        m_player->inventory().setSelectedSlot(slot);
+        spdlog::debug("Hotbar slot set to {}", slot);
+    };
+
     m_networkClient->setCallbacks(callbacks);
 }
 

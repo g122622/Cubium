@@ -738,6 +738,36 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
             break;
         }
 
+        case network::PacketType::Respawn: {
+            handleRespawn(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::DimensionInfo: {
+            handleDimensionInfo(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::SpawnPosition: {
+            handleSpawnPosition(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::VehicleMove: {
+            handleVehicleMove(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::Sleep: {
+            handleSleep(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::HotbarSet: {
+            handleHotbarSet(bodyDeser);
+            break;
+        }
+
         default:
             spdlog::error("Unhandled packet type: {}", static_cast<int>(packetType));
             break;
@@ -1680,6 +1710,136 @@ void NetworkClient::handleSetPassengers(network::PacketDeserializer& deser) {
 
     if (m_callbacks.onSetPassengers) {
         m_callbacks.onSetPassengers(packet.entityId(), packet.passengerIds());
+    }
+}
+
+void NetworkClient::handleRespawn(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    network::RespawnPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize Respawn packet: {}", result.error().message());
+        return;
+    }
+
+    spdlog::info("[NetworkClient] Received Respawn: dimensionType={}, dimension={}, gameMode={}, keepData={}",
+                 packet.dimensionType(), static_cast<i32>(packet.dimension()),
+                 static_cast<i32>(packet.gameMode()), packet.keepData());
+
+    if (m_callbacks.onRespawn) {
+        m_callbacks.onRespawn(
+            packet.dimensionType(),
+            packet.dimension(),
+            packet.hashedSeed(),
+            packet.gameMode(),
+            packet.previousGameMode(),
+            packet.isDebug(),
+            packet.isFlat(),
+            packet.keepData()
+        );
+    }
+}
+
+void NetworkClient::handleDimensionInfo(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    network::DimensionInfoPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize DimensionInfo packet: {}", result.error().message());
+        return;
+    }
+
+    spdlog::info("[NetworkClient] Received DimensionInfo: {} dimensions", packet.count());
+
+    if (m_callbacks.onDimensionInfo) {
+        // 转换为 tuple 格式
+        std::vector<std::tuple<DimensionId, String, bool, bool, f32>> dimensions;
+        dimensions.reserve(packet.dimensions().size());
+        for (const auto& dim : packet.dimensions()) {
+            dimensions.emplace_back(dim.id, dim.name, dim.hasSkyLight, dim.hasCeiling, dim.ambientLight);
+        }
+        m_callbacks.onDimensionInfo(dimensions);
+    }
+}
+
+void NetworkClient::handleSpawnPosition(network::PacketDeserializer& deser) {
+    network::SpawnPositionPacket packet;
+    auto result = packet.deserialize(deser.data(), deser.size());
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize SpawnPosition packet: {}", result.error().message());
+        return;
+    }
+
+    const auto& pos = packet.position();
+
+    spdlog::info("[NetworkClient] Received SpawnPosition: ({}, {}, {})", pos.x, pos.y, pos.z);
+
+    if (m_callbacks.onSpawnPosition) {
+        m_callbacks.onSpawnPosition(pos.x, pos.y, pos.z, packet.angle());
+    }
+}
+
+void NetworkClient::handleVehicleMove(network::PacketDeserializer& deser) {
+    network::VehicleMovePacket packet;
+    auto result = packet.deserialize(deser.data(), deser.size());
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize VehicleMove packet: {}", result.error().message());
+        return;
+    }
+
+    spdlog::debug("[NetworkClient] Received VehicleMove: pos=({:.2f}, {:.2f}, {:.2f}), yaw={:.1f}, pitch={:.1f}",
+                  packet.x(), packet.y(), packet.z(), packet.yaw(), packet.pitch());
+
+    if (m_callbacks.onVehicleMove) {
+        m_callbacks.onVehicleMove(packet.x(), packet.y(), packet.z(), packet.yaw(), packet.pitch());
+    }
+}
+
+void NetworkClient::handleSleep(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    network::SleepPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize Sleep packet: {}", result.error().message());
+        return;
+    }
+
+    if (packet.isSleeping()) {
+        const auto& bedPos = packet.bedPosition();
+        spdlog::info("[NetworkClient] Received Sleep: entity {} sleeping at ({}, {}, {})",
+                     packet.entityId(), bedPos->x, bedPos->y, bedPos->z);
+    } else {
+        spdlog::info("[NetworkClient] Received Sleep: entity {} woke up", packet.entityId());
+    }
+
+    if (m_callbacks.onSleep) {
+        if (packet.isSleeping()) {
+            const auto& bedPos = packet.bedPosition();
+            m_callbacks.onSleep(packet.entityId(), true, bedPos->x, bedPos->y, bedPos->z);
+        } else {
+            m_callbacks.onSleep(packet.entityId(), false, 0, 0, 0);
+        }
+    }
+}
+
+void NetworkClient::handleHotbarSet(network::PacketDeserializer& deser) {
+    auto result = HotbarSetPacket::deserialize(deser);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize HotbarSet packet: {}", result.error().message());
+        return;
+    }
+
+    const auto& packet = result.value();
+    spdlog::debug("[NetworkClient] Received HotbarSet: slot={}", packet.slot());
+
+    if (m_callbacks.onHotbarSet) {
+        m_callbacks.onHotbarSet(packet.slot());
     }
 }
 

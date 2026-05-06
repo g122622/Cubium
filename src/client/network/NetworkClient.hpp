@@ -9,6 +9,9 @@
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
 #include "common/network/packet/ParticlePacket.hpp"
+#include "common/network/packet/DimensionPackets.hpp"
+#include "common/network/packet/SpawnPositionPacket.hpp"
+#include "common/network/packet/SleepPacket.hpp"
 #include "common/skin/network/SkinPackets.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -156,6 +159,26 @@ struct NetworkClientCallbacks {
 
     // 世界事件（音效/粒子效果）
     std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)> onWorldEvent;
+
+    // 重生/维度切换事件
+    std::function<void(i32 dimensionType, DimensionId dimension, u64 hashedSeed,
+                       GameMode gameMode, GameMode previousGameMode,
+                       bool isDebug, bool isFlat, bool keepData)> onRespawn;
+
+    // 维度信息事件
+    std::function<void(const std::vector<std::tuple<DimensionId, String, bool, bool, f32>>& dimensions)> onDimensionInfo;
+
+    // 世界出生点事件（包含偏航角，用于指南针指向）
+    std::function<void(i32 x, i32 y, i32 z, f32 angle)> onSpawnPosition;
+
+    // 载具移动同步事件
+    std::function<void(f64 x, f64 y, f64 z, f32 yaw, f32 pitch)> onVehicleMove;
+
+    // 睡眠状态事件
+    std::function<void(u32 entityId, bool isSleeping, i32 bedX, i32 bedY, i32 bedZ)> onSleep;
+
+    // 快捷栏设置事件
+    std::function<void(i32 slot)> onHotbarSet;
 };
 
 // ============================================================================
@@ -316,6 +339,24 @@ private:
 
     // 乘客包处理
     void handleSetPassengers(network::PacketDeserializer& deser);
+
+    // 重生/维度切换包处理
+    void handleRespawn(network::PacketDeserializer& deser);
+
+    // 维度信息包处理
+    void handleDimensionInfo(network::PacketDeserializer& deser);
+
+    // 世界出生点包处理
+    void handleSpawnPosition(network::PacketDeserializer& deser);
+
+    // 载具移动同步包处理
+    void handleVehicleMove(network::PacketDeserializer& deser);
+
+    // 睡眠状态包处理
+    void handleSleep(network::PacketDeserializer& deser);
+
+    // 快捷栏设置包处理
+    void handleHotbarSet(network::PacketDeserializer& deser);
 
     // ASIO 网络
     asio::io_context m_ioContext;

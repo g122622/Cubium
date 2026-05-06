@@ -220,6 +220,30 @@ public:
         bool trustEdges
     );
 
+    // ========== 出生点 ==========
+
+    /**
+     * @brief 设置世界出生点
+     *
+     * 由服务端通过 SpawnPosition 包设置。用于指南针指向。
+     *
+     * @param x 出生点 X 坐标
+     * @param y 出生点 Y 坐标
+     * @param z 出生点 Z 坐标
+     * @param angle 出生点偏航角（用于指南针）
+     */
+    void setSpawnPoint(i32 x, i32 y, i32 z, f32 angle);
+
+    /**
+     * @brief 获取世界出生点
+     */
+    [[nodiscard]] const BlockPos& getSpawnPoint() const { return m_spawnPoint; }
+
+    /**
+     * @brief 获取出生点偏航角
+     */
+    [[nodiscard]] f32 getSpawnAngle() const { return m_spawnAngle; }
+
 private:
     void rebuildMesh(ClientChunk& chunk);
     void scheduleChunkMeshRebuild(const ChunkId& id);
@@ -263,6 +287,12 @@ private:
 
     /// 视锥体，用于视锥剔除
     mc::math::frustum::Frustum m_frustum;
+
+    /// 世界出生点（用于指南针指向）
+    BlockPos m_spawnPoint{0, 64, 0};
+
+    /// 出生点偏航角（用于指南针）
+    f32 m_spawnAngle = 0.0f;
 
     bool m_destroyed = false;
 };

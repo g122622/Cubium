@@ -748,6 +748,15 @@ void ClientWorld::onLightUpdate(
     requestChunkMeshRebuild(id);
 }
 
+// ========== 出生点 ==========
+
+void ClientWorld::setSpawnPoint(i32 x, i32 y, i32 z, f32 angle)
+{
+    m_spawnPoint = BlockPos(x, y, z);
+    m_spawnAngle = angle;
+    spdlog::info("World spawn point set to ({}, {}, {}) angle={:.1f}", x, y, z, angle);
+}
+
 // ========== 粒子接口实现 ==========
 
 void ClientWorld::addParticle(

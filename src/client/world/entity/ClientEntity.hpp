@@ -3,6 +3,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <string>
 #include <memory>
@@ -397,6 +398,21 @@ public:
     void setSitting(bool sitting) { m_sitting = sitting; }
 
     /**
+     * @brief 是否正在睡眠
+     */
+    [[nodiscard]] bool isSleeping() const { return m_sleeping; }
+    void setSleeping(bool sleeping) { m_sleeping = sleeping; }
+
+    /**
+     * @brief 获取睡眠位置
+     *
+     * 当实体睡眠时，床的方块位置。
+     */
+    [[nodiscard]] const BlockPos& sleepingPosition() const { return m_sleepingPosition; }
+    void setSleepingPosition(const BlockPos& pos) { m_sleepingPosition = pos; }
+    void clearSleepingPosition() { m_sleepingPosition = BlockPos(0, 0, 0); }
+
+    /**
      * @brief 是否正在燃烧
      */
     [[nodiscard]] bool isOnFire() const { return m_onFire; }
@@ -634,10 +650,12 @@ private:
     bool m_swimming = false;
     bool m_riding = false;
     bool m_sitting = false;
+    bool m_sleeping = false;   // 睡眠状态
     bool m_onFire = false;
     bool m_invisible = false;
     EntityId m_vehicleId = 0;  // 正在骑乘的载具ID
     std::vector<u32> m_passengers;  // 乘客列表（如果此实体是载具）
+    BlockPos m_sleepingPosition{0, 0, 0};  // 睡眠位置（床的方块位置）
 
     // 攻击动画
     f32 m_swingProgress = 0.0f;
