@@ -33,6 +33,8 @@ src/common/network/packet/
 ├── DimensionPackets.cpp           # 维度数据包实现
 ├── SpawnPositionPacket.hpp        # 世界出生点数据包
 ├── SpawnPositionPacket.cpp        # 世界出生点包实现
+├── TitlePacket.hpp                # 标题显示包
+├── TitlePacket.cpp                # 标题显示包实现
 └── SleepPacket.hpp                # 睡眠状态同步包
 ```
 
@@ -471,6 +473,46 @@ void onDifficultyChange(mc::Difficulty difficulty, bool locked) {
 - 工厂方法: `create()`, `createSingle()`
 - 用于服务端向客户端广播粒子效果
 
+### 标题数据包
+
+#### TitlePacket.hpp / TitlePacket.cpp
+
+**职责**: 标题显示数据包 (S->C)
+
+**主要内容**:
+- 标题动作类型 (`TitleAction` 枚举):
+  - `Title`: 设置主标题
+  - `Subtitle`: 设置副标题
+  - `Actionbar`: 设置动作栏
+  - `Times`: 设置时间参数
+  - `Clear`: 清除标题
+  - `Reset`: 重置标题
+
+- 协议格式:
+  | 动作类型 | 字段 | 类型 |
+  |---------|------|------|
+  | Title/Subtitle/Actionbar | text | String (JSON) |
+  | Times | fadeIn, stay, fadeOut | i32 × 3 |
+  | Clear/Reset | 无 | - |
+
+- 工厂方法:
+  - `createTitle(text)`: 创建主标题包
+  - `createSubtitle(text)`: 创建副标题包
+  - `createActionbar(text)`: 创建动作栏包
+  - `createTimes(fadeIn, stay, fadeOut)`: 创建时间设置包
+  - `createClear()`: 创建清除包
+  - `createReset()`: 创建重置包
+
+**使用场景**:
+- `/title <player> title <json>`: 设置主标题
+- `/title <player> subtitle <json>`: 设置副标题
+- `/title <player> actionbar <json>`: 设置动作栏
+- `/title <player> times <fadeIn> <stay> <fadeOut>`: 设置时间参数
+- `/title <player> clear`: 清除标题
+- `/title <player> reset`: 重置标题
+
+**参考**: MC 1.16.5 STitlePacket
+
 ## 文件关系图
 
 ```
@@ -523,6 +565,10 @@ PacketModule.hpp (统一入口)
     └── ParticlePacket.hpp (粒子包)
             ├── ParticlePacket.cpp
             └── 依赖 Packet.hpp, ParticleTypes.hpp, Vector3.hpp
+
+    └── TitlePacket.hpp (标题显示包)
+            ├── TitlePacket.cpp
+            └── 依赖 Packet.hpp, ITextComponent.hpp
 ```
 
 ## 模块整体职责

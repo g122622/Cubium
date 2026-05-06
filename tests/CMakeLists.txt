@@ -151,6 +151,7 @@ add_executable(mc_tests
     network/WorldEventPacketTest.cpp
     network/SpawnPositionPacketTest.cpp
     network/LocalServerConnectionTest.cpp
+    network/TitlePacketTest.cpp
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
     common/world/gen/WorldGenSpawnerTest.cpp

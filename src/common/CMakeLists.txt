@@ -51,6 +51,7 @@ add_library(mc_common STATIC
     network/packet/SleepPacket.cpp
     network/packet/SpawnPositionPacket.cpp
     network/packet/SetPassengersPacket.cpp
+    network/packet/TitlePacket.cpp
 
     # Network - Sync
     network/sync/ChunkSync.cpp

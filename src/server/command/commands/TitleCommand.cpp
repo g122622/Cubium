@@ -6,10 +6,66 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/application/IServer.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "common/network/packet/TitlePacket.hpp"
 #include <sstream>
 
 namespace mc {
 namespace command {
+
+namespace {
+    /**
+     * @brief 发送 TitlePacket 给指定玩家
+     *
+     * @param connMgr 连接管理器
+     * @param playerId 目标玩家ID
+     * @param packet 标题包
+     * @return 是否发送成功
+     */
+    bool sendTitlePacket(
+        server::core::ConnectionManager& connMgr,
+        PlayerId playerId,
+        const network::TitlePacket& packet)
+    {
+        auto result = packet.serialize();
+        if (result.failed()) {
+            spdlog::error("Failed to serialize TitlePacket: {}", result.error().message());
+            return false;
+        }
+
+        return connMgr.sendPacketToPlayer(playerId, network::PacketType::Title, result.value());
+    }
+
+    /**
+     * @brief 广播 TitlePacket 给所有指定玩家
+     *
+     * @param source 命令源
+     * @param playerIds 目标玩家ID列表
+     * @param packet 标题包
+     * @return 成功发送的玩家数量
+     */
+    i32 broadcastTitlePacket(
+        ServerCommandSource& source,
+        const std::vector<PlayerId>& playerIds,
+        const network::TitlePacket& packet)
+    {
+        auto* server = source.server();
+        if (!server) {
+            return 0;
+        }
+
+        auto& connMgr = server->connectionManager();
+        i32 successCount = 0;
+
+        for (PlayerId playerId : playerIds) {
+            if (sendTitlePacket(connMgr, playerId, packet)) {
+                successCount++;
+            }
+        }
+
+        return successCount;
+    }
+}
 
 void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
     auto titleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("title");
@@ -119,8 +175,9 @@ i32 TitleCommand::clearTitle(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    // TODO: 发送 TitlePacket 清除标题
-    return static_cast<i32>(playerIds.size());
+    // 创建并广播清除标题包
+    auto packet = network::TitlePacket::createClear();
+    return broadcastTitlePacket(source, playerIds, packet);
 }
 
 i32 TitleCommand::resetTitle(CommandContext<ServerCommandSource>& context) {
@@ -133,8 +190,9 @@ i32 TitleCommand::resetTitle(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    // TODO: 发送 TitlePacket 重置标题
-    return static_cast<i32>(playerIds.size());
+    // 创建并广播重置标题包
+    auto packet = network::TitlePacket::createReset();
+    return broadcastTitlePacket(source, playerIds, packet);
 }
 
 i32 TitleCommand::setTitle(CommandContext<ServerCommandSource>& context) {
@@ -147,9 +205,12 @@ i32 TitleCommand::setTitle(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    // TODO: 发送 TitlePacket 设置标题
+    // 获取JSON文本参数
+    const String& jsonText = context.getArgument<String>("json");
 
-    return static_cast<i32>(playerIds.size());
+    // 创建并广播主标题包
+    auto packet = network::TitlePacket::createTitle(jsonText);
+    return broadcastTitlePacket(source, playerIds, packet);
 }
 
 i32 TitleCommand::setSubtitle(CommandContext<ServerCommandSource>& context) {
@@ -162,9 +223,12 @@ i32 TitleCommand::setSubtitle(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    // TODO: 发送 TitlePacket 设置副标题
+    // 获取JSON文本参数
+    const String& jsonText = context.getArgument<String>("json");
 
-    return static_cast<i32>(playerIds.size());
+    // 创建并广播副标题包
+    auto packet = network::TitlePacket::createSubtitle(jsonText);
+    return broadcastTitlePacket(source, playerIds, packet);
 }
 
 i32 TitleCommand::setActionbar(CommandContext<ServerCommandSource>& context) {
@@ -177,9 +241,12 @@ i32 TitleCommand::setActionbar(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    // TODO: 发送 TitlePacket 设置动作栏
+    // 获取JSON文本参数
+    const String& jsonText = context.getArgument<String>("json");
 
-    return static_cast<i32>(playerIds.size());
+    // 创建并广播动作栏包
+    auto packet = network::TitlePacket::createActionbar(jsonText);
+    return broadcastTitlePacket(source, playerIds, packet);
 }
 
 i32 TitleCommand::setTimes(CommandContext<ServerCommandSource>& context) {
@@ -192,9 +259,14 @@ i32 TitleCommand::setTimes(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    // TODO: 发送 TitlePacket 设置时间
+    // 获取时间参数（单位：tick）
+    i32 fadeIn = context.getArgument<i32>("fadeIn");
+    i32 stay = context.getArgument<i32>("stay");
+    i32 fadeOut = context.getArgument<i32>("fadeOut");
 
-    return static_cast<i32>(playerIds.size());
+    // 创建并广播时间设置包
+    auto packet = network::TitlePacket::createTimes(fadeIn, stay, fadeOut);
+    return broadcastTitlePacket(source, playerIds, packet);
 }
 
 } // namespace command

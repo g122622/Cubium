@@ -100,6 +100,9 @@ enum class PacketType : u16 {
 
     // 粒子包 (S->C)
     Particle = 510,             // 粒子生成
+
+    // 标题包 (S->C)
+    Title = 520,                // 标题显示
 };
 
 // 数据包头
