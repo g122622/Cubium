@@ -1,0 +1,86 @@
+#pragma once
+
+#include "../../core/Types.hpp"
+#include "ChunkPos.hpp"
+
+#include <cstdint>
+#include <functional>
+
+namespace mc {
+
+/**
+ * @brief 区块唯一标识符
+ *
+ * 用于标识区块在世界中的唯一位置，包含维度信息
+ * 参考 MC 1.16.5 的 ChunkPos 区块标识（维度+坐标）
+ */
+struct ChunkId {
+    ChunkCoord x;
+    ChunkCoord z;
+    i32 dimension;  // 0=主世界, 1=下界, 2=末地
+
+    ChunkId() : x(0), z(0), dimension(0) {}
+    ChunkId(ChunkCoord x, ChunkCoord z, i32 dim = 0)
+        : x(x), z(z), dimension(dim) {}
+
+    /**
+     * @brief 编码为64位唯一ID
+     *
+     * 编码格式：高16位=维度，中间24位=X，低24位=Z
+     * 支持坐标范围 -8388608 到 8388607
+     */
+    [[nodiscard]] u64 toId() const {
+        u64 dim = static_cast<u64>(static_cast<u32>(dimension) & 0xFFFF);
+        u64 dx = static_cast<u64>(static_cast<u32>(x) & 0xFFFFFF);
+        u64 dz = static_cast<u64>(static_cast<u32>(z) & 0xFFFFFF);
+        return (dim << 48) | (dx << 24) | dz;
+    }
+
+    /**
+     * @brief 从64位ID解码
+     */
+    [[nodiscard]] static ChunkId fromId(u64 id) {
+        ChunkId cid;
+        cid.dimension = static_cast<i32>(static_cast<u16>(id >> 48));
+        // 处理24位有符号数
+        u32 ux = static_cast<u32>((id >> 24) & 0xFFFFFF);
+        u32 uz = static_cast<u32>(id & 0xFFFFFF);
+        // 如果最高位为1，扩展为负数
+        cid.x = (ux & 0x800000) ? static_cast<ChunkCoord>(ux | 0xFF000000) : static_cast<ChunkCoord>(ux);
+        cid.z = (uz & 0x800000) ? static_cast<ChunkCoord>(uz | 0xFF000000) : static_cast<ChunkCoord>(uz);
+        return cid;
+    }
+
+    /**
+     * @brief 转换为区块位置（不含维度）
+     */
+    [[nodiscard]] ChunkPos chunkPos() const noexcept {
+        return ChunkPos(x, z);
+    }
+
+    bool operator==(const ChunkId& other) const {
+        return x == other.x && z == other.z && dimension == other.dimension;
+    }
+
+    bool operator!=(const ChunkId& other) const {
+        return !(*this == other);
+    }
+
+    bool operator<(const ChunkId& other) const {
+        if (dimension != other.dimension) return dimension < other.dimension;
+        if (x != other.x) return x < other.x;
+        return z < other.z;
+    }
+};
+
+} // namespace mc
+
+// 哈希支持
+namespace std {
+template<>
+struct hash<mc::ChunkId> {
+    size_t operator()(const mc::ChunkId& id) const {
+        return static_cast<size_t>(id.toId());
+    }
+};
+}

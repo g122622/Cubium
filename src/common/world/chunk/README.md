@@ -8,12 +8,14 @@
 src/common/world/chunk/
 ├── ChunkData.hpp/cpp              # 区块数据存储
 ├── ChunkDistanceGraph.hpp/cpp     # 区块距离图（BFS 级别传播）
+├── ChunkId.hpp                    # 区块唯一标识符（包含维度）
 ├── ChunkLoadTicket.hpp            # 区块加载票据类型定义
 ├── ChunkLoadTicketManager.hpp/cpp # 票据管理器
-├── ChunkPos.hpp                   # 区块/段位置类型
+├── ChunkPos.hpp                   # 区块位置类型
 ├── ChunkPrimer.hpp/cpp            # 区块生成中间状态
 ├── ChunkStatus.hpp/cpp            # 区块生成阶段定义
 ├── IChunk.hpp/cpp                 # 区块接口和基础类型
+├── SectionPos.hpp                 # 区块段位置类型
 └── SingleChunkLifecycleManager.hpp/cpp  # 单区块生命周期管理
 ```
 
@@ -21,7 +23,7 @@ src/common/world/chunk/
 
 ### ChunkPos.hpp
 
-**职责**：定义区块位置和区块段位置的类型。
+**职责**：定义区块位置类型。
 
 **主要内容**：
 - `ChunkPos` - 区块位置类，存储区块的 X/Z 坐标
@@ -29,10 +31,6 @@ src/common/world/chunk/
   - 提供 64 位唯一 ID 转换
   - 曼哈顿距离和切比雪夫距离计算
   - 相邻区块获取（北/南/东/西）
-- `SectionPos` - 区块段位置类，标识 16x16x16 的区块段
-  - 包含 Y 坐标（段索引）
-  - 支持长整型编码/解码
-  - 方向偏移
 
 **使用示例**：
 ```cpp
@@ -42,6 +40,49 @@ ChunkPos fromBlock(blockPos);      // 从方块位置转换
 u64 id = pos.toId();               // 唯一 ID
 ChunkPos::fromId(id);              // 从 ID 恢复
 pos.chebyshevDistance(other);      // 计算距离
+```
+
+---
+
+### SectionPos.hpp
+
+**职责**：定义区块段位置类型。
+
+**主要内容**：
+- `SectionPos` - 区块段位置类，标识 16x16x16 的区块段
+  - 包含 Y 坐标（段索引）
+  - 支持长整型编码/解码
+  - 方向偏移
+  - 从方块位置和区块位置创建
+
+**使用示例**：
+```cpp
+SectionPos section(10, 5, 20);     // 区块段 (10, 5, 20)
+SectionPos fromBlock(blockPos);    // 从方块位置转换
+i64 packed = section.toLong();     // 编码为长整型
+SectionPos::fromLong(packed);      // 从长整型解码
+section.offset(Direction::North); // 向北偏移
+```
+
+---
+
+### ChunkId.hpp
+
+**职责**：定义区块唯一标识符。
+
+**主要内容**：
+- `ChunkId` - 区块唯一标识符结构体
+  - 包含区块坐标 (x, z) 和维度 ID
+  - 支持 64 位 ID 编码/解码
+  - 支持转换为 ChunkPos
+
+**使用示例**：
+```cpp
+ChunkId id(10, 20, 0);             // 主世界区块 (10, 20)
+ChunkId nether(10, 20, 1);         // 下界区块 (10, 20)
+u64 encoded = id.toId();           // 编码为 64 位 ID
+ChunkId::fromId(encoded);          // 从 ID 解码
+ChunkPos pos = id.chunkPos();      // 转换为区块位置
 ```
 
 ---
@@ -102,7 +143,6 @@ pos.chebyshevDistance(other);      // 计算距离
   - 光照数据访问
   - 序列化/反序列化
 - `ChunkDataRef` - 区块数据引用（轻量级访问）
-- `ChunkId` - 区块唯一标识符（包含维度）
 
 **关键特性**：
 - 懒创建区块段（只有设置非空气方块时才创建段）
