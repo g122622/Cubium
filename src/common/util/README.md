@@ -1,6 +1,6 @@
 # Util Module
 
-通用工具库，提供跨项目的基础设施组件。包含断言、缓存、数学、NBT序列化、属性系统、平台信息等核心工具。
+通用工具库，提供跨项目的基础设施组件。包含断言、缓存、加密哈希、数学、NBT序列化、属性系统、平台信息等核心工具。
 
 ## 目录结构
 
@@ -17,6 +17,10 @@ util/
 │   ├── Long2IntLRUCache.cpp
 │   ├── OpenAddressingLRUCache.hpp  # 开放寻址LRU缓存
 │   └── OpenAddressingLRUCache.cpp
+├── crypto/                    # 加密哈希工具
+│   ├── Sha256.hpp             # SHA-256 哈希算法
+│   ├── Sha256.cpp             # 实现
+│   └── README.md              # 详细文档
 ├── math/                      # 数学工具
 │   ├── MathUtils.hpp          # 数学函数
 │   ├── MathUtils.cpp
@@ -153,7 +157,61 @@ cache.resetStats();
 
 ---
 
-### 3. 数学工具 (math/)
+### 3. 加密哈希 (crypto/)
+
+提供符合 FIPS 180-4 标准的 SHA-256 哈希计算功能，主要用于 Minecraft 协议中的种子哈希。
+
+#### Sha256
+
+```cpp
+#include "common/util/crypto/Sha256.hpp"
+
+using namespace mc::util::crypto;
+
+// 计算世界种子的 hashedSeed（MC 1.16.5 协议）
+u64 worldSeed = 12345678901234ULL;
+u64 hashedSeed = Sha256::hashWorldSeed(worldSeed);
+
+// 计算字符串的 SHA-256 哈希
+Sha256::Digest hash = Sha256::hash("Hello, World!");
+std::string hexString = Sha256::toHexString(hash);
+// 输出: "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f"
+
+// 计算字节数组的哈希
+std::vector<u8> data = {0x01, 0x02, 0x03, 0x04};
+Sha256::Digest dataHash = Sha256::hash(std::span<const u8>(data.data(), data.size()));
+
+// 计算 64 位整数的哈希（大端序）
+Sha256::Digest intHash = Sha256::hashUint64(12345678901234ULL);
+
+// 字节序转换
+std::array<u8, 8> bytes = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
+u64 leValue = Sha256::bytesToU64LE(std::span<const u8, 8>(bytes));  // 小端序
+u64 beValue = Sha256::bytesToU64BE(std::span<const u8, 8>(bytes));  // 大端序
+```
+
+**Minecraft 协议使用：**
+
+```cpp
+// 服务端发送维度切换包时计算 hashedSeed
+void ServerDimensionManager::sendDimensionChangePacket(...) {
+    network::RespawnPacket packet;
+    packet.setHashedSeed(Sha256::hashWorldSeed(m_seed));
+    // ...
+}
+```
+
+**算法细节：**
+- `hashWorldSeed` 遵循 Guava 的 `Hashing.sha256().hashLong(seed).asLong()`
+- 将 `u64` 种子以大端序转换为 8 字节
+- 计算 SHA-256 哈希得到 32 字节
+- 取前 8 字节以小端序解释为 `u64` 返回
+
+**依赖项：** 无外部依赖，纯 C++17 实现。
+
+---
+
+### 4. 数学工具 (math/)
 
 #### MathUtils.hpp
 
@@ -268,7 +326,7 @@ if (result.hit) {
 
 ---
 
-### 4. NBT序列化 (nbt/)
+### 5. NBT序列化 (nbt/)
 
 Minecraft NBT（Named Binary Tag）格式序列化库，支持多种格式：
 
@@ -309,7 +367,7 @@ std::cout << contexts::mojangson << player;
 
 ---
 
-### 5. 属性系统 (property/)
+### 6. 属性系统 (property/)
 
 Minecraft风格的方块状态属性系统，用于表示方块的可变状态。
 
@@ -339,7 +397,7 @@ auto customProp = IntegerProperty::create("custom", 0, 10);
 
 ---
 
-### 6. 其他工具
+### 7. 其他工具
 
 #### AxisAlignedBB
 

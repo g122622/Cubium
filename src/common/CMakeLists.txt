@@ -873,6 +873,9 @@ add_library(mc_common STATIC
     util/cache/Long2IntLRUCache.cpp
     util/cache/OpenAddressingLRUCache.cpp
 
+    # Crypto utilities
+    util/crypto/Sha256.cpp
+
     # Platform utilities
     util/PlatformInfo.cpp
 

@@ -4,6 +4,7 @@
 #include "../world/ServerChunkManager.hpp"
 #include "common/core/Result.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/crypto/Sha256.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/chunk/NetherChunkGenerator.hpp"
@@ -378,8 +379,10 @@ void ServerDimensionManager::sendDimensionChangePacket(PlayerId playerId, Dimens
     packet.setDimensionType(dimensionTypeId);
     packet.setDimension(newDim);
 
-    // 设置种子哈希（使用世界种子的简化版本）
-    packet.setHashedSeed(m_seed);  // TODO: 使用 SHA-256 哈希的前8字节
+    // 计算世界种子的哈希值（SHA-256 前 8 字节）
+    // 参考 MC 1.16.5 BiomeManager.func_235200_a_:
+    // Hashing.sha256().hashLong(seed).asLong()
+    packet.setHashedSeed(util::crypto::Sha256::hashWorldSeed(m_seed));
 
     // 设置游戏模式
     auto* playerData = m_server->playerManager().getPlayer(playerId);
