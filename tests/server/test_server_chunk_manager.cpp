@@ -3,6 +3,7 @@
 #include "server/world/ServerWorld.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/util/thread/ServerWorkerPool.hpp"
 #include <thread>
 #include <chrono>
 
@@ -19,6 +20,9 @@ protected:
         // 初始化方块注册表
         VanillaBlocks::initialize();
 
+        // 创建工作线程池
+        m_workerPool = std::make_unique<mc::util::ServerWorkerPool>(2, "TestWorker");
+
         // 创建测试用的 ServerWorld
         ServerWorldConfig config;
         config.seed = 12345;
@@ -31,13 +35,16 @@ protected:
             DimensionSettings::overworld()
         );
         m_manager = std::make_unique<ServerChunkManager>(*m_world, std::move(generator));
+        m_manager->setWorkerPool(m_workerPool.get());
     }
 
     void TearDown() override {
         m_manager.reset();
+        m_workerPool.reset();
         m_world.reset();
     }
 
+    std::unique_ptr<mc::util::ServerWorkerPool> m_workerPool;
     std::unique_ptr<ServerWorld> m_world;
     std::unique_ptr<ServerChunkManager> m_manager;
 };
@@ -49,22 +56,26 @@ protected:
 TEST_F(ServerChunkManagerTest, Constructor) {
     EXPECT_EQ(m_manager->loadedChunkCount(), 0);
     EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 0);
-    EXPECT_FALSE(m_manager->workersRunning());
+    EXPECT_FALSE(m_workerPool->isRunning());
 }
 
 TEST_F(ServerChunkManagerTest, Initialize) {
+    m_workerPool->start();
     auto result = m_manager->initialize();
     EXPECT_TRUE(result.success());
-    EXPECT_TRUE(m_manager->workersRunning());
+    EXPECT_TRUE(m_workerPool->isRunning());
     m_manager->shutdown();
+    m_workerPool->shutdown();
 }
 
 TEST_F(ServerChunkManagerTest, Shutdown) {
+    m_workerPool->start();
     m_manager->initialize();
-    EXPECT_TRUE(m_manager->workersRunning());
+    EXPECT_TRUE(m_workerPool->isRunning());
 
     m_manager->shutdown();
-    EXPECT_FALSE(m_manager->workersRunning());
+    m_workerPool->shutdown();
+    EXPECT_FALSE(m_workerPool->isRunning());
     EXPECT_EQ(m_manager->loadedChunkCount(), 0);
 }
 
@@ -142,6 +153,7 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_NotInitialized) {
 }
 
 TEST_F(ServerChunkManagerTest, GetChunkAsync_AfterInit) {
+    m_workerPool->start();
     m_manager->initialize();
 
     auto future = m_manager->getChunkAsync(0, 0, &ChunkStatuses::FULL);
@@ -157,9 +169,11 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_AfterInit) {
     EXPECT_TRUE(m_manager->hasChunk(0, 0));
 
     m_manager->shutdown();
+    m_workerPool->shutdown();
 }
 
 TEST_F(ServerChunkManagerTest, GetChunkAsync_Callback) {
+    m_workerPool->start();
     m_manager->initialize();
 
     std::atomic<bool> completed{false};
@@ -181,9 +195,11 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_Callback) {
     EXPECT_NE(resultChunk, nullptr);
 
     m_manager->shutdown();
+    m_workerPool->shutdown();
 }
 
 TEST_F(ServerChunkManagerTest, GetChunkAsync_AlreadyCached) {
+    m_workerPool->start();
     m_manager->initialize();
 
     // 先同步生成
@@ -200,6 +216,7 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_AlreadyCached) {
     EXPECT_EQ(syncChunk, asyncChunk);  // 应该是同一个实例
 
     m_manager->shutdown();
+    m_workerPool->shutdown();
 }
 
 // ============================================================================
@@ -263,6 +280,7 @@ TEST_F(ServerChunkManagerTest, GetHolder) {
 // ============================================================================
 
 TEST_F(ServerChunkManagerTest, UpdatePlayerPosition) {
+    m_workerPool->start();
     m_manager->initialize();
 
     m_manager->updatePlayerPosition(1, 0.0, 0.0);
@@ -271,9 +289,11 @@ TEST_F(ServerChunkManagerTest, UpdatePlayerPosition) {
     EXPECT_GE(m_manager->singleChunkLifecycleManagerCount(), 1);
 
     m_manager->shutdown();
+    m_workerPool->shutdown();
 }
 
 TEST_F(ServerChunkManagerTest, RemovePlayer) {
+    m_workerPool->start();
     m_manager->initialize();
 
     m_manager->updatePlayerPosition(1, 0.0, 0.0);
@@ -282,6 +302,7 @@ TEST_F(ServerChunkManagerTest, RemovePlayer) {
     m_manager->removePlayer(1);
 
     m_manager->shutdown();
+    m_workerPool->shutdown();
 }
 
 TEST_F(ServerChunkManagerTest, SetViewDistance) {
@@ -297,6 +318,7 @@ TEST_F(ServerChunkManagerTest, SetViewDistance) {
 // ============================================================================
 
 TEST_F(ServerChunkManagerTest, Tick) {
+    m_workerPool->start();
     m_manager->initialize();
 
     // 多次 tick 不应崩溃
@@ -305,6 +327,7 @@ TEST_F(ServerChunkManagerTest, Tick) {
     }
 
     m_manager->shutdown();
+    m_workerPool->shutdown();
 }
 
 // ============================================================================
@@ -323,12 +346,14 @@ TEST_F(ServerChunkManagerTest, LoadedChunkCount) {
 }
 
 TEST_F(ServerChunkManagerTest, PendingTaskCount) {
+    m_workerPool->start();
     m_manager->initialize();
 
     // 没有待处理任务
     EXPECT_EQ(m_manager->pendingTaskCount(), 0);
 
     m_manager->shutdown();
+    m_workerPool->shutdown();
 }
 
 // ============================================================================
@@ -340,6 +365,7 @@ TEST_F(ServerChunkManagerTest, GeneratorNotNull) {
 }
 
 TEST_F(ServerChunkManagerTest, GeneratedChunkHasBlocks) {
+    m_workerPool->start();
     m_manager->initialize();
 
     ChunkData* chunk = m_manager->getChunkSync(0, 0);
@@ -362,6 +388,7 @@ TEST_F(ServerChunkManagerTest, GeneratedChunkHasBlocks) {
     EXPECT_TRUE(hasNonAirBlocks) << "Generated chunk should have non-air blocks";
 
     m_manager->shutdown();
+    m_workerPool->shutdown();
 }
 
 // ============================================================================
@@ -369,6 +396,7 @@ TEST_F(ServerChunkManagerTest, GeneratedChunkHasBlocks) {
 // ============================================================================
 
 TEST_F(ServerChunkManagerTest, ConcurrentChunkAccess) {
+    m_workerPool->start();
     m_manager->initialize();
 
     std::vector<std::thread> threads;
@@ -396,4 +424,5 @@ TEST_F(ServerChunkManagerTest, ConcurrentChunkAccess) {
     EXPECT_GT(m_manager->loadedChunkCount(), 0);
 
     m_manager->shutdown();
+    m_workerPool->shutdown();
 }

@@ -5,6 +5,7 @@
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/spawn/WorldGenSpawner.hpp"
+#include "common/util/thread/ServerWorkerPool.hpp"
 #include <memory>
 #include <vector>
 #include <atomic>
@@ -29,21 +30,31 @@ protected:
         // 初始化实体注册表
         mc::entity::VanillaEntities::registerAll();
 
+        // 创建工作线程池
+        m_workerPool = std::make_unique<mc::util::ServerWorkerPool>(2, "TestWorker");
+
         // 创建区块生成器
         auto settings = mc::DimensionSettings::overworld();
         auto generator = std::make_unique<mc::NoiseChunkGenerator>(12345, std::move(settings));
 
         // 创建区块管理器（不关联 ServerWorld）
         m_manager = std::make_unique<ServerChunkManager>(std::move(generator));
+        m_manager->setWorkerPool(m_workerPool.get());
         auto result = m_manager->initialize();
         ASSERT_TRUE(result.success());
+
+        // 启动工作线程池
+        m_workerPool->start();
     }
 
     void TearDown() override {
         m_manager->shutdown();
+        m_workerPool->shutdown();
         m_manager.reset();
+        m_workerPool.reset();
     }
 
+    std::unique_ptr<mc::util::ServerWorkerPool> m_workerPool;
     std::unique_ptr<ServerChunkManager> m_manager;
 };
 
@@ -71,9 +82,6 @@ TEST_F(ServerChunkManagerCallbackTest, CallbackReceivesSpawnedEntities) {
         receivedEntities = entities;
     });
 
-    // 启动工作线程
-    m_manager->startWorkers();
-
     // 同步生成一个区块（会触发实体生成）
     ChunkData* chunk = m_manager->getChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
@@ -88,9 +96,6 @@ TEST_F(ServerChunkManagerCallbackTest, CallbackReceivesSpawnedEntities) {
     EXPECT_NE(chunk, nullptr);
     EXPECT_EQ(chunk->x(), 0);
     EXPECT_EQ(chunk->z(), 0);
-
-    // 停止工作线程
-    m_manager->stopWorkers();
 }
 
 // ============================================================================
@@ -103,8 +108,6 @@ TEST_F(ServerChunkManagerCallbackTest, MultipleChunksGenerate) {
     m_manager->setEntitySpawnCallback([&totalEntities](const std::vector<mc::SpawnedEntityData>& entities) {
         totalEntities += static_cast<int>(entities.size());
     });
-
-    m_manager->startWorkers();
 
     // 生成多个区块
     ChunkData* chunk1 = m_manager->getChunkSync(0, 0);
@@ -120,8 +123,6 @@ TEST_F(ServerChunkManagerCallbackTest, MultipleChunksGenerate) {
         m_manager->tick();
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-
-    m_manager->stopWorkers();
 }
 
 // ============================================================================
@@ -139,8 +140,6 @@ TEST_F(ServerChunkManagerCallbackTest, AsyncGenerateWithCallback) {
         callbackCompleted = true;
     });
 
-    m_manager->startWorkers();
-
     // 异步生成
     auto future = m_manager->getChunkAsync(5, 5);
     ASSERT_TRUE(future.valid());
@@ -154,8 +153,6 @@ TEST_F(ServerChunkManagerCallbackTest, AsyncGenerateWithCallback) {
         m_manager->tick();
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-
-    m_manager->stopWorkers();
 }
 
 // ============================================================================
@@ -189,7 +186,6 @@ TEST_F(ServerChunkManagerCallbackTest, ResetCallback) {
     // 重置为空回调
     m_manager->setEntitySpawnCallback(nullptr);
 
-    m_manager->startWorkers();
     ChunkData* chunk = m_manager->getChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
@@ -198,8 +194,6 @@ TEST_F(ServerChunkManagerCallbackTest, ResetCallback) {
         m_manager->tick();
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-
-    m_manager->stopWorkers();
 
     // 空回调不应被调用
     EXPECT_EQ(callCount, 0);
@@ -210,8 +204,6 @@ TEST_F(ServerChunkManagerCallbackTest, ResetCallback) {
 // ============================================================================
 
 TEST_F(ServerChunkManagerCallbackTest, ChunkCount) {
-    m_manager->startWorkers();
-
     EXPECT_EQ(m_manager->loadedChunkCount(), 0u);
 
     static_cast<void>(m_manager->getChunkSync(0, 0));
@@ -220,17 +212,11 @@ TEST_F(ServerChunkManagerCallbackTest, ChunkCount) {
     static_cast<void>(m_manager->getChunkSync(1, 0));
     static_cast<void>(m_manager->getChunkSync(0, 1));
     EXPECT_EQ(m_manager->loadedChunkCount(), 3u);
-
-    m_manager->stopWorkers();
 }
 
 TEST_F(ServerChunkManagerCallbackTest, singleChunkLifecycleManagerCount) {
-    m_manager->startWorkers();
-
     EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 0u);
 
     static_cast<void>(m_manager->getChunkSync(0, 0));
     EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 1u);
-
-    m_manager->stopWorkers();
 }
