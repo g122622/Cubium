@@ -97,6 +97,7 @@ src/client/network/
 - `onVehicleMove(x, y, z, yaw, pitch)`: 载具移动同步
 - `onSleep(entityId, isSleeping, bedX, bedY, bedZ)`: 睡眠状态
 - `onHotbarSet(slot)`: 快捷栏设置
+- `onTitle(action, text, fadeIn, stay, fadeOut)`: 标题显示
 
 #### 4. NetworkClient 类
 

@@ -19,3 +19,4 @@
 #include "GameStateChangePacket.hpp"
 #include "ParticlePacket.hpp"
 #include "ServerDifficultyPacket.hpp"
+#include "TitlePacket.hpp"

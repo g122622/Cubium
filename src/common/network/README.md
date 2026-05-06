@@ -23,8 +23,9 @@ network/
 │   ├── RecipePackets.hpp        # 配方同步包
 │   ├── GameStateChangePacket.hpp/cpp     # 游戏状态包
 │   ├── PlayerAbilitiesPacket.hpp/cpp     # 玩家能力包
-│   └── BlockBreakAnimPacket.hpp/cpp      # 方块破坏动画包
+│   ├── BlockBreakAnimPacket.hpp/cpp      # 方块破坏动画包
 │   ├── SetPassengersPacket.hpp/cpp       # 乘客列表同步包
+│   ├── TitlePacket.hpp/cpp               # 标题显示包
 └── sync/                        # 同步层
     ├── Sync.hpp                 # 统一头文件
     └── ChunkSync.hpp/cpp        # 区块同步管理

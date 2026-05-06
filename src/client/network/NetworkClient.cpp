@@ -7,6 +7,9 @@
 #include "common/network/packet/PlayerAbilitiesPacket.hpp"
 #include "common/network/packet/ServerDifficultyPacket.hpp"
 #include "common/network/packet/BlockBreakAnimPacket.hpp"
+#include "common/network/packet/SpawnPositionPacket.hpp"
+#include "common/network/packet/SleepPacket.hpp"
+#include "common/network/packet/TitlePacket.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -765,6 +768,11 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
 
         case network::PacketType::HotbarSet: {
             handleHotbarSet(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::Title: {
+            handleTitle(bodyDeser);
             break;
         }
 
@@ -1840,6 +1848,24 @@ void NetworkClient::handleHotbarSet(network::PacketDeserializer& deser) {
 
     if (m_callbacks.onHotbarSet) {
         m_callbacks.onHotbarSet(packet.slot());
+    }
+}
+
+void NetworkClient::handleTitle(network::PacketDeserializer& deser) {
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    network::TitlePacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize Title packet: {}", result.error().message());
+        return;
+    }
+
+    spdlog::debug("[NetworkClient] Received Title: action={}", static_cast<int>(packet.action()));
+
+    if (m_callbacks.onTitle) {
+        m_callbacks.onTitle(packet.action(), packet.text(), packet.fadeIn(), packet.stay(), packet.fadeOut());
     }
 }
 

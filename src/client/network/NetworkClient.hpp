@@ -179,6 +179,11 @@ struct NetworkClientCallbacks {
 
     // 快捷栏设置事件
     std::function<void(i32 slot)> onHotbarSet;
+
+    // 标题显示事件
+    std::function<void(network::TitleAction action,
+                       const std::optional<String>& text,
+                       i32 fadeIn, i32 stay, i32 fadeOut)> onTitle;
 };
 
 // ============================================================================
@@ -357,6 +362,9 @@ private:
 
     // 快捷栏设置包处理
     void handleHotbarSet(network::PacketDeserializer& deser);
+
+    // 标题显示包处理
+    void handleTitle(network::PacketDeserializer& deser);
 
     // ASIO 网络
     asio::io_context m_ioContext;
