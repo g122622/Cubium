@@ -374,9 +374,19 @@ void NaturalSpawner::spawnForClassificationInChunk(
         return;
     }
 
-    // 检查实体密度预算
+    // 从 ChunkData 获取生物群系，再从生物群系获取 SpawnCosts
     const SpawnCosts* spawnCosts = nullptr;
-    // TODO: 从 Biome 获取 SpawnCosts
+    if (chunk) {
+        i32 localX = spawnX & 15;
+        i32 localZ = spawnZ & 15;
+        BiomeId biomeId = chunk->getBiomeAtBlock(localX, spawnY, localZ);
+
+        if (BiomeRegistry::instance().hasBiome(biomeId)) {
+            const Biome& biome = BiomeRegistry::instance().get(biomeId);
+            const MobSpawnInfo& spawnInfo = biome.spawnInfo();
+            spawnCosts = spawnInfo.getSpawnCost(entry->entityTypeId);
+        }
+    }
 
     if (spawnCosts && spawnCosts->isValid()) {
         if (!densityManager.canSpawnWithDensity(entry->entityTypeId,
@@ -581,14 +591,27 @@ bool NaturalSpawner::canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i3
         }
 
         [[nodiscard]] i32 getHeight(HeightmapType type, i32 bx, i32 bz) const override {
-            (void)type;  // 暂时忽略高度图类型
-            return m_world.getHeight(bx, bz);
+            ChunkCoord chunkX = static_cast<ChunkCoord>(bx >> 4);
+            ChunkCoord chunkZ = static_cast<ChunkCoord>(bz >> 4);
+            const ChunkData* chunk = m_world.getChunk(chunkX, chunkZ);
+            if (!chunk) {
+                return m_world.getHeight(bx, bz);
+            }
+            i32 localX = bx & 15;
+            i32 localZ = bz & 15;
+            return chunk->getTopBlockY(type, localX, localZ);
         }
 
         [[nodiscard]] BiomeId getBiome(i32 bx, i32 by, i32 bz) const override {
-            // TODO: 实现生物群系查询
-            (void)bx; (void)by; (void)bz;
-            return 0;
+            ChunkCoord chunkX = static_cast<ChunkCoord>(bx >> 4);
+            ChunkCoord chunkZ = static_cast<ChunkCoord>(bz >> 4);
+            const ChunkData* chunk = m_world.getChunk(chunkX, chunkZ);
+            if (!chunk) {
+                return Biomes::Plains;
+            }
+            i32 localX = bx & 15;
+            i32 localZ = bz & 15;
+            return chunk->getBiomeAtBlock(localX, by, localZ);
         }
 
     private:
@@ -660,16 +683,8 @@ i32 NaturalSpawner::getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z,
     i32 localX = x & 15;
     i32 localZ = z & 15;
 
-    // 使用高度图获取高度
-    // TODO: 实现从 ChunkData 获取指定高度图类型的值
-    // 当前使用世界高度查询
-    (void)chunk;
-    (void)heightmapType;
-    (void)localX;
-    (void)localZ;
-
-    // 使用世界的高度查询
-    return world.getHeight(x, z);
+    // 使用指定类型的高度图获取高度
+    return chunk->getTopBlockY(heightmapType, localX, localZ);
 }
 
 Vector3i NaturalSpawner::getRandomSpawnPosition(mc::server::ServerWorld& world,
@@ -722,11 +737,12 @@ const SpawnEntry* NaturalSpawner::getRandomSpawnEntry(
     entity::EntityClassification classification,
     const Vector3i& pos,
     math::Random& random) const {
-    // 获取生物群系
-    BiomeId biomeId = 0;
+    // 从 ChunkData 获取生物群系
+    BiomeId biomeId = Biomes::Plains;
     if (chunk) {
-        // TODO: 实现从 ChunkData 获取生物群系
-        // biomeId = chunk->getBiomeAtBlock(pos.x & 15, pos.y, pos.z & 15);
+        i32 localX = pos.x & 15;
+        i32 localZ = pos.z & 15;
+        biomeId = chunk->getBiomeAtBlock(localX, pos.y, localZ);
     }
 
     // 检查生物群系是否存在
