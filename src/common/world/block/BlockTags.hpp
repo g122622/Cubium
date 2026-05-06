@@ -138,6 +138,10 @@ public:
     /// 火标签
     static BlockTag& FIRE();
 
+    /// 灵魂火基座方块标签（灵魂沙、灵魂土）
+    /// 在这些方块上可以点燃灵魂火
+    static BlockTag& SOUL_FIRE_BASE_BLOCKS();
+
     /// 羊毛标签
     static BlockTag& WOOL();
 

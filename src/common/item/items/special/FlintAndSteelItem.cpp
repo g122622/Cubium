@@ -79,34 +79,35 @@ bool FlintAndSteelItem::canLightBlock(IWorld& world, const BlockPos& pos) {
 
     const BlockState& state = *statePtr;
 
-    // 如果位置已经是空气或其他可替换方块
-    if (state.isAir() || state.getMaterial().isReplaceable()) {
-        // 检查下方方块是否可以支撑火焰
-        const BlockState* belowStatePtr = world.getBlockState(pos.down());
-        if (belowStatePtr == nullptr) {
-            return false;
-        }
-
-        // 火焰需要有可燃物支撑或在灵魂土上
-        // 简化实现：检查下方方块是否固体
-        return belowStatePtr->isSolid();
+    // 如果位置不是空气，不能点燃
+    if (!state.isAir()) {
+        return false;
     }
 
-    return false;
+    // 获取应该放置的火焰方块，并检查其是否能在该位置有效存在
+    Block* fireBlock = getFireForPlacement(world, pos);
+    if (fireBlock == nullptr) {
+        return false;
+    }
+
+    // 检查火焰方块是否能放置在该位置
+    const BlockState& fireState = fireBlock->getDefaultState();
+    IBlockReader& blockReader = static_cast<IBlockReader&>(world);
+    return fireBlock->isValidPosition(fireState, blockReader, pos);
 }
 
 Block* FlintAndSteelItem::getFireForPlacement(IWorld& world, const BlockPos& pos) {
     // MC 1.16.5: AbstractFireBlock.getFireForPlacement
-    // 检查下方是否是灵魂土，如果是则返回灵魂火
+    // 检查下方是否是灵魂沙/灵魂土，如果是则返回灵魂火
     const BlockState* belowStatePtr = world.getBlockState(pos.down());
 
-    // TODO: 检查是否是灵魂土 (SOUL_SOIL 或 SOUL_SAND)
-    // 目前简单返回普通火
-    if (VanillaBlocks::FIRE != nullptr) {
-        return VanillaBlocks::FIRE;
+    if (belowStatePtr != nullptr && BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(*belowStatePtr)) {
+        // 灵魂火基座方块上放置灵魂火
+        return VanillaBlocks::SOUL_FIRE;
     }
 
-    return nullptr;
+    // 其他情况放置普通火
+    return VanillaBlocks::FIRE;
 }
 
 } // namespace tool

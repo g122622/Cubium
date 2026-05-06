@@ -168,6 +168,14 @@ BlockTag& BlockTags::FIRE() {
     return *tag;
 }
 
+BlockTag& BlockTags::SOUL_FIRE_BASE_BLOCKS() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "soul_fire_base_blocks"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::WOOL() {
     static BlockTag* tag = nullptr;
     if (tag == nullptr) {
@@ -340,6 +348,15 @@ void BlockTags::initialize() {
         ResourceLocation("minecraft", "soul_fire")
     });
     tags[fire->getId()] = std::move(fire);
+
+    // 创建 SOUL_FIRE_BASE_BLOCKS 标签（灵魂火基座方块）
+    // 参考 MC 1.16.5: Blocks.SOUL_SAND, Blocks.SOUL_SOIL
+    auto soulFireBaseBlocks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "soul_fire_base_blocks"));
+    soulFireBaseBlocks->addAll({
+        ResourceLocation("minecraft", "soul_sand"),
+        ResourceLocation("minecraft", "soul_soil")
+    });
+    tags[soulFireBaseBlocks->getId()] = std::move(soulFireBaseBlocks);
 
     // 创建 WOOL 标签
     auto wool = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wool"));
