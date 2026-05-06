@@ -27,6 +27,7 @@ add_library(mc_common STATIC
     util/math/random/LcgRandom.cpp
     util/math/random/UniformIntDistribution.cpp
     util/math/random/UniformRealDistribution.cpp
+    util/math/random/RandomRanges.cpp
 
     # Network - Connection
     network/connection/LocalConnection.cpp
@@ -201,7 +202,6 @@ add_library(mc_common STATIC
     entity/movement/AutoJump.cpp
     # Entity - Loot System
     entity/loot/LootContext.cpp
-    entity/loot/RandomRanges.cpp
     entity/loot/LootEntry.cpp
     entity/loot/LootPool.cpp
     entity/loot/LootTable.cpp

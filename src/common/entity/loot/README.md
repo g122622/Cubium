@@ -12,7 +12,7 @@ src/common/entity/loot/
 ├── LootEntry.hpp/cpp        # 掉落条目，定义单个掉落项
 ├── LootPool.hpp/cpp         # 掉落池，按权重随机选择条目
 ├── LootTable.hpp/cpp        # 掉落表，管理多个池
-└── RandomRanges.hpp/cpp     # 随机值范围工具类
+└── (RandomRanges 已移至 common/util/math/random/)
 ```
 
 ## 文件详解
@@ -234,29 +234,20 @@ auto drops = lootTable.generate(*context);
 
 ---
 
-### RandomRanges.hpp/cpp - 随机值范围
+### RandomRanges（已移动）
 
-**职责**: 提供不同类型的随机值生成器。
+随机值范围工具类已移动到 `common/util/math/random/RandomRanges.hpp`。
 
 **类**:
 
 | 类 | 描述 |
 |---|---|
-| `RandomValueRange` | 均匀分布随机范围 [min, max] |
-| `BinomialRange` | 二项分布范围，n 次试验，p 概率成功 |
-| `ConstantRange` | 固定值范围 |
+| `mc::math::RandomValueRange` | 均匀分布随机范围 [min, max] |
+| `mc::math::BinomialRange` | 二项分布范围，n 次试验，p 概率成功 |
+| `mc::math::ConstantRange` | 固定值范围 |
 
-**用法示例**:
-```cpp
-RandomValueRange range(1.0f, 3.0f);
-i32 count = range.generateInt(random);  // 1-3 的随机整数
-
-BinomialRange binomial(10, 0.3f);  // 10 次试验，30% 成功率
-i32 successes = binomial.generateInt(random);  // 成功次数
-
-ConstantRange fixed(5);
-i32 value = fixed.generateInt(random);  // 总是返回 5
-```
+**向后兼容**:
+- `mc::loot::RandomValueRange` 等类型别名已保留，指向 `mc::math` 中的类。
 
 **参考**: `net.minecraft.loot.RandomValueRange`
 
@@ -409,7 +400,7 @@ LootConditions.hpp ←─┤
 LootEntry.hpp ←──────┤
 LootPool.hpp ←───────┤
 LootTable.hpp ←──────┘
-RandomRanges.hpp (独立)
+(RandomRanges.hpp 已移至 common/util/math/random/)
 ```
 
 ---

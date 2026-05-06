@@ -1,19 +1,10 @@
-#include "RandomRanges.hpp"
+/**
+ * @file RandomRanges.cpp
+ * @brief 随机值范围工具类（向后兼容）
+ *
+ * 实现已移动到 common/util/math/random/RandomRanges.cpp
+ * 此文件保留用于向后兼容的编译链接。
+ */
 
-namespace mc {
-namespace loot {
-
-i32 BinomialRange::generateInt(math::Random& random) const {
-    // 使用二项分布生成随机值
-    // 进行n次试验，每次有p的概率成功
-    i32 successes = 0;
-    for (i32 i = 0; i < m_n; ++i) {
-        if (random.nextFloat() < m_p) {
-            ++successes;
-        }
-    }
-    return successes;
-}
-
-} // namespace loot
-} // namespace mc
+// 实现已在 common/util/math/random/RandomRanges.cpp 中
+// 此文件不再需要任何代码

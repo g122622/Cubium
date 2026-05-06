@@ -30,7 +30,9 @@ src/common/util/math/
 │   ├── UniformIntDistribution.hpp    # 均匀整数分布
 │   ├── UniformIntDistribution.cpp    # 均匀整数分布实现
 │   ├── UniformRealDistribution.hpp   # 均匀实数分布
-│   └── UniformRealDistribution.cpp   # 均匀实数分布实现
+│   ├── UniformRealDistribution.cpp   # 均匀实数分布实现
+│   ├── RandomRanges.hpp     # 随机值范围工具类
+│   └── RandomRanges.cpp     # 随机值范围实现
 └── ray/                   # 射线检测子系统
     ├── Ray.hpp            # 射线数据结构
     ├── Raycast.hpp        # 射线检测上下文和接口
@@ -250,6 +252,36 @@ UniformRealDistribution dist(0.0f, 1.0f);
 Random rng(seed);
 f32 value = dist(rng);
 ```
+
+#### RandomRanges.hpp / RandomRanges.cpp
+
+**职责**：提供不同类型的随机值生成器，主要用于掉落表系统。
+
+**类**：
+
+| 类 | 描述 |
+|---|---|
+| `RandomValueRange` | 均匀分布随机范围 [min, max] |
+| `BinomialRange` | 二项分布范围，n 次试验，p 概率成功 |
+| `ConstantRange` | 固定值范围 |
+
+**使用方法**：
+```cpp
+mc::math::RandomValueRange range(1.0f, 3.0f);
+mc::math::Random rng(seed);
+i32 count = range.generateInt(rng);  // 1-3 的随机整数
+
+mc::math::BinomialRange binomial(10, 0.3f);  // 10 次试验，30% 成功率
+i32 successes = binomial.generateInt(rng);  // 成功次数
+
+mc::math::ConstantRange fixed(5);
+i32 value = fixed.generateInt(rng);  // 总是返回 5
+```
+
+**向后兼容**：
+- `mc::loot::RandomValueRange` 等类型别名已保留，指向 `mc::math` 中的类。
+
+**参考**：`net.minecraft.loot.RandomValueRange`, `net.minecraft.loot.BinomialRange`, `net.minecraft.loot.ConstantRange`
 
 ### ray/ 子目录
 
