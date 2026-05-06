@@ -305,8 +305,8 @@ private:
     LevelChangeCallback m_levelChangeCallback;
     ExperienceChangeCallback m_experienceChangeCallback;
 
-    // 上次播放升级音效的等级，用于每5级播放一次
-    i32 m_lastLevelUpSoundLevel = 0;
+    // 上次播放升级音效的 tick，用于确保两次音效间隔至少 100 tick
+    u32 m_lastXpSoundTick = 0;
 };
 
 } // namespace experience

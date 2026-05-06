@@ -1,6 +1,7 @@
 #include "ExperienceManager.hpp"
 #include "ExperienceConstants.hpp"
 #include "../entities/player/Player.hpp"
+#include "../../sound/SoundEvents.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include <algorithm>
 #include <cmath>
@@ -321,11 +322,23 @@ void ExperienceManager::updateProgress() {
 void ExperienceManager::handleLevelUp() {
     i32 oldLevel = m_level - 1;
 
-    // 每5级播放升级音效
-    if (m_level % 5 == 0 && m_level > m_lastLevelUpSoundLevel) {
-        m_lastLevelUpSoundLevel = m_level;
-        // TODO: 播放升级音效
-        // 音量计算: 如果等级 > 30 则为 1.0，否则为 level / 30.0
+    // 播放升级音效
+    // 参考 MC 1.16.5 PlayerEntity.addExperienceLevel()
+    // 条件: 等级是5的倍数，且距离上次播放至少100 tick（5秒）
+    if (m_level % 5 == 0) {
+        u32 currentTick = m_player.ticksExisted();
+        // 检查是否满足时间间隔要求（100 tick = 5秒）
+        if (static_cast<f32>(m_lastXpSoundTick) < static_cast<f32>(currentTick) - 100.0f) {
+            m_lastXpSoundTick = currentTick;
+
+            // 音量计算: 等级 > 30 时为 1.0，否则为 level / 30.0
+            // 最终音量 = 基础音量 * 0.75
+            f32 baseVolume = (m_level > 30) ? 1.0f : static_cast<f32>(m_level) / 30.0f;
+            f32 volume = baseVolume * 0.75f;
+            constexpr f32 pitch = 1.0f;
+
+            m_player.playSound(SoundEvents::ENTITY_PLAYER_LEVELUP, volume, pitch);
+        }
     }
 
     if (m_levelChangeCallback) {

@@ -50,6 +50,31 @@ i32 total = xpManager.getTotalExperience();
 xpManager.onEnchant(levels, random);
 ```
 
+#### 升级音效
+
+玩家升级时会播放升级音效，遵循 MC 1.16.5 的逻辑：
+
+- **音效事件**: `entity.player.levelup`
+- **触发条件**:
+  1. 等级是 5 的倍数（5, 10, 15, 20...）
+  2. 距离上次播放至少 100 tick（5 秒）
+- **音量计算**:
+  - 等级 ≤ 30: `(level / 30.0) * 0.75`
+  - 等级 > 30: `1.0 * 0.75 = 0.75`
+- **音调**: 固定 1.0
+
+```cpp
+// 音效播放实现（在 handleLevelUp 中）
+if (m_level % 5 == 0) {
+    u32 currentTick = m_player.ticksExisted();
+    if (m_lastXpSoundTick < currentTick - 100.0f) {
+        m_lastXpSoundTick = currentTick;
+        f32 volume = (m_level > 30 ? 1.0f : m_level / 30.0f) * 0.75f;
+        m_player.playSound(SoundEvents::ENTITY_PLAYER_LEVELUP, volume, 1.0f);
+    }
+}
+```
+
 #### 关键算法
 
 **多级升级算法**（MC 1.16.5 准确复刻）：
@@ -162,6 +187,7 @@ classDiagram
         -m_progress: f32
         -m_totalExperience: i32
         -m_xpSeed: i32
+        -m_lastXpSoundTick: u32
         -m_player: Player&
         +addExperience(amount: i32)
         +consumeExperience(amount: i32) bool
@@ -174,6 +200,8 @@ classDiagram
         +calculateBarCapacity(level: i32)$ i32
         +getExperienceForLevel(level: i32)$ i32
         +getLevelFromExperience(totalXp: i32)$ i32
+        -handleLevelUp()
+        -handleLevelDown()
     }
 
     class ExperienceUtils {
@@ -206,6 +234,7 @@ classDiagram
 
 - `../entities/player/Player.hpp` - 玩家实体
 - `../../../core/Types.hpp` - 基础类型
+- `../../../sound/SoundEvents.hpp` - 音效事件常量
 - `../../../util/math/random/Random.hpp` - 随机数生成
 
 ## 参考
