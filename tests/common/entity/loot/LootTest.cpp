@@ -121,6 +121,44 @@ TEST_F(LootTest, BinomialRange_FullProbability) {
     }
 }
 
+// ConstantRange Tests
+TEST_F(LootTest, ConstantRange_Basic) {
+    ConstantRange range(42);
+    math::Random rng(12345);
+    // 始终返回固定值
+    for (int i = 0; i < 10; ++i) {
+        EXPECT_EQ(42, range.generateInt(rng));
+    }
+}
+
+TEST_F(LootTest, ConstantRange_ZeroValue) {
+    ConstantRange range(0);
+    math::Random rng(12345);
+    for (int i = 0; i < 5; ++i) {
+        EXPECT_EQ(0, range.generateInt(rng));
+    }
+}
+
+TEST_F(LootTest, ConstantRange_NegativeValue) {
+    ConstantRange range(-5);
+    math::Random rng(12345);
+    for (int i = 0; i < 5; ++i) {
+        EXPECT_EQ(-5, range.generateInt(rng));
+    }
+}
+
+TEST_F(LootTest, ConstantRange_LargeValue) {
+    ConstantRange range(1000000);
+    math::Random rng(12345);
+    EXPECT_EQ(1000000, range.generateInt(rng));
+    EXPECT_EQ(1000000, range.getValue());
+}
+
+TEST_F(LootTest, ConstantRange_GetValue) {
+    ConstantRange range(123);
+    EXPECT_EQ(123, range.getValue());
+}
+
 // LootContext Tests
 TEST_F(LootTest, LootContext_Builder) {
     math::Random rng(12345);
