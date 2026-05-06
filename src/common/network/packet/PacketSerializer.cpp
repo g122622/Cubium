@@ -121,24 +121,26 @@ void PacketSerializer::writeBool(bool value) {
 }
 
 void PacketSerializer::writeString(const String& value) {
-    // 字符串格式: 长度(u16) + 数据
+    // 字符串格式: 长度(VarInt) + 数据
+    // 使用 VarInt 编码，支持大字符串（如命令树JSON）
     if (value.size() > MAX_STRING_LENGTH) {
         // 截断过长的字符串
-        writeU16(MAX_STRING_LENGTH);
+        writeVarInt(static_cast<i32>(MAX_STRING_LENGTH));
         writeBytes(reinterpret_cast<const u8*>(value.data()), MAX_STRING_LENGTH);
     } else {
-        writeU16(static_cast<u16>(value.size()));
+        writeVarInt(static_cast<i32>(value.size()));
         writeBytes(reinterpret_cast<const u8*>(value.data()), value.size());
     }
 }
 
 void PacketSerializer::writeStringView(StringView value) {
     // 直接写入，避免创建临时String对象
+    // 使用 VarInt 编码，支持大字符串
     if (value.size() > MAX_STRING_LENGTH) {
-        writeU16(MAX_STRING_LENGTH);
+        writeVarInt(static_cast<i32>(MAX_STRING_LENGTH));
         writeBytes(reinterpret_cast<const u8*>(value.data()), MAX_STRING_LENGTH);
     } else {
-        writeU16(static_cast<u16>(value.size()));
+        writeVarInt(static_cast<i32>(value.size()));
         writeBytes(reinterpret_cast<const u8*>(value.data()), value.size());
     }
 }
@@ -290,18 +292,24 @@ Result<bool> PacketSerializer::readBool() {
 }
 
 Result<String> PacketSerializer::readString() {
-    auto lengthResult = readU16();
+    auto lengthResult = readVarInt();
     if (lengthResult.failed()) {
         return lengthResult.error();
     }
-    u16 length = lengthResult.value();
+    i32 length = lengthResult.value();
 
-    if (m_readPos + length > m_buffer.size()) {
+    if (length < 0) {
+        return Error(ErrorCode::InvalidData, "Negative string length");
+    }
+    if (static_cast<size_t>(length) > MAX_STRING_LENGTH) {
+        return Error(ErrorCode::InvalidData, "String length exceeds maximum");
+    }
+    if (m_readPos + static_cast<size_t>(length) > m_buffer.size()) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read string");
     }
 
-    String str(reinterpret_cast<const char*>(m_buffer.data() + m_readPos), length);
-    m_readPos += length;
+    String str(reinterpret_cast<const char*>(m_buffer.data() + m_readPos), static_cast<size_t>(length));
+    m_readPos += static_cast<size_t>(length);
     return str;
 }
 
@@ -519,18 +527,24 @@ Result<bool> PacketDeserializer::readBool() {
 }
 
 Result<String> PacketDeserializer::readString() {
-    auto lengthResult = readU16();
+    auto lengthResult = readVarInt();
     if (lengthResult.failed()) {
         return lengthResult.error();
     }
-    u16 length = lengthResult.value();
+    i32 length = lengthResult.value();
 
-    if (m_readPos + length > m_size) {
+    if (length < 0) {
+        return Error(ErrorCode::InvalidData, "Negative string length");
+    }
+    if (static_cast<size_t>(length) > MAX_STRING_LENGTH) {
+        return Error(ErrorCode::InvalidData, "String length exceeds maximum");
+    }
+    if (m_readPos + static_cast<size_t>(length) > m_size) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read string");
     }
 
-    String str(reinterpret_cast<const char*>(m_data + m_readPos), length);
-    m_readPos += length;
+    String str(reinterpret_cast<const char*>(m_data + m_readPos), static_cast<size_t>(length));
+    m_readPos += static_cast<size_t>(length);
     return str;
 }
 

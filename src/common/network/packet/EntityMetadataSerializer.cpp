@@ -1,4 +1,5 @@
 #include "EntityMetadataSerializer.hpp"
+#include "PacketSerializer.hpp"
 #include "../../util/math/Vector3.hpp"
 #include <cstring>
 
@@ -313,21 +314,30 @@ i64 EntityMetadataSerializer::readVarLong(const u8* data, size_t size, size_t& o
 }
 
 void EntityMetadataSerializer::writeString(const String& str, std::vector<u8>& output) {
+    // 截断过长的字符串
+    size_t writeLen = std::min(str.size(), static_cast<size_t>(MAX_STRING_LENGTH));
     // 字符串长度 (VarInt)
-    writeVarInt(static_cast<i32>(str.size()), output);
+    writeVarInt(static_cast<i32>(writeLen), output);
     // 字符串内容
-    output.insert(output.end(), str.begin(), str.end());
+    output.insert(output.end(), str.begin(), str.begin() + writeLen);
 }
 
 String EntityMetadataSerializer::readString(const u8* data, size_t size, size_t& offset) {
     i32 length = readVarInt(data, size, offset);
 
+    // 验证长度
+    if (length < 0) {
+        return "";
+    }
+    if (static_cast<size_t>(length) > MAX_STRING_LENGTH) {
+        return "";  // 字符串过长，返回空字符串
+    }
     if (offset + static_cast<size_t>(length) > size) {
         return "";
     }
 
-    String result(reinterpret_cast<const char*>(data + offset), length);
-    offset += length;
+    String result(reinterpret_cast<const char*>(data + offset), static_cast<size_t>(length));
+    offset += static_cast<size_t>(length);
     return result;
 }
 

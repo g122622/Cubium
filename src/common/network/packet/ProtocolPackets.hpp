@@ -15,10 +15,11 @@ namespace mc::network {
 // ============================================================================
 
 namespace protocol {
-    // Minecraft 1.16.5 协议版本
-    constexpr i32 VERSION = 753;
-    constexpr i32 MIN_VERSION = 753;
-    constexpr i32 MAX_VERSION = 753;
+    // Minecraft 1.16.5 协议版本 (754)
+    // 注意：753 是 1.16.4，754 才是 1.16.5
+    constexpr i32 VERSION = 754;
+    constexpr i32 MIN_VERSION = 754;
+    constexpr i32 MAX_VERSION = 754;
 
     // 字符串长度限制
     constexpr size_t MAX_USERNAME_LENGTH = 16;

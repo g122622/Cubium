@@ -1,6 +1,7 @@
 ﻿#include "TcpSession.hpp"
 #include "TcpServer.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
+#include "common/core/Constants.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
@@ -92,9 +93,9 @@ void TcpSession::handleReceivedData(const u8* data, size_t size) {
             }
             m_expectedSize = sizeResult.value();
 
-            // 验证包大小
-            if (m_expectedSize > 65536) { // 64KB最大包大小
-                spdlog::error("Packet too large: {} bytes", m_expectedSize);
+            // 验证包大小（使用 Constants.hpp 中定义的 MAX_PACKET_SIZE = 2MB）
+            if (m_expectedSize > mc::network::MAX_PACKET_SIZE) {
+                spdlog::error("Packet too large: {} bytes (max: {})", m_expectedSize, mc::network::MAX_PACKET_SIZE);
                 disconnect("Packet too large");
                 return;
             }

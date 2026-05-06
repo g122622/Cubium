@@ -12,6 +12,7 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
+#include "common/core/Constants.hpp"
 #include <chrono>
 #include <spdlog/spdlog.h>
 #include "common/util/assert/AssertAll.hpp"
@@ -23,8 +24,8 @@ namespace mc::client {
 // ============================================================================
 
 namespace {
-    constexpr size_t RECEIVE_BUFFER_SIZE = 64 * 1024;  // 64KB
-    constexpr size_t MAX_PACKET_SIZE = 2 * 1024 * 1024; // 2MB
+    constexpr size_t RECEIVE_BUFFER_SIZE = 64 * 1024;  // 64KB 初始缓冲区
+    // 使用 Constants.hpp 中定义的 mc::network::MAX_PACKET_SIZE (2MB)
 }
 
 // ============================================================================
@@ -460,8 +461,8 @@ void NetworkClient::processIncomingData() {
             (static_cast<u32>(dataToProcess[offset + 2]) << 8) |
             static_cast<u32>(dataToProcess[offset + 3]);
 
-        if (packetSize > MAX_PACKET_SIZE) {
-            spdlog::error("Packet too large: {} bytes", packetSize);
+        if (packetSize > mc::network::MAX_PACKET_SIZE) {
+            spdlog::error("Packet too large: {} bytes (max: {})", packetSize, mc::network::MAX_PACKET_SIZE);
             disconnect("Invalid packet size");
             return;
         }
@@ -738,7 +739,7 @@ void NetworkClient::processPacket(const u8* data, size_t size) {
         }
 
         default:
-            spdlog::warn("Unhandled packet type: {}", static_cast<int>(packetType));
+            spdlog::error("Unhandled packet type: {}", static_cast<int>(packetType));
             break;
     }
 }

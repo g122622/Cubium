@@ -192,7 +192,7 @@ public:
     void writeVarInt(i32 value);
     void writeVarUInt(u32 value);
     void writeVarLong(i64 value);
-    void writeString(const String& value, u16 maxLength = 32767);
+    void writeString(const String& value);  // VarInt长度前缀，最大2097151字节
     void writeBytes(const u8* data, size_t size);
     std::vector<u8> buffer() const;
 };
@@ -214,7 +214,7 @@ public:
     Result<i32> readVarInt();
     Result<u32> readVarUInt();
     Result<i64> readVarLong();
-    Result<String> readString(u16 maxLength = 32767);
+    Result<String> readString();  // VarInt长度前缀，最大2097151字节
     Result<std::vector<u8>> readBytes(size_t size);
     size_t remaining() const;
 };

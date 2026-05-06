@@ -635,7 +635,8 @@ auto f = deserializer.readF32();         // 3.14f
    - 用户名最大16字符
    - 聊天消息最大256字符
    - 断开原因最大1024字符
-   - 使用 `MAX_STRING_LENGTH` (65535) 作为通用上限
+   - 使用 `MAX_STRING_LENGTH` (2097151 = 2^21-1) 作为通用上限
+   - 字符串使用 VarInt 编码长度前缀，支持大字符串（如命令树JSON）
 
 4. **数据包大小限制**
    - 区块数据最大1MB (`MAX_CHUNK_DATA_SIZE`)

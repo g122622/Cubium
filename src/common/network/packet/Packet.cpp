@@ -60,8 +60,11 @@ Result<void> KeepAlivePacket::deserialize(const u8* data, size_t size) {
 Result<std::vector<u8>> DisconnectPacket::serialize() const {
     PacketSerializer serializer;
 
-    // 先写入内容以计算大小
-    size_t contentSize = 2 + m_reason.size(); // 字符串长度(2字节) + 内容
+    // VarInt 编码的字符串长度（1-3字节）
+    const size_t strSize = std::min(m_reason.size(), static_cast<size_t>(MAX_STRING_LENGTH));
+    const size_t varIntSize = (strSize < 128) ? 1 : (strSize < 16384) ? 2 : 3;
+    const size_t contentSize = varIntSize + strSize;
+
     serializer.writeU32(static_cast<u32>(PACKET_HEADER_SIZE + contentSize)); // size
     serializer.writeU16(static_cast<u16>(m_type)); // type
     serializer.writeU16(m_flags); // flags

@@ -91,7 +91,7 @@ void OpenALSource::setBuffer(std::shared_ptr<IAudioBuffer> buffer) {
             alSourcei(m_source, AL_BUFFER, static_cast<ALint>(alBuffer->getALBuffer()));
             checkError("setBuffer");
         } else {
-            spdlog::warn("[OpenALSource] Buffer is not an OpenALBuffer");
+            spdlog::error("[OpenALSource] Buffer is not an OpenALBuffer");
         }
     } else {
         alSourcei(m_source, AL_BUFFER, 0);
@@ -101,7 +101,7 @@ void OpenALSource::setBuffer(std::shared_ptr<IAudioBuffer> buffer) {
 
 void OpenALSource::play() {
     if (!isValid()) {
-        spdlog::warn("[OpenALSource] play called on invalid source");
+        spdlog::error("[OpenALSource] play called on invalid source");
         return;
     }
 
@@ -122,7 +122,7 @@ void OpenALSource::pause() {
 
 void OpenALSource::stop() {
     if (!isValid()) {
-        spdlog::warn("[OpenALSource] stop called on invalid source");
+        spdlog::error("[OpenALSource] stop called on invalid source");
         return;
     }
 
@@ -132,7 +132,7 @@ void OpenALSource::stop() {
 
 void OpenALSource::rewind() {
     if (!isValid()) {
-        spdlog::warn("[OpenALSource] rewind called on invalid source");
+        spdlog::error("[OpenALSource] rewind called on invalid source");
         return;
     }
 
@@ -344,7 +344,7 @@ u32 OpenALSource::unqueueBuffers(AudioBufferId* buffers, size_t count) {
 
     ALenum error = alGetError();
     if (error != AL_NO_ERROR) {
-        spdlog::warn("[OpenALSource] unqueueBuffers failed: {}", alGetString(error));
+        spdlog::error("[OpenALSource] unqueueBuffers failed: {}", alGetString(error));
         return 0;
     }
 
