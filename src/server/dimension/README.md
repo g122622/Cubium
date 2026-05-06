@@ -164,6 +164,39 @@ dimension->forgetPortalPosition(portalPos);
 | `server/player/ServerPlayer` | 通过 `m_playerDimensions` 追踪玩家维度 |
 | `server/core/TeleportManager` | 处理同维度传送，维度切换由 `ServerDimensionManager` 处理 |
 
+## 维度切换包 (RespawnPacket)
+
+维度切换时发送的 `RespawnPacket` 包含以下关键数据：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `dimensionType` | i32 | 维度类型 ID（0=主世界, 1=下界, 2=末地） |
+| `dimension` | DimensionId | 维度 ID |
+| `hashedSeed` | u64 | 世界种子的 SHA-256 哈希前 8 字节 |
+| `gameMode` | GameMode | 游戏模式 |
+| `previousGameMode` | GameMode | 之前游戏模式 |
+| `isDebug` | bool | 是否调试世界 |
+| `isFlat` | bool | 是否超平坦 |
+| `keepData` | bool | 是否保留数据 |
+
+### hashedSeed 计算
+
+`hashedSeed` 是世界种子的 SHA-256 哈希值的前 8 字节，用于客户端验证世界的真实性：
+
+```cpp
+#include "common/util/crypto/Sha256.hpp"
+
+// 发送维度切换包时计算 hashedSeed
+packet.setHashedSeed(util::crypto::Sha256::hashWorldSeed(m_seed));
+```
+
+**实现细节**（参考 MC 1.16.5 `BiomeManager.func_235200_a_`）：
+1. 将世界种子（u64）以大端序转换为 8 字节
+2. 计算 SHA-256 哈希得到 32 字节
+3. 取前 8 字节以小端序解释为 u64 返回
+
+**注意**: 直接使用原始种子会导致客户端收到错误的种子哈希，可能引发协议不一致问题。
+
 ## 容易踩的坑
 
 1. **维度 ID 约定**: 主世界=0, 下界=1, 末地=2，与 MC 1.16.5 一致
