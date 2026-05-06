@@ -9,6 +9,10 @@
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
 #include "world/block/VanillaBlocks.hpp"
+#include "world/block/blocks/nether/FireBlock.hpp"
+#include "world/IWorld.hpp"
+#include "world/tick/manager/TickManager.hpp"
+#include "core/Constants.hpp"
 
 using namespace mc;
 
@@ -455,4 +459,61 @@ TEST_F(LingeringPotionItemTest, LingeringPotionIsStackable) {
     ASSERT_NE(lingeringPotion, nullptr);
     // MC 1.16.5: 滞留药水默认堆叠数为1（相同药水类型才可堆叠）
     EXPECT_EQ(lingeringPotion->maxStackSize(), 1);
+}
+
+// ============================================================================
+// FlintAndSteelItem 灵魂火测试
+// ============================================================================
+
+class FlintAndSteelSoulFireTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+};
+
+TEST_F(FlintAndSteelSoulFireTest, SoulFireBlockRegistered) {
+    Block* soulFire = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:soul_fire"));
+    ASSERT_NE(soulFire, nullptr);
+    EXPECT_EQ(soulFire->blockLocation(), ResourceLocation("minecraft:soul_fire"));
+}
+
+TEST_F(FlintAndSteelSoulFireTest, FireBlockRegistered) {
+    Block* fire = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:fire"));
+    ASSERT_NE(fire, nullptr);
+    EXPECT_EQ(fire->blockLocation(), ResourceLocation("minecraft:fire"));
+}
+
+TEST_F(FlintAndSteelSoulFireTest, SoulSandRegistered) {
+    Block* soulSand = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:soul_sand"));
+    ASSERT_NE(soulSand, nullptr);
+    EXPECT_EQ(soulSand->blockLocation(), ResourceLocation("minecraft:soul_sand"));
+}
+
+TEST_F(FlintAndSteelSoulFireTest, SoulSoilRegistered) {
+    Block* soulSoil = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:soul_soil"));
+    ASSERT_NE(soulSoil, nullptr);
+    EXPECT_EQ(soulSoil->blockLocation(), ResourceLocation("minecraft:soul_soil"));
+}
+
+TEST_F(FlintAndSteelSoulFireTest, SoulFireBaseBlocksTagContainsSoulSand) {
+    ASSERT_NE(VanillaBlocks::SOUL_SAND, nullptr);
+    EXPECT_TRUE(BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(VanillaBlocks::SOUL_SAND));
+}
+
+TEST_F(FlintAndSteelSoulFireTest, SoulFireBaseBlocksTagContainsSoulSoil) {
+    ASSERT_NE(VanillaBlocks::SOUL_SOIL, nullptr);
+    EXPECT_TRUE(BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(VanillaBlocks::SOUL_SOIL));
+}
+
+TEST_F(FlintAndSteelSoulFireTest, SoulFireBaseBlocksTagDoesNotContainOtherBlocks) {
+    // 普通方块不应在灵魂火基座标签中
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+    ASSERT_NE(VanillaBlocks::DIRT, nullptr);
+    ASSERT_NE(VanillaBlocks::GRASS_BLOCK, nullptr);
+
+    EXPECT_FALSE(BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(VanillaBlocks::STONE));
+    EXPECT_FALSE(BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(VanillaBlocks::DIRT));
+    EXPECT_FALSE(BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(VanillaBlocks::GRASS_BLOCK));
 }

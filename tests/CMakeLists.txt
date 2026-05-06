@@ -79,6 +79,7 @@ add_executable(mc_tests
     common/world/block/WaterLoggableTest.cpp
     common/world/block/blocks/HopperBlockTest.cpp
     common/world/block/blocks/IceBlockTest.cpp
+    common/world/block/blocks/SoulFireBlockTest.cpp
     common/world/block/blocks/VegetationBlockTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp

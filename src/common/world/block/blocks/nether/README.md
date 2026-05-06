@@ -27,6 +27,35 @@ nether/
 3. 可以蔓延到周围可燃方块
 4. 检查周围是否有可燃物
 
+### 灵魂火系统
+
+**灵魂火特性**：
+- 只能在灵魂沙（soul_sand）或灵魂土（soul_soil）上方存在
+- 伤害更高（2点，普通火为1点）
+- 光照等级较低（10，普通火为15）
+- 不会蔓延燃烧其他方块
+
+**放置逻辑**：
+1. `FlintAndSteelItem::getFireForPlacement()` 检查目标位置下方方块
+2. 如果下方方块在 `BlockTags::SOUL_FIRE_BASE_BLOCKS()` 标签中，返回 `SOUL_FIRE`
+3. 否则返回普通 `FIRE`
+
+**灵魂火基座方块**（`SOUL_FIRE_BASE_BLOCKS` 标签）：
+- `minecraft:soul_sand` - 灵魂沙
+- `minecraft:soul_soil` - 灵魂土
+
+**关键方法**：
+```cpp
+// 检查方块是否可作为灵魂火基座
+bool SoulFireBlock::isSoulFireBase(const Block* block);
+
+// 检查灵魂火是否可以放置在指定位置
+bool SoulFireBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const;
+
+// 当下方不再是灵魂基座时移除火焰
+BlockState SoulFireBlock::updatePostPlacement(...);
+```
+
 ### 下界传送门
 1. 由黑曜石框架组成
 2. 通过点火激活
@@ -57,6 +86,18 @@ auto soulFire = std::make_unique<SoulFireBlock>(
         .lightLevel(10)
 );
 
+// 检查是否可放置灵魂火
+const BlockState* belowState = world.getBlockState(pos.down());
+if (SoulFireBlock::isSoulFireBase(belowState->getBlock())) {
+    // 可以放置灵魂火
+    world.setBlockState(pos, &VanillaBlocks::SOUL_FIRE->defaultState(), 11);
+}
+
+// 检查方块是否在灵魂火基座标签中
+if (BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(*belowState)) {
+    // 方块是灵魂沙或灵魂土
+}
+
 // 创建下界传送门
 auto portal = std::make_unique<NetherPortalBlock>(
     BlockProperties(Materials::PORTAL)
@@ -79,5 +120,16 @@ auto netherWart = std::make_unique<NetherWartBlock>(
 |------|------|
 | `world/block/Block` | 方块基类 |
 | `world/block/Material` | 材质系统 |
+| `world/block/BlockTags` | 方块标签系统 |
 | `world/IWorld` | 世界接口 |
 | `util/property/Properties` | 方块属性 |
+
+## 测试
+
+测试文件：`tests/common/world/block/blocks/SoulFireBlockTest.cpp`
+
+测试覆盖：
+- `SOUL_FIRE_BASE_BLOCKS` 标签包含 `soul_sand` 和 `soul_soil`
+- `SoulFireBlock::isSoulFireBase()` 方法
+- `SoulFireBlock::isValidPosition()` 在不同基座上的行为
+- `FIRE` 标签包含普通火和灵魂火

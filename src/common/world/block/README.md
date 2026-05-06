@@ -328,6 +328,7 @@ const fluid::FluidState* getFluidState(const BlockState& state) const {
 - **自然方块扩展**：CLAY, MYCELIUM, GRASS_PATH, PACKED_ICE, SLIME_BLOCK, CACTUS, DEAD_BUSH, LILY_PAD, VINE, COBWEB, SUGAR_CANE
 - **海洋方块扩展**：SEA_PICKLE, KELP, KELP_PLANT, SEAGRASS, TALL_SEAGRASS，并补齐 BUBBLE_COLUMN、TURTLE_EGG
 - **珊瑚方块扩展**：TUBE/BRAIN/BUBBLE/FIRE/HORN 的 coral_block、coral_fan、coral_wall_fan，并补齐 dead_* 对应 block/fan/wall_fan
+- **火焰方块**：FIRE（普通火）, SOUL_FIRE（灵魂火）
 
 **使用方法**：
 ```cpp
@@ -338,6 +339,52 @@ VanillaBlocks::initialize();
 Block* stone = VanillaBlocks::STONE;
 const BlockState& state = stone->defaultState();
 ```
+
+### BlockTags.hpp/cpp
+
+**职责**：方块标签系统，用于将方块分组以便功能判断。
+
+**主要标签**：
+| 标签 | 说明 | 包含方块 |
+|------|------|----------|
+| `LOGS()` | 所有原木 | 各类原木和木头 |
+| `LEAVES()` | 所有树叶 | 各类树叶 |
+| `PLANKS()` | 所有木板 | 各类木板 |
+| `DIRT()` | 泥土类 | dirt, grass_block, podzol, coarse_dirt, mycelium, farmland |
+| `SAND()` | 沙子类 | sand, red_sand, soul_sand |
+| `STONE()` | 石头类 | stone, granite, diorite, andesite 及其磨制变种 |
+| `FIRE()` | 火焰类 | fire, soul_fire |
+| `WOOL()` | 羊毛类 | 16色羊毛 |
+| `SOUL_FIRE_BASE_BLOCKS()` | 灵魂火基座 | soul_sand, soul_soil |
+| `BAMBOO_PLANTABLE_ON()` | 竹子可种植 | grass_block, dirt, sand 等 |
+| 原木子标签 | 各类原木 | OAK_LOGS, SPRUCE_LOGS, BIRCH_LOGS 等 |
+
+**使用示例**：
+```cpp
+#include "world/block/BlockTags.hpp"
+
+// 检查方块是否在标签中
+const BlockState* state = world.getBlockState(pos);
+if (BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(*state)) {
+    // 方块是灵魂沙或灵魂土，可以放置灵魂火
+}
+
+// 检查方块指针
+if (BlockTags::LOGS().contains(VanillaBlocks::OAK_LOG)) {
+    // 橡木原木是原木
+}
+
+// 检查资源位置
+if (BlockTags::WOOL().contains(ResourceLocation("minecraft:red_wool"))) {
+    // 红色羊毛是羊毛
+}
+```
+
+**灵魂火系统**：
+- `SOUL_FIRE_BASE_BLOCKS` 标签包含 `soul_sand` 和 `soul_soil`
+- `SoulFireBlock::isSoulFireBase()` 静态方法检查方块是否可放置灵魂火
+- `FlintAndSteelItem::getFireForPlacement()` 根据下方方块返回普通火或灵魂火
+- 灵魂火只能在灵魂沙/灵魂土上方存在
 
 ### blocks/ 子目录
 
