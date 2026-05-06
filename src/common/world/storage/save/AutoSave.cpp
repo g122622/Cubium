@@ -148,7 +148,7 @@ bool AutoSave::shouldSave(u64 tickCount) const
 
 Result<size_t> AutoSave::doSave(bool createSnapshot, const std::string& snapshotName)
 {
-    MC_TRACE_EVENT("storage.save", "AutoSave::doSave");
+    MC_TRACE_EVENT("storage.task.save", "AutoSave::doSave");
 
     AutoSaveConfig config;
     {

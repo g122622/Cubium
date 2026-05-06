@@ -282,7 +282,7 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
     ITask* taskPtr = task->task.get();
 
     // 追踪事件
-    MC_TRACE_EVENT(task->task->traceCategory(), "ExecuteTask",
+    MC_TRACE_EVENT("worker_pool", "ExecuteTask",
         "type", static_cast<u8>(task->task->type()),
         "description", task->task->description(),
         "priority", static_cast<i8>(task->priority));

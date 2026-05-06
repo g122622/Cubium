@@ -744,6 +744,8 @@ void MinecraftServer::sendWeatherUpdate()
 
 void MinecraftServer::sendInitialWeatherStateToPlayer(PlayerId playerId)
 {
+    MC_TRACE_EVENT("server.player", "SendInitialWeatherState", "phase", "weather_sync");
+
     if (!m_world || !m_world->weatherManager()) return;
 
     auto& weatherMgr = *m_world->weatherManager();
@@ -773,6 +775,8 @@ void MinecraftServer::sendInitialWeatherStateToPlayer(PlayerId playerId)
 
 void MinecraftServer::sendInitialDifficultyToPlayer(PlayerId playerId)
 {
+    MC_TRACE_EVENT("server.player", "SendInitialDifficulty", "phase", "difficulty_sync");
+
     auto fullPacket = serializeDifficultyPacket();
     if (fullPacket.empty()) {
         spdlog::error("Failed to serialize ServerDifficultyPacket for player {}", playerId);
@@ -784,6 +788,8 @@ void MinecraftServer::sendInitialDifficultyToPlayer(PlayerId playerId)
 
 void MinecraftServer::sendKeepAliveToAll()
 {
+    MC_TRACE_EVENT("server.player", "SendKeepAlive", "phase", "keepalive_sync");
+
     u64 timestamp = util::TimeUtils::getCurrentTimeMs();
     u64 tick = currentTick();
 
@@ -804,6 +810,8 @@ void MinecraftServer::sendKeepAliveToAll()
 
 void MinecraftServer::setWorld(std::unique_ptr<ServerWorld> world)
 {
+    MC_TRACE_EVENT("server.world", "SetWorld", "phase", "world_init");
+
     m_world = std::move(world);
     if (m_world) {
         if (m_world->chunkManager()) {
@@ -1286,7 +1294,7 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
     const u8* payload = data + network::PACKET_HEADER_SIZE;
     size_t payloadSize = size - network::PACKET_HEADER_SIZE;
 
-    MC_TRACE_EVENT("server.network", "DispatchPacket",
+    MC_TRACE_EVENT("server.network", "DispatchPacketToHandler",
                    "sessionId", sessionId,
                    "packetType", static_cast<int>(packetType),
                    "payloadSize", payloadSize);

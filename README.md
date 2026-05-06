@@ -25,7 +25,7 @@
 
 ```powershell
 # 设置 vcpkg 环境变量
-$env:VCPKG_ROOT = "D:\tools\vcpkg"
+$env:VCPKG_ROOT = "D:\tools\vcpkg" #  改成你自己的 vcpkg 路径
 
 # 配置项目
 cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake # Windows

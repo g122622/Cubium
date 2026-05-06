@@ -182,7 +182,9 @@ PERFETTO_DEFINE_CATEGORIES(
     perfetto::Category("storage.task.save")
         .SetDescription("Section保存任务"),
     perfetto::Category("storage.task.flush")
-        .SetDescription("批量刷盘任务")
+        .SetDescription("批量刷盘任务"),
+    perfetto::Category("storage.task.snapshot")
+        .SetDescription("存储快照任务")
 );
 
 #if defined(_MSC_VER)

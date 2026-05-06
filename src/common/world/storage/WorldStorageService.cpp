@@ -90,7 +90,7 @@ void WorldStorageService::setIoWorkerPool(util::ServerWorkerPool* workerPool)
 Result<void> WorldStorageService::open(const std::filesystem::path& worldPath,
                                         const WorldStorageConfig& config)
 {
-    MC_TRACE_EVENT("storage", "WorldStorageService::open",
+    MC_TRACE_EVENT("server.world", "WorldStorageService::open",
                    "path", worldPath.string());
 
     if (isOpen()) {
@@ -167,7 +167,7 @@ void WorldStorageService::close()
         return;
     }
 
-    MC_TRACE_EVENT("storage", "WorldStorageService::close");
+    MC_TRACE_EVENT("server.world", "WorldStorageService::close");
 
     // 1. 刷新所有脏数据
     auto flushResult = flushAllDirty();
@@ -202,7 +202,7 @@ void WorldStorageService::close()
 
 Result<size_t> WorldStorageService::flushAllDirty()
 {
-    MC_TRACE_EVENT("storage", "WorldStorageService::flushAllDirty");
+    MC_TRACE_EVENT("server.world", "WorldStorageService::flushAllDirty");
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -228,7 +228,7 @@ Result<size_t> WorldStorageService::flushAllDirty()
 
 Result<size_t> WorldStorageService::saveAll()
 {
-    MC_TRACE_EVENT("storage", "WorldStorageService::saveAll");
+    MC_TRACE_EVENT("server.world", "WorldStorageService::saveAll");
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -302,7 +302,7 @@ bool WorldStorageService::hasSectionManager(DimensionId dimension) const
 
 SectionManager* WorldStorageService::createSectionManager(DimensionId dimension)
 {
-    MC_TRACE_EVENT("storage", "WorldStorageService::createSectionManager",
+    MC_TRACE_EVENT("server.world", "WorldStorageService::createSectionManager",
                    "dimension", static_cast<i32>(dimension));
 
     SectionManager::Config config;

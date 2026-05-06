@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "common/perfetto/PerfettoManager.hpp"
+
 #ifdef _WIN32
     #include <Windows.h>
     #include <DbgHelp.h>
@@ -220,6 +222,10 @@ String AssertManager::captureStackTrace() const {
 
     std::cerr << "========================================\n";
     std::cerr << std::flush;
+
+    mc::perfetto::PerfettoManager::instance().stopTracing();
+    mc::perfetto::PerfettoManager::instance().shutdown();
+    std::cout << "Perfetto tracing stopped due to assertion failure" << std::endl;
 
     std::abort();
 }

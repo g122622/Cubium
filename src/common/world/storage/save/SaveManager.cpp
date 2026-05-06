@@ -107,7 +107,7 @@ std::vector<SectionKey> SaveManager::getDirtyKeys() const
 
 Result<size_t> SaveManager::saveNow()
 {
-    MC_TRACE_EVENT("storage.save", "SaveManager::saveNow");
+    MC_TRACE_EVENT("storage.task.save", "SaveManager::saveNow");
 
     if (!m_storage.isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -124,7 +124,7 @@ Result<size_t> SaveManager::saveNow()
 
 Result<size_t> SaveManager::saveNowWithSnapshot(const std::string& snapshotName)
 {
-    MC_TRACE_EVENT("storage.save", "SaveManager::saveNowWithSnapshot");
+    MC_TRACE_EVENT("storage.task.save", "SaveManager::saveNowWithSnapshot");
 
     if (!m_storage.isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -143,7 +143,7 @@ Result<size_t> SaveManager::saveNowWithSnapshot(const std::string& snapshotName)
 
 Result<size_t> SaveManager::saveAll()
 {
-    MC_TRACE_EVENT("storage.save", "SaveManager::saveAll");
+    MC_TRACE_EVENT("storage.task.save", "SaveManager::saveAll");
 
     if (!m_storage.isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");

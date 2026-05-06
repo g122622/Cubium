@@ -35,7 +35,7 @@ BackupManager& BackupManager::operator=(BackupManager&&) noexcept = default;
 
 Result<std::unique_ptr<BackupManager>> BackupManager::open(const std::filesystem::path& backupDir)
 {
-    MC_TRACE_EVENT("storage.snapshot", "BackupManager::open",
+    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::open",
                    "path", backupDir.string());
 
     // 创建备份目录
@@ -72,7 +72,7 @@ Result<BackupID> BackupManager::createBackup(RocksDBDatabase& db,
                                               const std::string& name,
                                               const std::string& description)
 {
-    MC_TRACE_EVENT("storage.snapshot", "BackupManager::createBackup",
+    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::createBackup",
                    "name", name);
 
     if (!m_impl->engine) {
@@ -173,7 +173,7 @@ Result<std::vector<SnapshotMetadata>> BackupManager::listBackups()
 Result<void> BackupManager::restoreBackup(BackupID id,
                                             const std::filesystem::path& targetDir)
 {
-    MC_TRACE_EVENT("storage.snapshot", "BackupManager::restoreBackup",
+    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::restoreBackup",
                    "id", id, "target", targetDir.string());
 
     if (!m_impl->engine) {
@@ -215,7 +215,7 @@ Result<void> BackupManager::restoreBackup(BackupID id,
 
 Result<void> BackupManager::deleteBackup(BackupID id)
 {
-    MC_TRACE_EVENT("storage.snapshot", "BackupManager::deleteBackup",
+    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::deleteBackup",
                    "id", id);
 
     if (!m_impl->engine) {
@@ -235,7 +235,7 @@ Result<void> BackupManager::deleteBackup(BackupID id)
 
 Result<size_t> BackupManager::pruneOldBackups(size_t keepCount)
 {
-    MC_TRACE_EVENT("storage.snapshot", "BackupManager::pruneOldBackups",
+    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::pruneOldBackups",
                    "keepCount", keepCount);
 
     if (!m_impl->engine) {
@@ -267,7 +267,7 @@ Result<size_t> BackupManager::pruneOldBackups(size_t keepCount)
 
 Result<bool> BackupManager::verifyBackup(BackupID id)
 {
-    MC_TRACE_EVENT("storage.snapshot", "BackupManager::verifyBackup",
+    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::verifyBackup",
                    "id", id);
 
     if (!m_impl->engine) {

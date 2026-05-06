@@ -41,7 +41,7 @@ StorageTask::StorageTask(StorageTaskType type, std::string description, const ch
 
 bool StorageTask::execute(const std::atomic<bool>& cancelSignal)
 {
-    MC_TRACE_EVENT(m_traceCategory, "StorageTask::execute", "description", m_description);
+    MC_TRACE_EVENT("storage.task", "StorageTask::execute", "description", m_description);
     return m_executor ? m_executor(cancelSignal) : false;
 }
 
