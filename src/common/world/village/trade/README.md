@@ -57,12 +57,40 @@ offers.restockAll();
 offers.updatePrices(0.8f);  // 20%折扣
 ```
 
+## NBT 序列化
+
+MerchantOffer 支持 NBT 序列化，格式参考 MC 1.16.5：
+
+| NBT 键 | 类型 | 说明 |
+|--------|------|------|
+| `buy` | Compound | 第一买入物品 |
+| `buyB` | Compound | 第二买入物品（可选） |
+| `sell` | Compound | 卖出物品 |
+| `uses` | Int | 已使用次数 |
+| `maxUses` | Int | 最大使用次数 |
+| `xp` | Int | 交易经验 |
+| `priceMultiplier` | Float | 价格乘数 |
+| `specialPrice` | Int | 特殊价格修正 |
+| `demand` | Int | 需求修正 |
+| `restocksToday` | Int | 今日补货次数 |
+| `lastRestock` | Long | 上次补货时间 |
+
+```cpp
+// 序列化
+nbt::tags::compound_tag tag;
+offer.serialize(tag);
+
+// 反序列化
+MerchantOffer offer = MerchantOffer::deserialize(tag);
+```
+
 ## 交易价格计算
 
-最终价格 = 基础价格 × 声誉修正 × 价格乘数 + 需求调整
+最终价格 = 基础价格 + 特殊价格修正
 
-- 声誉修正：0.5（完全信任）~ 1.5（完全不信任）
-- 需求调整：频繁交易同一物品会提高价格
+- `getAdjustedBuyPrice()` - 获取调整后的买入价格
+- `setSpecialPrice(price)` - 设置特殊价格修正（来自流言）
+- `applyDemand(demandBonus)` - 应用需求调整
 
 ## 与MC Java对齐
 

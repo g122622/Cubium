@@ -303,6 +303,8 @@ add_executable(mc_tests
     # 存储系统测试
     common/world/storage/SectionCodecTest.cpp
     common/world/storage/WorldStorageServiceTest.cpp
+    # 村庄交易系统测试
+    common/world/village/trade/MerchantOfferTest.cpp
 )
 
 # 娣诲姞鏈嶅姟绔簮鏂囦欢

@@ -183,50 +183,107 @@ i32 MerchantOffer::getAdjustedBuyPrice() const {
 
 void MerchantOffer::serialize(nbt::tags::compound_tag& tag) const {
     // 序列化买入物品A
-    // TODO: ItemStack序列化需要使用JSON或NBT格式
-    // 暂时使用简化格式
     nbt::tags::compound_tag buyATag;
-    // m_buyA.serialize(buyATag); // 需要ItemStack支持NBT序列化
-    tag.value["BuyA"] = std::make_unique<nbt::tags::compound_tag>(std::move(buyATag));
+    m_buyA.toNbt(buyATag);
+    tag.value["buy"] = std::make_unique<nbt::tags::compound_tag>(std::move(buyATag));
 
     // 序列化买入物品B（如果有）
     if (m_buyB.has_value()) {
         nbt::tags::compound_tag buyBTag;
-        // m_buyB->serialize(buyBTag);
-        tag.value["BuyB"] = std::make_unique<nbt::tags::compound_tag>(std::move(buyBTag));
+        m_buyB->toNbt(buyBTag);
+        tag.value["buyB"] = std::make_unique<nbt::tags::compound_tag>(std::move(buyBTag));
     }
 
     // 序列化卖出物品
     nbt::tags::compound_tag sellTag;
-    // m_sell.serialize(sellTag);
-    tag.value["Sell"] = std::make_unique<nbt::tags::compound_tag>(std::move(sellTag));
+    m_sell.toNbt(sellTag);
+    tag.value["sell"] = std::make_unique<nbt::tags::compound_tag>(std::move(sellTag));
 
-    tag.put("Uses", static_cast<std::int32_t>(m_uses));
-    tag.put("MaxUses", static_cast<std::int32_t>(m_maxUses));
-    tag.put("Xp", static_cast<std::int32_t>(m_xp));
-    tag.put("PriceMultiplier", static_cast<float>(m_priceMultiplier));
-    tag.put("SpecialPrice", static_cast<std::int32_t>(m_specialPrice));
-    tag.put("Demand", static_cast<std::int32_t>(m_demand));
-    tag.put("RestocksToday", static_cast<std::int32_t>(m_restocksToday));
-    tag.put("LastRestockTime", static_cast<std::int64_t>(m_lastRestockTime));
+    // 序列化基础数值字段（MC 1.16.5 NBT 键名）
+    tag.put("uses", static_cast<std::int32_t>(m_uses));
+    tag.put("maxUses", static_cast<std::int32_t>(m_maxUses));
+    tag.put("xp", static_cast<std::int32_t>(m_xp));
+    tag.put("priceMultiplier", static_cast<float>(m_priceMultiplier));
+    tag.put("specialPrice", static_cast<std::int32_t>(m_specialPrice));
+    tag.put("demand", static_cast<std::int32_t>(m_demand));
+    tag.put("restocksToday", static_cast<std::int32_t>(m_restocksToday));
+    tag.put("lastRestock", static_cast<std::int64_t>(m_lastRestockTime));
 }
 
 MerchantOffer MerchantOffer::deserialize(const nbt::tags::compound_tag& tag) {
     MerchantOffer offer;
 
-    // TODO: ItemStack反序列化
-    // 暂时创建空ItemStack
-    offer.m_buyA = ItemStack();
-    offer.m_sell = ItemStack();
+    // 反序列化买入物品A
+    auto buyAIt = tag.value.find("buy");
+    if (buyAIt != tag.value.end() && buyAIt->second->id() == nbt::TagId::Compound) {
+        auto& buyATag = dynamic_cast<const nbt::tags::compound_tag&>(*buyAIt->second);
+        auto buyAResult = ItemStack::fromNbt(buyATag);
+        if (buyAResult.success()) {
+            offer.m_buyA = buyAResult.value();
+        }
+    }
 
-    offer.m_uses = tag.get<nbt::tags::int_tag>("Uses");
-    offer.m_maxUses = tag.get<nbt::tags::int_tag>("MaxUses");
-    offer.m_xp = tag.get<nbt::tags::int_tag>("Xp");
-    offer.m_priceMultiplier = tag.get<nbt::tags::float_tag>("PriceMultiplier");
-    offer.m_specialPrice = tag.get<nbt::tags::int_tag>("SpecialPrice");
-    offer.m_demand = tag.get<nbt::tags::int_tag>("Demand");
-    offer.m_restocksToday = tag.get<nbt::tags::int_tag>("RestocksToday");
-    offer.m_lastRestockTime = tag.get<nbt::tags::long_tag>("LastRestockTime");
+    // 反序列化买入物品B（可选）
+    auto buyBIt = tag.value.find("buyB");
+    if (buyBIt != tag.value.end() && buyBIt->second->id() == nbt::TagId::Compound) {
+        auto& buyBTag = dynamic_cast<const nbt::tags::compound_tag&>(*buyBIt->second);
+        auto buyBResult = ItemStack::fromNbt(buyBTag);
+        if (buyBResult.success()) {
+            offer.m_buyB = buyBResult.value();
+        }
+    }
+
+    // 反序列化卖出物品
+    auto sellIt = tag.value.find("sell");
+    if (sellIt != tag.value.end() && sellIt->second->id() == nbt::TagId::Compound) {
+        auto& sellTag = dynamic_cast<const nbt::tags::compound_tag&>(*sellIt->second);
+        auto sellResult = ItemStack::fromNbt(sellTag);
+        if (sellResult.success()) {
+            offer.m_sell = sellResult.value();
+        }
+    }
+
+    // 反序列化数值字段（MC 1.16.5 NBT 键名，小写）
+    auto getOptionalInt = [&tag](const String& key, i32 defaultValue) -> i32 {
+        auto it = tag.value.find(key);
+        if (it != tag.value.end()) {
+            if (it->second->id() == nbt::TagId::Int) {
+                return dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+            }
+        }
+        return defaultValue;
+    };
+
+    auto getOptionalFloat = [&tag](const String& key, f32 defaultValue) -> f32 {
+        auto it = tag.value.find(key);
+        if (it != tag.value.end()) {
+            if (it->second->id() == nbt::TagId::Float) {
+                return dynamic_cast<const nbt::tags::float_tag&>(*it->second).value;
+            } else if (it->second->id() == nbt::TagId::Double) {
+                return static_cast<f32>(dynamic_cast<const nbt::tags::double_tag&>(*it->second).value);
+            }
+        }
+        return defaultValue;
+    };
+
+    auto getOptionalLong = [&tag](const String& key, i64 defaultValue) -> i64 {
+        auto it = tag.value.find(key);
+        if (it != tag.value.end()) {
+            if (it->second->id() == nbt::TagId::Long) {
+                return dynamic_cast<const nbt::tags::long_tag&>(*it->second).value;
+            }
+        }
+        return defaultValue;
+    };
+
+    offer.m_uses = getOptionalInt("uses", 0);
+    offer.m_maxUses = getOptionalInt("maxUses", 12);
+    offer.m_xp = getOptionalInt("xp", 0);
+    offer.m_priceMultiplier = getOptionalFloat("priceMultiplier", 1.0f);
+    offer.m_specialPrice = getOptionalInt("specialPrice", 0);
+    offer.m_demand = getOptionalInt("demand", 0);
+    offer.m_restocksToday = getOptionalInt("restocksToday", 0);
+    offer.m_lastRestockTime = getOptionalLong("lastRestock", 0);
 
     return offer;
 }
