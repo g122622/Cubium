@@ -444,6 +444,14 @@ auto waterBlock = std::make_unique<LiquidBlock>(
 - 创建`EnchantingTableEntity`方块实体
 - 支持书架增强附魔力量
 - 特殊形状和遮挡
+- **客户端/服务端分流**：客户端直接返回Success，服务端打开附魔台GUI
+- **容器打开**：通过`IWorld::openContainer(ContainerType::Enchantment, pos, player)`进入统一菜单入口
+
+**交互逻辑**:
+1. 客户端调用`onBlockActivated()`直接返回`ActionResultType::Success`
+2. 服务端检查方块实体是否存在且类型正确
+3. 服务端调用`openContainer()`打开附魔台GUI
+4. 成功打开返回`ActionResultType::Consume`，失败返回`ActionResultType::Pass`
 
 **附魔力量计算**:
 - 有效书架：距离附魔台水平2格，垂直0-1格
@@ -703,6 +711,23 @@ block.setDefaultState(block.withAxis(block.defaultState(), Axis::Y));
 | `BlockItemTest.RegistryMapsStoneBlockItem` | 方块物品映射测试 |
 | `BlockItemTest.CreativeInventoryGetsRegisteredBlockItems` | 创造模式物品栏测试 |
 | `BlockItemTest.PlacementContextUsesAdjacentPosForSolidBlock` | 放置上下文测试 |
+
+### EnchantingTableBlockTest.cpp
+
+| 测试用例 | 覆盖内容 |
+|----------|----------|
+| `EnchantingTableBlockTest.Create_HasCorrectProperties` | 方块创建和属性测试 |
+| `EnchantingTableBlockTest.HasBlockEntity_ReturnsTrue` | 方块实体支持测试 |
+| `EnchantingTableBlockTest.GetBlockEntityType_ReturnsCorrectType` | 方块实体类型测试 |
+| `EnchantingTableBlockTest.GetShape_ReturnsValidShape` | 碰撞形状测试 |
+| `EnchantingTableBlockTest.GetOcclusionShape_CanBeEmpty` | 遮挡形状测试 |
+| `EnchantingTableBlockTest.GetPushReaction_ReturnsBlock` | 活塞推动反应测试 |
+| `EnchantingTableBlockTest.CreateBlockEntity_ReturnsEnchantingTableEntity` | 方块实体创建测试 |
+| `EnchantingTableBlockInteractionTest.OnBlockActivated_ClientSide_ReturnsSuccess` | 客户端交互返回Success |
+| `EnchantingTableBlockInteractionTest.OnBlockActivated_ServerSide_OpensContainer` | 服务端打开容器测试 |
+| `EnchantingTableBlockInteractionTest.OnBlockActivated_NoBlockEntity_ReturnsPass` | 无方块实体返回Pass |
+| `EnchantingTableBlockInteractionTest.OnBlockActivated_WrongBlockEntityType_ReturnsPass` | 错误实体类型返回Pass |
+| `EnchantingTableBlockInteractionTest.OnBlockActivated_OffHand_SameBehavior` | 副手交互测试 |
 
 ### 运行测试
 
