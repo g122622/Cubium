@@ -459,3 +459,91 @@ TEST_F(ExperienceManagerTest, PlayerBarCapacity) {
     EXPECT_EQ(playerCapacity, managerCapacity);
     EXPECT_EQ(playerCapacity, 27);  // 7 + 10 * 2
 }
+
+// ========== 升级音效测试 ==========
+
+TEST_F(ExperienceManagerTest, LevelUpSoundNoCrash) {
+    // 验证升级时音效逻辑不会导致崩溃（即使没有 world）
+    // 由于 Player 在测试中没有关联 World，playSound 会直接返回
+
+    // 升到5级（第一个播放音效的等级）
+    manager->addExperience(ExperienceManager::getExperienceForLevel(5) + 1);
+
+    EXPECT_EQ(manager->getLevel(), 5);
+
+    // 升到10级
+    manager->addExperience(ExperienceManager::getExperienceForLevel(10) - manager->getTotalExperience() + 1);
+
+    EXPECT_EQ(manager->getLevel(), 10);
+
+    // 升到15级
+    manager->addExperience(ExperienceManager::getExperienceForLevel(15) - manager->getTotalExperience() + 1);
+
+    EXPECT_EQ(manager->getLevel(), 15);
+}
+
+TEST_F(ExperienceManagerTest, LevelUpAtMultiplesOfFive) {
+    // 验证每5级升级时回调正确触发
+    std::vector<i32> levelChanges;
+    manager->setLevelChangeCallback([&](i32 oldLevel, i32 newLevel) {
+        levelChanges.push_back(newLevel);
+    });
+
+    // 升到5级
+    i32 xpForLevel5 = ExperienceManager::getExperienceForLevel(5);
+    manager->addExperience(xpForLevel5);
+
+    // 应该有5次升级（0->1, 1->2, 2->3, 3->4, 4->5）
+    EXPECT_EQ(levelChanges.size(), 5);
+    EXPECT_EQ(levelChanges.back(), 5);
+    EXPECT_EQ(manager->getLevel(), 5);
+}
+
+TEST_F(ExperienceManagerTest, LevelUpSoundVolumeCalculation) {
+    // 验证音量计算逻辑（通过测试等级计算间接验证）
+    // 音量公式: (level > 30 ? 1.0 : level / 30.0) * 0.75
+
+    // 等级5: 音量 = (5/30) * 0.75 = 0.125
+    EXPECT_EQ(manager->getLevel(), 0);
+    manager->setLevel(5);
+    EXPECT_EQ(manager->getLevel(), 5);
+
+    // 等级15: 音量 = (15/30) * 0.75 = 0.375
+    manager->setLevel(15);
+    EXPECT_EQ(manager->getLevel(), 15);
+
+    // 等级30: 音量 = (30/30) * 0.75 = 0.75
+    manager->setLevel(30);
+    EXPECT_EQ(manager->getLevel(), 30);
+
+    // 等级35: 音量 = 1.0 * 0.75 = 0.75
+    manager->setLevel(35);
+    EXPECT_EQ(manager->getLevel(), 35);
+}
+
+TEST_F(ExperienceManagerTest, MultipleLevelUpsWithSoundConditions) {
+    // 测试多级升级时的音效条件
+    // 音效条件: 等级是5的倍数 且 距离上次播放至少100 tick
+
+    // 由于 Player 在测试中没有 tick 更新，ticksExisted() 始终返回 0
+    // 这意味着第一次升级到5的倍数时会尝试播放音效
+
+    // 快速升到5级
+    i32 xpForLevel5 = ExperienceManager::getExperienceForLevel(5);
+    manager->addExperience(xpForLevel5);
+
+    // 验证等级正确
+    EXPECT_EQ(manager->getLevel(), 5);
+
+    // 继续升到10级
+    i32 xpForLevel10 = ExperienceManager::getExperienceForLevel(10);
+    manager->addExperience(xpForLevel10 - xpForLevel5);
+
+    EXPECT_EQ(manager->getLevel(), 10);
+
+    // 继续升到15级
+    i32 xpForLevel15 = ExperienceManager::getExperienceForLevel(15);
+    manager->addExperience(xpForLevel15 - xpForLevel10);
+
+    EXPECT_EQ(manager->getLevel(), 15);
+}

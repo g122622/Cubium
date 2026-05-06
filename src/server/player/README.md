@@ -78,6 +78,12 @@ private:
 - `setExperienceLevel()` - 设置经验等级并同步
 - `consumeExperience()` - 消耗经验并同步
 
+**升级音效**: 当玩家升级时，ExperienceManager 会自动播放升级音效：
+- 音效事件: `entity.player.levelup`
+- 触发条件: 等级是 5 的倍数（5, 10, 15...）且距离上次播放至少 100 tick
+- 音量: `(level > 30 ? 1.0 : level / 30.0) * 0.75`
+- 实现: `ExperienceManager::handleLevelUp()` 通过 `Player::playSound()` 播放
+
 #### 睡眠系统
 - `trySleep()` - 尝试在床上睡眠
 - `stopSleepInBed()` - 停止睡眠
