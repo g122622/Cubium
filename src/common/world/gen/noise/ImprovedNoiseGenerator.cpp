@@ -134,7 +134,7 @@ f32 ImprovedNoiseGenerator::noiseRaw(i32 x, i32 y, i32 z,
     const f32 n111 = grad(getPermut(j3 + z + 1), deltaX - 1.0f, deltaY - 1.0f, deltaZ - 1.0f);
 
     // 三线性插值
-    return lerp3(fadeX, fadeY, fadeZ, n000, n100, n010, n110, n001, n101, n011, n111);
+    return math::lerp3(fadeX, fadeY, fadeZ, n000, n100, n010, n110, n001, n101, n011, n111);
 }
 
 // ============================================================================
@@ -146,28 +146,6 @@ f32 ImprovedNoiseGenerator::grad(i32 hash, f32 x, f32 y, f32 z)
     const i32 h = hash & 15;
     const f32* gradVec = PERLIN_GRADIENTS[h];
     return gradVec[0] * x + gradVec[1] * y + gradVec[2] * z;
-}
-
-// ============================================================================
-// 插值函数 TODO：移到 mathutils 中
-// ============================================================================
-
-f32 ImprovedNoiseGenerator::lerp3(f32 t1, f32 t2, f32 t3,
-                                   f32 v0, f32 v1, f32 v2, f32 v3,
-                                   f32 v4, f32 v5, f32 v6, f32 v7)
-{
-    // 沿 X 轴插值
-    const f32 i0 = lerp(v0, v1, t1);
-    const f32 i1 = lerp(v2, v3, t1);
-    const f32 i2 = lerp(v4, v5, t1);
-    const f32 i3 = lerp(v6, v7, t1);
-
-    // 沿 Z 轴插值
-    const f32 j0 = lerp(i0, i1, t2);
-    const f32 j1 = lerp(i2, i3, t2);
-
-    // 沿 Y 轴插值
-    return lerp(j0, j1, t3);
 }
 
 } // namespace mc

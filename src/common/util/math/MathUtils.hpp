@@ -59,6 +59,52 @@ template<typename T>
 }
 
 /**
+ * @brief 三线性插值 (Trilinear Interpolation)
+ *
+ * 沿三个轴向依次进行线性插值，用于 3D 噪声生成等场景。
+ *
+ * 插值顺序：X 轴 → Z 轴 → Y 轴
+ *
+ * 8 个角点的编号约定（参考 Perlin 噪声）：
+ * - v0: (0, 0, 0)  v1: (1, 0, 0)  沿 X 轴：t1
+ * - v2: (0, 0, 1)  v3: (1, 0, 1)  沿 Z 轴：t2
+ * - v4: (0, 1, 0)  v5: (1, 1, 0)  沿 Y 轴：t3
+ * - v6: (0, 1, 1)  v7: (1, 1, 1)
+ *
+ * @param t1 X 轴插值因子 [0, 1]
+ * @param t2 Z 轴插值因子 [0, 1]
+ * @param t3 Y 轴插值因子 [0, 1]
+ * @param v0 角点 (0, 0, 0) 的值
+ * @param v1 角点 (1, 0, 0) 的值
+ * @param v2 角点 (0, 0, 1) 的值
+ * @param v3 角点 (1, 0, 1) 的值
+ * @param v4 角点 (0, 1, 0) 的值
+ * @param v5 角点 (1, 1, 0) 的值
+ * @param v6 角点 (0, 1, 1) 的值
+ * @param v7 角点 (1, 1, 1) 的值
+ * @return 插值结果
+ *
+ * 参考 MC 1.16.5: ImprovedNoiseGenerator.lerp3
+ */
+[[nodiscard]] inline f32 lerp3(f32 t1, f32 t2, f32 t3,
+                                f32 v0, f32 v1, f32 v2, f32 v3,
+                                f32 v4, f32 v5, f32 v6, f32 v7) noexcept
+{
+    // 沿 X 轴插值
+    const f32 i0 = lerp(v0, v1, t1);
+    const f32 i1 = lerp(v2, v3, t1);
+    const f32 i2 = lerp(v4, v5, t1);
+    const f32 i3 = lerp(v6, v7, t1);
+
+    // 沿 Z 轴插值
+    const f32 j0 = lerp(i0, i1, t2);
+    const f32 j1 = lerp(i2, i3, t2);
+
+    // 沿 Y 轴插值
+    return lerp(j0, j1, t3);
+}
+
+/**
  * @brief 线性插值，但将插值因子限制在 [0, 1] 范围内
  * @param a 起始值
  * @param b 目标值

@@ -2,6 +2,7 @@
 
 #include "INoiseGenerator.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../util/math/MathUtils.hpp"
 #include <array>
 
 namespace mc {
@@ -111,13 +112,6 @@ private:
     [[nodiscard]] static f32 lerp(f32 a, f32 b, f32 t) {
         return a + t * (b - a);
     }
-
-    /**
-     * @brief 3D 线性插值
-     */
-    [[nodiscard]] static f32 lerp3(f32 t1, f32 t2, f32 t3,
-                                    f32 v0, f32 v1, f32 v2, f32 v3,
-                                    f32 v4, f32 v5, f32 v6, f32 v7);
 };
 
 // ============================================================================

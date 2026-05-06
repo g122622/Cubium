@@ -38,14 +38,14 @@ src/common/world/gen/noise/
 - 排列表（permutation table）初始化和 Fisher-Yates 洗牌算法
 - 3D Perlin 噪声采样算法
 - 带有 Y 轴缩放的噪声采样（用于地形高度变化）
-- 梯度计算和三线性插值
+- 梯度计算
 
 **核心算法**:
 ```
 Perlin 噪声流程:
 1. 添加随机偏移 → 2. 计算单位立方体坐标 → 3. 计算 fade 曲线
        ↓
-4. 获取 8 个角的哈希值 → 5. 计算梯度值 → 6. 三线性插值
+4. 获取 8 个角的哈希值 → 5. 计算梯度值 → 6. 三线性插值（使用 math::lerp3）
 ```
 
 **公开 API**:
@@ -198,6 +198,7 @@ classDiagram
         -grad(i32 hash, f32 x, f32 y, f32 z) f32
         -fade(f32 t) f32
         -lerp(f32 a, f32 b, f32 t) f32
+        使用 math::lerp3 进行三线性插值
     }
     
     class OctavesNoiseGenerator {
@@ -259,14 +260,17 @@ classDiagram
 graph LR
     A[noise 模块] --> B[core/Types.hpp<br/>基础类型定义]
     A --> C[util/math/random/Random.hpp<br/>随机数生成器]
-    
+    A --> D[util/math/MathUtils.hpp<br/>数学工具函数]
+
     style A fill:#e8f5e9
     style B fill:#fff3e0
     style C fill:#e1f5fe
+    style D fill:#fff8e1
 ```
 
 - **`core/Types.hpp`**: 提供 `f32`, `i32`, `u8`, `u64` 等基础类型定义
 - **`util/math/random/Random.hpp`**: 提供随机数生成器接口 `IRandom` 和实现 `Random`
+- **`util/math/MathUtils.hpp`**: 提供 `math::lerp3()` 三线性插值函数
 
 ## 使用方法
 

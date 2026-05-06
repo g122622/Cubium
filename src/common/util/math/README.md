@@ -52,6 +52,7 @@ src/common/util/math/
   - `toRadians()` / `toDegrees()` - 角度转换
   - `clamp()` - 数值范围限制
   - `lerp()` - 线性插值
+  - `lerp3()` - 三线性插值（用于 3D 噪声生成）
   - `smoothstep()` - 平滑插值
   - `square()` / `cube()` - 平方/立方
   - `isZero()` / `approxEqual()` - 浮点数近似比较
