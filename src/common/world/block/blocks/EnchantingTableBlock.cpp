@@ -3,6 +3,7 @@
 #include "../../IWorld.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
+#include "../../../entity/inventory/ContainerTypes.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -49,25 +50,25 @@ ActionResultType EnchantingTableBlock::onBlockActivated(
     MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // 客户端直接返回成功
-    // TODO: 检查 world.isClientSide()
-    // if (world.isClientSide()) {
-    //     return ActionResult::SUCCESS;
-    // }
+    // MC 1.16.5: 客户端直接返回成功
+    // 参考: net.minecraft.block.EnchantingTableBlock.onBlockActivated
+    if (world.asServerWorld() == nullptr) {
+        return ActionResultType::Success;
+    }
 
     // 获取方块实体
     BlockEntity* blockEntity = world.getBlockEntity(pos);
-    if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::EnchantingTable) {
-        auto* enchantingTable = static_cast<blockentity::EnchantingTableEntity*>(blockEntity);
-
-        // 重新计算附魔力量
-        enchantingTable->recalculateEnchantPower(world);
-
-        // TODO: 打开附魔台GUI
-        // player.openContainer(new EnchantmentContainer(player.getInventory(), enchantingTable));
+    if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::EnchantingTable) {
+        return ActionResultType::Pass;
     }
 
-    return ActionResultType::Consume;
+    // 打开附魔台GUI
+    // 参考: net.minecraft.block.EnchantingTableBlock.getContainer
+    if (world.openContainer(ContainerType::Enchantment, pos, player)) {
+        return ActionResultType::Consume;
+    }
+
+    return ActionResultType::Pass;
 }
 
 // ========== 形状 ==========

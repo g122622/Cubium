@@ -13,8 +13,10 @@
 #include "common/world/chunk/ChunkPos.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
+#include "common/world/blockentity/interactive/EnchantingTableEntity.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "common/entity/inventory/container/EnchantmentContainer.hpp"
 #include "server/menu/CraftingMenu.hpp"
 #include "common/perfetto/PerfettoManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -272,6 +274,13 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
 
                 auto* furnace = static_cast<blockentity::AbstractFurnaceEntity*>(blockEntity);
                 result.menu = std::make_unique<blockentity::FurnaceContainer>(containerId, playerInventory, furnace->getInventory(), furnace);
+                return result;
+            }
+            case mc::ContainerType::Enchantment: {
+                // MC 1.16.5: 附魔台容器创建
+                // 参考: net.minecraft.inventory.container.EnchantmentContainer
+                result.menu = std::make_unique<mc::EnchantmentContainer>(
+                    containerId, playerInventory, pos, m_world.get());
                 return result;
             }
             case mc::ContainerType::Player:

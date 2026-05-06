@@ -25,14 +25,14 @@
 
 - ✅ 已完成 `src/common/world/block/blocks/AbstractFurnaceBlock.cpp:55`：补客户端/服务端分流，只让服务端触发熔炼与统一菜单逻辑。
 - ✅ 已完成 `src/common/world/block/blocks/ChestBlock.cpp:95,166,171,223`：补流体 tick、锁箱音效、统一菜单打开、猫坐箱子判定。都属于已有能力的接线，不需要重做箱子系统。
-- `src/common/world/block/blocks/EnchantingTableBlock.cpp:53,66`：补服务端判定和附魔台 GUI 打开，直接走统一菜单入口。
+- ✅ 已完成 `src/common/world/block/blocks/EnchantingTableBlock.cpp:53,66`：补服务端判定和附魔台 GUI 打开，直接走统一菜单入口。
 - ✅ 已完成 `src/common/world/block/blocks/FurnaceBlocks.cpp:23,42,60`：补普通炉/高炉/烟熏炉菜单打开，复用同一套容器注册。
 - ✅ 已完成 `src/common/world/block/blocks/agricultural/CropBlock.cpp:68,113`：补光照检查，并将骨粉增长改为基于世界种子和位置的确定性随机。
 - ✅ 已完成 `src/common/world/block/blocks/agricultural/StemBlock.cpp:102`：将骨粉增长与果实触发改为基于世界种子和位置的确定性随机，移除全局 `rand()`。
 - ✅ 已完成 `src/common/world/block/blocks/agricultural/FarmlandBlock.cpp:67,115`：补特殊支撑判定和下雨判定，直接接现有世界/天气接口。
 - ✅ 已完成 `src/common/world/block/blocks/building/TrapDoorBlock.cpp:257`：补开合音效，并根据当前方块实例区分木/铁活板门。
 - ✅ 已完成 `src/common/world/block/blocks/coral/CoralBlock.cpp:34,54,115,162,227`：补水源判定、邻近水检测、缺水回退和流体 tick，珊瑚扇/墙扇同步完成同类逻辑。
-- `src/common/world/block/blocks/decorative/CampfireBlock.cpp:52,56,84,94`：补雨淋熄灭、烹饪逻辑、点燃/熄灭音效与粒子。
+- `src/common/world/block/blocks/decorative/CampfireBlock.cpp:52,56,84,94`：营火不会被雨淋熄（MC 1.16.5 设计），TODO 已确认无需实现。烹饪逻辑和音效/粒子已有基础实现，待方块实体支持。
 - ✅ 已完成 `src/common/world/block/blocks/decorative/PaneBlock.cpp:43,64,141`：补动态碰撞形状、水合状态和可连接方块类型。
 - `src/common/world/block/blocks/decorative/ScaffoldingBlock.cpp:37,39,60,72,94`：补距离计算、水合状态、底部状态更新和支撑过远判定。
 
