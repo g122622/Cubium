@@ -603,7 +603,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/entities/item/ItemEntity.cpp
         # 鎺夎惤绯荤粺
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootContext.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/loot/RandomRanges.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/util/math/random/RandomRanges.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootEntry.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootPool.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootTable.cpp
