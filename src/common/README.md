@@ -122,7 +122,8 @@ src/common/
 │   │   ├── LootEntry.hpp
 │   │   ├── LootPool.hpp
 │   │   ├── LootConditions.hpp
-│   │   └── RandomRanges.hpp
+│   │   └── LootFunctions.hpp
+│   │   # (RandomRanges 已移至 util/math/random/)
 │   ├── mob/                  # 生物实体
 │   │   ├── MobEntity.hpp
 │   │   ├── CreatureEntity.hpp

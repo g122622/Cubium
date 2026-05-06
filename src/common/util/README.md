@@ -232,6 +232,24 @@ rng.setSeedWithHash(worldSeed);
 - `Xoshiro256ppRandom` - xoshiro256++（高质量）
 - `LcgRandom` - 线性同余（最小状态）
 
+**随机值范围 (RandomRanges)：**
+
+```cpp
+#include "util/math/random/RandomRanges.hpp"
+
+// 均匀分布范围
+mc::math::RandomValueRange range(1.0f, 3.0f);
+i32 count = range.generateInt(rng);  // [1, 3]
+
+// 二项分布范围
+mc::math::BinomialRange binomial(10, 0.3f);  // 10次试验，30%成功率
+i32 successes = binomial.generateInt(rng);
+
+// 固定值
+mc::math::ConstantRange fixed(5);
+i32 value = fixed.generateInt(rng);  // 总是返回5
+```
+
 #### 射线检测 (math/ray/)
 
 ```cpp

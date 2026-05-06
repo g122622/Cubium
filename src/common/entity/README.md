@@ -267,7 +267,8 @@ src/common/entity/
     ├── LootEntry.hpp/cpp          # 掉落条目
     ├── LootContext.hpp/cpp        # 掉落上下文
     ├── LootConditions.hpp/cpp     # 掉落条件
-    └── RandomRanges.hpp/cpp       # 随机范围
+    └── LootFunctions.hpp/cpp      # 掉落函数
+    # (RandomRanges 已移至 util/math/random/)
 
 > **注意**: `living/` 和 `mob/` 目录已被整合到 `core/` 目录中。
 > - `LivingEntity` 现在位于 `core/LivingEntity.hpp/cpp`
