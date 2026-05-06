@@ -11,6 +11,9 @@ class PhysicsEngine;
 class EntityManager;
 class PlayerInventory;
 class ServerDimensionManager;
+namespace server {
+class ServerPlayerEntityManager;
+}
 namespace time {
 class GameTime;
 }
@@ -152,6 +155,16 @@ public:
 
     [[nodiscard]] virtual ItemPickupManager& itemPickupManager() = 0;
     [[nodiscard]] virtual const ItemPickupManager& itemPickupManager() const = 0;
+
+    // ========== 玩家实体管理 ==========
+
+    /**
+     * @brief 获取玩家实体管理器
+     *
+     * 用于管理玩家的实体对象（Player实例）。
+     */
+    [[nodiscard]] virtual ServerPlayerEntityManager& playerEntityManager() = 0;
+    [[nodiscard]] virtual const ServerPlayerEntityManager& playerEntityManager() const = 0;
 
     // ========== 交互管理器 ==========
 

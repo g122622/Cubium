@@ -576,7 +576,32 @@ void ServerChunkManager::saveChunkSections(const ChunkData& chunk) {
 4. **列族必须预先创建**: 打开数据库时会自动创建缺失的列族
 5. **RocksDB 快照**: 内存中的 sequence number，不持久化
 6. **全量保存与增量保存不同**: `flushAllDirty()` 不会写入干净缓存，`saveAll()` 才会完整落盘
-7. **保存开关命令仍未接入**: `/save-on` 和 `/save-off` 目前只是命令壳，尚未连接到服务器级自动保存开关
+
+## 玩家数据存储
+
+玩家数据存储在 `players` 列族中，使用 `PlayerDataManager` 管理：
+
+```cpp
+// 通过 WorldStorageService 获取玩家数据管理器
+auto* playerDataManager = storage.playerDataManager();
+
+// 保存玩家数据
+PlayerSaveData data;
+data.uuid = "player-uuid";
+data.username = "Steve";
+data.posX = 100.0;
+// ... 设置其他属性
+playerDataManager->savePlayerImmediate(data);
+
+// 加载玩家数据
+auto dataResult = playerDataManager->loadPlayer("player-uuid");
+if (dataResult.success() && dataResult.value()) {
+    PlayerSaveData& data = *dataResult.value();
+    // 使用数据
+}
+```
+
+玩家数据在 `/save-all` 命令执行时自动保存。
 
 ## 测试用例
 

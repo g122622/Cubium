@@ -102,6 +102,11 @@ public:
     [[nodiscard]] ServerSettings& settings() noexcept { return m_settings; }
     [[nodiscard]] const ServerSettings& settings() const noexcept { return m_settings; }
 
+    // ========== 玩家实体管理 ==========
+
+    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
+    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override { return m_playerEntityManager; }
+
 private:
     void mainLoop();
 

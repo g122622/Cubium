@@ -144,7 +144,10 @@ Result<void> WorldStorageService::open(const std::filesystem::path& worldPath,
         }
     }
 
-    // 4.1 存储任务管理器由服务器注入的 IO Worker 池驱动
+    // 4.1 初始化玩家数据管理器
+    m_playerDataManager = std::make_unique<PlayerDataManager>(*m_db);
+
+    // 4.2 存储任务管理器由服务器注入的 IO Worker 池驱动
     if (!m_ioWorkerPool) {
         m_taskManager.reset();
     } else if (!m_taskManager) {
@@ -210,17 +213,31 @@ Result<size_t> WorldStorageService::flushAllDirty()
 
     size_t totalFlushed = 0;
 
-    std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
-    for (auto& [dim, manager] : m_sectionManagers) {
-        auto result = manager->flushDirtySections();
-        if (!result.success()) {
-            return result.error();
+    // 保存脏Section
+    {
+        std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
+        for (auto& [dim, manager] : m_sectionManagers) {
+            auto result = manager->flushDirtySections();
+            if (!result.success()) {
+                return result.error();
+            }
+            totalFlushed += result.value();
         }
-        totalFlushed += result.value();
+    }
+
+    // 保存脏玩家数据
+    if (m_playerDataManager) {
+        auto playerResult = m_playerDataManager->saveAllDirty();
+        if (playerResult.failed()) {
+            spdlog::error("Failed to flush dirty player data: {}",
+                         playerResult.error().message());
+        } else {
+            totalFlushed += playerResult.value();
+        }
     }
 
     if (totalFlushed > 0) {
-        spdlog::debug("Flushed {} dirty sections", totalFlushed);
+        spdlog::debug("Flushed {} dirty sections and player data", totalFlushed);
     }
 
     return totalFlushed;
@@ -236,17 +253,31 @@ Result<size_t> WorldStorageService::saveAll()
 
     size_t totalSaved = 0;
 
-    std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
-    for (auto& [dim, manager] : m_sectionManagers) {
-        auto result = manager->saveAll();
-        if (!result.success()) {
-            return result.error();
+    // 保存所有Section
+    {
+        std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
+        for (auto& [dim, manager] : m_sectionManagers) {
+            auto result = manager->saveAll();
+            if (!result.success()) {
+                return result.error();
+            }
+            totalSaved += result.value();
         }
-        totalSaved += result.value();
+    }
+
+    // 保存所有玩家数据
+    if (m_playerDataManager) {
+        auto playerResult = m_playerDataManager->saveAll();
+        if (playerResult.failed()) {
+            spdlog::error("Failed to save all player data: {}",
+                         playerResult.error().message());
+        } else {
+            totalSaved += playerResult.value();
+        }
     }
 
     if (totalSaved > 0) {
-        spdlog::info("Saved {} cached sections", totalSaved);
+        spdlog::info("Saved {} cached sections and player data", totalSaved);
     }
 
     return totalSaved;

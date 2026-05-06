@@ -768,6 +768,8 @@ add_library(mc_common STATIC
     world/storage/save/SaveManager.cpp
     world/storage/task/StorageTask.cpp
     world/storage/task/StorageTaskManager.cpp
+    world/storage/player/PlayerSaveData.cpp
+    world/storage/player/PlayerDataManager.cpp
 
     # World - Tick System
     world/tick/manager/TickManager.cpp

@@ -4,7 +4,12 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/application/IServer.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include "common/world/storage/WorldStorageService.hpp"
+#include "common/world/storage/player/PlayerDataManager.hpp"
+#include "common/entity/entities/player/Player.hpp"
 
 #include <sstream>
 #include <spdlog/spdlog.h>
@@ -69,10 +74,30 @@ i32 SaveAllCommand::saveAll(CommandContext<ServerCommandSource>& context) {
         }
     }
 
-    // TODO: 保存玩家数据
+    // 保存玩家数据
+    size_t savedPlayers = 0;
+    auto* playerDataManager = serverWorld && serverWorld->isStorageOpen()
+        ? serverWorld->storage().playerDataManager()
+        : nullptr;
 
-    source.sendMessage(fmt::format("Saved the game ({} sections)", totalSections));
-    spdlog::info("Game saved by {} ({} sections)", source.name(), totalSections);
+    if (playerDataManager) {
+        // 遍历所有在线玩家并保存
+        server->playerManager().forEachPlayer([&](server::ServerPlayerData& playerData) {
+            auto saveData = world::storage::PlayerDataManager::fromServerPlayerData(playerData);
+            auto saveResult = playerDataManager->savePlayerImmediate(saveData);
+            if (saveResult.success()) {
+                ++savedPlayers;
+            } else {
+                spdlog::warn("Failed to save player {}: {}",
+                           playerData.username, saveResult.error().message());
+            }
+        });
+    }
+
+    source.sendMessage(fmt::format("Saved the game ({} sections, {} players)",
+                                   totalSections, savedPlayers));
+    spdlog::info("Game saved by {} ({} sections, {} players)",
+                 source.name(), totalSections, savedPlayers);
 
     return 1;
 }
@@ -108,10 +133,33 @@ i32 SaveAllCommand::saveAllFlush(CommandContext<ServerCommandSource>& context) {
         totalSections = result.value();
     }
 
-    // TODO: 保存玩家数据
+    // 保存玩家数据
+    size_t savedPlayers = 0;
+    auto* playerDataManager = serverWorld && serverWorld->isStorageOpen()
+        ? serverWorld->storage().playerDataManager()
+        : nullptr;
 
-    source.sendMessage(fmt::format("Saved the game (flushed, {} sections)", totalSections));
-    spdlog::info("Game saved with flush by {} ({} sections)", source.name(), totalSections);
+    if (playerDataManager) {
+        // 遍历所有在线玩家并保存
+        server->playerManager().forEachPlayer([&](server::ServerPlayerData& playerData) {
+            auto saveData = world::storage::PlayerDataManager::fromServerPlayerData(playerData);
+            auto saveResult = playerDataManager->savePlayerImmediate(saveData);
+            if (saveResult.success()) {
+                ++savedPlayers;
+            } else {
+                spdlog::warn("Failed to save player {}: {}",
+                             playerData.username, saveResult.error().message());
+            }
+        });
+
+        // 清除玩家数据缓存
+        playerDataManager->clearCache();
+    }
+
+    source.sendMessage(fmt::format("Saved the game (flushed, {} sections, {} players)",
+                                   totalSections, savedPlayers));
+    spdlog::info("Game saved with flush by {} ({} sections, {} players)",
+                 source.name(), totalSections, savedPlayers);
 
     return 1;
 }

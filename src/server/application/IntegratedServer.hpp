@@ -144,8 +144,8 @@ private:
     /**
      * @brief 获取玩家实体管理器
      */
-    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() { return m_playerEntityManager; }
-    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const { return m_playerEntityManager; }
+    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
+    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override { return m_playerEntityManager; }
 
     IntegratedServerConfig m_integratedConfig;
 

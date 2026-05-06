@@ -21,6 +21,11 @@
 #include <stdexcept>
 #include <vector>
 
+// Forward declaration for ServerPlayerEntityManager (only needed for interface declaration)
+namespace mc::server {
+class ServerPlayerEntityManager;
+}
+
 namespace mc::command {
 namespace {
 
@@ -165,6 +170,8 @@ public:
     [[nodiscard]] const server::WeatherManager& weatherManager() const override { throw std::logic_error("unused"); }
     [[nodiscard]] server::ItemPickupManager& itemPickupManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const server::ItemPickupManager& itemPickupManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::ServerPlayerEntityManager& playerEntityManager() const override { throw std::logic_error("unused"); }
     [[nodiscard]] server::interaction::BlockInteractionManager& blockInteractionManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const server::interaction::BlockInteractionManager& blockInteractionManager() const override { throw std::logic_error("unused"); }
     [[nodiscard]] server::interaction::MiningManager& miningManager() override { throw std::logic_error("unused"); }

@@ -8,6 +8,7 @@
 #include "world/storage/core/WorldSessionLock.hpp"
 #include "world/storage/core/WorldStoragePaths.hpp"
 #include "world/storage/snapshot/BackupManager.hpp"
+#include "world/storage/player/PlayerDataManager.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include <filesystem>
@@ -212,6 +213,17 @@ public:
     [[nodiscard]] const StorageTaskManager* taskManager() const { return m_taskManager.get(); }
 
     /**
+     * @brief 获取玩家数据管理器
+     *
+     * 用于加载、保存和管理玩家数据。
+     * 玩家数据存储在 players 列族中。
+     *
+     * @return 玩家数据管理器指针，如果存储未打开则为空
+     */
+    [[nodiscard]] PlayerDataManager* playerDataManager() { return m_playerDataManager.get(); }
+    [[nodiscard]] const PlayerDataManager* playerDataManager() const { return m_playerDataManager.get(); }
+
+    /**
      * @brief 创建备份
      *
      * 便捷方法，创建世界快照。
@@ -313,6 +325,7 @@ private:
     std::unique_ptr<WorldListService> m_worldListService;
     std::optional<WorldSessionLock> m_sessionLock;
     std::unique_ptr<BackupManager> m_backupManager;
+    std::unique_ptr<PlayerDataManager> m_playerDataManager;
     util::ServerWorkerPool* m_ioWorkerPool = nullptr;
     std::unique_ptr<StorageTaskManager> m_taskManager;
 

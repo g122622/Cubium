@@ -153,6 +153,17 @@ public:
     [[nodiscard]] ItemPickupManager& itemPickupManager() override;
     [[nodiscard]] const ItemPickupManager& itemPickupManager() const override;
 
+    // ========== 玩家实体管理 ==========
+
+    /**
+     * @brief 获取玩家实体管理器
+     *
+     * 用于管理玩家的实体对象（Player实例）。
+     * 由子类（IntegratedServer、StandaloneServer）实现。
+     */
+    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override = 0;
+    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override = 0;
+
     // ========== 交互管理器 ==========
 
     [[nodiscard]] interaction::BlockInteractionManager& blockInteractionManager() override { return *m_blockInteractionManager; }
