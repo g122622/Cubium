@@ -114,6 +114,8 @@ if (result.success() && result.value()) {
 ## 注意事项
 
 1. **玩家 UUID**: 目前使用 `playerId` 转换为字符串，未来需要实现真正的 UUID
-2. **物品序列化**: 背包物品序列化尚未完全实现，需要 ItemStack 的 NBT 序列化支持
-3. **效果序列化**: 药水效果序列化尚未完全实现
+2. **物品序列化**: 背包物品序列化已实现，使用 `ItemStack::toNbt()` 和 `ItemStack::fromNbt()` 方法
+3. **效果序列化**: 药水效果序列化已实现，使用 `EffectInstance::toNbt()` 和 `EffectInstance::fromNbt()` 方法
 4. **自动保存**: 通过 SaveManager 的自动保存机制，玩家数据会在世界保存时一起保存
+5. **物品格式**: 遵循 MC 1.16.5 ItemStack NBT 格式（id, Count, tag）
+6. **效果格式**: 遵循 MC 1.16.5 EffectInstance NBT 格式（Id, Amplifier, Duration, Ambient, ShowParticles, ShowIcon）

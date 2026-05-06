@@ -1,6 +1,7 @@
 #include "EffectInstance.hpp"
 #include "EffectAttributeModifiers.hpp"
 #include "../core/LivingEntity.hpp"
+#include "common/util/nbt/Nbt.hpp"
 
 namespace mc {
 namespace entity {
@@ -17,6 +18,16 @@ constexpr i32 BAD_OMEN_DURATION = 120000;
 
 /// 村庄英雄持续时间（约40分钟）
 constexpr i32 HERO_DURATION = 48000;
+
+// NBT key constants
+namespace nbt_keys {
+    constexpr const char* ID = "Id";
+    constexpr const char* AMPLIFIER = "Amplifier";
+    constexpr const char* DURATION = "Duration";
+    constexpr const char* AMBIENT = "Ambient";
+    constexpr const char* SHOW_PARTICLES = "ShowParticles";
+    constexpr const char* SHOW_ICON = "ShowIcon";
+}
 
 } // namespace
 
@@ -291,6 +302,71 @@ EffectInstance EffectInstance::heroOfTheVillage(i32 level) {
         true,   // 显示粒子
         true    // 显示图标
     );
+}
+
+// ============================================================================
+// 序列化
+// ============================================================================
+
+void EffectInstance::toNbt(nbt::tags::compound_tag& tag) const {
+    tag.put(nbt_keys::ID, static_cast<i8>(static_cast<i32>(m_type)));
+    tag.put(nbt_keys::AMPLIFIER, static_cast<i8>(m_amplifier));
+    tag.put(nbt_keys::DURATION, m_duration);
+    tag.put(nbt_keys::AMBIENT, static_cast<i8>(m_ambient ? 1 : 0));
+    tag.put(nbt_keys::SHOW_PARTICLES, static_cast<i8>(m_visible ? 1 : 0));
+    tag.put(nbt_keys::SHOW_ICON, static_cast<i8>(m_showIcon ? 1 : 0));
+}
+
+EffectInstance EffectInstance::fromNbt(const nbt::tags::compound_tag& tag) {
+    // 读取效果类型
+    EffectType type = EffectType::Speed;  // 默认值
+    auto it = tag.value.find(nbt_keys::ID);
+    if (it != tag.value.end()) {
+        if (it->second->id() == nbt::TagId::Byte) {
+            type = static_cast<EffectType>(dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value);
+        } else if (it->second->id() == nbt::TagId::Int) {
+            type = static_cast<EffectType>(dynamic_cast<const nbt::tags::int_tag&>(*it->second).value);
+        }
+    }
+
+    // 读取等级
+    i32 amplifier = 0;
+    it = tag.value.find(nbt_keys::AMPLIFIER);
+    if (it != tag.value.end()) {
+        if (it->second->id() == nbt::TagId::Byte) {
+            amplifier = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value;
+        } else if (it->second->id() == nbt::TagId::Int) {
+            amplifier = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+        }
+    }
+
+    // 读取持续时间
+    i32 duration = 600;  // 默认30秒
+    it = tag.value.find(nbt_keys::DURATION);
+    if (it != tag.value.end() && it->second->id() == nbt::TagId::Int) {
+        duration = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+    }
+
+    // 读取标志
+    bool ambient = false;
+    it = tag.value.find(nbt_keys::AMBIENT);
+    if (it != tag.value.end() && it->second->id() == nbt::TagId::Byte) {
+        ambient = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+    }
+
+    bool visible = true;
+    it = tag.value.find(nbt_keys::SHOW_PARTICLES);
+    if (it != tag.value.end() && it->second->id() == nbt::TagId::Byte) {
+        visible = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+    }
+
+    bool showIcon = true;
+    it = tag.value.find(nbt_keys::SHOW_ICON);
+    if (it != tag.value.end() && it->second->id() == nbt::TagId::Byte) {
+        showIcon = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+    }
+
+    return EffectInstance(type, duration, amplifier, ambient, visible, showIcon);
 }
 
 } // namespace effect

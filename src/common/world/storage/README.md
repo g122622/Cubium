@@ -43,6 +43,10 @@ storage/
 │   ├── DirtyTracker.hpp/cpp     # 脏Section追踪
 │   ├── AutoSave.hpp/cpp         # 自动保存
 │   └── SaveManager.hpp/cpp      # 保存协调
+├── player/                      # 玩家数据存储
+│   ├── PlayerSaveData.hpp/cpp   # 玩家数据结构和NBT序列化
+│   ├── PlayerDataManager.hpp/cpp # 玩家数据管理器（缓存+持久化）
+│   └── README.md                # 玩家存储模块文档
 └── README.md
 ```
 

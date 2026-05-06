@@ -54,7 +54,11 @@ Result<PlayerSaveData*> PlayerDataManager::loadPlayer(const String& uuid)
     auto key = makeKey(uuid);
     auto dataResult = m_db.get(cf::PLAYERS, key);
     if (dataResult.failed()) {
-        // 数据库错误
+        // NotFound 表示玩家不存在，返回 nullptr
+        if (dataResult.error().code() == ErrorCode::NotFound) {
+            return nullptr;
+        }
+        // 其他数据库错误
         return dataResult.error();
     }
 

@@ -1,5 +1,6 @@
 #include "EnchantmentContainer.hpp"
 #include "EnchantmentRegistry.hpp"
+#include "common/util/nbt/Nbt.hpp"
 
 namespace mc {
 namespace item {
@@ -151,6 +152,53 @@ Result<EnchantmentContainer> EnchantmentContainer::fromJson(const nlohmann::json
         i32 level = 1;
         if (enchJson.contains("lvl") && enchJson["lvl"].is_number()) {
             level = enchJson["lvl"].get<i32>();
+        }
+
+        container.m_enchantments.emplace_back(id, level);
+    }
+
+    return container;
+}
+
+std::unique_ptr<nbt::tags::list_tag> EnchantmentContainer::toNbt() const {
+    auto list = std::make_unique<nbt::tags::compound_list_tag>();
+    for (const auto& instance : m_enchantments) {
+        nbt::tags::compound_tag enchTag;
+        enchTag.put("id", instance.enchantmentId);
+        enchTag.put("lvl", static_cast<i16>(instance.level));
+        list->value.push_back(std::move(enchTag));
+    }
+    return list;
+}
+
+EnchantmentContainer EnchantmentContainer::fromNbt(const nbt::tags::list_tag& list) {
+    EnchantmentContainer container;
+
+    // 检查列表类型
+    if (list.element_id() != nbt::TagId::Compound) {
+        return container;
+    }
+
+    auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(list);
+    for (const auto& enchTag : compoundList.value) {
+        // 获取附魔ID
+        auto it = enchTag.value.find("id");
+        if (it == enchTag.value.end() || it->second->id() != nbt::TagId::String) {
+            continue;
+        }
+        String id = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
+
+        // 获取附魔等级
+        i32 level = 1;
+        it = enchTag.value.find("lvl");
+        if (it != enchTag.value.end()) {
+            if (it->second->id() == nbt::TagId::Short) {
+                level = dynamic_cast<const nbt::tags::short_tag&>(*it->second).value;
+            } else if (it->second->id() == nbt::TagId::Int) {
+                level = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+            } else if (it->second->id() == nbt::TagId::Byte) {
+                level = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value;
+            }
         }
 
         container.m_enchantments.emplace_back(id, level);

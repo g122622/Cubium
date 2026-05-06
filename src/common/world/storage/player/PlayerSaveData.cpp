@@ -283,17 +283,28 @@ nbt::tags::compound_tag PlayerSaveData::toNbt() const
     }
 
     // 背包
-    // TODO: 实现物品序列化（需要物品注册表支持）
-    // 目前跳过物品序列化，因为需要 Item 类定义来获取 itemId
     {
         auto inventoryList = std::make_unique<nbt::tags::compound_list_tag>();
-        // 暂时不保存物品，等待物品注册表实现
+        for (size_t i = 0; i < inventoryItems.size(); ++i) {
+            const auto& itemOpt = inventoryItems[i];
+            if (!itemOpt.has_value() || itemOpt->isEmpty()) {
+                continue;
+            }
+
+            nbt::tags::compound_tag itemTag;
+            itemTag.put("Slot", static_cast<i8>(static_cast<i32>(i)));
+            itemOpt->toNbt(itemTag);
+            inventoryList->value.push_back(std::move(itemTag));
+        }
         tag.value.emplace(nbt_keys::INVENTORY, std::move(inventoryList));
     }
 
     // 鼠标持有物品
-    // TODO: 实现物品序列化
-    // 暂时不保存鼠标持有物品
+    if (carriedItem.has_value() && !carriedItem->isEmpty()) {
+        auto carriedTag = std::make_unique<nbt::tags::compound_tag>();
+        carriedItem->toNbt(*carriedTag);
+        tag.value.emplace(nbt_keys::CARRIED_ITEM, std::move(carriedTag));
+    }
 
     tag.put(nbt_keys::SELECTED_ITEM_SLOT, selectedSlot);
 
@@ -302,12 +313,7 @@ nbt::tags::compound_tag PlayerSaveData::toNbt() const
         auto effectsList = std::make_unique<nbt::tags::compound_list_tag>();
         for (const auto& effect : effects) {
             nbt::tags::compound_tag effectTag;
-            effectTag.put(nbt_keys::EFFECT_ID, static_cast<i8>(static_cast<i32>(effect.type())));
-            effectTag.put(nbt_keys::EFFECT_AMPLIFIER, static_cast<i8>(effect.amplifier()));
-            effectTag.put(nbt_keys::EFFECT_DURATION, effect.duration());
-            effectTag.put(nbt_keys::EFFECT_AMBIENT, static_cast<i8>(effect.isAmbient() ? 1 : 0));
-            effectTag.put(nbt_keys::EFFECT_SHOW_PARTICLES, static_cast<i8>(effect.isVisible() ? 1 : 0));
-            effectTag.put(nbt_keys::EFFECT_SHOW_ICON, static_cast<i8>(effect.showIcon() ? 1 : 0));
+            effect.toNbt(effectTag);
             effectsList->value.push_back(std::move(effectTag));
         }
         tag.value.emplace(nbt_keys::ACTIVE_EFFECTS, std::move(effectsList));
@@ -452,7 +458,7 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
     if (auto* invList = tryGetList(tag, nbt_keys::INVENTORY)) {
         if (invList->element_id() == nbt::TagId::Compound) {
             auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*invList);
-            // 预分配槽位
+            // 预分配槽位（41个槽位：0-8快捷栏，9-35主背包，36-39护甲，40副手）
             data.inventoryItems.resize(41);
 
             for (const auto& itemTag : compoundList.value) {
@@ -468,22 +474,21 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
                     continue;
                 }
 
-                // TODO: 从NBT恢复ItemStack
-                // 目前先保留空槽位
-                // 后续需要根据 itemId 查找并创建 ItemStack
-                // auto itemId = tryGetInt(itemTag, "id");
-                // i32 count = tryGetByte(itemTag, "Count").value_or(1);
-                // data.inventoryItems[slotIndex] = ItemStack(itemId, count);
+                // 从NBT恢复ItemStack
+                auto stackResult = ItemStack::fromNbt(itemTag);
+                if (stackResult.success() && !stackResult.value().isEmpty()) {
+                    data.inventoryItems[slotIndex] = std::move(stackResult.value());
+                }
             }
         }
     }
 
     // 鼠标持有物品
     if (auto* carriedTag = tryGetCompound(tag, nbt_keys::CARRIED_ITEM)) {
-        // TODO: 从NBT恢复ItemStack
-        // auto itemId = tryGetInt(*carriedTag, "id");
-        // i32 count = tryGetByte(*carriedTag, "Count").value_or(1);
-        // data.carriedItem = ItemStack(itemId, count);
+        auto stackResult = ItemStack::fromNbt(*carriedTag);
+        if (stackResult.success() && !stackResult.value().isEmpty()) {
+            data.carriedItem = std::move(stackResult.value());
+        }
     }
 
     if (auto opt = tryGetInt(tag, nbt_keys::SELECTED_ITEM_SLOT)) {
@@ -494,15 +499,9 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
     if (auto* effectsList = tryGetList(tag, nbt_keys::ACTIVE_EFFECTS)) {
         if (effectsList->element_id() == nbt::TagId::Compound) {
             auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*effectsList);
+            data.effects.reserve(compoundList.value.size());
             for (const auto& effectTag : compoundList.value) {
-                // 读取效果数据
-                // TODO: 创建 EffectInstance
-                // auto id = tryGetByte(effectTag, nbt_keys::EFFECT_ID);
-                // auto amplifier = tryGetByte(effectTag, nbt_keys::EFFECT_AMPLIFIER);
-                // auto duration = tryGetInt(effectTag, nbt_keys::EFFECT_DURATION);
-                // auto ambient = tryGetBool(effectTag, nbt_keys::EFFECT_AMBIENT);
-                // auto showParticles = tryGetBool(effectTag, nbt_keys::EFFECT_SHOW_PARTICLES);
-                // auto showIcon = tryGetBool(effectTag, nbt_keys::EFFECT_SHOW_ICON);
+                data.effects.push_back(entity::effect::EffectInstance::fromNbt(effectTag));
             }
         }
     }

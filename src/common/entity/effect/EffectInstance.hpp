@@ -4,6 +4,15 @@
 #include "../../core/Types.hpp"
 #include <memory>
 
+// Forward declaration
+namespace mc {
+namespace nbt {
+namespace tags {
+struct compound_tag;
+}
+}
+}
+
 namespace mc {
 
 // 前向声明
@@ -117,6 +126,29 @@ public:
      * @param level 等级（1-5）
      */
     [[nodiscard]] static EffectInstance heroOfTheVillage(i32 level = 1);
+
+    // ========== 序列化 ==========
+
+    /**
+     * @brief 序列化到 NBT
+     * @param tag NBT 复合标签（输出参数）
+     *
+     * MC 1.16.5 效果格式：
+     * - Id (byte): 效果类型ID
+     * - Amplifier (byte): 效果等级（0 = I, 1 = II, 等）
+     * - Duration (int): 持续时间（tick），-1表示永久
+     * - Ambient (byte): 是否为环境效果
+     * - ShowParticles (byte): 是否显示粒子
+     * - ShowIcon (byte): 是否显示图标
+     */
+    void toNbt(nbt::tags::compound_tag& tag) const;
+
+    /**
+     * @brief 从 NBT 反序列化
+     * @param tag NBT 复合标签
+     * @return 效果实例
+     */
+    [[nodiscard]] static EffectInstance fromNbt(const nbt::tags::compound_tag& tag);
 
 private:
     /**

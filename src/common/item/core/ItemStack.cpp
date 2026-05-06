@@ -12,6 +12,22 @@
 
 namespace mc {
 
+namespace {
+// NBT key constants
+namespace nbt_keys {
+    constexpr const char* ID = "id";
+    constexpr const char* COUNT = "Count";
+    constexpr const char* TAG = "tag";
+    constexpr const char* DAMAGE = "Damage";
+    constexpr const char* ENCHANTMENTS = "Enchantments";
+    constexpr const char* DISPLAY = "display";
+    constexpr const char* NAME = "Name";
+    constexpr const char* LORE = "Lore";
+    constexpr const char* REPAIR_COST = "RepairCost";
+    constexpr const char* POTION = "Potion";
+}
+}
+
 // ============================================================================
 // 静态常量
 // ============================================================================
@@ -641,6 +657,199 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json) {
 
     if (json.contains("Tag") && json["Tag"].is_object()) {
         stack.m_customData = json["Tag"];
+    }
+
+    return stack;
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void ItemStack::toNbt(nbt::tags::compound_tag& tag) const {
+    if (isEmpty()) {
+        tag.put(nbt_keys::ID, std::string("minecraft:air"));
+        tag.put(nbt_keys::COUNT, static_cast<i8>(0));
+        return;
+    }
+
+    // 物品ID
+    tag.put(nbt_keys::ID, m_item->itemLocation().toString());
+
+    // 数量
+    tag.put(nbt_keys::COUNT, static_cast<i8>(m_count));
+
+    // 检查是否需要 tag
+    bool needTag = m_damage > 0 ||
+                   hasEnchantments() ||
+                   m_customName ||
+                   !m_lore.empty() ||
+                   m_repairCost > 0 ||
+                   !m_potionId.empty() ||
+                   hasTag();
+
+    if (!needTag) {
+        return;
+    }
+
+    // 创建 tag 复合标签
+    auto tagCompound = std::make_unique<nbt::tags::compound_tag>();
+
+    // 耐久度
+    if (m_damage > 0) {
+        tagCompound->put(nbt_keys::DAMAGE, static_cast<i32>(m_damage));
+    }
+
+    // 附魔
+    if (hasEnchantments()) {
+        auto enchList = m_enchantments.toNbt();
+        tagCompound->value.emplace(nbt_keys::ENCHANTMENTS, std::move(enchList));
+    }
+
+    // 显示名称和描述
+    if (m_customName || !m_lore.empty()) {
+        auto display = std::make_unique<nbt::tags::compound_tag>();
+
+        if (m_customName) {
+            display->put(nbt_keys::NAME, m_customName->toJson().dump());
+        }
+
+        if (!m_lore.empty()) {
+            auto loreList = std::make_unique<nbt::tags::string_list_tag>();
+            for (const auto& line : m_lore) {
+                if (line) {
+                    loreList->value.push_back(line->toJson().dump());
+                }
+            }
+            display->value.emplace(nbt_keys::LORE, std::move(loreList));
+        }
+
+        tagCompound->value.emplace(nbt_keys::DISPLAY, std::move(display));
+    }
+
+    // 修复成本
+    if (m_repairCost > 0) {
+        tagCompound->put(nbt_keys::REPAIR_COST, static_cast<i32>(m_repairCost));
+    }
+
+    // 药水ID
+    if (!m_potionId.empty()) {
+        tagCompound->put(nbt_keys::POTION, m_potionId);
+    }
+
+    // 自定义数据
+    if (hasTag()) {
+        // 将 JSON 转换为字符串存储
+        // 注意：MC 使用嵌套 NBT，但我们这里使用 JSON 字符串作为简化
+        tagCompound->put("custom_data", m_customData.dump());
+    }
+
+    tag.value.emplace(nbt_keys::TAG, std::move(tagCompound));
+}
+
+Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag) {
+    // 获取物品ID
+    auto it = tag.value.find(nbt_keys::ID);
+    if (it == tag.value.end() || it->second->id() != nbt::TagId::String) {
+        return Error(ErrorCode::InvalidData, "ItemStack NBT missing 'id' field");
+    }
+
+    String itemId = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
+
+    // 查找物品
+    ResourceLocation itemLocation(itemId);
+    const Item* item = ItemRegistry::instance().getItem(itemLocation);
+
+    // 获取数量
+    i32 count = 1;
+    it = tag.value.find(nbt_keys::COUNT);
+    if (it != tag.value.end()) {
+        if (it->second->id() == nbt::TagId::Byte) {
+            count = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value;
+        } else if (it->second->id() == nbt::TagId::Int) {
+            count = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+        }
+    }
+
+    // 如果物品不存在或数量为0，返回空物品
+    if (item == nullptr || count <= 0) {
+        return EMPTY;
+    }
+
+    ItemStack stack(item, count);
+
+    // 解析 tag
+    auto tagIt = tag.value.find(nbt_keys::TAG);
+    if (tagIt == tag.value.end() || tagIt->second->id() != nbt::TagId::Compound) {
+        return stack;
+    }
+
+    const auto& tagCompound = dynamic_cast<const nbt::tags::compound_tag&>(*tagIt->second);
+
+    // 耐久度
+    it = tagCompound.value.find(nbt_keys::DAMAGE);
+    if (it != tagCompound.value.end()) {
+        if (it->second->id() == nbt::TagId::Int) {
+            stack.m_damage = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+        } else if (it->second->id() == nbt::TagId::Short) {
+            stack.m_damage = dynamic_cast<const nbt::tags::short_tag&>(*it->second).value;
+        }
+    }
+
+    // 附魔
+    it = tagCompound.value.find(nbt_keys::ENCHANTMENTS);
+    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::List) {
+        auto& enchList = dynamic_cast<const nbt::tags::list_tag&>(*it->second);
+        stack.m_enchantments = item::enchant::EnchantmentContainer::fromNbt(enchList);
+    }
+
+    // 显示数据
+    it = tagCompound.value.find(nbt_keys::DISPLAY);
+    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::Compound) {
+        const auto& display = dynamic_cast<const nbt::tags::compound_tag&>(*it->second);
+
+        // 自定义名称
+        auto nameIt = display.value.find(nbt_keys::NAME);
+        if (nameIt != display.value.end() && nameIt->second->id() == nbt::TagId::String) {
+            String nameJson = dynamic_cast<const nbt::tags::string_tag&>(*nameIt->second).value;
+            stack.m_customName = text::TextParser::parse(nameJson);
+        }
+
+        // Lore
+        auto loreIt = display.value.find(nbt_keys::LORE);
+        if (loreIt != display.value.end() && loreIt->second->id() == nbt::TagId::List) {
+            auto& loreList = dynamic_cast<const nbt::tags::list_tag&>(*loreIt->second);
+            if (loreList.element_id() == nbt::TagId::String) {
+                auto& stringList = dynamic_cast<const nbt::tags::string_list_tag&>(loreList);
+                for (const auto& lineJson : stringList.value) {
+                    stack.m_lore.push_back(text::TextParser::parse(lineJson));
+                }
+            }
+        }
+    }
+
+    // 修复成本
+    it = tagCompound.value.find(nbt_keys::REPAIR_COST);
+    if (it != tagCompound.value.end()) {
+        if (it->second->id() == nbt::TagId::Int) {
+            stack.m_repairCost = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+        }
+    }
+
+    // 药水ID
+    it = tagCompound.value.find(nbt_keys::POTION);
+    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::String) {
+        stack.m_potionId = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
+    }
+
+    // 自定义数据
+    it = tagCompound.value.find("custom_data");
+    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::String) {
+        String customDataStr = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
+        auto parsed = nlohmann::json::parse(customDataStr, nullptr, false);
+        if (!parsed.is_discarded() && parsed.is_object()) {
+            stack.m_customData = parsed;
+        }
     }
 
     return stack;

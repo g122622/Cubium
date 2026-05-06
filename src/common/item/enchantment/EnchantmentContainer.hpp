@@ -7,6 +7,16 @@
 #include <utility>
 #include <nlohmann/json.hpp>
 
+// Forward declaration
+namespace mc {
+namespace nbt {
+namespace tags {
+struct compound_tag;
+struct list_tag;
+}
+}
+}
+
 namespace mc {
 namespace item {
 namespace enchant {
@@ -144,6 +154,23 @@ public:
      * @return 附魔容器
      */
     [[nodiscard]] static Result<EnchantmentContainer> fromJson(const nlohmann::json& json);
+
+    /**
+     * @brief 序列化到 NBT
+     * @return NBT 列表标签
+     *
+     * MC 1.16.5 附魔格式：
+     * - id (string): 附魔ID
+     * - lvl (short): 附魔等级
+     */
+    [[nodiscard]] std::unique_ptr<nbt::tags::list_tag> toNbt() const;
+
+    /**
+     * @brief 从 NBT 反序列化
+     * @param list NBT 列表标签
+     * @return 附魔容器
+     */
+    [[nodiscard]] static EnchantmentContainer fromNbt(const nbt::tags::list_tag& list);
 
     // ========== 比较操作符 ==========
 

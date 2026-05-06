@@ -6,6 +6,7 @@
 #include "../../util/text/ITextComponent.hpp"
 #include "../../util/text/StringTextComponent.hpp"
 #include "../enchantment/EnchantmentContainer.hpp"
+#include "../../util/nbt/Nbt.hpp"
 #include <memory>
 #include <optional>
 #include <nlohmann/json.hpp>
@@ -527,6 +528,33 @@ public:
      * @return 物品堆
      */
     [[nodiscard]] static Result<ItemStack> fromJson(const nlohmann::json& json);
+
+    /**
+     * @brief 序列化到 NBT
+     * @param tag NBT 复合标签（输出参数）
+     * @return NBT 复合标签引用
+     *
+     * 参考 MC 1.16.5 ItemStack.write()
+     * NBT 格式：
+     * - id (string): 物品资源位置
+     * - Count (byte): 数量
+     * - tag (compound, 可选): 物品标签
+     *   - Damage (int): 耐久度
+     *   - Enchantments (list): 附魔
+     *   - display (compound): 显示数据
+     *     - Name: 自定义名称
+     *     - Lore: 描述
+     *   - RepairCost (int): 修复成本
+     *   - Potion (string): 药水ID
+     */
+    void toNbt(nbt::tags::compound_tag& tag) const;
+
+    /**
+     * @brief 从 NBT 反序列化
+     * @param tag NBT 复合标签
+     * @return 物品堆或错误
+     */
+    [[nodiscard]] static Result<ItemStack> fromNbt(const nbt::tags::compound_tag& tag);
 
     // ========== 比较操作符 ==========
 
