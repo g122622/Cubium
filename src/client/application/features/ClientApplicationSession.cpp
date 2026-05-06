@@ -136,7 +136,7 @@ Result<void> ClientApplication::startIntegratedWorld(const WorldLaunchConfig& co
 
 Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& config)
 {
-    MC_TRACE_EVENT("client.session", "InitializeGameSession");
+    MC_TRACE_EVENT("client.initialization", "InitializeGameSession");
 
     m_stateMachine.reportLoadingProgress("Starting server", 0.1f);
 
@@ -284,7 +284,7 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
 
 void ClientApplication::destroyGameSession()
 {
-    MC_TRACE_EVENT("client.session", "DestroyGameSession");
+    MC_TRACE_EVENT("client.initialization", "DestroyGameSession");
 
     spdlog::info("[Session] Destroying game session");
 
