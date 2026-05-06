@@ -26,11 +26,11 @@ village/
 │   ├── RaiderType.hpp
 │   └── README.md
 │
-└── trade/                        # 交易子系统（TODO）
+└── trade/                        # 交易子系统
     ├── Merchant.hpp
-    ├── MerchantOffer.hpp/cpp
+    ├── MerchantOffer.hpp/cpp     # ✅ NBT序列化已实现
     ├── MerchantOffers.hpp/cpp
-    ├── VillagerTrades.hpp/cpp
+    ├── VillagerTrades.hpp/cpp    # TODO
     └── README.md
 ```
 
@@ -98,7 +98,7 @@ f32 modifier = village.getPriceModifier(playerId);
 ## TODO
 
 - [ ] 实现袭击系统 (raid/)
-- [ ] 实现交易系统 (trade/)
+- [x] 实现交易系统 (trade/) - MerchantOffer NBT序列化已完成
 - [ ] 实现僵尸围村 (VillageSiege)
 - [ ] 集成到ServerWorld
 - [ ] 编写单元测试
