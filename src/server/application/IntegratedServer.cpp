@@ -154,8 +154,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
     // 设置 TimeManager 引用
     m_world->setTimeManager(m_timeManager.get());
 
-    // 先绑定 Worker 池，再打开世界存储，确保 IO 任务池由服务器统一管理。
-    bindWorldWorkerPools();
+    m_world->storage().setIoWorkerPool(&m_ioWorkerPool);
 
     auto worldInitResult = m_world->initialize();
     if (worldInitResult.failed()) {
@@ -202,6 +201,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
                 break;
         }
         auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(chunkGenerator));
+        chunkManager->setWorkerPool(&m_computationWorkerPool);
         chunkManager->setViewDistance(config.viewDistance);
         chunkManager->initialize();
         m_world->setChunkManager(std::move(chunkManager));

@@ -19,6 +19,14 @@ void registerAquaticRenderers(EntityRendererManager& manager) {
     manager.registerRenderer("minecraft:turtle", []() -> std::unique_ptr<core::EntityRenderer> {
         return std::make_unique<TurtleRenderer>();
     });
+
+    manager.registerRenderer("minecraft:tropical_fish", []() -> std::unique_ptr<core::EntityRenderer> {
+        return std::make_unique<TropicalFishARenderer>();
+    });
+
+    manager.registerRenderer("minecraft:pufferfish", []() -> std::unique_ptr<core::EntityRenderer> {
+        return std::make_unique<PufferfishRenderer>();
+    });
 }
 
 } // namespace mc::client::renderer::entity::renderer::aquatic

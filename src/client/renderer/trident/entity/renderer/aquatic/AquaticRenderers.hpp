@@ -82,6 +82,63 @@ public:
     }
 };
 
+/**
+ * @brief 热带鱼A型渲染器（小体型）
+ */
+class TropicalFishARenderer : public core::LivingRenderer<::mc::LivingEntity, model::aquatic::TropicalFishAModel> {
+public:
+    TropicalFishARenderer() { m_shadowSize = 0.15f; }
+    ~TropicalFishARenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/fish/tropical_a.png");
+    }
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/fish/tropical_a.png");
+    }
+};
+
+/**
+ * @brief 热带鱼B型渲染器（大体型）
+ */
+class TropicalFishBRenderer : public core::LivingRenderer<::mc::LivingEntity, model::aquatic::TropicalFishBModel> {
+public:
+    TropicalFishBRenderer() { m_shadowSize = 0.2f; }
+    ~TropicalFishBRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/fish/tropical_b.png");
+    }
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/fish/tropical_b.png");
+    }
+};
+
+/**
+ * @brief 河豚渲染器
+ *
+ * 参考 MC 1.16.5 PufferfishRenderer
+ * 河豚有膨胀状态，使用不同大小的模型
+ */
+class PufferfishRenderer : public core::LivingRenderer<::mc::LivingEntity, model::aquatic::CodModel> {
+public:
+    PufferfishRenderer() { m_shadowSize = 0.15f; }
+    ~PufferfishRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/fish/pufferfish.png");
+    }
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/fish/pufferfish.png");
+    }
+};
+
 void registerAquaticRenderers(EntityRendererManager& manager);
 
 } // namespace mc::client::renderer::entity::renderer::aquatic

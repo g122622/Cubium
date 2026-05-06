@@ -272,8 +272,9 @@ server/application/
 ### `MinecraftServer.hpp/cpp`
 
 - 新增 `m_computationWorkerPool`
-- 在 `setWorld(...)` 时把计算池注入 `ServerWorld`
+- 在子类创建 `ServerChunkManager` 后调用 `setWorkerPool(&m_computationWorkerPool)` 注入计算池
 - 在 `stopCore()` 中统一停止计算池
+- `bindWorldIoWorkerPool()` 负责将 IO Worker Pool 注入到 `WorldStorageService`
 
 ## 模块关系
 

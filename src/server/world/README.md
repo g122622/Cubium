@@ -484,8 +484,9 @@ world.initialize();
 
 // 设置区块管理器
 auto chunkManager = std::make_unique<ServerChunkManager>(world, std::move(generator));
+// Worker 池由 MinecraftServer 注入，生命周期由服务器统一管理
+chunkManager->setWorkerPool(&computationWorkerPool);
 chunkManager->initialize();
-chunkManager->startWorkers();
 world.setChunkManager(std::move(chunkManager));
 // 注意：setChunkManager 会自动将 ServerWorldConfig.viewDistance 同步到新管理器
 

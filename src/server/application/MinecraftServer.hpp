@@ -224,11 +224,6 @@ public:
     [[nodiscard]] const util::ServerWorkerPool& ioWorkerPool() const { return m_ioWorkerPool; }
 
     /**
-     * @brief 设置世界
-     */
-    void setWorld(std::unique_ptr<ServerWorld> world);
-
-    /**
      * @brief 遍历所有玩家
      */
     template<typename Func>
@@ -248,11 +243,6 @@ protected:
      * @brief 初始化核心管理器
      */
     void initializeCoreManagers();
-
-    /**
-     * @brief 绑定世界使用的 Worker 池
-     */
-    void bindWorldWorkerPools();
 
     /**
      * @brief 初始化世界

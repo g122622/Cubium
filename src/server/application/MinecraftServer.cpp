@@ -54,6 +54,7 @@ MinecraftServer::MinecraftServer(const ServerCoreConfig& config)
     , m_ioWorkerPool(-1, "ServerIO")
 {
 }
+
 void MinecraftServer::setDifficulty(Difficulty difficulty)
 {
     if (m_difficulty == difficulty) {
@@ -133,15 +134,6 @@ void MinecraftServer::shutdown()
 {
     m_running = false;
     shutdownManagers();
-}
-
-void MinecraftServer::bindWorldWorkerPools()
-{
-    if (!m_world) {
-        return;
-    }
-
-    m_world->storage().setIoWorkerPool(&m_ioWorkerPool);
 }
 
 void MinecraftServer::tick()
@@ -806,41 +798,6 @@ void MinecraftServer::sendKeepAliveToAll()
             m_keepAliveManager->recordKeepAliveSent(player.playerId, timestamp, tick);
         }
     });
-}
-
-void MinecraftServer::setWorld(std::unique_ptr<ServerWorld> world)
-{
-    MC_TRACE_EVENT("server.world", "SetWorld", "phase", "world_init");
-
-    m_world = std::move(world);
-    if (m_world) {
-        if (m_world->chunkManager()) {
-            m_world->chunkManager()->setWorkerPool(&m_computationWorkerPool);
-        }
-        bindWorldWorkerPools();
-        m_world->setOnPlaySound([this](const ResourceLocation& soundEventId,
-                                       sound::SoundCategory category,
-                                       const Vector3& position,
-                                       f32 volume,
-                                       f32 pitch) {
-            broadcastSound(soundEventId, category, position, volume, pitch);
-        });
-        m_world->setOnBroadcastParticle([this](
-            client::renderer::trident::particle::ParticleTypeId type,
-            const Vector3& pos,
-            const Vector3& velocity,
-            const Vector3& offset,
-            u32 count) {
-            broadcastParticleInRange(type, pos, velocity, offset, count);
-        });
-        m_world->setOnBroadcastEntityStatus([this](EntityId entityId, u8 status) {
-            // 获取实体位置
-            Entity* entity = m_world->getEntity(entityId);
-            if (entity) {
-                broadcastEntityStatusInRange(entityId, status, entity->position());
-            }
-        });
-    }
 }
 
 u64 MinecraftServer::currentTick() const

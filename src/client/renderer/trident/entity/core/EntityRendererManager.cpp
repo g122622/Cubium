@@ -7,6 +7,11 @@
 #include "../renderer/animal/HorseRenderer.hpp"
 #include "../renderer/animal/VillagerRenderer.hpp"
 #include "../renderer/monster/MonsterRenderers.hpp"
+#include "../renderer/monster/MonsterVariantRenderers.hpp"
+#include "../renderer/monster/SpecialMonsterRenderers.hpp"
+#include "../renderer/aquatic/AquaticRenderers.hpp"
+#include "../renderer/nether/NetherRenderers.hpp"
+#include "../renderer/special/SpecialEntityRenderers.hpp"
 #include "../renderer/vehicle/VehicleRenderers.hpp"
 #include "../renderer/projectile/ProjectileRenderers.hpp"
 #include "../model/animal/WolfModel.hpp"
@@ -455,9 +460,11 @@ void EntityRendererManager::initializeDefaults() {
     namespace ET = entity::EntityTypes;
     using namespace renderer::animal;
     using namespace renderer::monster;
+    using namespace renderer::aquatic;
+    using namespace renderer::nether;
     using namespace renderer::projectile;
 
-    // 动物渲染器
+    // ==================== 基础动物渲染器 ====================
     registerRenderer(ET::PIG, []() -> std::unique_ptr<EntityRenderer> {
         return std::make_unique<PigRenderer>();
     });
@@ -470,6 +477,14 @@ void EntityRendererManager::initializeDefaults() {
     registerRenderer(ET::CHICKEN, []() -> std::unique_ptr<EntityRenderer> {
         return std::make_unique<ChickenRenderer>();
     });
+    registerRenderer(ET::RABBIT, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<RabbitRenderer>();
+    });
+    registerRenderer(ET::MOOSHROOM, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<MooshroomRenderer>();
+    });
+
+    // ==================== 可驯服动物渲染器 ====================
     registerRenderer(ET::WOLF, []() -> std::unique_ptr<EntityRenderer> {
         return std::make_unique<WolfRenderer>();
     });
@@ -479,14 +494,73 @@ void EntityRendererManager::initializeDefaults() {
     registerRenderer(ET::CAT, []() -> std::unique_ptr<EntityRenderer> {
         return std::make_unique<CatRenderer>();
     });
+    registerRenderer(ET::PARROT, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<ParrotRenderer>();
+    });
+
+    // ==================== 马类型渲染器 ====================
     registerRenderer(ET::HORSE, []() -> std::unique_ptr<EntityRenderer> {
         return std::make_unique<HorseRenderer>();
     });
+    registerRenderer(ET::DONKEY, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<HorseRenderer>();  // 复用 HorseRenderer
+    });
+    registerRenderer(ET::MULE, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<HorseRenderer>();  // 复用 HorseRenderer
+    });
+    registerRenderer(ET::LLAMA, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<HorseRenderer>();  // TODO: LlamaRenderer
+    });
+    registerRenderer(ET::SKELETON_HORSE, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<HorseRenderer>();  // 复用 HorseRenderer
+    });
+    registerRenderer(ET::ZOMBIE_HORSE, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<HorseRenderer>();  // 复用 HorseRenderer
+    });
+
+    // ==================== 特殊动物渲染器 ====================
+    registerRenderer(ET::FOX, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<FoxRenderer>();
+    });
+    registerRenderer(ET::PANDA, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<PandaRenderer>();
+    });
+    registerRenderer(ET::POLAR_BEAR, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<PolarBearRenderer>();  // TODO: 实现 PolarBearRenderer
+    });
+    registerRenderer(ET::TURTLE, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<TurtleRenderer>();
+    });
+    registerRenderer(ET::BEE, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<BeeRenderer>();
+    });
+    registerRenderer(ET::STRIDER, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<StriderRenderer>();
+    });
+
+    // ==================== 水生生物渲染器 ====================
+    registerAquaticRenderers(*this);
+
+    // ==================== 环境生物/傀儡渲染器 ====================
+    registerRenderer(ET::BAT, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<BatRenderer>();
+    });
+    registerRenderer(ET::IRON_GOLEM, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<IronGolemRenderer>();
+    });
+    registerRenderer(ET::SNOW_GOLEM, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<SnowGolemRenderer>();
+    });
+
+    // ==================== 村民渲染器 ====================
     registerRenderer(ET::VILLAGER, []() -> std::unique_ptr<EntityRenderer> {
         return std::make_unique<VillagerRenderer>();
     });
+    registerRenderer(ET::WANDERING_TRADER, []() -> std::unique_ptr<EntityRenderer> {
+        return std::make_unique<VillagerRenderer>();  // 复用 VillagerRenderer
+    });
 
-    // 怪物渲染器
+    // ==================== 基础怪物渲染器 ====================
     registerRenderer(ET::ZOMBIE, []() -> std::unique_ptr<EntityRenderer> {
         return std::make_unique<ZombieRenderer>();
     });
@@ -506,13 +580,28 @@ void EntityRendererManager::initializeDefaults() {
         return std::make_unique<BlazeRenderer>();
     });
 
-    // 载具渲染器
+    // ==================== 怪物变体渲染器 ====================
+    registerMonsterVariantRenderers(*this);
+
+    // ==================== 特殊怪物渲染器 ====================
+    registerSpecialMonsterRenderers(*this);
+
+    // ==================== 灾厄村民渲染器 ====================
+    registerIllagerRenderers(*this);
+
+    // ==================== 下界怪物渲染器 ====================
+    registerNetherRenderers(*this);
+
+    // ==================== 载具渲染器 ====================
     renderer::vehicle::registerVehicleRenderers(*this);
 
-    // 投掷物渲染器
-    renderer::projectile::registerProjectileRenderers(*this);
+    // ==================== 投掷物渲染器 ====================
+    registerProjectileRenderers(*this);
 
-    // ItemEntity 渲染器
+    // ==================== 特殊实体渲染器 ====================
+    renderer::special::registerSpecialEntityRenderers(*this);
+
+    // ==================== ItemEntity 渲染器 ====================
     registerRenderer(ET::ITEM, [this]() -> std::unique_ptr<EntityRenderer> {
         auto renderer = std::make_unique<ItemEntityRenderer>();
         if (m_itemTextureAtlas) {
@@ -521,12 +610,12 @@ void EntityRendererManager::initializeDefaults() {
         return renderer;
     });
 
-    // ExperienceOrb 渲染器
+    // ==================== ExperienceOrb 渲染器 ====================
     registerRenderer(ET::EXPERIENCE_ORB, []() -> std::unique_ptr<EntityRenderer> {
         return std::make_unique<ExperienceOrbRenderer>();
     });
 
-    spdlog::debug("EntityRendererManager: Registered entity types: 9 animals, 5 monsters, vehicles, projectiles");
+    spdlog::debug("EntityRendererManager: Registered all entity renderers");
 }
 
 EntityRenderer* EntityRendererManager::getOrCreateRenderer(const String& typeId) {

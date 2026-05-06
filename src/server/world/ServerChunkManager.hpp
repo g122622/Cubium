@@ -29,11 +29,13 @@ class ChunkSendManager;
  * 参考 MC ServerChunkProvider，协调区块加载、生成、卸载。
  * 使用 Worker 线程池异步生成区块，不阻塞主循环。
  *
+ * Worker 池生命周期由 MinecraftServer 统一管理，通过 setWorkerPool() 注入。
+ *
  * 使用方法：
  * @code
  * ServerChunkManager manager(world, std::move(generator));
+ * manager.setWorkerPool(&computationWorkerPool);  // 由 MinecraftServer 注入
  * manager.initialize();
- * manager.startWorkers();
  *
  * // 获取区块（同步）
  * ChunkData* chunk = manager.getChunk(x, z);
@@ -87,31 +89,13 @@ public:
      */
     void shutdown();
 
-    // ============================================================================
-    // Worker 管理
-    // ============================================================================
-
-    /**
-     * @brief 启动 Worker 线程
-     */
-    void startWorkers();
-
-    /**
-     * @brief 停止 Worker 线程
-     */
-    void stopWorkers();
-
     /**
      * @brief 设置计算型 Worker 池
      *
      * 由 MinecraftServer 在世界创建后注入。
+     * Worker 池的生命周期由 MinecraftServer 统一管理。
      */
     void setWorkerPool(util::ServerWorkerPool* workerPool) { m_workerPool = workerPool; }
-
-    /**
-     * @brief 检查 Worker 是否运行
-     */
-    [[nodiscard]] bool workersRunning() const { return m_workerPool != nullptr && m_workerPool->isRunning(); }
 
     // ============================================================================
     // 区块访问（同步）

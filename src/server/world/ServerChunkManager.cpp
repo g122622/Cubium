@@ -148,16 +148,13 @@ ServerChunkManager::~ServerChunkManager()
 Result<void> ServerChunkManager::initialize()
 {
     MC_TRACE_EVENT("server.initialization", "ServerChunkManager::initialize");
-
-    // 启动 Worker 线程池
-    startWorkers();
-
+    // Worker 池由 MinecraftServer 统一管理，这里不再启动
     return {};
 }
 
 void ServerChunkManager::shutdown()
 {
-    stopWorkers();
+    // Worker 池由 MinecraftServer 统一管理，这里不再停止
 
     // 清理挂起请求，避免 future 永久阻塞
     std::unordered_map<u64, PendingGeneration> pending;
@@ -189,22 +186,6 @@ void ServerChunkManager::shutdown()
     // 清理区块缓存
     std::lock_guard<std::mutex> chunksLock(m_chunksMutex);
     m_chunks.clear();
-}
-
-// ============================================================================
-// Worker 管理
-// ============================================================================
-
-void ServerChunkManager::startWorkers()
-{
-    MC_ASSERT_RELEASE(m_workerPool != nullptr);
-    m_workerPool->start();
-}
-
-void ServerChunkManager::stopWorkers()
-{
-    MC_ASSERT_RELEASE(m_workerPool != nullptr);
-    m_workerPool->shutdown();
 }
 
 // ============================================================================

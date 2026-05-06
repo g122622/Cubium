@@ -1,4 +1,5 @@
 #include "SquidModel.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::animal {
@@ -33,7 +34,7 @@ void SquidModel::setupParts() {
         m_tentacles[i]->setTextureOffset(48, 0);
 
         // 计算位置 - 注意 cos 用于 X，sin 用于 Z
-        f64 d0 = static_cast<f64>(i) * PI * 2.0 / 8.0;
+        f64 d0 = static_cast<f64>(i) * mc::math::PI * 2.0 / 8.0;
         f32 x = static_cast<f32>(std::cos(d0) * 5.0);  // Java: cos(d0) * 5.0
         f32 z = static_cast<f32>(std::sin(d0) * 5.0);  // Java: sin(d0) * 5.0
 
@@ -42,7 +43,7 @@ void SquidModel::setupParts() {
         m_tentacles[i]->setRotationPoint(x, 15.0f, z);
 
         // 设置 Y 旋转 - Java 用 -2.0D 并且加上 PI/2
-        f64 rotateY = static_cast<f64>(i) * PI * -2.0 / 8.0 + (PI / 2.0);
+        f64 rotateY = static_cast<f64>(i) * mc::math::PI * -2.0 / 8.0 + (mc::math::PI / 2.0);
         m_tentacles[i]->setRotateAngleY(static_cast<f32>(rotateY));
 
         m_parts.push_back(m_tentacles[i]);

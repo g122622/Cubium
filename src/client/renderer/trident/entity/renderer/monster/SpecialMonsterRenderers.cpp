@@ -80,6 +80,10 @@ void registerPassiveMobRenderers(EntityRendererManager& manager) {
         return std::make_unique<PandaRenderer>();
     });
 
+    manager.registerRenderer("minecraft:polar_bear", []() -> std::unique_ptr<core::EntityRenderer> {
+        return std::make_unique<PolarBearRenderer>();
+    });
+
     manager.registerRenderer("minecraft:parrot", []() -> std::unique_ptr<core::EntityRenderer> {
         return std::make_unique<ParrotRenderer>();
     });

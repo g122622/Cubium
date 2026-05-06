@@ -443,6 +443,27 @@ public:
     }
 };
 
+/**
+ * @brief 北极熊渲染器
+ *
+ * TODO: 创建 PolarBearModel 专用模型
+ * 临时使用 PandaModel 作为占位符
+ */
+class PolarBearRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::PandaModel> {
+public:
+    PolarBearRenderer() { m_shadowSize = 0.7f; }
+    ~PolarBearRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/polar_bear.png");
+    }
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/polar_bear.png");
+    }
+};
+
 void registerSpecialMonsterRenderers(EntityRendererManager& manager);
 void registerIllagerRenderers(EntityRendererManager& manager);
 void registerPassiveMobRenderers(EntityRendererManager& manager);

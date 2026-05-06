@@ -176,8 +176,8 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     // 设置 TimeManager 引用
     m_world->setTimeManager(m_timeManager.get());
 
-    // 先绑定 Worker 池，再打开世界存储，确保存储子系统创建时就能拿到服务器统一管理的 IO 线程池。
-    bindWorldWorkerPools();
+    // 先绑定 IO Worker 池，再打开世界存储，确保存储子系统创建时就能拿到服务器统一管理的 IO 线程池。
+    m_world->storage().setIoWorkerPool(&m_ioWorkerPool);
 
     auto worldInitResult = m_world->initialize();
     if (worldInitResult.failed()) {
@@ -189,6 +189,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     auto chunkGenerator = std::make_unique<NoiseChunkGenerator>(
         static_cast<u64>(std::stoll(m_settings.levelSeed.get())), DimensionSettings::overworld());
     auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(chunkGenerator));
+    chunkManager->setWorkerPool(&m_computationWorkerPool);
     chunkManager->setViewDistance(m_settings.viewDistance.get());
     chunkManager->initialize();
     m_world->setChunkManager(std::move(chunkManager));
