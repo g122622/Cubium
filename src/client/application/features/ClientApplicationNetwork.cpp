@@ -9,6 +9,7 @@
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
+#include "client/ui/minecraft/widgets/TitleWidget.hpp"
 #include "client/ui/screen/AbstractContainerScreen.hpp"
 #include "client/ui/screen/ChestScreen.hpp"
 #include "client/ui/screen/CraftingScreen.hpp"
@@ -1090,6 +1091,19 @@ void ClientApplication::setupNetworkCallbacks()
         // 更新本地玩家的选中槽位
         m_player->inventory().setSelectedSlot(slot);
         spdlog::debug("Hotbar slot set to {}", slot);
+    };
+
+    // 标题显示回调
+    callbacks.onTitle = [this](network::TitleAction action,
+                               const std::optional<String>& text,
+                               i32 fadeIn, i32 stay, i32 fadeOut) {
+        if (m_kageroEngine) {
+            auto* titleWidget = static_cast<ui::minecraft::widgets::TitleWidget*>(
+                m_kageroEngine->getLayer(m_titleLayerId));
+            if (titleWidget) {
+                titleWidget->handleTitlePacket(action, text, fadeIn, stay, fadeOut);
+            }
+        }
     };
 
     m_networkClient->setCallbacks(callbacks);

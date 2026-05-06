@@ -16,6 +16,7 @@ src/client/ui/minecraft/widgets/
 ├── InventorySlot.hpp/cpp      # 背包槽位展示
 ├── ScreenStackWidget.hpp/cpp  # 屏幕栈桥接层
 ├── SlotWidget.hpp/cpp         # 通用槽位组件
+├── TitleWidget.hpp/cpp        # 标题显示（/title 命令）
 ├── Viewport3DWidget.hpp/cpp   # 3D 视口
 └── README.md                  # 本文档
 ```
@@ -55,6 +56,16 @@ HUD 总控件，负责组合生命值、饥饿值、经验条、快捷栏等基�
 ### ExperienceBar
 
 渲染经验条与等级数字。
+
+### TitleWidget
+
+标题显示控件，负责：
+
+- 渲染主标题（屏幕中央大字）
+- 渲染副标题（标题下方小字）
+- 渲染动作栏（快捷栏上方通知）
+- 淡入/停留/淡出动画
+- 处理 `/title` 命令的各种动作（title、subtitle、actionbar、times、clear、reset）
 
 ### InventorySlot
 

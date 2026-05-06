@@ -551,3 +551,172 @@ TEST(TitlePacketCommandTest, SimulateActionbarCommand) {
     auto result = packet.serialize();
     ASSERT_TRUE(result.success());
 }
+
+// ==================== 特殊字符和 Unicode 测试 ====================
+
+TEST(TitlePacketSpecialCharTest, UnicodeCharacters) {
+    // 测试 Unicode 字符（中文、日文、表情符号等）
+    String unicodeText = R"({"text":"你好世界 🌍 Привет мир"})";
+    auto packet = TitlePacket::createTitle(unicodeText);
+
+    EXPECT_EQ(packet.action(), TitleAction::Title);
+    EXPECT_TRUE(packet.text().has_value());
+    EXPECT_EQ(packet.text().value(), unicodeText);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    TitlePacket deserialized;
+    auto deserResult = deserialized.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(deserResult.success());
+    EXPECT_EQ(deserialized.text().value(), unicodeText);
+}
+
+TEST(TitlePacketSpecialCharTest, JsonEscapeSequences) {
+    // 测试 JSON 转义序列
+    String escapedText = R"({"text":"Line1\nLine2\tTabbed\"Quoted\""})";
+    auto packet = TitlePacket::createTitle(escapedText);
+
+    EXPECT_EQ(packet.action(), TitleAction::Title);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    TitlePacket deserialized;
+    auto deserResult = deserialized.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(deserResult.success());
+    EXPECT_EQ(deserialized.text().value(), escapedText);
+}
+
+TEST(TitlePacketSpecialCharTest, MinecraftFormattingCodes) {
+    // 测试 Minecraft 格式代码（§ 符号）
+    String mcText = R"({"text":"§cRed Text §lBold§r Reset"})";
+    auto packet = TitlePacket::createTitle(mcText);
+
+    EXPECT_EQ(packet.action(), TitleAction::Title);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    TitlePacket deserialized;
+    auto deserResult = deserialized.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(deserResult.success());
+    EXPECT_EQ(deserialized.text().value(), mcText);
+}
+
+TEST(TitlePacketSpecialCharTest, ComplexJsonWithMultipleComponents) {
+    // 测试复杂的 JSON 文本组件（带 extra 数组）
+    String complexText = R"({"text":"Main","color":"red","extra":[{"text":" ","color":"white"},{"text":"Extra","color":"gold","bold":true}]})";
+    auto packet = TitlePacket::createTitle(complexText);
+
+    EXPECT_EQ(packet.action(), TitleAction::Title);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    TitlePacket deserialized;
+    auto deserResult = deserialized.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(deserResult.success());
+    EXPECT_EQ(deserialized.text().value(), complexText);
+}
+
+TEST(TitlePacketSpecialCharTest, SpecialMinecraftText) {
+    // 测试 Minecraft 特殊文本（如翻译键、记分板、选择器）
+    String specialText = R"({"translate":"death.attack.player","with":["Player1","Player2"]})";
+    auto packet = TitlePacket::createTitle(specialText);
+
+    EXPECT_EQ(packet.action(), TitleAction::Title);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    TitlePacket deserialized;
+    auto deserResult = deserialized.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(deserResult.success());
+    EXPECT_EQ(deserialized.text().value(), specialText);
+}
+
+// ==================== 边界条件测试 ====================
+
+TEST(TitlePacketBoundaryTest, NegativeTimes) {
+    // 测试负数时间值（MC 1.16.5 使用负值表示使用默认值）
+    auto packet = TitlePacket::createTimes(-1, -1, -1);
+
+    EXPECT_EQ(packet.action(), TitleAction::Times);
+    EXPECT_EQ(packet.fadeIn(), -1);
+    EXPECT_EQ(packet.stay(), -1);
+    EXPECT_EQ(packet.fadeOut(), -1);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    TitlePacket deserialized;
+    auto deserResult = deserialized.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(deserResult.success());
+    EXPECT_EQ(deserialized.fadeIn(), -1);
+    EXPECT_EQ(deserialized.stay(), -1);
+    EXPECT_EQ(deserialized.fadeOut(), -1);
+}
+
+TEST(TitlePacketBoundaryTest, MaxIntTimes) {
+    // 测试最大整数值
+    auto packet = TitlePacket::createTimes(2147483647, 2147483647, 2147483647);
+
+    EXPECT_EQ(packet.action(), TitleAction::Times);
+    EXPECT_EQ(packet.fadeIn(), 2147483647);
+    EXPECT_EQ(packet.stay(), 2147483647);
+    EXPECT_EQ(packet.fadeOut(), 2147483647);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    TitlePacket deserialized;
+    auto deserResult = deserialized.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(deserResult.success());
+    EXPECT_EQ(deserialized.fadeIn(), 2147483647);
+    EXPECT_EQ(deserialized.stay(), 2147483647);
+    EXPECT_EQ(deserialized.fadeOut(), 2147483647);
+}
+
+TEST(TitlePacketBoundaryTest, ActionbarWithEmptyText) {
+    // 测试空文本的动作栏
+    auto packet = TitlePacket::createActionbar("");
+
+    EXPECT_EQ(packet.action(), TitleAction::Actionbar);
+    EXPECT_TRUE(packet.text().has_value());
+    EXPECT_EQ(packet.text().value(), "");
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    TitlePacket deserialized;
+    auto deserResult = deserialized.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(deserResult.success());
+    EXPECT_EQ(deserialized.action(), TitleAction::Actionbar);
+    EXPECT_TRUE(deserialized.text().has_value());
+    EXPECT_EQ(deserialized.text().value(), "");
+}
+
+TEST(TitlePacketBoundaryTest, RapidActionSequence) {
+    // 模拟快速连续发送不同类型的标题包
+    std::vector<TitlePacket> packets;
+
+    packets.push_back(TitlePacket::createTimes(10, 70, 20));
+    packets.push_back(TitlePacket::createTitle(R"({"text":"Title 1"})"));
+    packets.push_back(TitlePacket::createSubtitle(R"({"text":"Subtitle 1"})"));
+    packets.push_back(TitlePacket::createClear());
+    packets.push_back(TitlePacket::createTitle(R"({"text":"Title 2"})"));
+    packets.push_back(TitlePacket::createReset());
+    packets.push_back(TitlePacket::createActionbar(R"({"text":"Action Bar"})"));
+
+    // 序列化和反序列化所有包
+    for (auto& packet : packets) {
+        auto result = packet.serialize();
+        ASSERT_TRUE(result.success());
+
+        TitlePacket deserialized;
+        auto deserResult = deserialized.deserialize(result.value().data(), result.value().size());
+        EXPECT_TRUE(deserResult.success());
+        EXPECT_EQ(deserialized.action(), packet.action());
+    }
+}

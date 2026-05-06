@@ -426,6 +426,7 @@ private:
     size_t m_crosshairLayerId = 0;
     size_t m_hudLayerId = 0;
     size_t m_targetInfoLayerId = 0;
+    size_t m_titleLayerId = 0;
     size_t m_chatLayerId = 0;
     size_t m_screenStackLayerId = 0;
     size_t m_debugScreenLayerId = 0;

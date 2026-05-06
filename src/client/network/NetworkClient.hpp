@@ -12,6 +12,7 @@
 #include "common/network/packet/DimensionPackets.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/network/packet/SleepPacket.hpp"
+#include "common/network/packet/TitlePacket.hpp"
 #include "common/skin/network/SkinPackets.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/resource/ResourceLocation.hpp"

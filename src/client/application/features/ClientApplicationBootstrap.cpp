@@ -18,6 +18,7 @@
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
 #include "client/ui/minecraft/widgets/CrosshairWidget.hpp"
 #include "client/ui/minecraft/widgets/HudWidget.hpp"
+#include "client/ui/minecraft/widgets/TitleWidget.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
@@ -651,6 +652,11 @@ void ClientApplication::initializeUi()
             auto targetInfoWidget = std::make_unique<ui::minecraft::targetinfo::TargetInfoWidget>();
             m_targetInfoLayerId = m_kageroEngine->addLayer(std::move(targetInfoWidget), 15);
 
+            // 层 Z=18: 标题显示（title 命令）
+            auto titleWidget = std::make_unique<ui::minecraft::widgets::TitleWidget>();
+            titleWidget->setFont(guiFont);
+            m_titleLayerId = m_kageroEngine->addLayer(std::move(titleWidget), 18);
+
             // 层 Z=20: 聊天框
             auto chatWidget = std::make_unique<ui::minecraft::widgets::ChatWidget>();
             chatWidget->setFont(guiFont);
@@ -702,8 +708,8 @@ void ClientApplication::initializeUi()
             }
             m_debugScreenLayerId = m_kageroEngine->addLayer(std::move(debugWidget), 100);
 
-            spdlog::info("KageroEngine layers configured: crosshair={}, hud={}, targetInfo={}, chat={}, screenStack={}, debug={}",
-                         m_crosshairLayerId, m_hudLayerId, m_targetInfoLayerId, m_chatLayerId, m_screenStackLayerId, m_debugScreenLayerId);
+            spdlog::info("KageroEngine layers configured: crosshair={}, hud={}, targetInfo={}, title={}, chat={}, screenStack={}, debug={}",
+                         m_crosshairLayerId, m_hudLayerId, m_targetInfoLayerId, m_titleLayerId, m_chatLayerId, m_screenStackLayerId, m_debugScreenLayerId);
         }
     }
 
