@@ -114,8 +114,12 @@ public:
      * @brief 是否可以消失
      *
      * MC 1.16.5: 动物不会消失
+     * @param distanceToClosestPlayer 到最近玩家的距离（未使用）
      */
-    [[nodiscard]] bool canDespawn() const { return false; }
+    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override {
+        (void)distanceToClosestPlayer;
+        return false;
+    }
 
     /**
      * @brief 获取经验值

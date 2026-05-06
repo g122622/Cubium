@@ -348,6 +348,66 @@ public:
         m_maximumHomeDistance = -1.0f;
     }
 
+    // ========== 持久化系统 (Persistence) ==========
+
+    /**
+     * @brief 检查是否需要持久化（不会消失）
+     *
+     * MC 1.16.5: MobEntity.isNoDespawnRequired()
+     * 当生物被命名牌命名、拾取装备等情况时，会被标记为持久化，
+     * 永远不会因为距离过远而消失。
+     *
+     * @return 如果实体需要持久化返回 true
+     */
+    [[nodiscard]] bool isNoDespawnRequired() const { return m_persistenceRequired; }
+
+    /**
+     * @brief 启用持久化
+     *
+     * MC 1.16.5: MobEntity.enablePersistence()
+     * 标记实体为持久化，使其不会被自然消失机制清除。
+     * 调用场景：
+     * - 命名牌命名时
+     * - 拾取装备时
+     * - NBT 数据加载时
+     */
+    void enablePersistence() { m_persistenceRequired = true; }
+
+    /**
+     * @brief 检查是否应阻止消失
+     *
+     * MC 1.16.5: MobEntity.preventDespawn()
+     * 当实体正在被骑乘时，不应消失。
+     *
+     * @return 如果实体应阻止消失返回 true
+     */
+    [[nodiscard]] bool preventDespawn() const { return isRiding(); }
+
+    /**
+     * @brief 检查是否可以消失
+     *
+     * MC 1.16.5: MobEntity.canDespawn(double)
+     * 子类可重写此方法来自定义消失行为。
+     * 例如：AnimalEntity 返回 false（动物不会自然消失）
+     *
+     * @param distanceToClosestPlayer 到最近玩家的距离
+     * @return 如果实体可以消失返回 true
+     */
+    [[nodiscard]] virtual bool canDespawn(double distanceToClosestPlayer) const {
+        (void)distanceToClosestPlayer;
+        return true;
+    }
+
+    /**
+     * @brief 检查在和平模式下是否应消失
+     *
+     * MC 1.16.5: MobEntity.isDespawnPeaceful()
+     * MonsterEntity 重写为 true。
+     *
+     * @return 如果在和平模式下应消失返回 true
+     */
+    [[nodiscard]] virtual bool isDespawnPeaceful() const { return false; }
+
     // ========== 攻击 ==========
 
     /**
@@ -411,6 +471,9 @@ protected:
     // 家范围系统 (MC 1.16.5 MobEntity)
     BlockPos m_homePosition;       // 家位置，默认为 (0, 0, 0)
     f32 m_maximumHomeDistance = -1.0f;  // 家范围半径，-1 表示未设置
+
+    // 持久化系统 (MC 1.16.5 MobEntity)
+    bool m_persistenceRequired = false;  // 是否需要持久化（不消失）
 };
 
 } // namespace mc

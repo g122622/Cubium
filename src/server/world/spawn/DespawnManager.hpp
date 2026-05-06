@@ -71,12 +71,6 @@ public:
 
     // ========== 常量 ==========
 
-    /// 即刻消失距离（MC 1.16.5: 128 格）
-    static constexpr f64 INSTANT_DESPAWN_DISTANCE_SQ = 128.0 * 128.0;
-
-    /// 随机消失距离（MC 1.16.5: 32 格）
-    static constexpr f64 RANDOM_DESPAWN_DISTANCE_SQ = 32.0 * 32.0;
-
     /// 最小空闲时间（MC 1.16.5: 600 tick = 30秒）
     static constexpr i32 MIN_IDLE_TIME = 600;
 

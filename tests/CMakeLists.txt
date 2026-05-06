@@ -124,6 +124,7 @@ add_executable(mc_tests
     server/core/KeepAliveManagerTest.cpp
     server/core/PositionTrackerTest.cpp
     server/weather/WeatherManagerTest.cpp
+    server/world/spawn/DespawnManagerTest.cpp
     server/command/CommandRegistryTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
     client/world/player/LocalPlayerIdentityTest.cpp

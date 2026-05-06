@@ -31,6 +31,7 @@
 #include "items/special/FlintAndSteelItem.hpp"
 #include "items/special/MilkBucketItem.hpp"
 #include "items/special/EnchantedBookItem.hpp"
+#include "items/special/NameTagItem.hpp"
 #include "items/vehicle/MinecartItem.hpp"
 #include "food/Foods.hpp"
 #include "armor/ArmorMaterial.hpp"
@@ -254,6 +255,7 @@ Item* Items::BOWL = nullptr;
 Item* Items::FLINT = nullptr;
 Item* Items::FLINT_AND_STEEL = nullptr;
 Item* Items::SHEARS = nullptr;
+Item* Items::NAME_TAG = nullptr;
 Item* Items::STRING = nullptr;
 Item* Items::FEATHER = nullptr;
 Item* Items::GUNPOWDER = nullptr;
@@ -1299,6 +1301,12 @@ void Items::registerMisc() {
     SHEARS = &registry.registerItem<item::tool::ShearsItem>(
         ResourceLocation("minecraft:shears"),
         ItemProperties().maxDamage(238)
+    );
+
+    // 命名牌 - 给生物命名，使其持久化
+    NAME_TAG = &registry.registerItem<item::items::NameTagItem>(
+        ResourceLocation("minecraft:name_tag"),
+        ItemProperties().maxStackSize(64)
     );
 
     STRING = &registry.registerItem(
