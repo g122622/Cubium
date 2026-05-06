@@ -159,7 +159,7 @@ void ClientApplication::setupNetworkCallbacks()
         }
 
         // 非预期的断开连接：清理并返回主菜单
-        spdlog::warn("[Network] Unexpected disconnection - returning to main menu");
+        spdlog::error("[Network] Unexpected disconnection - returning to main menu");
 
         // 清除本地玩家身份
         m_localIdentity.clear();
@@ -190,7 +190,7 @@ void ClientApplication::setupNetworkCallbacks()
         }
         auto result = m_commandManager->applyCommandTreeJson(treeJson);
         if (result.failed()) {
-            spdlog::warn("Failed to apply command tree: {}", result.error().toString());
+            spdlog::error("Failed to apply command tree: {}", result.error().toString());
             return;
         }
         m_commandManager->setPlayerNameProvider([this]() {
@@ -394,7 +394,7 @@ void ClientApplication::setupNetworkCallbacks()
                 break;
 
             default:
-                spdlog::warn("Ignored unsupported container type {}", static_cast<i32>(type));
+                spdlog::error("Ignored unsupported container type {}", static_cast<i32>(type));
                 break;
         }
 
@@ -759,7 +759,7 @@ void ClientApplication::setupNetworkCallbacks()
                                    f32 volume,
                                    f32 pitch) {
         if (!m_audioService) {
-            spdlog::warn("Received sound event '{}' but audio service is not initialized", soundEventId.toString());
+            spdlog::error("Received sound event '{}' but audio service is not initialized", soundEventId.toString());
             return;
         }
 
@@ -802,7 +802,7 @@ void ClientApplication::setupNetworkCallbacks()
                                       f32 volume,
                                       f32 pitch) {
         if (!m_audioService) {
-            spdlog::warn("Received moving sound event '{}' but audio service is not initialized",
+            spdlog::error("Received moving sound event '{}' but audio service is not initialized",
                          soundEventId.toString());
             return;
         }
