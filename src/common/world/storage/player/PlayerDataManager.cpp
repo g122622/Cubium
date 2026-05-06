@@ -312,13 +312,30 @@ PlayerSaveData PlayerDataManager::fromPlayer(const ServerPlayer& player)
     data.sprinting = player.isSprinting();
     data.sneaking = player.isSneaking();
 
-    // TODO: 背包物品序列化
-    // data.inventorySlots = ...
-    // data.selectedSlot = player.inventory().getSelectedSlot();
-    // data.carriedItem = ...
+    // 背包物品
+    const auto& inventory = player.inventory();
+    data.inventoryItems.clear();
+    data.inventoryItems.reserve(PlayerInventory::TOTAL_SIZE);
+    for (i32 slot = 0; slot < PlayerInventory::TOTAL_SIZE; ++slot) {
+        ItemStack stack = inventory.getItem(slot);
+        if (stack.isEmpty()) {
+            data.inventoryItems.emplace_back(std::nullopt);
+        } else {
+            data.inventoryItems.emplace_back(std::move(stack));
+        }
+    }
+    data.selectedSlot = inventory.getSelectedSlot();
 
-    // TODO: 药水效果序列化
-    // data.effects = ...
+    // 鼠标持有物品
+    const ItemStack& carriedItem = inventory.getCarriedItem();
+    if (!carriedItem.isEmpty()) {
+        data.carriedItem = carriedItem;
+    }
+
+    // 药水效果
+    const auto& effectManager = player.effectManager();
+    const auto& effects = effectManager.getAllEffects();
+    data.effects = effects;
 
     return data;
 }
