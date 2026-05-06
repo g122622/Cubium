@@ -233,21 +233,15 @@ ${STOP_HOOK_PROMPT}
       return {};
     }
 
-    // 对非标准 cmake 命令进行软性提示
+    // 对非标准 cmake 命令进行软性提示，允许执行但注入提示
     console.log(`⚠️ 检测到非标准 cmake 命令: ${command}`);
-    const reason = `检测到 cmake 命令调用。
-原命令: ${command}
-推荐使用以下命令进行构建:
-${allowedCommand}
-
-是否继续执行原命令？`;
-
     return {
       hookSpecificOutput: {
         hookEventName: preInput.hook_event_name,
-        permissionDecision: "ask",
-        permissionDecisionReason: reason,
+        permissionDecision: "allow",
       },
+      systemMessage: `【系统提示】检测到 cmake 命令调用: ${command}
+推荐使用标准构建命令（及其变种）: ${allowedCommand}。`,
     };
   };
 
@@ -264,7 +258,6 @@ ${allowedCommand}
     // "/align 容器系统",
     // "/align 下界与主世界之间的传送",
 
-    "/fix-todo",
     "/fix-todo",
     "/fix-todo",
     "/fix-todo",
