@@ -1,4 +1,4 @@
-import { query, HookCallback, StopHookInput } from "@anthropic-ai/claude-agent-sdk";
+import { query, HookCallback, StopHookInput, PreToolUseHookInput } from "@anthropic-ai/claude-agent-sdk";
 import fs from 'fs/promises';
 
 (async () => {
@@ -200,18 +200,81 @@ ${STOP_HOOK_PROMPT}
     return {};
   };
 
+  /**
+   * PreToolUse hook: 拦截 cmake 相关的终端调用
+   * 只允许使用 cmake --build build --config RelWithDebInfo 进行构建
+   */
+  const cmakeGuardHook: HookCallback = async (input, toolUseID, { signal }) => {
+    const preInput = input as PreToolUseHookInput;
+
+    // 只拦截 Bash 工具调用
+    if (preInput.tool_name !== "Bash") {
+      return {};
+    }
+
+    const toolInput = preInput.tool_input as Record<string, unknown>;
+    const command = (toolInput?.command as string) || "";
+
+    // 检查命令是否包含 cmake 关键词（不区分大小写）
+    if (!command.toLowerCase().includes("cmake")) {
+      return {};
+    }
+
+    // 允许的正确构建命令
+    const allowedCommand = "cmake --build build --config RelWithDebInfo";
+
+    // 检查是否是允许的命令（允许一些合理的变体，如额外的空格）
+    const normalizedCommand = command.trim().replace(/\s+/g, " ");
+    const normalizedAllowed = allowedCommand.replace(/\s+/g, " ");
+
+    // 如果命令已经是正确的格式，允许执行
+    if (normalizedCommand === normalizedAllowed || normalizedCommand.startsWith(normalizedAllowed + " ")) {
+      console.log(`✅ cmake 命令检查通过: ${command}`);
+      return {};
+    }
+
+    // 对非标准 cmake 命令进行软性提示
+    console.log(`⚠️ 检测到非标准 cmake 命令: ${command}`);
+    const reason = `检测到 cmake 命令调用。
+原命令: ${command}
+推荐使用以下命令进行构建:
+${allowedCommand}
+
+是否继续执行原命令？`;
+
+    return {
+      hookSpecificOutput: {
+        hookEventName: preInput.hook_event_name,
+        permissionDecision: "ask",
+        permissionDecisionReason: reason,
+      },
+    };
+  };
+
   const tasklist = [
-    //"/align 地形生成过程中的结构生成算法、模板解析、jigsaw系统、结构完整度（重点）等（提示：结构生成的nbt模板在mac环境位于/Users/a0000/MC_Dev/resourcePacks/Vanilla/data/minecraft/structures，在Windows环境位于D:/Minecraft/MC_Dev/resourcePacks/Vanilla/data/minecraft/structures，你需要充分探索这个目录。另外，随机数必须使用项目封装好的，不要自建随机数生成器）",
-    //"/align 含水方块",
-    //"/align 实体ai",
-     "/align 音效丰富度，以及触发音效的时机是否完整",
-    // "/align 物品丰富度",
-    // "/align 矿车系统",
-    "/align 骑乘系统&boat系统&交通工具系统等",
-    //"/align 天气系统",
-    //"/align 库存系统",
-    "/align 容器系统",
-    "/align 下界与主世界之间的传送",
+    // //"/align 地形生成过程中的结构生成算法、模板解析、jigsaw系统、结构完整度（重点）等（提示：结构生成的nbt模板在mac环境位于/Users/a0000/MC_Dev/resourcePacks/Vanilla/data/minecraft/structures，在Windows环境位于D:/Minecraft/MC_Dev/resourcePacks/Vanilla/data/minecraft/structures，你需要充分探索这个目录。另外，随机数必须使用项目封装好的，不要自建随机数生成器）",
+    // //"/align 含水方块",
+    // //"/align 实体ai",
+    //  "/align 音效丰富度，以及触发音效的时机是否完整",
+    // // "/align 物品丰富度",
+    // // "/align 矿车系统",
+    // "/align 骑乘系统&boat系统&交通工具系统等",
+    // //"/align 天气系统",
+    // //"/align 库存系统",
+    // "/align 容器系统",
+    // "/align 下界与主世界之间的传送",
+
+    "/fix-todo",
+    "/fix-todo",
+    "/fix-todo",
+    "/fix-todo",
+    "/fix-todo",
+    "/fix-todo",
+    "/fix-todo",
+    "/fix-todo",
+    "/fix-todo",
+    "/fix-todo",
+    "/fix-todo",
   ];
 
   async function runTask(task: string, iteration: number, taskIndex: number, shouldEvaluate: boolean) {
@@ -228,6 +291,9 @@ ${STOP_HOOK_PROMPT}
           permissionMode: "bypassPermissions",
           hooks: {
             Stop: shouldEvaluate ? [{ hooks: [stopHook] }] : [],
+            PreToolUse: [
+              { hooks: [cmakeGuardHook] },
+            ]
           },
         },
       })) {
@@ -275,8 +341,8 @@ ${STOP_HOOK_PROMPT}
   }
 
   async function main() {
-    const outerLoops = 3;
-    const innerLoops = 3;
+    const outerLoops = 300;
+    const innerLoops = 300;
 
     for (let i = 0; i < outerLoops; i++) {
       console.log(
