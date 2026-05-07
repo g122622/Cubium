@@ -2,6 +2,8 @@
 #include "../../../IWorld.hpp"
 #include "../../../../entity/core/Entity.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/math/random/Random.hpp"
@@ -165,11 +167,20 @@ ActionResultType SweetBerryBushBlock::onBlockActivated(
         // 计算掉落数量
         // AGE 2: 1-2 个浆果
         // AGE 3: 2-3 个浆果
-        // 参考: int j = 1 + worldIn.rand.nextInt(2);
+        // 参考 MC 1.16.5: int j = 1 + worldIn.rand.nextInt(2);
         // spawnAsEntity(..., new ItemStack(Items.SWEET_BERRIES, j + (flag ? 1 : 0)));
+        math::Random rng;
+        i32 berryCount = 1 + rng.nextInt(2) + (fullyGrown ? 1 : 0);
 
-        // TODO: 生成 ItemEntity 掉落浆果
-        MC_UNUSED(fullyGrown);
+        // 生成浆果掉落
+        if (Items::SWEET_BERRIES != nullptr && berryCount > 0) {
+            ItemStack dropStack(*Items::SWEET_BERRIES, berryCount);
+            ItemDropHelper::spawnItemEntity(&world, dropStack,
+                static_cast<f64>(pos.x) + 0.5,
+                static_cast<f64>(pos.y) + 0.5,
+                static_cast<f64>(pos.z) + 0.5,
+                rng);
+        }
 
         // AGE 重置为 1
         const BlockState& newState = withAge(state, 1);
