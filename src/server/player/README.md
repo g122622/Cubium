@@ -56,7 +56,6 @@ private:
 | `trySleep(bedPos)` | 尝试在指定位置睡眠 |
 | `stopSleepInBed(resetTimer, updateFlag)` | 停止睡眠 |
 | `wakeUp()` | 唤醒玩家（完全唤醒） |
-| `isPlayerFullyAsleep()` | 检查玩家是否完全入睡 |
 | `determineRespawnPosition()` | 确定重生位置 |
 | `determineRespawnDimension()` | 确定重生维度 |
 | `onPortalTriggered()` | 传送门触发回调（重写自 Entity） |
@@ -88,9 +87,10 @@ private:
 - `trySleep()` - 尝试在床上睡眠
 - `stopSleepInBed()` - 停止睡眠
 - `wakeUp()` - 唤醒玩家
-- `isPlayerFullyAsleep()` - 检查是否完全入睡
 - `determineRespawnPosition()` - 确定重生位置
 - `determineRespawnDimension()` - 确定重生维度
+
+**注意**: `isPlayerFullyAsleep()` 方法继承自 `Player` 基类，无需在 `ServerPlayer` 中重写。
 
 #### 维度传送系统
 - `onPortalTriggered()` - 传送门触发回调（重写自 Entity）

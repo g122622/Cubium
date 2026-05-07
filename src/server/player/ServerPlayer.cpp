@@ -236,10 +236,6 @@ void ServerPlayer::wakeUp() {
     stopSleepInBed(true, true);
 }
 
-bool ServerPlayer::isPlayerFullyAsleep() const {
-    return isSleeping() && getSleepTimer() >= 100;
-}
-
 // ========== 重生系统实现 ==========
 
 Vector3d ServerPlayer::determineRespawnPosition() const {

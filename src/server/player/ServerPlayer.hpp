@@ -185,15 +185,6 @@ public:
      */
     void wakeUp();
 
-    /**
-     * @brief 检查玩家是否完全入睡
-     *
-     * 玩家需要睡眠 100 ticks (5秒) 才算完全入睡。
-     *
-     * @return true 如果睡眠计时器 >= 100
-     */
-    [[nodiscard]] bool isPlayerFullyAsleep() const;
-
     // ========== 重生系统 ==========
 
     /**
