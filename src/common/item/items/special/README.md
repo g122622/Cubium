@@ -27,15 +27,23 @@ special/
 ### BucketItem (MC 1.16.5)
 
 桶物品，支持空桶、水桶、岩浆桶的功能：
-- **空桶**: 从水源方块或含水方块中取出流体
+- **空桶**: 从水源方块或含水方块中取出流体，也可对成年牛挤奶
 - **装满的桶**: 放置流体方块或向含水方块注入流体
+- **牛奶桶**: 由空桶对牛挤奶获得，饮用清除所有药水效果
 
 主要方法：
 - `onItemUse`: 在方块上使用桶
 - `onItemRightClick`: 右键使用桶
+- `itemInteractionForEntity`: 对实体交互（挤奶）
 - `tryPlaceContainedLiquid`: 尝试放置流体
 - `getFilledBucket`: 根据流体类型获取对应的桶物品
 - `getEmptyBucket`: 获取空桶物品
+
+**实体交互（挤奶）**：
+- 空桶可以对成年牛（CowEntity）挤奶
+- 幼年牛不能被挤奶
+- 挤奶后播放音效（ENTITY_COW_MILK）
+- 非创造模式下消耗空桶，添加牛奶桶到背包
 
 已注册物品：
 | 物品 ID | 说明 | 注册位置 |
@@ -43,6 +51,7 @@ special/
 | minecraft:bucket | 空桶 | Items::BUCKET |
 | minecraft:water_bucket | 水桶 | Items::WATER_BUCKET |
 | minecraft:lava_bucket | 岩浆桶 | Items::LAVA_BUCKET |
+| minecraft:milk_bucket | 牛奶桶 | Items::MILK_BUCKET |
 
 ### SpawnEggItem (MC 1.16.5)
 - 支持自定义实体类型和颜色

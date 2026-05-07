@@ -241,6 +241,43 @@ f32 ToolItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) c
 
 **攻击伤害**：基础值 + 层级加成
 
+### ShearsItem.hpp / ShearsItem.cpp
+
+**职责**：剪刀工具实现，用于剪羊毛、采集蜘蛛网、树叶等。
+
+**注意**：剪刀继承自 `Item` 而非 `ToolItem`，是独立的工具类。
+
+**挖掘效率**：
+- 蜘蛛网：15.0
+- 树叶：15.0
+- 羊毛：5.0
+- 其他方块：1.0
+
+**采集能力**：
+- 可以采集蜘蛛网
+- 可以采集红石线
+- 可以采集绊线
+
+**实体交互（MC 1.16.5）**：
+- `itemInteractionForEntity()` 方法实现与可剪毛实体的交互
+- 通过 `IShearable` 接口识别可剪毛实体（羊、雪傀儡、哞菇）
+- 剪羊毛后在世界中生成物品实体，带随机散射速度
+- 非创造模式下消耗剪刀耐久度
+
+**耐久消耗规则**：
+- 树叶、羊毛、蜘蛛网、草、蕨、枯萎灌木、藤蔓、绊线、火方块：不消耗耐久
+- 其他硬度>0的方块：消耗1耐久
+
+**使用方法**：
+```cpp
+// 剪羊毛（自动通过 itemInteractionForEntity）
+auto* shearable = dynamic_cast<IShearable*>(&target);
+if (shearable && shearable->isShearable()) {
+    std::vector<ItemStack> drops = shearable->shear(&player);
+    // 在世界中生成掉落物
+}
+```
+
 ## 模块职责
 
 ### 整体职责
