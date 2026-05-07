@@ -2,6 +2,7 @@
 #include "../../../IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../item/Items.hpp"
 
 namespace mc {
 namespace blocks {
@@ -17,13 +18,13 @@ WheatBlock::WheatBlock(const BlockProperties& properties)
 
 u32 WheatBlock::getCropItem() const {
     // 返回小麦物品ID
-    // 注：需要在 Items 初始化后才能访问
-    return 0; // TODO: 返回 Items::WHEAT 的 ID
+    // 参考: net.minecraft.block.CropsBlock#getCropItem
+    return Items::WHEAT->itemId();
 }
 
 u32 WheatBlock::getSeedItem() const {
     // 返回小麦种子物品ID
-    return 0; // TODO: 返回 Items::WHEAT_SEEDS 的 ID
+    return Items::WHEAT_SEEDS->itemId();
 }
 
 // ============================================================================
@@ -45,12 +46,13 @@ CarrotBlock::CarrotBlock(const BlockProperties& properties)
 
 u32 CarrotBlock::getCropItem() const {
     // 胡萝卜的作物和种子是同一个物品
-    return 0; // TODO: 返回 Items::CARROT 的 ID
+    // 参考: net.minecraft.block.CarrotBlock#getCropItem
+    return Items::CARROT->itemId();
 }
 
 u32 CarrotBlock::getSeedItem() const {
     // 胡萝卜的作物和种子是同一个物品
-    return 0; // TODO: 返回 Items::CARROT 的 ID
+    return Items::CARROT->itemId();
 }
 
 const CollisionShape& CarrotBlock::getShape(const BlockState& state) const {
@@ -78,12 +80,13 @@ PotatoBlock::PotatoBlock(const BlockProperties& properties)
 
 u32 PotatoBlock::getCropItem() const {
     // 马铃薯的作物和种子是同一个物品
-    return 0; // TODO: 返回 Items::POTATO 的 ID
+    // 参考: net.minecraft.block.PotatoBlock#getCropItem
+    return Items::POTATO->itemId();
 }
 
 u32 PotatoBlock::getSeedItem() const {
     // 马铃薯的作物和种子是同一个物品
-    return 0; // TODO: 返回 Items::POTATO 的 ID
+    return Items::POTATO->itemId();
 }
 
 const CollisionShape& PotatoBlock::getShape(const BlockState& state) const {
@@ -163,12 +166,13 @@ const CollisionShape& BeetrootBlock::getShape(const BlockState& state) const {
 
 u32 BeetrootBlock::getCropItem() const {
     // 返回甜菜根物品ID
-    return 0; // TODO: 返回 Items::BEETROOT 的 ID
+    // 参考: net.minecraft.block.BeetrootBlock#getCropItem
+    return Items::BEETROOT->itemId();
 }
 
 u32 BeetrootBlock::getSeedItem() const {
     // 返回甜菜根种子物品ID
-    return 0; // TODO: 返回 Items::BEETROOT_SEEDS 的 ID
+    return Items::BEETROOT_SEEDS->itemId();
 }
 
 } // namespace blocks
