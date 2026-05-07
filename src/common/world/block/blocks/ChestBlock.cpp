@@ -8,9 +8,12 @@
 #include "../../../entity/entities/passive/tamable/CatEntity.hpp"
 #include "../../../entity/inventory/ContainerTypes.hpp"
 #include "../../../entity/entities/player/Player.hpp"
+#include "../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../item/core/ItemStack.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../../util/assert/AssertAll.hpp"
+#include <vector>
 
 namespace mc {
 namespace blocks {
@@ -189,9 +192,24 @@ void ChestBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockS
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Chest) {
         auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
-        // TODO: 实现掉落物品到世界中
-        // InventoryHelper::dropInventoryItems(world, pos, chest);
-        // 暂时清空物品
+
+        // 收集箱子中的所有物品
+        std::vector<ItemStack> drops;
+        IInventory* inventory = chest->getInventory();
+        for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
+            ItemStack stack = inventory->getItem(i);
+            if (!stack.isEmpty()) {
+                drops.push_back(stack);
+            }
+        }
+
+        // 在方块位置掉落所有物品
+        if (!drops.empty() && !world.isClientSide()) {
+            math::Random rng;
+            ItemDropHelper::spawnItemEntities(&world, pos, drops, rng);
+        }
+
+        // 清空物品
         chest->clearContainer();
         MC_UNUSED(state);
     }
