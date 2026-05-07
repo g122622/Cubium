@@ -295,8 +295,9 @@ i32 ClientWorld::getHeight(i32 x, i32 z) const
 
 bool ClientWorld::canSeeSky(const BlockPos& pos) const
 {
-    const i32 height = getHeight(pos.x, pos.z);
-    return pos.y >= height;
+    // MC 1.16.5: return this.getLightFor(LightType.SKY, pos) >= this.getMaxLightLevel();
+    // 基于天空光照判断，只有天空光照达到最大值 15 时才能看到天空
+    return getSkyLight(pos.x, pos.y, pos.z) >= 15;
 }
 
 void ClientWorld::forEachChunk(std::function<void(const ChunkId&, ClientChunk&)> func)

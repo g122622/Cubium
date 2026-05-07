@@ -25,10 +25,9 @@ namespace {
 } // namespace
 
 bool WeatherUtils::canSeeSky(const mc::IWorld& world, const mc::BlockPos& pos) {
-    // 检查该位置上方是否有非透明方块
-    // 简化实现：检查高度是否为最高点
-    i32 height = world.getHeight(pos.x, pos.z);
-    return pos.y >= height;
+    // MC 1.16.5: return this.getLightFor(LightType.SKY, pos) >= this.getMaxLightLevel();
+    // 直接使用 IWorld::canSeeSky，它基于天空光照等级判断
+    return world.canSeeSky(pos);
 }
 
 bool WeatherUtils::canRainAt(const mc::IWorld& world, const mc::BlockPos& pos) {

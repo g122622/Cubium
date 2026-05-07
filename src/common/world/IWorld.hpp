@@ -353,15 +353,19 @@ public:
     /**
      * @brief 检查位置是否可以看到天空
      *
+     * 基于 MC 1.16.5 实现：检查该位置的天空光照等级是否达到最大值。
      * 参考: net.minecraft.world.IWorldReader#canSeeSky
      *
      * @param pos 方块位置
      * @return 如果该位置可以看到天空返回 true
      */
     [[nodiscard]] virtual bool canSeeSky(const BlockPos& pos) const {
-        (void)pos;
-        // 默认实现返回 false，具体世界需要重写
-        return false;
+        // MC 1.16.5: return this.getLightFor(LightType.SKY, pos) >= this.getMaxLightLevel();
+        // 只有有天空光照的维度才能看到天空
+        if (!hasSkyLight()) {
+            return false;
+        }
+        return getSkyLight(pos) >= 15;
     }
 
     /**
