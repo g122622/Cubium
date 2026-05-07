@@ -1,5 +1,6 @@
 #include "CakeBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../block/VanillaBlocks.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 
@@ -111,7 +112,8 @@ bool CakeBlock::eatSlice(IWorld& world, const BlockPos& pos, BlockState& state) 
         return true;
     } else {
         // 最后一片，移除方块
-        // TODO: 返回空气
+        // 参考 MC 1.16.5: CakeBlock.eatSlice
+        world.setBlockState(pos, &VanillaBlocks::AIR->defaultState(), 3);
         return true;
     }
 }
