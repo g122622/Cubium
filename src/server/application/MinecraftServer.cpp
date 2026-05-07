@@ -1577,4 +1577,62 @@ void MinecraftServer::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 
     });
 }
 
+// ============================================================================
+// 爆炸广播
+// ============================================================================
+
+void MinecraftServer::broadcastExplosionInRange(
+    const Vector3& position,
+    f32 strength,
+    const std::vector<BlockPos>& affectedBlocks,
+    const std::unordered_map<u64, Vector3>& playerKnockback,
+    f32 range) {
+    // 参考 MC 1.16.5: 发送给爆炸点 64 格范围内的玩家
+    // 每个玩家收到的击退向量不同，需要为每个玩家单独构建数据包
+
+    f32 rangeSq = range * range;
+
+    m_playerManager->forEachPlayer([this, &position, strength, &affectedBlocks, &playerKnockback, rangeSq](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        // 检查玩家是否在范围内
+        f32 dx = player.x - position.x;
+        f32 dy = player.y - position.y;
+        f32 dz = player.z - position.z;
+        f32 distSq = dx * dx + dy * dy + dz * dz;
+
+        if (distSq <= rangeSq) {
+            // 为每个玩家创建单独的爆炸包（击退向量不同）
+            sendExplosionToPlayer(player.playerId, position, strength, affectedBlocks, playerKnockback);
+        }
+    });
+}
+
+void MinecraftServer::sendExplosionToPlayer(
+    PlayerId playerId,
+    const Vector3& position,
+    f32 strength,
+    const std::vector<BlockPos>& affectedBlocks,
+    const std::unordered_map<u64, Vector3>& playerKnockback) {
+    // 创建爆炸包，包含该玩家的击退向量
+    network::ExplosionPacket packet(
+        position,
+        strength,
+        affectedBlocks,
+        playerKnockback,
+        static_cast<u64>(playerId));
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize ExplosionPacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(
+        network::PacketType::Explosion, result.value());
+    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+}
+
 } // namespace mc::server

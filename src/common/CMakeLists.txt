@@ -48,6 +48,7 @@ add_library(mc_common STATIC
     network/packet/DimensionPackets.cpp
     network/packet/ExperiencePackets.cpp
     network/packet/ParticlePacket.cpp
+    network/packet/ExplosionPacket.cpp
     network/packet/SleepPacket.cpp
     network/packet/SpawnPositionPacket.cpp
     network/packet/SetPassengersPacket.cpp

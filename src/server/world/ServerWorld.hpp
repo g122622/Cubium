@@ -322,6 +322,24 @@ public:
         m_onBroadcastWorldEvent = std::move(callback);
     }
 
+    // ========== 爆炸广播回调 ==========
+
+    /**
+     * @brief 爆炸广播回调类型
+     *
+     * 当服务端需要广播爆炸事件给玩家时调用。
+     * 参数：爆炸位置、威力、受影响方块列表、玩家击退映射
+     */
+    using ExplosionBroadcastCallback = std::function<void(
+        const Vector3& position,
+        f32 strength,
+        const std::vector<BlockPos>& affectedBlocks,
+        const std::unordered_map<u64, Vector3>& playerKnockback)>;
+
+    void setOnBroadcastExplosion(ExplosionBroadcastCallback callback) {
+        m_onBroadcastExplosion = std::move(callback);
+    }
+
     // ========== IWorld 接口实现 ==========
 
     void addParticle(
@@ -574,6 +592,7 @@ private:
     ParticleBroadcastCallback m_onBroadcastParticle;
     EntityStatusCallback m_onBroadcastEntityStatus;
     WorldEventCallback m_onBroadcastWorldEvent;
+    ExplosionBroadcastCallback m_onBroadcastExplosion;
 
     // 随机刻系统
     math::Random m_random;            ///< 世界随机数生成器

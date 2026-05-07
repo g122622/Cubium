@@ -1406,8 +1406,16 @@ void ServerWorld::createExplosion(
     // 执行爆炸
     explosion->explode();
 
-    // TODO: 广播爆炸包给客户端
-    // broadcastExplosion(position, radius, explosion->affectedBlocks());
+    // 广播爆炸包给客户端
+    // 参考 MC 1.16.5: 发送给爆炸点 64 格范围内的玩家
+    if (m_onBroadcastExplosion) {
+        m_onBroadcastExplosion(
+            position,
+            radius,
+            explosion->affectedBlocks(),
+            explosion->playerKnockback()
+        );
+    }
 }
 
 // ============================================================================

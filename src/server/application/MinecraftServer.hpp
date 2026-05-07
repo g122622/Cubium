@@ -25,12 +25,15 @@
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
 #include "common/network/packet/ParticlePacket.hpp"
+#include "common/network/packet/ExplosionPacket.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 #include <atomic>
 #include <cmath>
+#include <unordered_map>
 
 namespace mc {
 class WorldLightManager;
@@ -618,6 +621,42 @@ protected:
         const Vector3& velocity,
         const Vector3& offset,
         u32 count);
+
+    // ========== 爆炸广播方法 ==========
+
+    /**
+     * @brief 广播爆炸事件给范围内玩家
+     *
+     * 参考 MC 1.16.5: 发送给爆炸点 64 格范围内的玩家
+     *
+     * @param position 爆炸位置
+     * @param strength 爆炸威力（半径）
+     * @param affectedBlocks 受影响的方块列表
+     * @param playerKnockback 玩家击退映射（玩家ID -> 击退向量）
+     * @param range 广播范围（格），默认 64.0f（与 MC 1.16.5 一致）
+     */
+    void broadcastExplosionInRange(
+        const Vector3& position,
+        f32 strength,
+        const std::vector<BlockPos>& affectedBlocks,
+        const std::unordered_map<u64, Vector3>& playerKnockback,
+        f32 range = 64.0f);
+
+    /**
+     * @brief 发送爆炸包给指定玩家
+     *
+     * @param playerId 玩家ID
+     * @param position 爆炸位置
+     * @param strength 爆炸威力
+     * @param affectedBlocks 受影响的方块列表
+     * @param playerKnockback 玩家击退映射
+     */
+    void sendExplosionToPlayer(
+        PlayerId playerId,
+        const Vector3& position,
+        f32 strength,
+        const std::vector<BlockPos>& affectedBlocks,
+        const std::unordered_map<u64, Vector3>& playerKnockback);
 
     /**
      * @brief 停止核心组件

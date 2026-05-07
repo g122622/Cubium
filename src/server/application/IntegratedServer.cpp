@@ -150,6 +150,13 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
     m_world->setOnBroadcastWorldEvent([this](i32 eventId, i32 x, i32 y, i32 z, i32 data) {
         broadcastWorldEventInRange(eventId, x, y, z, data);
     });
+    m_world->setOnBroadcastExplosion([this](
+        const Vector3& position,
+        f32 strength,
+        const std::vector<BlockPos>& affectedBlocks,
+        const std::unordered_map<u64, Vector3>& playerKnockback) {
+        broadcastExplosionInRange(position, strength, affectedBlocks, playerKnockback);
+    });
 
     // 设置 TimeManager 引用
     m_world->setTimeManager(m_timeManager.get());
