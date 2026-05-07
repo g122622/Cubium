@@ -4,6 +4,8 @@
 #include "../../../world/block/BlockTags.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
+#include "../../../entity/interfaces/IShearable.hpp"
+#include "../../../world/IWorld.hpp"
 #include "../../core/ActionResult.hpp"
 #include "../../../core/Types.hpp"
 
@@ -108,22 +110,38 @@ bool ShearsItem::itemInteractionForEntity(ItemStack& stack,
                                            Player& player,
                                            LivingEntity& target,
                                            Hand hand) {
-    (void)player;
-    (void)hand;
+    MC_UNUSED(hand);
 
-    // MC 1.16.5: 剪羊毛逻辑
-    // 参考: ShearsItem.itemInteractionForEntity
-    // 如果实体实现 IForgeShearable 接口，调用其 onSheared 方法
-    //
-    // 目前项目中的羊实体需要实现 IForgeShearable 或类似接口
-    // 简化实现：检查实体类型是否为羊
-    //
-    // TODO: 当 SheepEntity 实现 IShearable 接口后，完善此逻辑
-    // 目前返回 false 表示未处理
-    (void)stack;
-    (void)target;
+    // MC 1.16.5: ShearsItem.itemInteractionForEntity()
+    // 剪刀可以剪羊毛、雪傀儡的南瓜、哞菇的蘑菇
 
-    return false;
+    // 检查实体是否实现 IShearable 接口
+    auto* shearable = dynamic_cast<entity::IShearable*>(&target);
+    if (shearable == nullptr) {
+        return false;
+    }
+
+    // 检查是否可以被剪
+    if (!shearable->isShearable()) {
+        return false;
+    }
+
+    // 执行剪毛
+    std::vector<ItemStack> drops = shearable->shear(&player);
+
+    // 在世界中生成掉落物
+    // TODO: 当 IWorld::spawnEntity 方法实现后，在世界中生成掉落物品实体
+    // 目前 SheepEntity::shear() 方法已经播放了声音，掉落物生成待完善
+    IWorld* world = target.world();
+    MC_UNUSED(world);
+    MC_UNUSED(drops);
+
+    // 消耗剪刀耐久（非创造模式）
+    if (!player.isCreative()) {
+        stack.attemptDamageItem(1);
+    }
+
+    return true;
 }
 
 } // namespace tool

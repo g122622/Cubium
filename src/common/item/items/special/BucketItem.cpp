@@ -10,6 +10,8 @@
 #include "../../../world/fluid/FluidTags.hpp"
 #include "../../../world/block/blocks/LiquidBlock.hpp"
 #include "../../../entity/entities/player/Player.hpp"
+#include "../../../entity/entities/passive/basic/CowEntity.hpp"
+#include "../../../entity/core/AgeableEntity.hpp"
 #include "../../core/ItemStack.hpp"
 #include "../../context/BlockItemUseContext.hpp"
 #include "../../core/ItemRegistry.hpp"
@@ -264,6 +266,53 @@ BucketItem* BucketItem::getFilledBucket(fluid::Fluid& fluid) {
 BucketItem* BucketItem::getEmptyBucket() {
     MC_ASSERT_RELEASE(Items::BUCKET != nullptr);
     return static_cast<BucketItem*>(Items::BUCKET);
+}
+
+bool BucketItem::itemInteractionForEntity(ItemStack& stack, Player& player,
+                                          LivingEntity& target, Hand hand) {
+    // MC 1.16.5: BucketItem.itemInteractionForEntity()
+    // 只有空桶可以挤奶
+    if (m_containedFluid != nullptr) {
+        return false;
+    }
+
+    // 只有牛（包括哞菇）可以被挤奶
+    auto* cow = dynamic_cast<CowEntity*>(&target);
+    if (cow == nullptr) {
+        return false;
+    }
+
+    // 幼年牛不能被挤奶
+    if (cow->isChild()) {
+        return false;
+    }
+
+    // 播放挤奶音效
+    cow->playSound(SoundEvents::ENTITY_COW_MILK, 1.0f, 1.0f);
+
+    // 处理物品转换
+    // MC 1.16.5: DrinkHelper.func_242398_a (fill(), filledItem)
+    // 非创造模式：减少空桶，添加牛奶桶
+    if (!player.isCreative()) {
+        stack.shrink(1);
+
+        // 创建牛奶桶
+        if (Items::MILK_BUCKET != nullptr) {
+            ItemStack milkBucket(Items::MILK_BUCKET, 1);
+
+            // 如果空桶用完了，直接返回牛奶桶
+            if (stack.isEmpty()) {
+                // 需要通过某种方式设置玩家手持物品
+                // 这里返回 true 表示交互成功，实际物品替换由调用方处理
+                player.inventory().add(milkBucket);
+            } else {
+                // 空桶还有剩余，尝试将牛奶桶添加到背包
+                player.inventory().add(milkBucket);
+            }
+        }
+    }
+
+    return true;
 }
 
 } // namespace mc

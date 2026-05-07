@@ -89,7 +89,9 @@ protected:
     [[nodiscard]] f32 getBaseHeight() const override { return 1.4f; }
 
 private:
-    // TODO: 挤奶逻辑（需要物品交互系统）
+    // 挤奶功能已由 BucketItem::itemInteractionForEntity() 实现
+    // 当玩家手持空桶右键点击成年牛时，会触发挤奶并返回牛奶桶
 };
+
 
 } // namespace mc

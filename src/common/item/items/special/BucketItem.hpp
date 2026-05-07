@@ -60,6 +60,21 @@ public:
     ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand) override;
 
     /**
+     * @brief 与实体交互
+     *
+     * 空桶与牛/哞菇交互时挤奶。
+     * 参考 MC 1.16.5: BucketItem.itemInteractionForEntity
+     *
+     * @param stack 物品堆
+     * @param player 玩家
+     * @param target 目标实体
+     * @param hand 使用的手
+     * @return 是否成功交互
+     */
+    bool itemInteractionForEntity(ItemStack& stack, Player& player,
+                                  LivingEntity& target, Hand hand) override;
+
+    /**
      * @brief 获取填充后的桶物品
      *
      * 当空桶装满流体后，返回对应的桶物品。
