@@ -71,6 +71,21 @@ public:
     [[nodiscard]] Type getType() const { return m_type; }
 
     /**
+     * @brief 获取参数集合名称
+     */
+    [[nodiscard]] String getName() const {
+        switch (m_type) {
+            case Type::Empty:   return "minecraft:empty";
+            case Type::Generic: return "minecraft:generic";
+            case Type::Entity:  return "minecraft:entity";
+            case Type::Block:   return "minecraft:block";
+            case Type::Fishing: return "minecraft:fishing";
+            case Type::Gift:    return "minecraft:gift";
+            default:            return "minecraft:generic";
+        }
+    }
+
+    /**
      * @brief 添加必需参数
      */
     template<typename T>

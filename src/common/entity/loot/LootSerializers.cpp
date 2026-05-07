@@ -1,0 +1,1503 @@
+/**
+ * @file LootSerializers.cpp
+ * @brief 掉落表 JSON 序列化器实现
+ *
+ * 参考 Minecraft 1.16.5: net.minecraft.loot.LootSerializers
+ */
+
+#include "LootSerializers.hpp"
+#include <sstream>
+
+namespace mc {
+namespace loot {
+
+// ============================================================================
+// 辅助函数：将派生类 unique_ptr 转换为基类 unique_ptr
+// ============================================================================
+
+namespace {
+
+template<typename Derived, typename Base>
+std::unique_ptr<Base> castToBase(std::unique_ptr<Derived> ptr) {
+    return std::unique_ptr<Base>(ptr.release());
+}
+
+} // anonymous namespace
+
+// ============================================================================
+// RandomValueRange 解析
+// ============================================================================
+
+Result<RandomValueRange> LootSerializers::parseRandomValueRange(const nlohmann::json& json) {
+    // 纯数字 -> 固定值
+    if (json.is_number_integer()) {
+        i32 value = json.get<i32>();
+        return RandomValueRange(static_cast<f32>(value), static_cast<f32>(value));
+    }
+    if (json.is_number_float()) {
+        f32 value = json.get<f32>();
+        return RandomValueRange(value, value);
+    }
+
+    // 对象格式
+    if (!json.is_object()) {
+        return Error(ErrorCode::InvalidData, "RandomValueRange must be a number or object");
+    }
+
+    // 检查是否指定了 type
+    String type = "minecraft:uniform";  // 默认类型
+    if (json.contains("type") && json["type"].is_string()) {
+        type = json["type"].get<String>();
+    }
+
+    if (type == "minecraft:uniform" || type == "uniform") {
+        // 统一分布
+        f32 min = 0.0f;
+        f32 max = 0.0f;
+
+        if (json.contains("min")) {
+            if (json["min"].is_number_integer()) {
+                min = static_cast<f32>(json["min"].get<i32>());
+            } else if (json["min"].is_number_float()) {
+                min = json["min"].get<f32>();
+            }
+        }
+
+        if (json.contains("max")) {
+            if (json["max"].is_number_integer()) {
+                max = static_cast<f32>(json["max"].get<i32>());
+            } else if (json["max"].is_number_float()) {
+                max = json["max"].get<f32>();
+            }
+        }
+
+        return RandomValueRange(min, max);
+    }
+
+    return Error(ErrorCode::InvalidData, "Unknown RandomValueRange type: " + type);
+}
+
+nlohmann::json LootSerializers::toJson(const RandomValueRange& range) {
+    if (range.isFixed()) {
+        return static_cast<i32>(range.getMin());
+    }
+    return {
+        {"min", range.getMin()},
+        {"max", range.getMax()}
+    };
+}
+
+Result<BinomialRange> LootSerializers::parseBinomialRange(const nlohmann::json& json) {
+    if (!json.is_object()) {
+        return Error(ErrorCode::InvalidData, "BinomialRange must be an object");
+    }
+
+    if (!json.contains("n") || !json["n"].is_number_integer()) {
+        return Error(ErrorCode::InvalidData, "BinomialRange missing 'n' field");
+    }
+
+    if (!json.contains("p") || !json["p"].is_number()) {
+        return Error(ErrorCode::InvalidData, "BinomialRange missing 'p' field");
+    }
+
+    i32 n = json["n"].get<i32>();
+    f32 p = json["p"].is_number_float() ? json["p"].get<f32>()
+                                        : static_cast<f32>(json["p"].get<i32>());
+
+    return BinomialRange(n, p);
+}
+
+nlohmann::json LootSerializers::toJson(const BinomialRange& range) {
+    return {
+        {"type", "minecraft:binomial"},
+        {"n", range.getN()},
+        {"p", range.getP()}
+    };
+}
+
+Result<ConstantRange> LootSerializers::parseConstantRange(const nlohmann::json& json) {
+    // 纯数字
+    if (json.is_number_integer()) {
+        return ConstantRange(json.get<i32>());
+    }
+
+    // 对象格式
+    if (!json.is_object()) {
+        return Error(ErrorCode::InvalidData, "ConstantRange must be a number or object");
+    }
+
+    if (!json.contains("value")) {
+        return Error(ErrorCode::InvalidData, "ConstantRange missing 'value' field");
+    }
+
+    i32 value = 0;
+    if (json["value"].is_number_integer()) {
+        value = json["value"].get<i32>();
+    } else if (json["value"].is_number_float()) {
+        value = static_cast<i32>(json["value"].get<f32>());
+    }
+
+    return ConstantRange(value);
+}
+
+nlohmann::json LootSerializers::toJson(const ConstantRange& range) {
+    return range.getValue();
+}
+
+Result<std::unique_ptr<math::IRandomRange>> LootSerializers::parseRandomRange(const nlohmann::json& json) {
+    // 纯数字 -> 常量
+    if (json.is_number()) {
+        i32 value = json.is_number_integer() ? json.get<i32>()
+                                             : static_cast<i32>(json.get<f32>());
+        return std::unique_ptr<math::IRandomRange>(std::make_unique<ConstantRange>(value));
+    }
+
+    if (!json.is_object()) {
+        return Error(ErrorCode::InvalidData, "RandomRange must be a number or object");
+    }
+
+    // 获取类型
+    String type = "minecraft:uniform";  // 默认类型
+    if (json.contains("type") && json["type"].is_string()) {
+        type = json["type"].get<String>();
+    }
+
+    // 根据类型分发
+    if (type == "minecraft:uniform" || type == "uniform") {
+        auto result = parseRandomValueRange(json);
+        if (!result.success()) {
+            return result.error();
+        }
+        return std::unique_ptr<math::IRandomRange>(std::make_unique<RandomValueRange>(result.value()));
+    }
+    else if (type == "minecraft:binomial" || type == "binomial") {
+        auto result = parseBinomialRange(json);
+        if (!result.success()) {
+            return result.error();
+        }
+        return std::unique_ptr<math::IRandomRange>(std::make_unique<BinomialRange>(result.value()));
+    }
+    else if (type == "minecraft:constant" || type == "constant") {
+        auto result = parseConstantRange(json);
+        if (!result.success()) {
+            return result.error();
+        }
+        return std::unique_ptr<math::IRandomRange>(std::make_unique<ConstantRange>(result.value()));
+    }
+
+    return Error(ErrorCode::InvalidData, "Unknown RandomRange type: " + type);
+}
+
+// ============================================================================
+// LootCondition 解析
+// ============================================================================
+
+Result<std::unique_ptr<LootCondition>> LootSerializers::parseCondition(const nlohmann::json& json) {
+    if (!json.is_object()) {
+        return Error(ErrorCode::InvalidData, "Condition must be an object");
+    }
+
+    if (!json.contains("condition") || !json["condition"].is_string()) {
+        return Error(ErrorCode::InvalidData, "Condition missing 'condition' field");
+    }
+
+    String conditionType = json["condition"].get<String>();
+
+    // 根据 condition 类型分发
+    if (conditionType == "minecraft:silk_touch" || conditionType == "silk_touch") {
+        return parseSilkTouchCondition(json);
+    }
+    else if (conditionType == "minecraft:table_bonus" || conditionType == "table_bonus") {
+        return parseTableBonusCondition(json);
+    }
+    else if (conditionType == "minecraft:fortune" || conditionType == "fortune") {
+        return parseFortuneCondition(json);
+    }
+    else if (conditionType == "minecraft:random_chance" || conditionType == "random_chance") {
+        return parseRandomChanceCondition(json);
+    }
+    else if (conditionType == "minecraft:random_chance_with_looting" ||
+             conditionType == "random_chance_with_looting") {
+        return parseRandomChanceWithLootingCondition(json);
+    }
+    else if (conditionType == "minecraft:inverted" || conditionType == "inverted") {
+        return parseInvertedCondition(json);
+    }
+    else if (conditionType == "minecraft:alternative" || conditionType == "alternative") {
+        return parseAlternativeCondition(json);
+    }
+    else if (conditionType == "minecraft:block_state_property" || conditionType == "block_state_property") {
+        return parseBlockStatePropertyCondition(json);
+    }
+    else if (conditionType == "minecraft:match_tool" || conditionType == "match_tool") {
+        return parseMatchToolCondition(json);
+    }
+    else if (conditionType == "minecraft:killed_by_player" || conditionType == "killed_by_player") {
+        return parseKilledByPlayerCondition(json);
+    }
+    else if (conditionType == "minecraft:entity_properties" || conditionType == "entity_properties") {
+        return parseEntityPropertiesCondition(json);
+    }
+    else if (conditionType == "minecraft:survives_explosion" || conditionType == "survives_explosion") {
+        return parseSurvivesExplosionCondition(json);
+    }
+    else {
+        return Error(ErrorCode::InvalidData, "Unknown condition type: " + conditionType);
+    }
+}
+
+Result<std::vector<std::unique_ptr<LootCondition>>> LootSerializers::parseConditions(const nlohmann::json& json) {
+    std::vector<std::unique_ptr<LootCondition>> conditions;
+
+    if (json.is_null() || !json.is_array()) {
+        return conditions;  // 空条件列表
+    }
+
+    for (const auto& condJson : json) {
+        auto result = parseCondition(condJson);
+        if (!result.success()) {
+            return result.error();
+        }
+        conditions.push_back(result.value());
+    }
+
+    return conditions;
+}
+
+nlohmann::json LootSerializers::toJson(const LootCondition& condition) {
+    nlohmann::json json;
+    json["condition"] = "minecraft:" + condition.getType();
+    // 各子类可以扩展此方法
+    return json;
+}
+
+// ============================================================================
+// 条件解析辅助方法
+// ============================================================================
+
+Result<std::unique_ptr<LootCondition>> LootSerializers::parseSilkTouchCondition(const nlohmann::json& /*json*/) {
+    // 精准采集条件没有额外参数
+    return castToBase<SilkTouchCondition, LootCondition>(std::make_unique<SilkTouchCondition>());
+}
+
+Result<std::unique_ptr<LootCondition>> LootSerializers::parseFortuneCondition(const nlohmann::json& json) {
+    i32 minLevel = 0;
+    if (json.contains("min_level") && json["min_level"].is_number_integer()) {
+        minLevel = json["min_level"].get<i32>();
+    }
+    return castToBase<FortuneCondition, LootCondition>(std::make_unique<FortuneCondition>(minLevel));
+}
+
+Result<std::unique_ptr<LootCondition>> LootSerializers::parseTableBonusCondition(const nlohmann::json& json) {
+    // table_bonus 条件用于附魔表加成
+    // 格式: {"condition": "minecraft:table_bonus", "enchantment": "minecraft:fortune", "chances": [0.1, 0.15, 0.2, 0.25]}
+    // 这是一个简化的实现，实际应该根据附魔等级检查概率
+    // 目前我们将其转换为 FortuneCondition
+
+    if (!json.contains("chances") || !json["chances"].is_array()) {
+        return castToBase<FortuneCondition, LootCondition>(std::make_unique<FortuneCondition>(0));
+    }
+
+    // 简化：如果 chances 数组非空，创建 FortuneCondition
+    // 实际实现需要更复杂的逻辑
+    return castToBase<FortuneCondition, LootCondition>(std::make_unique<FortuneCondition>(0));
+}
+
+Result<std::unique_ptr<LootCondition>> LootSerializers::parseRandomChanceCondition(const nlohmann::json& json) {
+    if (!json.contains("chance")) {
+        return Error(ErrorCode::InvalidData, "random_chance condition missing 'chance' field");
+    }
+
+    f32 chance = 0.0f;
+    if (json["chance"].is_number_float()) {
+        chance = json["chance"].get<f32>();
+    } else if (json["chance"].is_number_integer()) {
+        chance = static_cast<f32>(json["chance"].get<i32>());
+    }
+
+    return castToBase<RandomChanceCondition, LootCondition>(std::make_unique<RandomChanceCondition>(chance));
+}
+
+Result<std::unique_ptr<LootCondition>> LootSerializers::parseRandomChanceWithLootingCondition(const nlohmann::json& json) {
+    if (!json.contains("chance")) {
+        return Error(ErrorCode::InvalidData, "random_chance_with_looting condition missing 'chance' field");
+    }
+
+    f32 baseChance = 0.0f;
+    if (json["chance"].is_number_float()) {
+        baseChance = json["chance"].get<f32>();
+    } else if (json["chance"].is_number_integer()) {
+        baseChance = static_cast<f32>(json["chance"].get<i32>());
+    }
+
+    f32 lootingMultiplier = 0.0f;
+    if (json.contains("looting_multiplier")) {
+        if (json["looting_multiplier"].is_number_float()) {
+            lootingMultiplier = json["looting_multiplier"].get<f32>();
+        } else if (json["looting_multiplier"].is_number_integer()) {
+            lootingMultiplier = static_cast<f32>(json["looting_multiplier"].get<i32>());
+        }
+    }
+
+    return castToBase<RandomChanceWithLuckCondition, LootCondition>(std::make_unique<RandomChanceWithLuckCondition>(baseChance, lootingMultiplier));
+}
+
+Result<std::unique_ptr<LootCondition>> LootSerializers::parseInvertedCondition(const nlohmann::json& json) {
+    if (!json.contains("term")) {
+        return Error(ErrorCode::InvalidData, "inverted condition missing 'term' field");
+    }
+
+    auto innerResult = parseCondition(json["term"]);
+    if (!innerResult.success()) {
+        return innerResult.error();
+    }
+
+    return castToBase<NotCondition, LootCondition>(std::make_unique<NotCondition>(innerResult.value()));
+}
+
+Result<std::unique_ptr<LootCondition>> LootSerializers::parseAlternativeCondition(const nlohmann::json& json) {
+    // MC 原版中 alternative 条件是 OR 逻辑
+    // 但是当前项目中 AndCondition 使用 "alternative" 作为 type
+    // 而 OrCondition 使用 "or" 作为 type
+    // 根据 MC 原版语义，alternative 应该是 OR 逻辑
+
+    if (!json.contains("terms") || !json["terms"].is_array()) {
+        return Error(ErrorCode::InvalidData, "alternative condition missing 'terms' array");
+    }
+
+    std::vector<std::unique_ptr<LootCondition>> conditions;
+    for (const auto& termJson : json["terms"]) {
+        auto result = parseCondition(termJson);
+        if (!result.success()) {
+            return result.error();
+        }
+        conditions.push_back(result.value());
+    }
+
+    // MC 原版中 alternative 是 OR 逻辑
+    return castToBase<OrCondition, LootCondition>(std::make_unique<OrCondition>(std::move(conditions)));
+}
+
+Result<std::unique_ptr<LootCondition>> LootSerializers::parseBlockStatePropertyCondition(const nlohmann::json& json) {
+    if (!json.contains("block") || !json["block"].is_string()) {
+        return Error(ErrorCode::InvalidData, "block_state_property condition missing 'block' field");
+    }
+
+    String blockId = json["block"].get<String>();
+
+    // TODO: 解析 properties 字段
+    // 目前只检查方块 ID
+
+    return castToBase<BlockStateCondition, LootCondition>(std::make_unique<BlockStateCondition>(blockId));
+}
+
+Result<std::unique_ptr<LootCondition>> LootSerializers::parseMatchToolCondition(const nlohmann::json& json) {
+    // match_tool 检查工具是否匹配
+    // 简化实现：只解析基本的工具类型
+
+    if (!json.contains("predicate")) {
+        // 无谓词时，总是返回 true
+        // 实际应该创建一个总是返回 true 的条件
+        // 暂时返回一个默认的工具类型条件
+        return castToBase<ToolTypeCondition, LootCondition>(std::make_unique<ToolTypeCondition>(0));
+    }
+
+    const auto& predicate = json["predicate"];
+
+    // 检查是否有 enchantments 字段来判断是否有精准采集
+    if (predicate.contains("enchantments") && predicate["enchantments"].is_array()) {
+        for (const auto& ench : predicate["enchantments"]) {
+            if (ench.contains("enchantment") && ench["enchantment"].is_string()) {
+                String enchId = ench["enchantment"].get<String>();
+                if (enchId == "minecraft:silk_touch" || enchId == "silk_touch") {
+                    return castToBase<SilkTouchCondition, LootCondition>(std::make_unique<SilkTouchCondition>());
+                }
+            }
+        }
+    }
+
+    // 默认返回一个匹配任何工具的条件
+    return castToBase<ToolTypeCondition, LootCondition>(std::make_unique<ToolTypeCondition>(0));
+}
+
+Result<std::unique_ptr<LootCondition>> LootSerializers::parseKilledByPlayerCondition(const nlohmann::json& /*json*/) {
+    // killed_by_player 条件检查是否被玩家杀死
+    // 简化实现：创建一个 RandomChanceCondition 作为占位符
+    // 实际需要在 LootContext 中检查 KILLER_PLAYER 参数
+    return castToBase<RandomChanceCondition, LootCondition>(std::make_unique<RandomChanceCondition>(1.0f));  // 总是成功
+}
+
+Result<std::unique_ptr<LootCondition>> LootSerializers::parseEntityPropertiesCondition(const nlohmann::json& /*json*/) {
+    // entity_properties 检查实体属性
+    // 简化实现：总是返回 true
+    return castToBase<RandomChanceCondition, LootCondition>(std::make_unique<RandomChanceCondition>(1.0f));
+}
+
+Result<std::unique_ptr<LootCondition>> LootSerializers::parseSurvivesExplosionCondition(const nlohmann::json& /*json*/) {
+    // survives_explosion 检查物品是否在爆炸中存活
+    // 这需要在 LootContext 中设置 EXPLOSION_RADIUS 参数
+    // 简化实现：总是返回 true
+    return castToBase<RandomChanceCondition, LootCondition>(std::make_unique<RandomChanceCondition>(1.0f));
+}
+
+// ============================================================================
+// LootFunction 解析
+// ============================================================================
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseFunction(const nlohmann::json& json) {
+    if (!json.is_object()) {
+        return Error(ErrorCode::InvalidData, "Function must be an object");
+    }
+
+    if (!json.contains("function") || !json["function"].is_string()) {
+        return Error(ErrorCode::InvalidData, "Function missing 'function' field");
+    }
+
+    String functionType = json["function"].get<String>();
+
+    // 根据 function 类型分发
+    if (functionType == "minecraft:set_count" || functionType == "set_count") {
+        return parseSetCountFunction(json);
+    }
+    else if (functionType == "minecraft:apply_bonus" || functionType == "apply_bonus") {
+        return parseApplyBonusFunction(json);
+    }
+    else if (functionType == "minecraft:looting_enchant" || functionType == "looting_enchant") {
+        return parseLootingEnchantFunction(json);
+    }
+    else if (functionType == "minecraft:set_damage" || functionType == "set_damage") {
+        return parseSetDamageFunction(json);
+    }
+    else if (functionType == "minecraft:set_name" || functionType == "set_name") {
+        return parseSetNameFunction(json);
+    }
+    else if (functionType == "minecraft:set_lore" || functionType == "set_lore") {
+        return parseSetLoreFunction(json);
+    }
+    else if (functionType == "minecraft:limit_count" || functionType == "limit_count") {
+        return parseLimitCountFunction(json);
+    }
+    else if (functionType == "minecraft:furnace_smelt" || functionType == "furnace_smelt") {
+        return parseFurnaceSmeltFunction(json);
+    }
+    else if (functionType == "minecraft:enchant_with_levels" || functionType == "enchant_with_levels") {
+        return parseEnchantWithLevelsFunction(json);
+    }
+    else if (functionType == "minecraft:enchant_randomly" || functionType == "enchant_randomly") {
+        return parseEnchantRandomlyFunction(json);
+    }
+    else if (functionType == "minecraft:explosion_decay" || functionType == "explosion_decay") {
+        return parseExplosionDecayFunction(json);
+    }
+    else if (functionType == "minecraft:set_nbt" || functionType == "set_nbt") {
+        return parseSetNbtFunction(json);
+    }
+    else if (functionType == "minecraft:copy_name" || functionType == "copy_name") {
+        return parseCopyNameFunction(json);
+    }
+    else if (functionType == "minecraft:copy_block_state" || functionType == "copy_block_state") {
+        return parseCopyBlockStateFunction(json);
+    }
+    else if (functionType == "minecraft:copy_nbt" || functionType == "copy_nbt") {
+        return parseCopyNbtFunction(json);
+    }
+    else if (functionType == "minecraft:fill_player_head" || functionType == "fill_player_head") {
+        return parseFillPlayerHeadFunction(json);
+    }
+    else if (functionType == "minecraft:set_attributes" || functionType == "set_attributes") {
+        return parseSetAttributesFunction(json);
+    }
+    else if (functionType == "minecraft:set_contents" || functionType == "set_contents") {
+        return parseSetContentsFunction(json);
+    }
+    else if (functionType == "minecraft:set_loot_table" || functionType == "set_loot_table") {
+        return parseSetLootTableFunction(json);
+    }
+    else if (functionType == "minecraft:exploration_map" || functionType == "exploration_map") {
+        return parseExplorationMapFunction(json);
+    }
+    else if (functionType == "minecraft:set_stew_effect" || functionType == "set_stew_effect") {
+        return parseSetStewEffectFunction(json);
+    }
+    else {
+        return Error(ErrorCode::InvalidData, "Unknown function type: " + functionType);
+    }
+}
+
+Result<std::vector<std::unique_ptr<LootFunction>>> LootSerializers::parseFunctions(const nlohmann::json& json) {
+    std::vector<std::unique_ptr<LootFunction>> functions;
+
+    if (json.is_null() || !json.is_array()) {
+        return functions;  // 空函数列表
+    }
+
+    for (const auto& funcJson : json) {
+        auto result = parseFunction(funcJson);
+        if (!result.success()) {
+            return result.error();
+        }
+        functions.push_back(result.value());
+    }
+
+    return functions;
+}
+
+nlohmann::json LootSerializers::toJson(const LootFunction& function) {
+    nlohmann::json json;
+    json["function"] = "minecraft:" + function.getType();
+    // 各子类可以扩展此方法
+    return json;
+}
+
+// ============================================================================
+// 函数解析辅助方法
+// ============================================================================
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetCountFunction(const nlohmann::json& json) {
+    if (!json.contains("count")) {
+        return Error(ErrorCode::InvalidData, "set_count function missing 'count' field");
+    }
+
+    auto countResult = parseRandomValueRange(json["count"]);
+    if (!countResult.success()) {
+        return countResult.error();
+    }
+
+    bool add = false;
+    if (json.contains("add") && json["add"].is_boolean()) {
+        add = json["add"].get<bool>();
+    }
+
+    return castToBase<SetCountFunction, LootFunction>(std::make_unique<SetCountFunction>(countResult.value(), add));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseApplyBonusFunction(const nlohmann::json& json) {
+    // 解析附魔类型（暂不使用）
+    // String enchantment = json.value("enchantment", "minecraft:fortune");
+
+    ApplyBonusFunction::BonusType bonusType = ApplyBonusFunction::BonusType::OreDrops;
+    i32 bonusMultiplier = 1;
+    i32 extra = 1;
+    f32 probability = 1.0f;
+
+    // 解析公式类型
+    if (json.contains("formula") && json["formula"].is_string()) {
+        String formula = json["formula"].get<String>();
+
+        if (formula == "minecraft:uniform" || formula == "uniform") {
+            bonusType = ApplyBonusFunction::BonusType::Uniform;
+        }
+        else if (formula == "minecraft:binomial_with_bonus_count" || formula == "binomial_with_bonus_count") {
+            bonusType = ApplyBonusFunction::BonusType::Binomial;
+        }
+        else if (formula == "minecraft:ore_drops" || formula == "ore_drops") {
+            bonusType = ApplyBonusFunction::BonusType::OreDrops;
+        }
+    }
+
+    // 解析参数
+    if (json.contains("parameters") && json["parameters"].is_object()) {
+        const auto& params = json["parameters"];
+
+        if (params.contains("bonusMultiplier")) {
+            bonusMultiplier = params["bonusMultiplier"].is_number_integer()
+                ? params["bonusMultiplier"].get<i32>()
+                : static_cast<i32>(params["bonusMultiplier"].get<f32>());
+        }
+        if (params.contains("extra")) {
+            extra = params["extra"].is_number_integer()
+                ? params["extra"].get<i32>()
+                : static_cast<i32>(params["extra"].get<f32>());
+        }
+        if (params.contains("probability")) {
+            probability = params["probability"].is_number_float()
+                ? params["probability"].get<f32>()
+                : static_cast<f32>(params["probability"].get<i32>());
+        }
+    }
+
+    return castToBase<ApplyBonusFunction, LootFunction>(std::make_unique<ApplyBonusFunction>(bonusType, bonusMultiplier, extra, probability));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseLootingEnchantFunction(const nlohmann::json& json) {
+    RandomValueRange count(0.0f, 1.0f);
+    i32 limit = 0;
+
+    if (json.contains("count")) {
+        auto countResult = parseRandomValueRange(json["count"]);
+        if (!countResult.success()) {
+            return countResult.error();
+        }
+        count = countResult.value();
+    }
+
+    if (json.contains("limit") && json["limit"].is_number_integer()) {
+        limit = json["limit"].get<i32>();
+    }
+
+    return castToBase<LootingEnchantBonusFunction, LootFunction>(std::make_unique<LootingEnchantBonusFunction>(count, limit));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetDamageFunction(const nlohmann::json& json) {
+    if (!json.contains("damage")) {
+        return Error(ErrorCode::InvalidData, "set_damage function missing 'damage' field");
+    }
+
+    auto damageResult = parseRandomValueRange(json["damage"]);
+    if (!damageResult.success()) {
+        return damageResult.error();
+    }
+
+    bool add = false;
+    if (json.contains("add") && json["add"].is_boolean()) {
+        add = json["add"].get<bool>();
+    }
+
+    return castToBase<SetDamageFunction, LootFunction>(std::make_unique<SetDamageFunction>(damageResult.value(), add));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetNameFunction(const nlohmann::json& json) {
+    String name;
+    bool replace = true;
+
+    if (json.contains("name")) {
+        if (json["name"].is_string()) {
+            name = json["name"].get<String>();
+        }
+        else if (json["name"].is_object()) {
+            // JSON 文本组件，简化为取 text 字段
+            if (json["name"].contains("text") && json["name"]["text"].is_string()) {
+                name = json["name"]["text"].get<String>();
+            }
+        }
+    }
+
+    if (json.contains("replace") && json["replace"].is_boolean()) {
+        replace = json["replace"].get<bool>();
+    }
+
+    return castToBase<SetNameFunction, LootFunction>(std::make_unique<SetNameFunction>(name, replace));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetLoreFunction(const nlohmann::json& json) {
+    std::vector<String> lore;
+    bool replace = true;
+
+    if (json.contains("lore") && json["lore"].is_array()) {
+        for (const auto& line : json["lore"]) {
+            if (line.is_string()) {
+                lore.push_back(line.get<String>());
+            }
+            else if (line.is_object() && line.contains("text") && line["text"].is_string()) {
+                lore.push_back(line["text"].get<String>());
+            }
+        }
+    }
+
+    if (json.contains("replace") && json["replace"].is_boolean()) {
+        replace = json["replace"].get<bool>();
+    }
+
+    return castToBase<SetLoreFunction, LootFunction>(std::make_unique<SetLoreFunction>(lore, replace));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseLimitCountFunction(const nlohmann::json& json) {
+    i32 min = -1;
+    i32 max = -1;
+
+    if (json.contains("limit")) {
+        const auto& limit = json["limit"];
+
+        if (limit.is_number_integer()) {
+            // 固定值
+            i32 value = limit.get<i32>();
+            min = value;
+            max = value;
+        }
+        else if (limit.is_object()) {
+            if (limit.contains("min") && limit["min"].is_number_integer()) {
+                min = limit["min"].get<i32>();
+            }
+            if (limit.contains("max") && limit["max"].is_number_integer()) {
+                max = limit["max"].get<i32>();
+            }
+        }
+    }
+
+    return castToBase<LimitCountFunction, LootFunction>(std::make_unique<LimitCountFunction>(min, max));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseFurnaceSmeltFunction(const nlohmann::json& /*json*/) {
+    return castToBase<FurnaceSmeltFunction, LootFunction>(std::make_unique<FurnaceSmeltFunction>());
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseEnchantWithLevelsFunction(const nlohmann::json& json) {
+    RandomValueRange levels(1.0f, 30.0f);
+    bool treasure = false;
+
+    if (json.contains("levels")) {
+        auto levelsResult = parseRandomValueRange(json["levels"]);
+        if (!levelsResult.success()) {
+            return levelsResult.error();
+        }
+        levels = levelsResult.value();
+    }
+
+    if (json.contains("treasure") && json["treasure"].is_boolean()) {
+        treasure = json["treasure"].get<bool>();
+    }
+
+    return castToBase<EnchantWithLevelsFunction, LootFunction>(std::make_unique<EnchantWithLevelsFunction>(levels, treasure));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseEnchantRandomlyFunction(const nlohmann::json& json) {
+    std::vector<String> enchantments;
+    bool treasure = false;
+
+    if (json.contains("enchantments") && json["enchantments"].is_array()) {
+        for (const auto& ench : json["enchantments"]) {
+            if (ench.is_string()) {
+                enchantments.push_back(ench.get<String>());
+            }
+        }
+    }
+
+    if (json.contains("treasure") && json["treasure"].is_boolean()) {
+        treasure = json["treasure"].get<bool>();
+    }
+
+    return castToBase<EnchantRandomlyFunction, LootFunction>(std::make_unique<EnchantRandomlyFunction>(enchantments, treasure));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseExplosionDecayFunction(const nlohmann::json& /*json*/) {
+    return castToBase<ExplosionDecayFunction, LootFunction>(std::make_unique<ExplosionDecayFunction>());
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetNbtFunction(const nlohmann::json& json) {
+    if (!json.contains("tag") || !json["tag"].is_string()) {
+        return Error(ErrorCode::InvalidData, "set_nbt function missing 'tag' field");
+    }
+
+    String nbtString = json["tag"].get<String>();
+    return castToBase<SetNbtFunction, LootFunction>(std::make_unique<SetNbtFunction>(nbtString));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseCopyNameFunction(const nlohmann::json& json) {
+    CopyNameFunction::Source source = CopyNameFunction::Source::This;
+
+    if (json.contains("source") && json["source"].is_string()) {
+        String sourceStr = json["source"].get<String>();
+        if (sourceStr == "this") {
+            source = CopyNameFunction::Source::This;
+        }
+        else if (sourceStr == "killer") {
+            source = CopyNameFunction::Source::Killer;
+        }
+        else if (sourceStr == "killer_player") {
+            source = CopyNameFunction::Source::KillerPlayer;
+        }
+        else if (sourceStr == "block_entity") {
+            source = CopyNameFunction::Source::BlockEntity;
+        }
+    }
+
+    return castToBase<CopyNameFunction, LootFunction>(std::make_unique<CopyNameFunction>(source));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseCopyBlockStateFunction(const nlohmann::json& json) {
+    if (!json.contains("block") || !json["block"].is_string()) {
+        return Error(ErrorCode::InvalidData, "copy_block_state function missing 'block' field");
+    }
+
+    String blockId = json["block"].get<String>();
+    std::vector<String> properties;
+
+    if (json.contains("properties") && json["properties"].is_array()) {
+        for (const auto& prop : json["properties"]) {
+            if (prop.is_string()) {
+                properties.push_back(prop.get<String>());
+            }
+        }
+    }
+
+    return castToBase<CopyBlockStateFunction, LootFunction>(std::make_unique<CopyBlockStateFunction>(blockId, properties));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseCopyNbtFunction(const nlohmann::json& json) {
+    CopyNbtFunction::Source source = CopyNbtFunction::Source::This;
+
+    if (json.contains("source") && json["source"].is_string()) {
+        String sourceStr = json["source"].get<String>();
+        if (sourceStr == "this") {
+            source = CopyNbtFunction::Source::This;
+        }
+        else if (sourceStr == "killer") {
+            source = CopyNbtFunction::Source::Killer;
+        }
+        else if (sourceStr == "killer_player") {
+            source = CopyNbtFunction::Source::KillerPlayer;
+        }
+        else if (sourceStr == "block_entity") {
+            source = CopyNbtFunction::Source::BlockEntity;
+        }
+    }
+
+    auto function = std::make_unique<CopyNbtFunction>(source);
+
+    // 解析操作
+    if (json.contains("ops") && json["ops"].is_array()) {
+        for (const auto& op : json["ops"]) {
+            if (!op.contains("source") || !op.contains("target") || !op.contains("op")) {
+                continue;
+            }
+
+            String sourcePath = op["source"].get<String>();
+            String targetPath = op["target"].get<String>();
+            String opStr = op["op"].get<String>();
+
+            CopyNbtFunction::Operation operation = CopyNbtFunction::Operation::Replace;
+            if (opStr == "append") {
+                operation = CopyNbtFunction::Operation::Append;
+            }
+            else if (opStr == "merge") {
+                operation = CopyNbtFunction::Operation::Merge;
+            }
+
+            function->addOperation(sourcePath, targetPath, operation);
+        }
+    }
+
+    return castToBase<CopyNbtFunction, LootFunction>(std::move(function));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseFillPlayerHeadFunction(const nlohmann::json& json) {
+    CopyNameFunction::Source source = CopyNameFunction::Source::This;
+
+    if (json.contains("entity") && json["entity"].is_string()) {
+        String entityStr = json["entity"].get<String>();
+        if (entityStr == "this") {
+            source = CopyNameFunction::Source::This;
+        }
+        else if (entityStr == "killer") {
+            source = CopyNameFunction::Source::Killer;
+        }
+        else if (entityStr == "killer_player") {
+            source = CopyNameFunction::Source::KillerPlayer;
+        }
+    }
+
+    return castToBase<FillPlayerHeadFunction, LootFunction>(std::make_unique<FillPlayerHeadFunction>(source));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetAttributesFunction(const nlohmann::json& json) {
+    auto function = std::make_unique<SetAttributesFunction>();
+
+    if (json.contains("modifiers") && json["modifiers"].is_array()) {
+        for (const auto& mod : json["modifiers"]) {
+            if (!mod.contains("name") || !mod.contains("attribute") || !mod.contains("amount")) {
+                continue;
+            }
+
+            SetAttributesFunction::AttributeModifier modifier;
+            modifier.name = mod["name"].get<String>();
+            modifier.attributeId = mod["attribute"].get<String>();
+
+            if (mod["amount"].is_number_float()) {
+                modifier.value = mod["amount"].get<f32>();
+            } else if (mod["amount"].is_number_integer()) {
+                modifier.value = static_cast<f32>(mod["amount"].get<i32>());
+            }
+
+            // 解析操作类型
+            modifier.operation = 0;
+            if (mod.contains("operation") && mod["operation"].is_string()) {
+                String opStr = mod["operation"].get<String>();
+                if (opStr == "addition" || opStr == "add") {
+                    modifier.operation = 0;
+                }
+                else if (opStr == "multiply_base") {
+                    modifier.operation = 1;
+                }
+                else if (opStr == "multiply_total") {
+                    modifier.operation = 2;
+                }
+            }
+
+            // 解析槽位
+            modifier.slot = "mainhand";
+            if (mod.contains("slot") && mod["slot"].is_string()) {
+                modifier.slot = mod["slot"].get<String>();
+            }
+            else if (mod.contains("slots") && mod["slots"].is_array() && !mod["slots"].empty()) {
+                if (mod["slots"][0].is_string()) {
+                    modifier.slot = mod["slots"][0].get<String>();
+                }
+            }
+
+            function->addModifier(modifier);
+        }
+    }
+
+    return castToBase<SetAttributesFunction, LootFunction>(std::move(function));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetContentsFunction(const nlohmann::json& /*json*/) {
+    // set_contents 函数需要解析条目，当前简化实现
+    return castToBase<SetContentsFunction, LootFunction>(std::make_unique<SetContentsFunction>());
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetLootTableFunction(const nlohmann::json& json) {
+    if (!json.contains("name") || !json["name"].is_string()) {
+        return Error(ErrorCode::InvalidData, "set_loot_table function missing 'name' field");
+    }
+
+    String lootTableId = json["name"].get<String>();
+    u64 seed = 0;
+
+    if (json.contains("seed") && json["seed"].is_number_integer()) {
+        seed = static_cast<u64>(json["seed"].get<i64>());
+    }
+
+    return castToBase<SetLootTableFunction, LootFunction>(std::make_unique<SetLootTableFunction>(lootTableId, seed));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseExplorationMapFunction(const nlohmann::json& json) {
+    ExplorationMapFunction::Destination destination = ExplorationMapFunction::Destination::BuriedTreasure;
+
+    if (json.contains("destination") && json["destination"].is_string()) {
+        String destStr = json["destination"].get<String>();
+        if (destStr == "minecraft:buried_treasure" || destStr == "buried_treasure") {
+            destination = ExplorationMapFunction::Destination::BuriedTreasure;
+        }
+        else if (destStr == "minecraft:mansion" || destStr == "mansion") {
+            destination = ExplorationMapFunction::Destination::Mansion;
+        }
+        else if (destStr == "minecraft:monument" || destStr == "monument") {
+            destination = ExplorationMapFunction::Destination::Monument;
+        }
+        else if (destStr == "minecraft:shipwreck" || destStr == "shipwreck") {
+            destination = ExplorationMapFunction::Destination::Shipwreck;
+        }
+        else if (destStr == "minecraft:ruined_portal" || destStr == "ruined_portal") {
+            destination = ExplorationMapFunction::Destination::RuinedPortal;
+        }
+    }
+
+    return castToBase<ExplorationMapFunction, LootFunction>(std::make_unique<ExplorationMapFunction>(destination));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetStewEffectFunction(const nlohmann::json& json) {
+    auto function = std::make_unique<SetStewEffectFunction>();
+
+    if (json.contains("effects") && json["effects"].is_array()) {
+        for (const auto& effect : json["effects"]) {
+            if (!effect.contains("type")) {
+                continue;
+            }
+
+            String effectId = effect["type"].get<String>();
+            RandomValueRange duration(5.0f, 10.0f);  // 默认持续时间
+
+            if (effect.contains("duration")) {
+                auto durationResult = parseRandomValueRange(effect["duration"]);
+                if (durationResult.success()) {
+                    duration = durationResult.value();
+                }
+            }
+
+            function->addEffect(effectId, duration);
+        }
+    }
+
+    return castToBase<SetStewEffectFunction, LootFunction>(std::move(function));
+}
+
+// ============================================================================
+// LootEntry 解析
+// ============================================================================
+
+Result<std::unique_ptr<LootEntry>> LootSerializers::parseEntry(const nlohmann::json& json) {
+    if (!json.is_object()) {
+        return Error(ErrorCode::InvalidData, "Entry must be an object");
+    }
+
+    // 获取类型
+    String entryType = "minecraft:item";  // 默认类型
+    if (json.contains("type") && json["type"].is_string()) {
+        entryType = json["type"].get<String>();
+    }
+
+    // 根据类型分发
+    if (entryType == "minecraft:empty" || entryType == "empty") {
+        return parseEmptyEntry(json);
+    }
+    else if (entryType == "minecraft:item" || entryType == "item") {
+        return parseItemEntry(json);
+    }
+    else if (entryType == "minecraft:loot_table" || entryType == "loot_table") {
+        return parseTableEntry(json);
+    }
+    else if (entryType == "minecraft:alternatives" || entryType == "alternatives") {
+        return parseAlternativesEntry(json);
+    }
+    else if (entryType == "minecraft:sequence" || entryType == "sequence") {
+        return parseSequenceEntry(json);
+    }
+    else if (entryType == "minecraft:group" || entryType == "group") {
+        return parseGroupEntry(json);
+    }
+    else {
+        return Error(ErrorCode::InvalidData, "Unknown entry type: " + entryType);
+    }
+}
+
+Result<std::vector<std::unique_ptr<LootEntry>>> LootSerializers::parseEntries(const nlohmann::json& json) {
+    std::vector<std::unique_ptr<LootEntry>> entries;
+
+    if (json.is_null() || !json.is_array()) {
+        return entries;  // 空条目列表
+    }
+
+    for (const auto& entryJson : json) {
+        auto result = parseEntry(entryJson);
+        if (!result.success()) {
+            return result.error();
+        }
+        entries.push_back(result.value());
+    }
+
+    return entries;
+}
+
+nlohmann::json LootSerializers::toJson(const LootEntry& entry) {
+    nlohmann::json json;
+
+    switch (entry.getType()) {
+        case LootEntryType::Empty:
+            json["type"] = "minecraft:empty";
+            break;
+        case LootEntryType::Item:
+            json["type"] = "minecraft:item";
+            if (const auto* itemEntry = dynamic_cast<const ItemLootEntry*>(&entry)) {
+                json["name"] = itemEntry->getItemId();
+                json["count"] = toJson(itemEntry->getCount());
+            }
+            break;
+        case LootEntryType::Table:
+            json["type"] = "minecraft:loot_table";
+            if (const auto* tableEntry = dynamic_cast<const TableLootEntry*>(&entry)) {
+                json["name"] = tableEntry->getTableId();
+            }
+            break;
+        case LootEntryType::Alternatives:
+            json["type"] = "minecraft:alternatives";
+            break;
+        case LootEntryType::Sequence:
+            json["type"] = "minecraft:sequence";
+            break;
+        case LootEntryType::Group:
+            json["type"] = "minecraft:group";
+            break;
+        default:
+            json["type"] = "minecraft:empty";
+            break;
+    }
+
+    if (entry.getWeight() != 1) {
+        json["weight"] = entry.getWeight();
+    }
+    if (entry.getQuality() != 0) {
+        json["quality"] = entry.getQuality();
+    }
+
+    // 序列化条件
+    const auto& conditions = entry.getConditions();
+    if (!conditions.empty()) {
+        nlohmann::json conditionsJson = nlohmann::json::array();
+        for (const auto& condition : conditions) {
+            conditionsJson.push_back(toJson(*condition));
+        }
+        json["conditions"] = conditionsJson;
+    }
+
+    return json;
+}
+
+// ============================================================================
+// 条目解析辅助方法
+// ============================================================================
+
+void LootSerializers::parseEntryBase(LootEntry& entry, const nlohmann::json& json) {
+    // 解析权重
+    if (json.contains("weight") && json["weight"].is_number_integer()) {
+        entry.setWeight(json["weight"].get<i32>());
+    }
+
+    // 解析质量
+    if (json.contains("quality") && json["quality"].is_number_integer()) {
+        entry.setQuality(json["quality"].get<i32>());
+    }
+
+    // 解析条件
+    if (json.contains("conditions") && json["conditions"].is_array()) {
+        for (const auto& condJson : json["conditions"]) {
+            auto condResult = parseCondition(condJson);
+            if (condResult.success()) {
+                entry.addCondition(condResult.value());
+            }
+        }
+    }
+
+    // 注意：当前 LootEntry 类不支持函数列表
+    // 如果需要支持 entry 级别的函数，需要修改 LootEntry 类
+}
+
+Result<std::unique_ptr<LootEntry>> LootSerializers::parseEmptyEntry(const nlohmann::json& json) {
+    i32 weight = 1;
+    i32 quality = 0;
+
+    if (json.contains("weight") && json["weight"].is_number_integer()) {
+        weight = json["weight"].get<i32>();
+    }
+    if (json.contains("quality") && json["quality"].is_number_integer()) {
+        quality = json["quality"].get<i32>();
+    }
+
+    auto entry = std::make_unique<EmptyLootEntry>(weight, quality);
+
+    // 解析条件
+    if (json.contains("conditions") && json["conditions"].is_array()) {
+        for (const auto& condJson : json["conditions"]) {
+            auto condResult = parseCondition(condJson);
+            if (condResult.success()) {
+                entry->addCondition(condResult.value());
+            }
+        }
+    }
+
+    return castToBase<EmptyLootEntry, LootEntry>(std::move(entry));
+}
+
+Result<std::unique_ptr<LootEntry>> LootSerializers::parseItemEntry(const nlohmann::json& json) {
+    if (!json.contains("name") || !json["name"].is_string()) {
+        return Error(ErrorCode::InvalidData, "item entry missing 'name' field");
+    }
+
+    String itemId = json["name"].get<String>();
+
+    i32 weight = 1;
+    i32 quality = 0;
+    RandomValueRange count(1.0f, 1.0f);
+
+    if (json.contains("weight") && json["weight"].is_number_integer()) {
+        weight = json["weight"].get<i32>();
+    }
+    if (json.contains("quality") && json["quality"].is_number_integer()) {
+        quality = json["quality"].get<i32>();
+    }
+
+    // 解析数量
+    if (json.contains("count")) {
+        auto countResult = parseRandomValueRange(json["count"]);
+        if (countResult.success()) {
+            count = countResult.value();
+        }
+    }
+    // 注意：函数中的 set_count 会覆盖此值
+
+    auto entry = std::make_unique<ItemLootEntry>(itemId, count, weight, quality);
+
+    // 解析条件
+    if (json.contains("conditions") && json["conditions"].is_array()) {
+        for (const auto& condJson : json["conditions"]) {
+            auto condResult = parseCondition(condJson);
+            if (condResult.success()) {
+                entry->addCondition(condResult.value());
+            }
+        }
+    }
+
+    // 注意：当前 LootEntry 类不支持函数列表
+    // 如果需要支持 entry 级别的函数，需要修改 LootEntry 类
+
+    return castToBase<ItemLootEntry, LootEntry>(std::move(entry));
+}
+
+Result<std::unique_ptr<LootEntry>> LootSerializers::parseTableEntry(const nlohmann::json& json) {
+    if (!json.contains("name") || !json["name"].is_string()) {
+        return Error(ErrorCode::InvalidData, "loot_table entry missing 'name' field");
+    }
+
+    String tableId = json["name"].get<String>();
+
+    i32 weight = 1;
+    i32 quality = 0;
+
+    if (json.contains("weight") && json["weight"].is_number_integer()) {
+        weight = json["weight"].get<i32>();
+    }
+    if (json.contains("quality") && json["quality"].is_number_integer()) {
+        quality = json["quality"].get<i32>();
+    }
+
+    auto entry = std::make_unique<TableLootEntry>(tableId, weight, quality);
+
+    // 解析条件
+    if (json.contains("conditions") && json["conditions"].is_array()) {
+        for (const auto& condJson : json["conditions"]) {
+            auto condResult = parseCondition(condJson);
+            if (condResult.success()) {
+                entry->addCondition(condResult.value());
+            }
+        }
+    }
+
+    return castToBase<TableLootEntry, LootEntry>(std::move(entry));
+}
+
+Result<std::unique_ptr<LootEntry>> LootSerializers::parseAlternativesEntry(const nlohmann::json& json) {
+    if (!json.contains("children") || !json["children"].is_array()) {
+        return Error(ErrorCode::InvalidData, "alternatives entry missing 'children' array");
+    }
+
+    std::vector<std::unique_ptr<LootEntry>> children;
+    for (const auto& childJson : json["children"]) {
+        auto childResult = parseEntry(childJson);
+        if (!childResult.success()) {
+            return childResult.error();
+        }
+        children.push_back(childResult.value());
+    }
+
+    auto entry = std::make_unique<AlternativesLootEntry>(std::move(children));
+
+    // 解析条件
+    if (json.contains("conditions") && json["conditions"].is_array()) {
+        for (const auto& condJson : json["conditions"]) {
+            auto condResult = parseCondition(condJson);
+            if (condResult.success()) {
+                entry->addCondition(condResult.value());
+            }
+        }
+    }
+
+    return castToBase<AlternativesLootEntry, LootEntry>(std::move(entry));
+}
+
+Result<std::unique_ptr<LootEntry>> LootSerializers::parseSequenceEntry(const nlohmann::json& json) {
+    if (!json.contains("children") || !json["children"].is_array()) {
+        return Error(ErrorCode::InvalidData, "sequence entry missing 'children' array");
+    }
+
+    std::vector<std::unique_ptr<LootEntry>> children;
+    for (const auto& childJson : json["children"]) {
+        auto childResult = parseEntry(childJson);
+        if (!childResult.success()) {
+            return childResult.error();
+        }
+        children.push_back(childResult.value());
+    }
+
+    auto entry = std::make_unique<SequenceLootEntry>(std::move(children));
+
+    // 解析条件
+    if (json.contains("conditions") && json["conditions"].is_array()) {
+        for (const auto& condJson : json["conditions"]) {
+            auto condResult = parseCondition(condJson);
+            if (condResult.success()) {
+                entry->addCondition(condResult.value());
+            }
+        }
+    }
+
+    return castToBase<SequenceLootEntry, LootEntry>(std::move(entry));
+}
+
+Result<std::unique_ptr<LootEntry>> LootSerializers::parseGroupEntry(const nlohmann::json& json) {
+    if (!json.contains("children") || !json["children"].is_array()) {
+        return Error(ErrorCode::InvalidData, "group entry missing 'children' array");
+    }
+
+    std::vector<std::unique_ptr<LootEntry>> children;
+    for (const auto& childJson : json["children"]) {
+        auto childResult = parseEntry(childJson);
+        if (!childResult.success()) {
+            return childResult.error();
+        }
+        children.push_back(childResult.value());
+    }
+
+    auto entry = std::make_unique<GroupLootEntry>(std::move(children));
+
+    // 解析条件
+    if (json.contains("conditions") && json["children"].is_array()) {
+        for (const auto& condJson : json["conditions"]) {
+            auto condResult = parseCondition(condJson);
+            if (condResult.success()) {
+                entry->addCondition(condResult.value());
+            }
+        }
+    }
+
+    return castToBase<GroupLootEntry, LootEntry>(std::move(entry));
+}
+
+// ============================================================================
+// LootPool 解析
+// ============================================================================
+
+Result<std::unique_ptr<LootPool>> LootSerializers::parsePool(const nlohmann::json& json) {
+    if (!json.is_object()) {
+        return Error(ErrorCode::InvalidData, "Pool must be an object");
+    }
+
+    // 解析掷骰次数
+    if (!json.contains("rolls")) {
+        return Error(ErrorCode::InvalidData, "Pool missing 'rolls' field");
+    }
+
+    auto rollsResult = parseRandomValueRange(json["rolls"]);
+    if (!rollsResult.success()) {
+        return rollsResult.error();
+    }
+
+    // 解析额外掷骰次数
+    RandomValueRange bonusRolls(0.0f, 0.0f);
+    if (json.contains("bonus_rolls")) {
+        auto bonusResult = parseRandomValueRange(json["bonus_rolls"]);
+        if (bonusResult.success()) {
+            bonusRolls = bonusResult.value();
+        }
+    }
+
+    auto pool = std::make_unique<LootPool>(rollsResult.value(), bonusRolls);
+
+    // 解析名称
+    if (json.contains("name") && json["name"].is_string()) {
+        pool->setName(json["name"].get<String>());
+    }
+
+    // 解析条目
+    if (json.contains("entries") && json["entries"].is_array()) {
+        for (const auto& entryJson : json["entries"]) {
+            auto entryResult = parseEntry(entryJson);
+            if (!entryResult.success()) {
+                return entryResult.error();
+            }
+            pool->addEntry(entryResult.value());
+        }
+    }
+
+    // 注意：当前 LootPool 类不支持函数列表
+    // 如果需要支持 pool 级别的函数，需要修改 LootPool 类
+
+    return pool;
+}
+
+Result<std::vector<std::unique_ptr<LootPool>>> LootSerializers::parsePools(const nlohmann::json& json) {
+    std::vector<std::unique_ptr<LootPool>> pools;
+
+    if (json.is_null() || !json.is_array()) {
+        return pools;  // 空池列表
+    }
+
+    for (const auto& poolJson : json) {
+        auto result = parsePool(poolJson);
+        if (!result.success()) {
+            return result.error();
+        }
+        pools.push_back(result.value());
+    }
+
+    return pools;
+}
+
+nlohmann::json LootSerializers::toJson(const LootPool& pool) {
+    nlohmann::json json;
+
+    if (!pool.getName().empty()) {
+        json["name"] = pool.getName();
+    }
+
+    json["rolls"] = toJson(pool.getRolls());
+    json["bonus_rolls"] = toJson(pool.getBonusRolls());
+
+    nlohmann::json entries = nlohmann::json::array();
+    for (const auto& entry : pool.getEntries()) {
+        entries.push_back(toJson(*entry));
+    }
+    json["entries"] = entries;
+
+    return json;
+}
+
+// ============================================================================
+// LootTable 解析
+// ============================================================================
+
+Result<std::unique_ptr<LootTable>> LootSerializers::parseLootTable(const nlohmann::json& json) {
+    if (!json.is_object()) {
+        return Error(ErrorCode::InvalidData, "Loot table must be an object");
+    }
+
+    auto table = std::make_unique<LootTable>();
+
+    // 解析参数集类型（暂不使用）
+    // if (json.contains("type") && json["type"].is_string()) {
+    //     String type = json["type"].get<String>();
+    //     // 设置参数集
+    // }
+
+    // 解析池
+    if (json.contains("pools") && json["pools"].is_array()) {
+        for (const auto& poolJson : json["pools"]) {
+            auto poolResult = parsePool(poolJson);
+            if (!poolResult.success()) {
+                return poolResult.error();
+            }
+            table->addPool(poolResult.value());
+        }
+    }
+
+    // 注意：当前 LootTable 类不支持函数列表
+    // 如果需要支持 table 级别的函数，需要修改 LootTable 类
+
+    return table;
+}
+
+Result<std::unique_ptr<LootTable>> LootSerializers::parseLootTable(const String& jsonStr) {
+    try {
+        nlohmann::json json = nlohmann::json::parse(jsonStr);
+        return parseLootTable(json);
+    }
+    catch (const nlohmann::json::parse_error& e) {
+        return Error(ErrorCode::InvalidData, String("JSON parse error: ") + e.what());
+    }
+    catch (const nlohmann::json::exception& e) {
+        return Error(ErrorCode::InvalidData, String("JSON error: ") + e.what());
+    }
+}
+
+nlohmann::json LootSerializers::toJson(const LootTable& table) {
+    nlohmann::json json;
+
+    if (!table.getId().empty()) {
+        json["type"] = table.getParameterSet().getName();
+    }
+
+    nlohmann::json pools = nlohmann::json::array();
+    for (const auto& pool : table.getPools()) {
+        pools.push_back(toJson(*pool));
+    }
+    json["pools"] = pools;
+
+    return json;
+}
+
+String LootSerializers::toJsonString(const LootTable& table, i32 indent) {
+    nlohmann::json json = toJson(table);
+    return json.dump(indent);
+}
+
+} // namespace loot
+} // namespace mc

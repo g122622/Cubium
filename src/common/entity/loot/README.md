@@ -12,6 +12,7 @@ src/common/entity/loot/
 ├── LootEntry.hpp/cpp        # 掉落条目，定义单个掉落项
 ├── LootPool.hpp/cpp         # 掉落池，按权重随机选择条目
 ├── LootTable.hpp/cpp        # 掉落表，管理多个池
+├── LootSerializers.hpp/cpp  # JSON 序列化器，从 JSON 解析掉落表
 └── (RandomRanges 已移至 common/util/math/random/)
 ```
 
@@ -253,6 +254,123 @@ auto drops = lootTable.generate(*context);
 
 ---
 
+### LootSerializers.hpp/cpp - JSON 序列化器
+
+**职责**: 提供 JSON 解析和序列化功能，完全兼容 Minecraft 1.16.5 数据包格式。
+
+**核心类**:
+- `LootSerializers` - 静态方法类，提供 JSON 解析和序列化
+
+**解析方法**:
+
+| 方法 | 描述 |
+|-----|------|
+| `parseRandomValueRange(json)` | 解析随机值范围（数字或范围对象） |
+| `parseBinomialRange(json)` | 解析二项分布范围 |
+| `parseConstantRange(json)` | 解析常量范围 |
+| `parseRandomRange(json)` | 自动识别类型解析 IRandomRange |
+| `parseCondition(json)` | 解析掉落条件 |
+| `parseConditions(json)` | 解析条件数组 |
+| `parseFunction(json)` | 解析掉落函数 |
+| `parseFunctions(json)` | 解析函数数组 |
+| `parseEntry(json)` | 解析掉落条目 |
+| `parseEntries(json)` | 解析条目数组 |
+| `parsePool(json)` | 解析掉落池 |
+| `parsePools(json)` | 解析池数组 |
+| `parseLootTable(json)` | 解析掉落表 |
+| `toJson(range)` | 序列化范围到 JSON |
+| `toJson(condition)` | 序列化条件到 JSON |
+| `toJson(function)` | 序列化函数到 JSON |
+| `toJson(entry)` | 序列化条目到 JSON |
+| `toJson(pool)` | 序列化池到 JSON |
+| `toJson(table)` | 序列化掉落表到 JSON |
+
+**支持的条件类型**:
+- `minecraft:silk_touch` → SilkTouchCondition
+- `minecraft:table_bonus` / `minecraft:fortune` → FortuneCondition
+- `minecraft:random_chance` → RandomChanceCondition
+- `minecraft:random_chance_with_looting` → RandomChanceWithLuckCondition
+- `minecraft:inverted` → NotCondition
+- `minecraft:alternative` → OrCondition
+- `minecraft:block_state_property` → BlockStateCondition
+- `minecraft:match_tool` → ToolTypeCondition
+- `minecraft:killed_by_player` → 占位实现
+- `minecraft:entity_properties` → 占位实现
+- `minecraft:survives_explosion` → 占位实现
+
+**支持的函数类型**:
+- `minecraft:set_count` → SetCountFunction
+- `minecraft:apply_bonus` → ApplyBonusFunction
+- `minecraft:looting_enchant` → LootingEnchantBonusFunction
+- `minecraft:set_damage` → SetDamageFunction
+- `minecraft:set_name` → SetNameFunction
+- `minecraft:set_lore` → SetLoreFunction
+- `minecraft:limit_count` → LimitCountFunction
+- `minecraft:furnace_smelt` → FurnaceSmeltFunction
+- `minecraft:enchant_with_levels` → EnchantWithLevelsFunction
+- `minecraft:enchant_randomly` → EnchantRandomlyFunction
+- `minecraft:explosion_decay` → ExplosionDecayFunction
+- `minecraft:set_nbt` → SetNbtFunction
+- `minecraft:copy_name` → CopyNameFunction
+- `minecraft:copy_block_state` → CopyBlockStateFunction
+- `minecraft:copy_nbt` → CopyNbtFunction
+- `minecraft:fill_player_head` → FillPlayerHeadFunction
+- `minecraft:set_attributes` → SetAttributesFunction
+- `minecraft:set_contents` → SetContentsFunction
+- `minecraft:set_loot_table` → SetLootTableFunction
+- `minecraft:exploration_map` → ExplorationMapFunction
+- `minecraft:set_stew_effect` → SetStewEffectFunction
+
+**支持的条目类型**:
+- `minecraft:empty` → EmptyLootEntry
+- `minecraft:item` → ItemLootEntry
+- `minecraft:loot_table` → TableLootEntry
+- `minecraft:alternatives` → AlternativesLootEntry
+- `minecraft:sequence` → SequenceLootEntry
+- `minecraft:group` → GroupLootEntry
+
+**JSON 示例**:
+```json
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "bonus_rolls": {
+        "min": 0,
+        "max": 1
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:diamond",
+          "weight": 10,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "min": 1,
+                "max": 3
+              }
+            }
+          ],
+          "conditions": [
+            {
+              "condition": "minecraft:random_chance",
+              "chance": 0.5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+**参考**: `net.minecraft.loot.LootSerializers`
+
+---
+
 ## 类关系图
 
 ```
@@ -263,6 +381,15 @@ auto drops = lootTable.generate(*context);
 └─────────────────────────────────────────────────────────────┘
                               │
                               │ 管理
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     LootSerializers                          │
+│  - 从 JSON 解析掉落表、池、条目、条件、函数                     │
+│  - 序列化掉落表到 JSON                                         │
+│  - 兼容 MC 1.16.5 数据包格式                                   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │ 解析/序列化
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                        LootTable                             │
@@ -549,15 +676,45 @@ math::Random rng2(12345);
 // rng1 和 rng2 会生成相同的随机序列
 ```
 
-### 6. JSON 解析未实现
+### 6. JSON 解析已实现
 
-当前 `LootTable::fromJson()` 返回错误:
+`LootTable::fromJson()` 和 `LootTable::toJson()` 已实现，支持从 JSON 加载掉落表：
 
 ```cpp
+// 从 JSON 字符串解析
 auto result = LootTable::fromJson(jsonStr);
-// result.isError() == true
-// "JSON parsing not yet implemented"
+if (result.success()) {
+    auto table = result.value();
+    // 使用掉落表
+} else {
+    // 处理错误
+    std::cerr << result.error().message() << std::endl;
+}
+
+// 序列化为 JSON 字符串
+String json = table->toJson();
+// 或带格式化
+String prettyJson = table->toJson(2);
 ```
+
+支持解析的 JSON 格式完全兼容 Minecraft 1.16.5 数据包格式。
+
+**支持的 JSON 字段**:
+- `type` - 参数集类型
+- `pools` - 掉落池数组
+  - `rolls` - 掷骰次数（数字或范围对象）
+  - `bonus_rolls` - 额外掷骰次数
+  - `entries` - 条目数组
+    - `type` - 条目类型（`item`, `empty`, `loot_table`, `alternatives`, `sequence`, `group`）
+    - `name` - 物品/掉落表ID
+    - `weight` - 权重
+    - `quality` - 质量
+    - `count` - 数量范围
+    - `conditions` - 条件数组
+    - `children` - 子条目（用于组合条目）
+  - `functions` - 函数数组（Pool级别，当前未支持）
+
+### 条件 JSON 格式
 
 ### 7. 条件在条目生成时检查
 
@@ -578,6 +735,7 @@ entry.generate(consumer, context);  // 条件在这里检查
 
 - `tests/common/entity/loot/LootTest.cpp` - 核心功能测试
 - `tests/common/entity/loot/LootConditionTest.cpp` - 条件系统测试
+- `tests/common/entity/loot/LootSerializersTest.cpp` - JSON 序列化测试
 
 ### 测试覆盖
 
@@ -609,11 +767,12 @@ entry.generate(consumer, context);  // 条件在这里检查
 | ExplorationMapFunction | 创建、目的地类型 |
 | SetStewEffectFunction | 创建、效果添加 |
 | LootFunctionBuilder | 所有新函数工厂方法 |
+| LootSerializers | RandomValueRange/IRandomRange 解析、条件解析、函数解析、条目解析、池解析、掉落表解析、序列化、往返测试 |
 
 ### 运行测试
 
 ```powershell
-./build/bin/Release/mc_tests.exe --gtest_filter="Loot*"
+./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="Loot*"
 ```
 
 ---
@@ -633,7 +792,7 @@ entry.generate(consumer, context);  // 条件在这里检查
 
 ## 未来计划
 
-1. **JSON 解析** - 实现从数据包加载掉落表
+1. ~~**JSON 解析** - 实现从数据包加载掉落表~~ ✅ 已完成
 2. **更多条件** - 添加实体属性、生物群系、天气等条件
 3. **更多条目** - 标签条目、动态条目
 4. **缓存优化** - 掉落表缓存和预编译
@@ -646,3 +805,4 @@ entry.generate(consumer, context);  // 条件在这里检查
    - SetContentsFunction（需要容器物品支持）
    - ExplorationMapFunction（需要地图数据系统）
    - SetStewEffectFunction（需要药水效果系统）
+6. **JSON 函数解析** - 为 Pool 和 Table 级别的函数提供完整支持

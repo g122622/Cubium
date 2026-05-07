@@ -1,5 +1,6 @@
 #include "LootTable.hpp"
 #include "LootConditions.hpp"
+#include "LootSerializers.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include <algorithm>
 
@@ -90,14 +91,12 @@ void LootTable::recursiveGenerate(std::function<void(const ItemStack&)> consumer
     context.popLootTable(this);
 }
 
-Result<std::unique_ptr<LootTable>> LootTable::fromJson(const String& /*json*/) {
-    // TODO: 实现 JSON 解析
-    return Error(ErrorCode::Unsupported, "JSON parsing not yet implemented");
+Result<std::unique_ptr<LootTable>> LootTable::fromJson(const String& json) {
+    return LootSerializers::parseLootTable(json);
 }
 
 String LootTable::toJson() const {
-    // TODO: 实现 JSON 序列化
-    return "{}";
+    return LootSerializers::toJsonString(*this, 2);
 }
 
 // ============================================================================

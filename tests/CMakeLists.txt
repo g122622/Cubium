@@ -164,6 +164,7 @@ add_executable(mc_tests
     network/TitlePacketTest.cpp
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
+    common/entity/loot/LootSerializersTest.cpp
     common/world/gen/WorldGenSpawnerTest.cpp
     common/world/gen/OceanFeatureTest.cpp
     common/world/gen/WaterContentRegistryTest.cpp
@@ -625,6 +626,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootEntry.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootPool.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootTable.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootSerializers.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootConditions.cpp
         # 鏂瑰潡鎺夎惤澶勭悊
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
