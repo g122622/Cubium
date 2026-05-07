@@ -90,6 +90,7 @@ public:
  *
  * 不可变的方块状态对象，包含方块的所有属性值。
  * 继承自StateHolder以支持O(1)的状态转换。
+ * TODO 将这个类提到单独文件中
  *
  * 参考: net.minecraft.block.BlockState
  */
