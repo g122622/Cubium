@@ -12,13 +12,6 @@ CraftingInventory::CraftingInventory(i32 width, i32 height)
     m_items.resize(width * height);
 }
 
-CraftingInventory::CraftingInventory(i32 width, i32 height, Container* container)
-    : m_width(width)
-    , m_height(height) {
-    m_items.resize(width * height);
-    (void)container; // 容器关联将在后续实现
-}
-
 bool CraftingInventory::isEmpty() const {
     for (const ItemStack& stack : m_items) {
         if (!stack.isEmpty()) {
@@ -190,10 +183,6 @@ void CraftingInventory::fillStackedContents(std::unordered_map<i32, i32>& itemCo
 }
 
 // ========== CraftResultInventory ==========
-
-CraftResultInventory::CraftResultInventory(Container* container) {
-    (void)container; // 容器关联将在后续实现
-}
 
 ItemStack CraftResultInventory::getItem(i32 slot) const {
     // MC 1.16.5: CraftResultInventory 只有一个槽位，忽略 slot 参数

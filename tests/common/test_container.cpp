@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
-#include "../src/common/entity/inventory/Container.hpp"
+#include "../src/common/entity/inventory/AbstractContainerMenu.hpp"
+#include "../src/common/entity/inventory/Slot.hpp"
 #include "../src/common/entity/inventory/PlayerInventory.hpp"
 #include "../src/common/entity/inventory/CreativeInventory.hpp"
 #include "../src/common/entity/entities/player/Player.hpp"
@@ -14,314 +15,193 @@
 using namespace mc;
 
 // ============================================================================
-// Container 测试
+// AbstractContainerMenu 测试（槽位、点击、拖拽、快速移动、数字键交换）
 // ============================================================================
 
-class ContainerTest : public ::testing::Test {
+class AbstractContainerMenuTest : public ::testing::Test {
 protected:
     void SetUp() override {
         Items::initialize();
         m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
         m_iron = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
-        m_stick = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stick"));
     }
 
     Item* m_diamond = nullptr;
     Item* m_iron = nullptr;
-    Item* m_stick = nullptr;
 };
 
-TEST_F(ContainerTest, Creation) {
-    Container container(ContainerType::Player, 0);
-
-    EXPECT_EQ(container.type(), ContainerType::Player);
-    EXPECT_EQ(container.id(), 0);
-    EXPECT_EQ(container.getSlotCount(), 0);
-    EXPECT_FALSE(container.hasChanged());
-}
-
-TEST_F(ContainerTest, AddSlot) {
+TEST_F(AbstractContainerMenuTest, QuickMoveShiftClickMovesStack) {
     ASSERT_NE(m_diamond, nullptr);
 
     PlayerInventory inventory;
-    Container container(ContainerType::Player, 0);
+    inventory.setItem(0, ItemStack(*m_diamond, 32));
 
-    auto slot = std::make_unique<Slot>(&inventory, 0, 10, 10);
-    i32 index = container.addSlot(std::move(slot));
+    // 创建简单菜单
+    class TestMenu : public AbstractContainerMenu {
+    public:
+        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
+            // 添加容器槽位（槽位0）
+            addSlot(std::make_unique<Slot>(inv, 0, 0, 0));
+            // 添加玩家主背包槽位（槽位1-27）
+            for (int i = 0; i < 27; ++i) {
+                addSlot(std::make_unique<Slot>(inv, 9 + i, 8 + (i % 9) * 18, 18 + (i / 9) * 18));
+            }
+            m_playerInvStart = 1;
+        }
+        bool stillValid(const Player& player) const override { return true; }
+    };
 
-    EXPECT_EQ(index, 0);
-    EXPECT_EQ(container.getSlotCount(), 1);
+    TestMenu menu(&inventory);
+    Player player(1, "TestPlayer");
+
+    // Shift+点击槽位0应将物品移到玩家背包
+    menu.clicked(0, 0, ClickType::QuickMove, player);
+
+    // 钻石应该从槽位0移到玩家背包
+    EXPECT_TRUE(menu.getSlot(0)->isEmpty());
 }
 
-TEST_F(ContainerTest, AddInventorySlots) {
-    PlayerInventory inventory;
-    Container container(ContainerType::Player, 0);
-
-    SlotRange range = container.addInventorySlots(&inventory, 0, 9, 0, 0);
-
-    EXPECT_EQ(range.start, 0);
-    EXPECT_EQ(range.end, 9);
-    EXPECT_EQ(range.size(), 9);
-    EXPECT_EQ(container.getSlotCount(), 9);
-}
-
-TEST_F(ContainerTest, GetSlot) {
-    PlayerInventory inventory;
-    Container container(ContainerType::Player, 0);
-
-    container.addInventorySlots(&inventory, 0, 3, 0, 0);
-
-    Slot* slot = container.getSlot(0);
-    ASSERT_NE(slot, nullptr);
-    EXPECT_EQ(slot->getIndex(), 0);
-
-    Slot* invalidSlot = container.getSlot(-1);
-    EXPECT_EQ(invalidSlot, nullptr);
-
-    Slot* outOfRangeSlot = container.getSlot(10);
-    EXPECT_EQ(outOfRangeSlot, nullptr);
-}
-
-TEST_F(ContainerTest, GetSlotItem) {
-    ASSERT_NE(m_diamond, nullptr);
-
-    PlayerInventory inventory;
-    inventory.setItem(0, ItemStack(*m_diamond, 10));
-
-    Container container(ContainerType::Player, 0);
-    container.addInventorySlots(&inventory, 0, 3, 0, 0);
-
-    ItemStack item = container.getSlotItem(0);
-    EXPECT_FALSE(item.isEmpty());
-    EXPECT_EQ(item.getItem(), m_diamond);
-    EXPECT_EQ(item.getCount(), 10);
-
-    ItemStack emptyItem = container.getSlotItem(100);
-    EXPECT_TRUE(emptyItem.isEmpty());
-}
-
-TEST_F(ContainerTest, MergeItem) {
-    ASSERT_NE(m_diamond, nullptr);
-
-    PlayerInventory inventory;
-    Container container(ContainerType::Player, 0);
-    container.addInventorySlots(&inventory, 0, 9, 0, 0);
-
-    // 在槽位0放入5个钻石
-    inventory.setItem(0, ItemStack(*m_diamond, 5));
-
-    // 合并更多钻石 - 范围从0开始以合并到槽位0
-    ItemStack stack(*m_diamond, 10);
-    bool merged = container.mergeItem(stack, 0, 9, false);
-
-    EXPECT_TRUE(merged);
-    // 应该合并到槽位0
-    EXPECT_EQ(inventory.getItem(0).getCount(), 15);
-}
-
-TEST_F(ContainerTest, MergeItemToEmptySlot) {
-    ASSERT_NE(m_diamond, nullptr);
-
-    PlayerInventory inventory;
-    Container container(ContainerType::Player, 0);
-    container.addInventorySlots(&inventory, 0, 9, 0, 0);
-
-    // 合并到空槽位
-    ItemStack stack(*m_diamond, 10);
-    bool merged = container.mergeItem(stack, 0, 9, false);
-
-    EXPECT_TRUE(merged);
-    EXPECT_EQ(inventory.getItem(0).getCount(), 10);
-    EXPECT_TRUE(stack.isEmpty());
-}
-
-TEST_F(ContainerTest, ClickPickLeft) {
-    ASSERT_NE(m_diamond, nullptr);
-
-    PlayerInventory inventory;
-    inventory.setItem(0, ItemStack(*m_diamond, 10));
-
-    Container container(ContainerType::Player, 0);
-    container.addInventorySlots(&inventory, 0, 9, 0, 0);
-
-    // 左键拾取
-    ItemStack cursor = ItemStack::EMPTY;
-    cursor = container.clicked(0, 0, ClickType::Pick, cursor);
-
-    EXPECT_FALSE(cursor.isEmpty());
-    EXPECT_EQ(cursor.getCount(), 10);
-    EXPECT_TRUE(container.getSlotItem(0).isEmpty());
-}
-
-TEST_F(ContainerTest, ClickPickRight) {
-    ASSERT_NE(m_diamond, nullptr);
-
-    PlayerInventory inventory;
-    inventory.setItem(0, ItemStack(*m_diamond, 10));
-
-    Container container(ContainerType::Player, 0);
-    container.addInventorySlots(&inventory, 0, 9, 0, 0);
-
-    // 右键拾取一半
-    ItemStack cursor = ItemStack::EMPTY;
-    cursor = container.clicked(0, 1, ClickType::PickAll, cursor);
-
-    EXPECT_FALSE(cursor.isEmpty());
-    EXPECT_EQ(cursor.getCount(), 5);
-    EXPECT_EQ(container.getSlotItem(0).getCount(), 5);
-}
-
-TEST_F(ContainerTest, ClickPlaceLeft) {
-    ASSERT_NE(m_diamond, nullptr);
-
-    PlayerInventory inventory;
-    Container container(ContainerType::Player, 0);
-    container.addInventorySlots(&inventory, 0, 9, 0, 0);
-
-    // 左键放置
-    ItemStack cursor(*m_diamond, 10);
-    cursor = container.clicked(0, 0, ClickType::Pick, cursor);
-
-    EXPECT_TRUE(cursor.isEmpty());
-    EXPECT_EQ(container.getSlotItem(0).getCount(), 10);
-}
-
-TEST_F(ContainerTest, ClickPlaceRight) {
-    ASSERT_NE(m_diamond, nullptr);
-
-    PlayerInventory inventory;
-    Container container(ContainerType::Player, 0);
-    container.addInventorySlots(&inventory, 0, 9, 0, 0);
-
-    // 右键放置一个
-    ItemStack cursor(*m_diamond, 10);
-    cursor = container.clicked(0, 1, ClickType::PickAll, cursor);
-
-    EXPECT_EQ(cursor.getCount(), 9);
-    EXPECT_EQ(container.getSlotItem(0).getCount(), 1);
-}
-
-TEST_F(ContainerTest, ClickSwap) {
+TEST_F(AbstractContainerMenuTest, SwapWithNumberKey) {
     ASSERT_NE(m_diamond, nullptr);
     ASSERT_NE(m_iron, nullptr);
 
     PlayerInventory inventory;
-    inventory.setItem(0, ItemStack(*m_diamond, 10));
-    inventory.setItem(1, ItemStack(*m_iron, 5));
+    inventory.setItem(0, ItemStack(*m_diamond, 10));  // 快捷栏槽位0
+    inventory.setItem(9, ItemStack(*m_iron, 5));       // 主背包槽位9
 
-    Container container(ContainerType::Player, 0);
-    container.addInventorySlots(&inventory, 0, 9, 0, 0);
+    class TestMenu : public AbstractContainerMenu {
+    public:
+        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
+            // 添加快捷栏槽位
+            for (int i = 0; i < 9; ++i) {
+                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
+            }
+            // 添加主背包槽位
+            for (int i = 0; i < 27; ++i) {
+                addSlot(std::make_unique<Slot>(inv, 9 + i, 8 + (i % 9) * 18, 84 + (i / 9) * 18));
+            }
+            m_playerInvStart = 0;
+        }
+        bool stillValid(const Player& player) const override { return true; }
+    };
 
-    // 用钻石交换铁锭
-    ItemStack cursor(*m_diamond, 10);
-    cursor = container.clicked(1, 0, ClickType::Pick, cursor);
+    TestMenu menu(&inventory);
+    Player player(1, "TestPlayer");
 
-    EXPECT_EQ(cursor.getItem(), m_iron);
-    EXPECT_EQ(cursor.getCount(), 5);
-    EXPECT_EQ(container.getSlotItem(1).getItem(), m_diamond);
-    EXPECT_EQ(container.getSlotItem(1).getCount(), 10);
+    // 按数字键1应该交换槽位9和快捷栏槽位0
+    menu.clicked(9, 0, ClickType::Swap, player);  // button=0 表示快捷栏槽位0
+
+    // 验证交换结果
+    EXPECT_EQ(menu.getSlot(0)->getItem().getItem(), m_iron);
+    EXPECT_EQ(menu.getSlot(0)->getItem().getCount(), 5);
 }
 
-TEST_F(ContainerTest, SlotRange) {
-    Container container(ContainerType::Player, 0);
-
-    container.setPlayerInventoryRange(0, 36);
-    container.setContainerInventoryRange(36, 41);
-
-    EXPECT_TRUE(container.playerInventoryRange().contains(0));
-    EXPECT_TRUE(container.playerInventoryRange().contains(35));
-    EXPECT_FALSE(container.playerInventoryRange().contains(36));
-
-    EXPECT_TRUE(container.containerInventoryRange().contains(36));
-    EXPECT_TRUE(container.containerInventoryRange().contains(40));
-    EXPECT_FALSE(container.containerInventoryRange().contains(35));
-}
-
-TEST_F(ContainerTest, GetAllSlots) {
+TEST_F(AbstractContainerMenuTest, DragDistributionEvenly) {
     ASSERT_NE(m_diamond, nullptr);
-    ASSERT_NE(m_iron, nullptr);
+
+    PlayerInventory inventory;
+    inventory.setItem(0, ItemStack(*m_diamond, 64));
+
+    class TestMenu : public AbstractContainerMenu {
+    public:
+        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
+            for (int i = 0; i < 9; ++i) {
+                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
+            }
+            m_playerInvStart = 0;
+        }
+        bool stillValid(const Player& player) const override { return true; }
+    };
+
+    TestMenu menu(&inventory);
+    Player player(1, "TestPlayer");
+
+    // 设置鼠标物品
+    menu.setCarriedItem(ItemStack(*m_diamond, 64));
+
+    // 开始拖拽 (button = 0 | (MODE_EVEN << 2) = 0)
+    menu.clicked(1, DragConstants::EVENT_START | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
+                 ClickType::QuickCraft, player);
+
+    // 添加槽位到拖拽列表
+    menu.clicked(2, DragConstants::EVENT_ADD_SLOT | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
+                 ClickType::QuickCraft, player);
+    menu.clicked(3, DragConstants::EVENT_ADD_SLOT | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
+                 ClickType::QuickCraft, player);
+    menu.clicked(4, DragConstants::EVENT_ADD_SLOT | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
+                 ClickType::QuickCraft, player);
+
+    // 结束拖拽
+    menu.clicked(5, DragConstants::EVENT_END | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
+                 ClickType::QuickCraft, player);
+
+    // 检查物品是否被分发（每个槽位64/3=21个）
+    // 注意：实际分发逻辑依赖于按钮编码
+}
+
+TEST_F(AbstractContainerMenuTest, PickAllDoubleClick) {
+    ASSERT_NE(m_diamond, nullptr);
 
     PlayerInventory inventory;
     inventory.setItem(0, ItemStack(*m_diamond, 10));
-    inventory.setItem(1, ItemStack(*m_iron, 5));
+    inventory.setItem(1, ItemStack(*m_diamond, 20));
+    inventory.setItem(2, ItemStack(*m_diamond, 30));
 
-    Container container(ContainerType::Player, 0);
-    container.addInventorySlots(&inventory, 0, 3, 0, 0);
+    class TestMenu : public AbstractContainerMenu {
+    public:
+        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
+            for (int i = 0; i < 9; ++i) {
+                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
+            }
+            m_playerInvStart = 0;
+        }
+        bool stillValid(const Player& player) const override { return true; }
+    };
 
-    std::vector<ItemStack> items = container.getAllSlots();
+    TestMenu menu(&inventory);
+    Player player(1, "TestPlayer");
 
-    EXPECT_EQ(items.size(), 3);
-    EXPECT_EQ(items[0].getItem(), m_diamond);
-    EXPECT_EQ(items[0].getCount(), 10);
-    EXPECT_EQ(items[1].getItem(), m_iron);
-    EXPECT_EQ(items[1].getCount(), 5);
-    EXPECT_TRUE(items[2].isEmpty());
+    // PickAll（双击）在空鼠标状态下点击有物品的槽位，应该拾取所有相同物品
+    // 鼠标初始为空，点击槽位0应该拾取所有钻石（10+20+30=60）
+    menu.clicked(0, 0, ClickType::PickAll, player);
+
+    // 鼠标应该有10+20+30=60个钻石
+    EXPECT_EQ(menu.getCarriedItem().getItem(), m_diamond);
+    EXPECT_EQ(menu.getCarriedItem().getCount(), 60);
+
+    // 槽位应该都变空了
+    EXPECT_TRUE(menu.getSlot(0)->isEmpty());
+    EXPECT_TRUE(menu.getSlot(1)->isEmpty());
+    EXPECT_TRUE(menu.getSlot(2)->isEmpty());
 }
 
-TEST_F(ContainerTest, SetAllSlots) {
+TEST_F(AbstractContainerMenuTest, CloneInCreativeMode) {
     ASSERT_NE(m_diamond, nullptr);
-    ASSERT_NE(m_iron, nullptr);
 
     PlayerInventory inventory;
-    Container container(ContainerType::Player, 0);
-    container.addInventorySlots(&inventory, 0, 3, 0, 0);
+    inventory.setItem(0, ItemStack(*m_diamond, 10));
 
-    std::vector<ItemStack> items;
-    items.emplace_back(*m_diamond, 10);
-    items.emplace_back(*m_iron, 5);
-    items.emplace_back(*m_diamond, 3);
+    class TestMenu : public AbstractContainerMenu {
+    public:
+        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
+            for (int i = 0; i < 9; ++i) {
+                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
+            }
+            m_playerInvStart = 0;
+        }
+        bool stillValid(const Player& player) const override { return true; }
+    };
 
-    container.setAllSlots(items);
+    TestMenu menu(&inventory);
+    Player player(1, "TestPlayer");
+    player.setGameMode(GameMode::Creative);  // 设置为创造模式
 
-    EXPECT_EQ(container.getSlotItem(0).getCount(), 10);
-    EXPECT_EQ(container.getSlotItem(1).getCount(), 5);
-    EXPECT_EQ(container.getSlotItem(2).getCount(), 3);
-    EXPECT_TRUE(container.hasChanged());
-}
+    // 中键复制
+    menu.clicked(0, 2, ClickType::Clone, player);
 
-// ============================================================================
-// PlayerContainer 测试
-// ============================================================================
-
-class PlayerContainerTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        Items::initialize();
-        m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
-    }
-
-    Item* m_diamond = nullptr;
-};
-
-TEST_F(PlayerContainerTest, Creation) {
-    PlayerInventory playerInventory;
-    PlayerContainer container(&playerInventory);
-
-    EXPECT_EQ(container.type(), ContainerType::Player);
-    EXPECT_EQ(container.id(), 0);
-    // 41 slots: 9 hotbar + 27 main + 4 armor + 1 offhand
-    EXPECT_EQ(container.getSlotCount(), 41);
-}
-
-TEST_F(PlayerContainerTest, HotbarSlots) {
-    PlayerInventory playerInventory;
-    PlayerContainer container(&playerInventory);
-
-    // 快捷栏槽位应该在0-8
-    for (int i = 0; i < 9; ++i) {
-        Slot* slot = container.getSlot(i);
-        ASSERT_NE(slot, nullptr);
-        EXPECT_EQ(slot->getIndex(), i);
-    }
-}
-
-TEST_F(PlayerContainerTest, PlayerInventoryRange) {
-    PlayerInventory playerInventory;
-    PlayerContainer container(&playerInventory);
-
-    const SlotRange& playerRange = container.playerInventoryRange();
-    EXPECT_EQ(playerRange.start, 0);
-    EXPECT_EQ(playerRange.end, 36);  // hotbar + main
+    // 创造模式下，鼠标应该有满堆叠的钻石
+    EXPECT_EQ(menu.getCarriedItem().getItem(), m_diamond);
+    EXPECT_EQ(menu.getCarriedItem().getCount(), 64);
 }
 
 // ============================================================================
@@ -626,6 +506,10 @@ TEST_F(ContainerPacketTest, CreativeInventoryActionPacket) {
     EXPECT_EQ(decoded.item().getCount(), 32);
 }
 
+// ============================================================================
+// CreativeInventory 测试
+// ============================================================================
+
 class CreativeInventoryTest : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -658,223 +542,4 @@ TEST_F(CreativeInventoryTest, FillCreativeModeInventoryPopulatesFirstSlot) {
     EXPECT_FALSE(inventory.getItem(0).isEmpty()) << "Expected creative inventory slot 0 to be populated";
     EXPECT_EQ(inventory.getItem(0).getItem()->itemLocation().toString(), "minecraft:crafting_table");
     EXPECT_EQ(inventory.getItem(0).getCount(), 64);
-}
-
-// ============================================================================
-// Container 序列化测试
-// ============================================================================
-
-TEST_F(ContainerTest, SerializeDeserialize) {
-    ASSERT_NE(m_diamond, nullptr);
-    ASSERT_NE(m_iron, nullptr);
-
-    PlayerInventory inventory;
-    inventory.setItem(0, ItemStack(*m_diamond, 10));
-    inventory.setItem(1, ItemStack(*m_iron, 5));
-
-    Container container(ContainerType::Generic9x3, 3);
-    container.addInventorySlots(&inventory, 0, 9, 0, 0);
-    container.setPlayerInventoryRange(0, 9);
-    container.setContainerInventoryRange(9, 18);
-
-    // 序列化
-    network::PacketSerializer ser;
-    container.serialize(ser);
-
-    // 注意：反序列化创建的是一个空容器（槽位需要重新添加）
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = Container::deserialize(deser);
-
-    ASSERT_TRUE(result.success()) << result.error().message();
-}
-
-// ============================================================================
-// AbstractContainerMenu 测试（拖拽、快速移动、数字键交换）
-// ============================================================================
-
-class AbstractContainerMenuTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        Items::initialize();
-        m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
-        m_iron = ItemRegistry::instance().getItem(ResourceLocation("minecraft:iron_ingot"));
-    }
-
-    Item* m_diamond = nullptr;
-    Item* m_iron = nullptr;
-};
-
-TEST_F(AbstractContainerMenuTest, QuickMoveShiftClickMovesStack) {
-    ASSERT_NE(m_diamond, nullptr);
-
-    PlayerInventory inventory;
-    inventory.setItem(0, ItemStack(*m_diamond, 32));
-
-    // 创建简单菜单
-    class TestMenu : public AbstractContainerMenu {
-    public:
-        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
-            // 添加容器槽位（槽位0）
-            addSlot(std::make_unique<Slot>(inv, 0, 0, 0));
-            // 添加玩家主背包槽位（槽位1-27）
-            for (int i = 0; i < 27; ++i) {
-                addSlot(std::make_unique<Slot>(inv, 9 + i, 8 + (i % 9) * 18, 18 + (i / 9) * 18));
-            }
-            m_playerInvStart = 1;
-        }
-        bool stillValid(const Player& player) const override { return true; }
-    };
-
-    TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
-
-    // Shift+点击槽位0应将物品移到玩家背包
-    ItemStack cursor;
-    menu.clicked(0, 0, ClickType::QuickMove, player);
-
-    // 钻石应该从槽位0移到玩家背包
-    EXPECT_TRUE(menu.getSlot(0)->isEmpty());
-}
-
-TEST_F(AbstractContainerMenuTest, SwapWithNumberKey) {
-    ASSERT_NE(m_diamond, nullptr);
-    ASSERT_NE(m_iron, nullptr);
-
-    PlayerInventory inventory;
-    inventory.setItem(0, ItemStack(*m_diamond, 10));  // 快捷栏槽位0
-    inventory.setItem(9, ItemStack(*m_iron, 5));       // 主背包槽位9
-
-    class TestMenu : public AbstractContainerMenu {
-    public:
-        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
-            // 添加快捷栏槽位
-            for (int i = 0; i < 9; ++i) {
-                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
-            }
-            // 添加主背包槽位
-            for (int i = 0; i < 27; ++i) {
-                addSlot(std::make_unique<Slot>(inv, 9 + i, 8 + (i % 9) * 18, 84 + (i / 9) * 18));
-            }
-            m_playerInvStart = 0;
-        }
-        bool stillValid(const Player& player) const override { return true; }
-    };
-
-    TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
-
-    // 按数字键1应该交换槽位9和快捷栏槽位0
-    menu.clicked(9, 0, ClickType::Swap, player);  // button=0 表示快捷栏槽位0
-
-    // 验证交换结果
-    EXPECT_EQ(menu.getSlot(0)->getItem().getItem(), m_iron);
-    EXPECT_EQ(menu.getSlot(0)->getItem().getCount(), 5);
-}
-
-TEST_F(AbstractContainerMenuTest, DragDistributionEvenly) {
-    ASSERT_NE(m_diamond, nullptr);
-
-    PlayerInventory inventory;
-    inventory.setItem(0, ItemStack(*m_diamond, 64));
-
-    class TestMenu : public AbstractContainerMenu {
-    public:
-        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
-            for (int i = 0; i < 9; ++i) {
-                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
-            }
-            m_playerInvStart = 0;
-        }
-        bool stillValid(const Player& player) const override { return true; }
-    };
-
-    TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
-
-    // 设置鼠标物品
-    menu.setCarriedItem(ItemStack(*m_diamond, 64));
-
-    // 开始拖拽 (button = 0 | (MODE_EVEN << 2) = 0)
-    menu.clicked(1, DragConstants::EVENT_START | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
-                 ClickType::QuickCraft, player);
-
-    // 添加槽位到拖拽列表
-    menu.clicked(2, DragConstants::EVENT_ADD_SLOT | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
-                 ClickType::QuickCraft, player);
-    menu.clicked(3, DragConstants::EVENT_ADD_SLOT | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
-                 ClickType::QuickCraft, player);
-    menu.clicked(4, DragConstants::EVENT_ADD_SLOT | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
-                 ClickType::QuickCraft, player);
-
-    // 结束拖拽
-    menu.clicked(5, DragConstants::EVENT_END | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT),
-                 ClickType::QuickCraft, player);
-
-    // 检查物品是否被分发（每个槽位64/3=21个）
-    // 注意：实际分发逻辑依赖于按钮编码
-}
-
-TEST_F(AbstractContainerMenuTest, PickAllDoubleClick) {
-    ASSERT_NE(m_diamond, nullptr);
-
-    PlayerInventory inventory;
-    inventory.setItem(0, ItemStack(*m_diamond, 10));
-    inventory.setItem(1, ItemStack(*m_diamond, 20));
-    inventory.setItem(2, ItemStack(*m_diamond, 30));
-
-    class TestMenu : public AbstractContainerMenu {
-    public:
-        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
-            for (int i = 0; i < 9; ++i) {
-                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
-            }
-            m_playerInvStart = 0;
-        }
-        bool stillValid(const Player& player) const override { return true; }
-    };
-
-    TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
-
-    // PickAll（双击）在空鼠标状态下点击有物品的槽位，应该拾取所有相同物品
-    // 鼠标初始为空，点击槽位0应该拾取所有钻石（10+20+30=60）
-    menu.clicked(0, 0, ClickType::PickAll, player);
-
-    // 鼠标应该有10+20+30=60个钻石
-    EXPECT_EQ(menu.getCarriedItem().getItem(), m_diamond);
-    EXPECT_EQ(menu.getCarriedItem().getCount(), 60);
-
-    // 槽位应该都变空了
-    EXPECT_TRUE(menu.getSlot(0)->isEmpty());
-    EXPECT_TRUE(menu.getSlot(1)->isEmpty());
-    EXPECT_TRUE(menu.getSlot(2)->isEmpty());
-}
-
-TEST_F(AbstractContainerMenuTest, CloneInCreativeMode) {
-    ASSERT_NE(m_diamond, nullptr);
-
-    PlayerInventory inventory;
-    inventory.setItem(0, ItemStack(*m_diamond, 10));
-
-    class TestMenu : public AbstractContainerMenu {
-    public:
-        TestMenu(PlayerInventory* inv) : AbstractContainerMenu(0, inv) {
-            for (int i = 0; i < 9; ++i) {
-                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
-            }
-            m_playerInvStart = 0;
-        }
-        bool stillValid(const Player& player) const override { return true; }
-    };
-
-    TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
-    player.setGameMode(GameMode::Creative);  // 设置为创造模式
-
-    // 中键复制
-    menu.clicked(0, 2, ClickType::Clone, player);
-
-    // 创造模式下，鼠标应该有满堆叠的钻石
-    EXPECT_EQ(menu.getCarriedItem().getItem(), m_diamond);
-    EXPECT_EQ(menu.getCarriedItem().getCount(), 64);
 }

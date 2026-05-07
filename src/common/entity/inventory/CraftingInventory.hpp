@@ -46,14 +46,6 @@ public:
      */
     explicit CraftingInventory(i32 width, i32 height);
 
-    /**
-     * @brief 构造指定尺寸的合成网格
-     * @param width 网格宽度
-     * @param height 网格高度
-     * @param container 关联的容器（用于事件通知）
-     */
-    CraftingInventory(i32 width, i32 height, class Container* container);
-
     ~CraftingInventory() override = default;
 
     // 禁止拷贝，允许移动
@@ -222,7 +214,6 @@ private:
 class CraftResultInventory : public IInventory, public IRecipeHolder {
 public:
     CraftResultInventory() = default;
-    explicit CraftResultInventory(class Container* container);
     ~CraftResultInventory() override = default;
 
     // ========== IInventory接口 ==========

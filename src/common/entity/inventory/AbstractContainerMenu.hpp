@@ -101,7 +101,6 @@ class PlayerInventory;
 class IInventory;
 class ItemStack;
 class Slot;
-class Container;
 class BlockEntity;
 class BlockPos;
 

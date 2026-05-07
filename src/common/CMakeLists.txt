@@ -260,7 +260,6 @@ add_library(mc_common STATIC
     entity/inventory/Slot.cpp
     entity/inventory/PlayerInventory.cpp
     entity/inventory/CreativeInventory.cpp
-    entity/inventory/Container.cpp
     entity/inventory/CraftingInventory.cpp
     entity/inventory/AbstractContainerMenu.cpp
     entity/inventory/IRecipeHolder.cpp

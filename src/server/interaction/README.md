@@ -539,29 +539,15 @@ void MinecraftServer::tick() {
 
 ### 容器测试 (tests/common/test_container.cpp)
 
-测试 Container、PlayerContainer 和容器数据包：
+测试 AbstractContainerMenu 和容器数据包：
 
 | 测试类 | 测试用例 |
 |--------|----------|
-| ContainerTest | Creation - 创建容器 |
-| ContainerTest | AddSlot - 添加槽位 |
-| ContainerTest | AddInventorySlots - 添加物品栏槽位 |
-| ContainerTest | GetSlot - 获取槽位 |
-| ContainerTest | GetSlotItem - 获取槽位物品 |
-| ContainerTest | MergeItem - 合并物品 |
-| ContainerTest | MergeItemToEmptySlot - 合并到空槽位 |
-| ContainerTest | ClickPickLeft - 左键拾取 |
-| ContainerTest | ClickPickRight - 右键拾取一半 |
-| ContainerTest | ClickPlaceLeft - 左键放置 |
-| ContainerTest | ClickPlaceRight - 右键放置一个 |
-| ContainerTest | ClickSwap - 交换物品 |
-| ContainerTest | SlotRange - 槽位范围 |
-| ContainerTest | GetAllSlots - 获取所有槽位 |
-| ContainerTest | SetAllSlots - 设置所有槽位 |
-| ContainerTest | SerializeDeserialize - 序列化反序列化 |
-| PlayerContainerTest | Creation - 创建玩家容器 |
-| PlayerContainerTest | HotbarSlots - 快捷栏槽位 |
-| PlayerContainerTest | PlayerInventoryRange - 玩家物品栏范围 |
+| AbstractContainerMenuTest | QuickMoveShiftClickMovesStack - Shift+点击快速移动 |
+| AbstractContainerMenuTest | SwapWithNumberKey - 数字键交换 |
+| AbstractContainerMenuTest | DragDistributionEvenly - 拖拽分发 |
+| AbstractContainerMenuTest | PickAllDoubleClick - 双击拾取全部 |
+| AbstractContainerMenuTest | CloneInCreativeMode - 创造模式复制 |
 | ContainerPacketTest | ContainerContentPacket - 容器内容包 |
 | ContainerPacketTest | ContainerSlotPacket - 容器槽位包 |
 | ContainerPacketTest | ContainerClickPacket - 容器点击包 |
@@ -570,6 +556,9 @@ void MinecraftServer::tick() {
 | ContainerPacketTest | HotbarSelectPacket - 快捷栏选择包 |
 | ContainerPacketTest | HotbarSetPacket - 快捷栏设置包 |
 | ContainerPacketTest | PlayerInventoryPacket - 玩家物品栏包 |
+| ContainerPacketTest | CreativeInventoryActionPacket - 创造模式物品操作包 |
+| CreativeInventoryTest | PaletteEntriesContainCraftingTable - 创造物品库包含工作台 |
+| CreativeInventoryTest | FillCreativeModeInventoryPopulatesFirstSlot - 填充创造模式背包 |
 
 ---
 

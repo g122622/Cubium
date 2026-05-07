@@ -29,8 +29,6 @@ inventory/
 ├── IRecipeHolder.cpp           # 配方持有者实现
 ├── IRecipeHelperPopulator.hpp  # 配方辅助填充器接口
 ├── ContainerTypes.hpp          # 容器相关类型定义
-├── Container.hpp               # 容器类（槽位管理）
-├── Container.cpp
 ├── Slot.hpp                    # 槽位类
 ├── Slot.cpp
 ├── PlayerInventory.hpp         # 玩家背包
@@ -148,26 +146,6 @@ inventory/
 - `IInventory.hpp` - 背包接口
 - `item/ItemStack.hpp` - 物品堆
 
-### 4. Container.hpp / Container.cpp
-
-**职责**: 管理客户端-服务端的背包同步，持有多个槽位引用。
-
-**主要内容**:
-- `SlotRange` 结构：槽位范围表示
-- `Container` 类：
-  - 槽位管理：`addSlot()`, `getSlot()`, `addInventorySlots()`
-  - 物品操作：`clicked()`, `quickMoveStack()`, `mergeItem()`
-  - 槽位范围设置：`setPlayerInventoryRange()`, `setContainerInventoryRange()`
-  - 变更检测：`hasChanged()`, `setChanged()`, `getChangeCount()`
-  - 同步支持：`getAllSlots()`, `setAllSlots()`, `serialize()`, `deserialize()`
-  - 点击处理：`handlePickClick()`, `handleQuickMoveClick()`, `handleThrowClick()`, `handleDragClick()`, `handleSwapClick()`, `handleCloneClick()`
-- `PlayerContainer` 类：玩家背包容器，添加快捷栏、主背包、护甲、副手槽位
-
-**依赖项**:
-- `IInventory.hpp`, `Slot.hpp`, `ContainerTypes.hpp`
-- `PlayerInventory.hpp`
-- `item/ItemStack.hpp`
-
 ### 5. PlayerInventory.hpp / PlayerInventory.cpp
 
 **职责**: 实现玩家的完整背包系统。
@@ -275,21 +253,18 @@ inventory/
               Slot (引用 IInventory)
                  │
                  │
-             Container
-                 │
-                 │
-      AbstractContainerMenu
+        AbstractContainerMenu
                  │
          ┌───────┴───────┐
          │               │
-   PlayerContainer   其他容器菜单
+   CraftingMenu    其他容器菜单
 ```
 
 ## 整体职责
 
 1. **背包接口抽象** (`IInventory`): 定义统一的背包操作接口，支持不同类型的背包容器
 
-2. **槽位管理** (`Slot`, `Container`): 提供槽位的抽象表示，支持UI显示和物品交互
+2. **槽位管理** (`Slot`, `AbstractContainerMenu`): 提供槽位的抽象表示，支持UI显示和物品交互
 
 3. **玩家背包** (`PlayerInventory`): 实现玩家专属背包，包含快捷栏、主背包、护甲、副手
 
@@ -374,22 +349,6 @@ mc::fillCreativeModeInventory(inventory);
 auto paletteEntries = mc::buildCreativePaletteEntries();
 ```
 
-### 创建容器
-
-```cpp
-#include "entity/inventory/Container.hpp"
-
-// 创建容器
-mc::Container container(mc::ContainerType::Chest, 0);
-
-// 添加槽位
-container.addSlot(std::make_unique<mc::Slot>(&inventory, 0, 10, 10));
-
-// 处理点击
-mc::ItemStack cursorItem = ...;
-cursorItem = container.clicked(slotIndex, button, mc::ClickType::Pick, cursorItem);
-```
-
 ### 使用容器菜单
 
 ```cpp
@@ -411,6 +370,10 @@ public:
         return true;
     }
 };
+
+// 处理点击
+mc::ItemStack cursorItem = ...;
+cursorItem = menu.clicked(slotIndex, button, mc::ClickType::Pick, player);
 ```
 
 ## 容易踩的坑
@@ -466,13 +429,13 @@ if (stack1.getItem() == stack2.getItem()) { /* 可能不够 */ }
 if (stack1.canMergeWith(stack2)) { /* 考虑了所有因素 */ }
 ```
 
-### 5. 容器槽位范围
+### 5. 容器菜单槽位管理
 
-在处理 Shift+点击快速移动时，需要正确设置槽位范围：
+`AbstractContainerMenu` 内部管理玩家背包槽位范围，Shift+点击快速移动会自动处理：
 
 ```cpp
-container.setPlayerInventoryRange(0, 36);   // 快捷栏+主背包
-container.setContainerInventoryRange(36, 41); // 护甲+副手
+// AbstractContainerMenu 内部已正确设置 m_playerInvStart/m_playerInvEnd
+// 子类只需调用 addPlayerInventorySlots() 和 addPlayerHotbarSlots()
 ```
 
 ### 6. 网络同步
@@ -481,8 +444,7 @@ container.setContainerInventoryRange(36, 41); // 护甲+副手
 
 ```cpp
 inventory.setChanged();  // 标记变更
-container.setChanged();  // 通知容器
-container.broadcastChanges();  // 广播到客户端
+menu.broadcastChanges();  // 广播到客户端
 ```
 
 ### 7. 护甲槽位限制
@@ -491,7 +453,7 @@ container.broadcastChanges();  // 广播到客户端
 
 ### 8. 物品丢弃
 
-`AbstractContainerMenu` 和 `Container` 中的物品丢弃功能已通过回调实现。
+`AbstractContainerMenu` 中的物品丢弃功能已通过回调实现。
 
 **使用方法**：
 ```cpp
@@ -518,7 +480,7 @@ menu->setItemDropCallback([this, player](const ItemStack& stack, Player& p, bool
 - `posToSlot(x, y)` = `y * width + x`
 - `slotToPos(slot)` = `(slot % width, slot / width)`
 
-### 9. 创造库存初始化顺序
+### 10. 创造库存初始化顺序
 
 `CreativeInventory` 依赖运行时注册表完整可用，测试或启动代码必须按下面顺序初始化：
 
@@ -584,10 +546,24 @@ BlockItemRegistry::instance().initializeVanillaBlockItems();
 
 ### tests/common/test_container.cpp
 
+- `AbstractContainerMenuTest`: 容器菜单测试
+  - Shift+点击快速移动
+  - 数字键交换
+  - 拖拽分发
+  - 双击拾取全部
+  - 创造模式复制
+- `ContainerPacketTest`: 容器包测试
+  - ContainerContentPacket 序列化/反序列化
+  - ContainerSlotPacket 序列化/反序列化
+  - ContainerClickPacket 序列化/反序列化
+  - 点击类型映射
+  - 热栏选择包
+  - 玩家背包包
+  - 创造模式背包操作包
 - `CreativeInventoryTest`: 创造模式物品库测试
   - 创造条目生成
   - 创造模式初始背包填充
 
 ## 参考
 
-- Minecraft Java 1.16.5 源码: `net.minecraft.inventory.IInventory`, `net.minecraft.inventory.container.Container`, `net.minecraft.entity.player.PlayerInventory`
+- Minecraft Java 1.16.5 源码: `net.minecraft.inventory.IInventory`, `net.minecraft.inventory.container.AbstractContainerMenu`, `net.minecraft.entity.player.PlayerInventory`

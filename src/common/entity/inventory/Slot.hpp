@@ -12,7 +12,6 @@ namespace mc {
 // Forward declarations
 class IInventory;
 class Player;
-class Container;
 
 /**
  * @brief 槽位索引常量
