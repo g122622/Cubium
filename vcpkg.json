@@ -15,7 +15,9 @@
     "libarchive",
     "openal-soft",
     "zstd",
-    "rocksdb"
+    "rocksdb",
+    "entt",
+    "perfetto"
   ],
   "features": {
     "vulkan": {

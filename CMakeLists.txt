@@ -68,6 +68,8 @@ find_package(ZLIB REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(RocksDB CONFIG REQUIRED)
 find_package(zstd CONFIG REQUIRED)
+find_package(EnTT CONFIG REQUIRED)
+find_package(unofficial-perfetto CONFIG REQUIRED)
 
 # 全局编译选项
 if(MSVC)
