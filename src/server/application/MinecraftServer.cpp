@@ -1506,6 +1506,22 @@ void MinecraftServer::sendParticleToPlayer(
     sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
 }
 
+void MinecraftServer::broadcastParticleInRange(
+    u32 type,
+    f64 x, f64 y, f64 z,
+    f32 velocityX, f32 velocityY, f32 velocityZ,
+    f32 offsetX, f32 offsetY, f32 offsetZ,
+    u32 count,
+    f32 range) {
+    // 转换为强类型枚举并调用现有的实现
+    auto particleType = static_cast<client::renderer::trident::particle::ParticleTypeId>(type);
+    Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+    Vector3 velocity(velocityX, velocityY, velocityZ);
+    Vector3 offset(offsetX, offsetY, offsetZ);
+
+    broadcastParticleInRange(particleType, pos, velocity, offset, count, range);
+}
+
 void MinecraftServer::broadcastEntityStatusInRange(EntityId entityId, u8 status, const Vector3& pos, f32 range) {
     network::EntityStatusPacket packet;
     packet.setEntityId(static_cast<u32>(entityId));

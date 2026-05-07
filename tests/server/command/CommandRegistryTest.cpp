@@ -205,6 +205,32 @@ public:
     void broadcastServerMessage(StringView message) override { m_lastBroadcastMessage = String(message); }
     void requestStop() override { m_stopRequested = true; m_running = false; }
 
+    void broadcastParticleInRange(
+        u32 type,
+        f64 x, f64 y, f64 z,
+        f32 velocityX, f32 velocityY, f32 velocityZ,
+        f32 offsetX, f32 offsetY, f32 offsetZ,
+        u32 count,
+        f32 range) override
+    {
+        m_lastParticleType = type;
+        m_lastParticleX = x;
+        m_lastParticleY = y;
+        m_lastParticleZ = z;
+        m_lastParticleCount = count;
+        m_particleBroadcastCalled = true;
+        (void)velocityX; (void)velocityY; (void)velocityZ;
+        (void)offsetX; (void)offsetY; (void)offsetZ;
+        (void)range;
+    }
+
+    [[nodiscard]] bool particleBroadcastCalled() const noexcept { return m_particleBroadcastCalled; }
+    [[nodiscard]] u32 lastParticleType() const noexcept { return m_lastParticleType; }
+    [[nodiscard]] f64 lastParticleX() const noexcept { return m_lastParticleX; }
+    [[nodiscard]] f64 lastParticleY() const noexcept { return m_lastParticleY; }
+    [[nodiscard]] f64 lastParticleZ() const noexcept { return m_lastParticleZ; }
+    [[nodiscard]] u32 lastParticleCount() const noexcept { return m_lastParticleCount; }
+
     /**
      * @brief 向测试服务器添加一个在线玩家。
      *
@@ -246,6 +272,14 @@ private:
     i32 m_idleTimeoutMinutes = 0;
     bool m_stopRequested = false;
     String m_lastBroadcastMessage;
+
+    // 粒子广播记录
+    bool m_particleBroadcastCalled = false;
+    u32 m_lastParticleType = 0;
+    f64 m_lastParticleX = 0.0;
+    f64 m_lastParticleY = 0.0;
+    f64 m_lastParticleZ = 0.0;
+    u32 m_lastParticleCount = 0;
 
     server::core::PlayerManager m_playerManager;
     server::interaction::InventoryManager m_inventoryManager;
@@ -595,6 +629,71 @@ TEST_F(CommandRegistryServerTest, CommandTreeSnapshotContainsMetadata)
     ASSERT_NE(tpNode, nullptr);
     ASSERT_TRUE(tpNode->metadata.contains("implemented"));
     EXPECT_TRUE(tpNode->metadata.at("implemented").get<bool>());
+}
+
+TEST_F(CommandRegistryServerTest, ParticleCommandBroadcastsParticleAtCurrentPosition)
+{
+    auto* steve = m_server.addTestPlayer(1, "Steve");
+    ASSERT_NE(steve, nullptr);
+    steve->x = 100.0f;
+    steve->y = 64.0f;
+    steve->z = -200.0f;
+
+    auto playerSource = makePlayerSource(1, "Steve");
+    const auto result = m_server.commandRegistry().execute("particle flame", playerSource);
+
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1);
+    EXPECT_TRUE(m_server.particleBroadcastCalled());
+
+    // 验证粒子类型 - flame = 20 (ParticleTypeId::Flame)
+    EXPECT_EQ(m_server.lastParticleType(), 20u);
+
+    // 验证位置使用命令源的位置
+    EXPECT_DOUBLE_EQ(m_server.lastParticleX(), 100.0);
+    EXPECT_DOUBLE_EQ(m_server.lastParticleY(), 64.0);
+    EXPECT_DOUBLE_EQ(m_server.lastParticleZ(), -200.0);
+    EXPECT_EQ(m_server.lastParticleCount(), 1u);
+}
+
+TEST_F(CommandRegistryServerTest, ParticleCommandBroadcastsParticleAtSpecifiedPosition)
+{
+    const auto result = m_server.commandRegistry().execute("particle smoke 50.5 70.0 -100.5", m_console);
+
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1);
+    EXPECT_TRUE(m_server.particleBroadcastCalled());
+
+    // 验证粒子类型 - smoke = 21 (ParticleTypeId::Smoke)
+    EXPECT_EQ(m_server.lastParticleType(), 21u);
+
+    // 验证位置使用指定位置
+    EXPECT_DOUBLE_EQ(m_server.lastParticleX(), 50.5);
+    EXPECT_DOUBLE_EQ(m_server.lastParticleY(), 70.0);
+    EXPECT_DOUBLE_EQ(m_server.lastParticleZ(), -100.5);
+    EXPECT_EQ(m_server.lastParticleCount(), 1u);
+}
+
+TEST_F(CommandRegistryServerTest, ParticleCommandRejectsUnknownParticleType)
+{
+    const auto result = m_server.commandRegistry().execute("particle unknown_particle", m_console);
+
+    // 未知粒子类型返回 0（失败）但命令本身执行成功
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+    EXPECT_FALSE(m_server.particleBroadcastCalled());
+}
+
+TEST_F(CommandRegistryServerTest, ParticleCommandAcceptsMinecraftNamespace)
+{
+    const auto result = m_server.commandRegistry().execute("particle minecraft:lava 0 0 0", m_console);
+
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1);
+    EXPECT_TRUE(m_server.particleBroadcastCalled());
+
+    // 验证粒子类型 - lava = 23 (ParticleTypeId::Lava)
+    EXPECT_EQ(m_server.lastParticleType(), 23u);
 }
 
 } // namespace

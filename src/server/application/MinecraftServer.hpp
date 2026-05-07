@@ -622,6 +622,30 @@ protected:
         const Vector3& offset,
         u32 count);
 
+    /**
+     * @brief 广播粒子给指定范围内的玩家（IServer 接口）
+     *
+     * @param type 粒子类型 ID
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @param velocityX X速度
+     * @param velocityY Y速度
+     * @param velocityZ Z速度
+     * @param offsetX X偏移范围
+     * @param offsetY Y偏移范围
+     * @param offsetZ Z偏移范围
+     * @param count 粒子数量
+     * @param range 广播范围（格），默认 256 格
+     */
+    void broadcastParticleInRange(
+        u32 type,
+        f64 x, f64 y, f64 z,
+        f32 velocityX, f32 velocityY, f32 velocityZ,
+        f32 offsetX, f32 offsetY, f32 offsetZ,
+        u32 count,
+        f32 range = 256.0f) override;
+
     // ========== 爆炸广播方法 ==========
 
     /**

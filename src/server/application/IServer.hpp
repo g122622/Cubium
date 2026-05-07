@@ -250,6 +250,32 @@ public:
      * 只触发停机流程，不在调用线程里直接释放资源。
      */
     virtual void requestStop() = 0;
+
+    // ========== 粒子广播方法 ==========
+
+    /**
+     * @brief 广播粒子给指定范围内的玩家
+     *
+     * @param type 粒子类型
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @param velocityX X速度
+     * @param velocityY Y速度
+     * @param velocityZ Z速度
+     * @param offsetX X偏移范围
+     * @param offsetY Y偏移范围
+     * @param offsetZ Z偏移范围
+     * @param count 粒子数量
+     * @param range 广播范围（格），默认 256 格
+     */
+    virtual void broadcastParticleInRange(
+        u32 type,
+        f64 x, f64 y, f64 z,
+        f32 velocityX, f32 velocityY, f32 velocityZ,
+        f32 offsetX, f32 offsetY, f32 offsetZ,
+        u32 count,
+        f32 range = 256.0f) = 0;
 };
 
 } // namespace mc::server

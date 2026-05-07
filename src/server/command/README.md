@@ -345,7 +345,17 @@ public:
 - `/particle <name>` - 在当前位置显示粒子
 - `/particle <name> <pos>` - 在指定位置显示粒子
 
+**支持参数（MC 1.16.5 完整参数待实现）：**
+
+当前实现支持粒子名称和位置参数，广播范围为 256 格。
+
+**粒子类型：**
+
+支持 60+ 种粒子类型，包括：flame, smoke, lava, portal, explosion, crit, heart, redstone 等。
+
 **权限等级：** 2
+
+**实现状态：** ✅ 完整实现
 
 #### LocateCommand - /locate 命令
 

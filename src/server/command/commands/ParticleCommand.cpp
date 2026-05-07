@@ -65,8 +65,24 @@ i32 ParticleCommand::spawnParticle(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    // TODO: 实现粒子效果广播
-    // 需要 ServerWorld 或 MinecraftServer 的广播接口
+    // 获取服务器实例
+    auto* server = source.server();
+    if (!server) {
+        source.sendError("Server not available");
+        return 0;
+    }
+
+    // 广播粒子效果
+    // 参考 MC 1.16.5: 默认速度为 0，数量为 0，偏移为 0
+    // 粒子广播范围为 256 格（与 ParticlePacket 默认范围一致）
+    server->broadcastParticleInRange(
+        static_cast<u32>(particleType.value()),
+        pos.x, pos.y, pos.z,
+        0.0f, 0.0f, 0.0f,  // velocity
+        0.0f, 0.0f, 0.0f,  // offset
+        1,                  // count
+        256.0f              // range
+    );
 
     std::ostringstream ss;
     ss << "Displayed particle '" << name << "' at "
