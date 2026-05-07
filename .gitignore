@@ -50,9 +50,6 @@ Thumbs.db
 Testing/
 CTestTestfile.cmake
 
-# third-party libraries
-third_party/
-
 # perfetto
 *.perfetto-trace
 
