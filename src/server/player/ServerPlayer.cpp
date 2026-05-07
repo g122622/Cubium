@@ -3,6 +3,7 @@
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/SleepPacket.hpp"
 #include "common/entity/player/SleepManager.hpp"
+#include "common/entity/player/SpawnPointValidator.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
@@ -242,17 +243,51 @@ bool ServerPlayer::isPlayerFullyAsleep() const {
 // ========== 重生系统实现 ==========
 
 Vector3d ServerPlayer::determineRespawnPosition() const {
+    // 参考 MC 1.16.5 PlayerList.func_232644_a_ (respawnPlayer)
     // 1. 检查玩家个人重生点
     auto spawnPoint = getSpawnPoint();
     if (spawnPoint.has_value()) {
-        // TODO: 验证床/重生锚是否仍存在且有效
-        // 当前实现：直接使用存储的重生点位置
-        const BlockPos& pos = spawnPoint->getPos();
-        return Vector3d(
-            pos.x + 0.5,
-            pos.y + 0.1,
-            pos.z + 0.5
-        );
+        // 获取重生点维度对应的世界
+        DimensionId spawnDimId = spawnPoint->getDimensionId();
+        const BlockPos& spawnPos = spawnPoint->getPos();
+        bool spawnForced = isSpawnForced();
+
+        // 尝试获取对应维度的世界
+        IWorld* spawnWorld = nullptr;
+        if (m_server != nullptr) {
+            ServerDimension* spawnDimension = m_server->dimensionManager().getDimension(spawnDimId);
+            if (spawnDimension != nullptr) {
+                spawnWorld = spawnDimension->world();
+            }
+        }
+
+        if (spawnWorld != nullptr) {
+            // 验证重生点是否有效
+            // 参考 MC 1.16.5 PlayerEntity.func_242374_a_
+            SpawnPointValidationResult validationResult = SpawnPointValidator::validate(
+                *spawnWorld, spawnPoint.value(), spawnForced, true);
+
+            if (validationResult == SpawnPointValidationResult::Valid) {
+                // 重生点有效，查找安全的生成位置
+                auto safePos = SpawnPointValidator::findSafeSpawnPosition(
+                    *spawnWorld, spawnPoint.value(), spawnForced, true);
+
+                if (safePos.has_value()) {
+                    const Vector3& pos = safePos.value();
+                    return Vector3d(static_cast<f64>(pos.x), static_cast<f64>(pos.y), static_cast<f64>(pos.z));
+                }
+            }
+
+            // 重生点无效，清除它并发送消息
+            // 参考 MC 1.16.5: 发送 SChangeGameStatePacket.field_241764_a_
+            spdlog::info("ServerPlayer: spawn point invalid for player {} (reason: {}), falling back to world spawn",
+                         username(), static_cast<i32>(validationResult));
+
+            // 如果重生点无效，直接清除它（防止每次重生都检查）
+            // 注意：这里使用 const_cast 是因为此方法是 const 的
+            // 但清除重生点是一个必要的副作用
+            const_cast<ServerPlayer*>(this)->clearSpawnPoint();
+        }
     }
 
     // 2. 使用世界出生点
@@ -265,10 +300,34 @@ Vector3d ServerPlayer::determineRespawnPosition() const {
 }
 
 DimensionId ServerPlayer::determineRespawnDimension() const {
+    // 参考 MC 1.16.5 PlayerList.func_232644_a_ (respawnPlayer)
     // 1. 检查玩家个人重生点的维度
     auto spawnPoint = getSpawnPoint();
     if (spawnPoint.has_value()) {
-        return spawnPoint->getDimensionId();
+        DimensionId spawnDimId = spawnPoint->getDimensionId();
+        bool spawnForced = isSpawnForced();
+
+        // 尝试获取对应维度的世界进行验证
+        IWorld* spawnWorld = nullptr;
+        if (m_server != nullptr) {
+            ServerDimension* spawnDimension = m_server->dimensionManager().getDimension(spawnDimId);
+            if (spawnDimension != nullptr) {
+                spawnWorld = spawnDimension->world();
+            }
+        }
+
+        if (spawnWorld != nullptr) {
+            // 验证重生点
+            SpawnPointValidationResult validationResult = SpawnPointValidator::validate(
+                *spawnWorld, spawnPoint.value(), spawnForced, true);
+
+            if (validationResult == SpawnPointValidationResult::Valid) {
+                return spawnDimId;
+            }
+        }
+
+        // 重生点无效，返回主世界
+        // 注意：MC 1.16.5 中，如果重生点无效，玩家会在主世界重生
     }
 
     // 2. 默认返回主世界
