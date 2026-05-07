@@ -56,6 +56,9 @@ src/common/
 │   ├── PlayerManager.hpp     # 玩家管理器
 │   ├── VanillaEntities.hpp   # 原版实体定义
 │   ├── utils/                # 非模板实体工具
+│   │   ├── ItemDropHelper.hpp/cpp # 物品掉落工具类
+│   │   ├── EntityUtils.hpp/cpp    # LegacyEntityType映射
+│   │   └── README.md              # 工具模块说明
 │   ├── ai/                   # AI 系统
 │   │   ├── controller/       # 控制器
 │   │   │   ├── LookController.hpp

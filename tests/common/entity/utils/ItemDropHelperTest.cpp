@@ -303,5 +303,231 @@ TEST_F(ItemDropHelperTest, DefaultLifetimeIsCorrect) {
     EXPECT_EQ(ItemDropHelper::DEFAULT_LIFETIME, 6000);
 }
 
+// ============================================================================
+// 边界和异常测试
+// ============================================================================
+
+TEST_F(ItemDropHelperTest, SpawnItemEntityWithNullWorldReturnsNullptr) {
+    // 空世界指针应返回 nullptr
+    math::Random rng(12345);
+    auto* apple = Items::APPLE;
+    ASSERT_NE(apple, nullptr);
+
+    ItemStack stack(*apple, 1);
+    ItemEntity* result = ItemDropHelper::spawnItemEntity(
+        nullptr,  // 空世界指针
+        stack,
+        0.0, 64.0, 0.0,
+        rng
+    );
+
+    EXPECT_EQ(result, nullptr) << "Should return nullptr for null world";
+}
+
+TEST_F(ItemDropHelperTest, SpawnItemEntityWithEmptyStackReturnsNullptr) {
+    // 空物品堆应返回 nullptr
+    EntityManager entityManager;
+    math::Random rng(12345);
+
+    ItemStack emptyStack;  // 默认构造为空
+    ItemEntity* result = ItemDropHelper::spawnItemEntity(
+        nullptr,  // 这里用 nullptr 也可以测试空堆检查
+        emptyStack,
+        0.0, 64.0, 0.0,
+        rng
+    );
+
+    EXPECT_EQ(result, nullptr) << "Should return nullptr for empty stack";
+}
+
+TEST_F(ItemDropHelperTest, SpawnItemAtEntityWithNullEntityReturnsNullptr) {
+    // 空实体指针应返回 nullptr
+    math::Random rng(12345);
+    auto* apple = Items::APPLE;
+    ASSERT_NE(apple, nullptr);
+
+    ItemStack stack(*apple, 1);
+    ItemEntity* result = ItemDropHelper::spawnItemAtEntity(
+        nullptr,  // 空实体指针
+        stack,
+        0.5f,
+        rng
+    );
+
+    EXPECT_EQ(result, nullptr) << "Should return nullptr for null entity";
+}
+
+TEST_F(ItemDropHelperTest, SpawnItemEntitiesWithNullWorldReturnsEmpty) {
+    // 空世界指针应返回空向量
+    math::Random rng(12345);
+    auto* apple = Items::APPLE;
+    ASSERT_NE(apple, nullptr);
+
+    BlockPos pos(0, 64, 0);
+    std::vector<ItemStack> drops{ItemStack(*apple, 1)};
+
+    auto result = ItemDropHelper::spawnItemEntities(
+        nullptr,  // 空世界指针
+        pos,
+        drops,
+        rng
+    );
+
+    EXPECT_TRUE(result.empty()) << "Should return empty vector for null world";
+}
+
+TEST_F(ItemDropHelperTest, SpawnItemEntitiesWithEmptyDropsReturnsEmpty) {
+    // 空掉落列表应返回空向量
+    EntityManager entityManager;
+    math::Random rng(12345);
+
+    BlockPos pos(0, 64, 0);
+    std::vector<ItemStack> emptyDrops;
+
+    auto result = ItemDropHelper::spawnItemEntities(
+        nullptr,
+        pos,
+        emptyDrops,
+        rng
+    );
+
+    EXPECT_TRUE(result.empty()) << "Should return empty vector for empty drops";
+}
+
+TEST_F(ItemDropHelperTest, GaussianVelocityWithZeroBaseVelocity) {
+    // 基础速度为 0 时，结果主要由高斯偏移决定
+    math::Random rng(44444);
+    constexpr f32 BASE_VELOCITY = 0.0f;
+    constexpr f32 INACCURACY = 1.0f;
+
+    for (int i = 0; i < 50; ++i) {
+        Vector3 velocity = ItemDropHelper::getGaussianVelocity(rng, BASE_VELOCITY, INACCURACY);
+
+        // 高斯分布结果应该在合理范围内
+        EXPECT_GT(velocity.x, -0.1f) << "X velocity should be reasonable";
+        EXPECT_LT(velocity.x, 0.1f) << "X velocity should be reasonable";
+        EXPECT_GT(velocity.y, -0.1f) << "Y velocity should be reasonable";
+        EXPECT_LT(velocity.y, 0.3f) << "Y velocity has base 0.1";
+        EXPECT_GT(velocity.z, -0.1f) << "Z velocity should be reasonable";
+        EXPECT_LT(velocity.z, 0.1f) << "Z velocity should be reasonable";
+    }
+}
+
+TEST_F(ItemDropHelperTest, GaussianVelocityWithZeroInaccuracy) {
+    // 不精确度为 0 时，应该返回接近基础速度的值
+    math::Random rng(55555);
+    constexpr f32 BASE_VELOCITY = 0.5f;
+    constexpr f32 INACCURACY = 0.0f;
+
+    for (int i = 0; i < 50; ++i) {
+        Vector3 velocity = ItemDropHelper::getGaussianVelocity(rng, BASE_VELOCITY, INACCURACY);
+
+        // 不精确度为 0 时，X 和 Z 应该等于基础速度
+        EXPECT_NEAR(velocity.x, BASE_VELOCITY, 0.001f) << "X should equal base velocity";
+        EXPECT_NEAR(velocity.z, BASE_VELOCITY, 0.001f) << "Z should equal base velocity";
+        // Y 有基础 0.1
+        EXPECT_NEAR(velocity.y, 0.1f, 0.001f) << "Y should be ~0.1";
+    }
+}
+
+TEST_F(ItemDropHelperTest, PlayerDropVelocityDirectionConsistency) {
+    // 玩家定向投掷：不同朝向应该产生不同方向的速度
+    math::Random rng(66666);
+
+    Vector3 velNorth = ItemDropHelper::getPlayerDropVelocity(rng, false, 0.0f, 0.0f);    // 北
+    Vector3 velEast = ItemDropHelper::getPlayerDropVelocity(rng, false, 90.0f, 0.0f);    // 东
+    Vector3 velSouth = ItemDropHelper::getPlayerDropVelocity(rng, false, 180.0f, 0.0f);  // 南
+    Vector3 velWest = ItemDropHelper::getPlayerDropVelocity(rng, false, 270.0f, 0.0f);   // 西
+
+    // 北方向 (yaw=0): Z 应该为正（向前）
+    EXPECT_GT(velNorth.z, 0.0f) << "North-facing throw should have positive Z";
+
+    // 东方向 (yaw=90): X 应该为负（MC 坐标系）
+    EXPECT_LT(velEast.x, 0.0f) << "East-facing throw should have negative X";
+
+    // 南方向 (yaw=180): Z 应该为负
+    EXPECT_LT(velSouth.z, 0.0f) << "South-facing throw should have negative Z";
+
+    // 西方向 (yaw=270): X 应该为正
+    EXPECT_GT(velWest.x, 0.0f) << "West-facing throw should have positive X";
+}
+
+TEST_F(ItemDropHelperTest, BlockDropVelocityDistribution) {
+    // 验证方块掉落速度的统计分布
+    // 进行大量采样验证分布特性
+    math::Random rng(77777);
+    constexpr int SAMPLES = 1000;
+
+    f32 sumX = 0.0f, sumY = 0.0f, sumZ = 0.0f;
+    f32 minX = 999.0f, maxX = -999.0f;
+    f32 minY = 999.0f, maxY = -999.0f;
+    f32 minZ = 999.0f, maxZ = -999.0f;
+
+    for (int i = 0; i < SAMPLES; ++i) {
+        Vector3 velocity = ItemDropHelper::getBlockDropVelocity(rng);
+        sumX += velocity.x;
+        sumY += velocity.y;
+        sumZ += velocity.z;
+        minX = std::min(minX, velocity.x);
+        maxX = std::max(maxX, velocity.x);
+        minY = std::min(minY, velocity.y);
+        maxY = std::max(maxY, velocity.y);
+        minZ = std::min(minZ, velocity.z);
+        maxZ = std::max(maxZ, velocity.z);
+    }
+
+    // 验证均值接近理论中心
+    f32 avgX = sumX / SAMPLES;
+    f32 avgY = sumY / SAMPLES;
+    f32 avgZ = sumZ / SAMPLES;
+
+    // 理论上 X 和 Z 的均值应该在 0.1 左右
+    EXPECT_NEAR(avgX, 0.1f, 0.05f) << "Average X should be ~0.1";
+    EXPECT_NEAR(avgZ, 0.1f, 0.05f) << "Average Z should be ~0.1";
+    // Y 的均值应该在 0.1 左右
+    EXPECT_NEAR(avgY, 0.1f, 0.05f) << "Average Y should be ~0.1";
+
+    // 验证范围符合预期
+    EXPECT_GE(minX, -0.15f) << "Min X should be >= -0.15";
+    EXPECT_LE(maxX, 0.45f) << "Max X should be <= 0.45";
+    EXPECT_GE(minY, 0.0f) << "Min Y should be >= 0";
+    EXPECT_LE(maxY, 0.3f) << "Max Y should be <= 0.3";
+    EXPECT_GE(minZ, -0.15f) << "Min Z should be >= -0.15";
+    EXPECT_LE(maxZ, 0.45f) << "Max Z should be <= 0.45";
+}
+
+TEST_F(ItemDropHelperTest, SimpleDropVelocityFixedY) {
+    // 验证简单掉落的 Y 速度始终为 0.2
+    math::Random rng(88888);
+    constexpr int SAMPLES = 100;
+
+    for (int i = 0; i < SAMPLES; ++i) {
+        Vector3 velocity = ItemDropHelper::getSimpleDropVelocity(rng);
+        EXPECT_FLOAT_EQ(velocity.y, 0.2f) << "Y velocity should always be 0.2";
+    }
+}
+
+TEST_F(ItemDropHelperTest, PlayerDropAroundProducesScatter) {
+    // 验证玩家四周散射产生不同方向的速度
+    math::Random rng(99999);
+
+    bool hasPositiveX = false, hasNegativeX = false;
+    bool hasPositiveZ = false, hasNegativeZ = false;
+
+    for (int i = 0; i < 100; ++i) {
+        Vector3 velocity = ItemDropHelper::getPlayerDropVelocity(rng, true);
+        if (velocity.x > 0.01f) hasPositiveX = true;
+        if (velocity.x < -0.01f) hasNegativeX = true;
+        if (velocity.z > 0.01f) hasPositiveZ = true;
+        if (velocity.z < -0.01f) hasNegativeZ = true;
+    }
+
+    // 散射应该覆盖所有方向
+    EXPECT_TRUE(hasPositiveX) << "Should have positive X velocities";
+    EXPECT_TRUE(hasNegativeX) << "Should have negative X velocities";
+    EXPECT_TRUE(hasPositiveZ) << "Should have positive Z velocities";
+    EXPECT_TRUE(hasNegativeZ) << "Should have negative Z velocities";
+}
+
 } // namespace
 } // namespace mc

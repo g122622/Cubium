@@ -27,6 +27,7 @@ src/common/entity/
 │   └── VanillaEntities.hpp         # 原版实体注册
 │
 ├── utils/                          # 非模板实体工具
+│   ├── ItemDropHelper.hpp/cpp      # 物品掉落工具类（统一随机速度、生成物品实体）
 │   ├── EntityUtils.hpp/cpp         # LegacyEntityType -> typeId 映射
 │   └── README.md                   # 工具模块说明
 │
@@ -268,7 +269,18 @@ src/common/entity/
     ├── LootContext.hpp/cpp        # 掉落上下文
     ├── LootConditions.hpp/cpp     # 掉落条件
     └── LootFunctions.hpp/cpp      # 掉落函数
-    # (RandomRanges 已移至 util/math/random/)
+
+### utils/ (非模板工具)
+
+非模板实体工具函数：
+
+- **ItemDropHelper**：物品掉落工具类
+  - 统一的随机速度计算（方块掉落、简单掉落、玩家丢弃、发射器高斯）
+  - 物品实体生成接口（spawnItemEntity、spawnItemAtEntity、spawnItemEntities）
+  - 参考 MC 1.16.5 `InventoryHelper.spawnItemStack()`、`Entity.entityDropItem()`
+
+- **EntityUtils**：旧实体类型映射
+  - `legacyTypeToTypeId()` 将 LegacyEntityType 转换为 `minecraft:*` 字符串
 
 > **注意**: `living/` 和 `mob/` 目录已被整合到 `core/` 目录中。
 > - `LivingEntity` 现在位于 `core/LivingEntity.hpp/cpp`
@@ -969,6 +981,7 @@ void asyncTask() {
 | `ServerWorldTest.cpp` | 服务端世界声音回调转发 |
 | `tests/common/item/tool/ShearsItemTest.cpp` | 剪刀物品与羊剪毛交互测试 |
 | `tests/common/item/special/BucketItemTest.cpp` | 桶物品与牛挤奶交互测试 |
+| `tests/common/entity/utils/ItemDropHelperTest.cpp` | 物品掉落速度和实体生成测试 |
 
 ## 参考
 
