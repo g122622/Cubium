@@ -30,14 +30,13 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
     MC_TRACE_EVENT("server.lighting", "LightSyncManager::initializeChunkLighting",
                    "Chunk", fmt::format("({}, {})", x, z));
 
-    const ChunkData* chunk = nullptr;
-    {
-        MC_TRACE_EVENT("server.lighting", "GetChunkData");
-        chunk = m_chunkManager.getChunk(x, z);
-        if (!chunk) {
-            return;
-        }
+    MC_TRACE_EVENT("server.lighting", "GetChunkData");
+    auto chunk = m_chunkManager.getChunkShared(x, z);
+    if (!chunk) {
+        return;
     }
+
+    const ChunkData* chunkData = chunk.get();
 
     // 与 Moonrise ChunkLightTask 一致：区分区块是否已正确光照
     // 参考: ChunkLightTask.java 第154-165行
@@ -53,7 +52,7 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
 
     // 计算空区块段
     std::vector<bool> emptySections;
-    const ChunkSection* const* sections = chunk->getSections();
+    const ChunkSection* const* sections = chunkData->getSections();
     constexpr i32 sectionCount = world::CHUNK_SECTIONS;
     emptySections.resize(static_cast<size_t>(sectionCount), false);
 
@@ -63,15 +62,15 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
     }
 
     // 检查区块是否已正确光照
-    bool isLightCorrect = chunk->isLightCorrect();
-    ChunkLoadStatus status = chunk->getStatus();
+    bool isLightCorrect = chunkData->isLightCorrect();
+    ChunkLoadStatus status = chunkData->getStatus();
     bool hasLightStatus = (status == ChunkLoadStatus::Generated || status == ChunkLoadStatus::Loaded);
 
     if (isLightCorrect && hasLightStatus) {
         // 区块已正确光照，只需要重新加载光照数据并检查边缘
         // 与 Moonrise 一致：使用 forceLoadInChunk + checkChunkEdges
         // spdlog::debug("[LightSync] Chunk ({}, {}) already light correct, using forceLoadInChunk", x, z);
-        m_lightManager.forceLoadInChunk(chunk, emptySections);
+        m_lightManager.forceLoadInChunk(chunkData, emptySections);
         m_lightManager.checkChunkEdges(x, z);
     } else {
         // 区块需要完整光照计算
@@ -81,7 +80,7 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
         // 先更新空区块段状态
         BlockStarLightEngine* blockLightEngine = m_lightManager.getBlockLightEngine();
         if (blockLightEngine != nullptr) {
-            blockLightEngine->updateEmptinessMap(x, z, chunk);
+            blockLightEngine->updateEmptinessMap(x, z, chunkData);
         }
 
         for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
@@ -92,13 +91,13 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
         }
 
         // 设置光照状态为不正确
-        const_cast<ChunkData*>(chunk)->setLightCorrect(false);
+        const_cast<ChunkData*>(chunkData)->setLightCorrect(false);
 
         // 执行光照计算
-        m_lightManager.lightChunk(chunk, true);
+        m_lightManager.lightChunk(chunkData, true);
 
         // 设置光照状态为正确
-        const_cast<ChunkData*>(chunk)->setLightCorrect(true);
+        const_cast<ChunkData*>(chunkData)->setLightCorrect(true);
     }
 }
 
@@ -120,7 +119,7 @@ void LightSyncManager::markLightChanged(LightType type, const SectionPos& pos)
                    "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z));
 
     // 标记区块为脏
-    ChunkData* chunk = m_chunkManager.getChunk(pos.x, pos.z);
+    auto chunk = m_chunkManager.getChunkShared(pos.x, pos.z);
     if (chunk) {
         chunk->setDirty(true);
     }
@@ -135,17 +134,19 @@ void LightSyncManager::markLightChanged(LightType type, const SectionPos& pos)
 
 void LightSyncManager::syncLightDataToChunk(LightType type, const SectionPos& pos)
 {
-    ChunkData* chunk = m_chunkManager.getChunk(pos.x, pos.z);
+    auto chunk = m_chunkManager.getChunkShared(pos.x, pos.z);
     if (!chunk) {
         return;
     }
+
+    ChunkData* chunkData = chunk.get();
 
     const i32 sectionIndex = pos.y;
     if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
         return;
     }
 
-    ChunkSection* section = chunk->getSection(sectionIndex);
+    ChunkSection* section = chunkData->getSection(sectionIndex);
     if (!section) {
         return;
     }

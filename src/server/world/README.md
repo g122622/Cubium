@@ -87,6 +87,7 @@ class ServerWorld : public IWorld, public ICollisionWorld, public StarLightLight
 - 请求代际保护，避免旧结果回写
 - 区块状态管理（EMPTY → FULL）
 - 按 `ChunkStatus::taskRange()` 为每个生成阶段构建对应的 `WorldGenRegion`，`FEATURES` / `NOISE` 会使用更大的邻域窗口，`getTopBlockY()` 遇到缺失 chunk 会直接断言
+- 提供 `getChunkShared(x, z)` 共享快照接口，供 worker 线程完成回调、光照同步和区块发包等跨线程流程安全持有区块数据
 
 **线程池归属**：
 - `ServerChunkManager` 不再持有独立的 Worker 池实例

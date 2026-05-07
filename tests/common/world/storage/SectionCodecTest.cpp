@@ -76,6 +76,16 @@ protected:
     void SetUp() override {}
 };
 
+SectionData makeMalformedSectionData() {
+    SectionData data;
+    data.blockStates.clear();
+    data.biomes.clear();
+    data.skyLight = std::vector<u8>{};
+    data.blockLight.reset();
+    data.nonEmptyBlockCount = 3558;
+    return data;
+}
+
 TEST_F(SectionCodecTest, EmptySection)
 {
     ChunkSection section;
@@ -113,7 +123,7 @@ TEST_F(SectionCodecTest, MultipleBlocks)
     ChunkSection section;
 
     // Set some blocks
-    u32 blockCount = 0;
+    u16 blockCount = 0;
     for (int y = 0; y < 4; ++y) {
         for (int z = 0; z < 4; ++z) {
             for (int x = 0; x < 4; ++x) {
@@ -225,6 +235,50 @@ TEST_F(SectionCodecTest, ToChunkSection)
 
     EXPECT_EQ(restored.getBlockStateId(3, 5, 7), 123u);
     EXPECT_EQ(restored.getBlockStateId(10, 12, 14), 456u);
+}
+
+TEST_F(SectionCodecTest, SerializeRejectsMalformedLayout)
+{
+    auto data = makeMalformedSectionData();
+
+    auto serializedResult = data.serialize();
+
+    ASSERT_TRUE(serializedResult.failed());
+    EXPECT_EQ(serializedResult.error().code(), ErrorCode::InvalidData);
+}
+
+TEST_F(SectionCodecTest, ToChunkSectionRejectsMalformedLayout)
+{
+    auto data = makeMalformedSectionData();
+    ChunkSection restored;
+
+    auto applyResult = SectionCodec::toChunkSection(data, restored);
+
+    ASSERT_TRUE(applyResult.failed());
+    EXPECT_EQ(applyResult.error().code(), ErrorCode::InvalidData);
+}
+
+TEST_F(SectionCodecTest, DeserializeRejectsImpossibleBlockCount)
+{
+    ChunkSection original;
+    original.setBlockStateId(0, 0, 0, 1);
+    original.setBlockCount(1);
+
+    SectionKey key(0, 0, 0, 0);
+    auto encodeResult = SectionCodec::fromChunkSection(original, key);
+    ASSERT_TRUE(encodeResult.success());
+
+    auto serializedResult = encodeResult.value().serialize();
+    ASSERT_TRUE(serializedResult.success());
+
+    auto serialized = serializedResult.value();
+    serialized[4] = 0x10;
+    serialized[5] = 0x01;
+
+    auto decodeResult = SectionData::deserialize(serialized.data(), serialized.size());
+
+    ASSERT_TRUE(decodeResult.failed());
+    EXPECT_EQ(decodeResult.error().code(), ErrorCode::InvalidData);
 }
 
 TEST_F(SectionCodecTest, LargeBlockStateIds)

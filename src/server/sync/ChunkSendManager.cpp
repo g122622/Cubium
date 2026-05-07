@@ -25,7 +25,7 @@ void ChunkSendManager::sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std:
 
     // 检查区块是否已加载
     if (m_chunkManager.hasChunk(x, z)) {
-        ChunkData* chunk = m_chunkManager.getChunk(x, z);
+        auto chunk = m_chunkManager.getChunkShared(x, z);
         if (chunk) {
             auto result = network::ChunkSerializer::serializeChunk(*chunk);
             if (result.success()) {
@@ -40,7 +40,13 @@ void ChunkSendManager::sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std:
         // 注意：玩家列表需要复制到回调中
         m_chunkManager.getChunkAsync(x, z, [this, x, z, players, validateTracking](bool success, ChunkData* chunk) {
             if (success && chunk) {
-                auto result = network::ChunkSerializer::serializeChunk(*chunk);
+                auto loadedChunk = m_chunkManager.getChunkShared(x, z);
+                if (!loadedChunk) {
+                    spdlog::warn("Failed to get shared chunk ({}, {}) for sending", x, z);
+                    return;
+                }
+
+                auto result = network::ChunkSerializer::serializeChunk(*loadedChunk);
                 if (result.success()) {
                     submitChunkData(x, z, std::move(result.value()), players, validateTracking);
                     // spdlog::info("Chunk ({}, {}) loaded async, serialized for {} players", x, z, players.size());

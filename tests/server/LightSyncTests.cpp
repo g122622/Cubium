@@ -136,9 +136,10 @@ TEST_F(LightSyncTest, ChunkSectionSerializePreservesLight) {
     auto result = ChunkSection::deserialize(data.data(), data.size());
     ASSERT_TRUE(result.success());
 
-    const ChunkSection& restored = *result.value();
-    EXPECT_EQ(restored.getSkyLight(5, 10, 7), 12);
-    EXPECT_EQ(restored.getBlockLight(3, 8, 2), 8);
+    auto restored = result.value();
+    ASSERT_TRUE(restored);
+    EXPECT_EQ(restored->getSkyLight(5, 10, 7), 12);
+    EXPECT_EQ(restored->getBlockLight(3, 8, 2), 8);
 }
 
 /**

@@ -120,6 +120,8 @@ server/
 
 管理服务端到客户端的数据同步。
 
+区块发送和光照同步现在都会在需要跨线程或跨回调持有数据时，改用 `ServerChunkManager::getChunkShared()` 获取共享快照，避免 worker 线程完成回调与区块卸载之间的生命周期竞争。
+
 | 类 | 职责 |
 |---|---|
 | `ChunkSendManager` | 区块发送、卸载通知，与 ChunkLoadTicketManager 协同 |
@@ -130,6 +132,8 @@ server/
 ### world/ - 世界管理
 
 服务端世界逻辑和区块管理。
+
+`ServerChunkManager` 除了提供传统的同步/异步区块访问外，还提供共享快照接口，供光照、发包等跨线程流程在持有数据时保持区块存活。
 
 | 类 | 职责 |
 |---|---|

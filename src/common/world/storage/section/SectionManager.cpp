@@ -28,7 +28,7 @@ SectionManager::SectionManager(
 // Section加载
 // ============================================================================
 
-Result<SectionData*> SectionManager::loadSection(const SectionKey& key) {
+Result<std::shared_ptr<const SectionData>> SectionManager::loadSection(const SectionKey& key) {
     MC_TRACE_EVENT("storage.section", "SectionManager::loadSection",
                    "chunkX", key.chunkX,
                    "chunkZ", key.chunkZ,
@@ -46,14 +46,14 @@ Result<SectionData*> SectionManager::loadSection(const SectionKey& key) {
     auto cached = m_cache.get(key);
     if (cached) {
         MC_TRACE_EVENT("storage.section", "SectionManager::loadSection.cacheHit");
-        return cached.get();
+        return std::static_pointer_cast<const SectionData>(cached);
     }
 
     // 从数据库加载
     return loadFromDatabase(key);
 }
 
-std::future<Result<SectionData*>> SectionManager::loadSectionAsync(
+std::future<Result<std::shared_ptr<const SectionData>>> SectionManager::loadSectionAsync(
     const SectionKey& key,
     util::TaskPriority priority
 ) {
@@ -62,7 +62,7 @@ std::future<Result<SectionData*>> SectionManager::loadSectionAsync(
                    "chunkZ", key.chunkZ,
                    "sectionY", static_cast<i32>(key.sectionY));
 
-    auto promise = std::make_shared<std::promise<Result<SectionData*>>>();
+    auto promise = std::make_shared<std::promise<Result<std::shared_ptr<const SectionData>>>>();
     auto future = promise->get_future();
 
     auto executor = [this, key, promise](const std::atomic<bool>& cancelSignal) {
@@ -428,7 +428,7 @@ std::vector<SectionKey> SectionManager::getDirtyKeys() const {
 // 内部方法
 // ============================================================================
 
-Result<SectionData*> SectionManager::loadFromDatabase(const SectionKey& key) {
+Result<std::shared_ptr<const SectionData>> SectionManager::loadFromDatabase(const SectionKey& key) {
     MC_TRACE_EVENT("storage.section", "SectionManager::loadFromDatabase",
                    "chunkX", key.chunkX,
                    "chunkZ", key.chunkZ,
@@ -441,7 +441,7 @@ Result<SectionData*> SectionManager::loadFromDatabase(const SectionKey& key) {
     if (!result.success()) {
         if (result.error().code() == ErrorCode::NotFound) {
             // Section不存在，返回nullptr
-            return nullptr;
+            return std::shared_ptr<const SectionData>{};
         }
         return result.error();
     }
@@ -462,7 +462,7 @@ Result<SectionData*> SectionManager::loadFromDatabase(const SectionKey& key) {
     // 放入缓存
     m_cache.put(key, data, false);
 
-    return data.get();
+    return std::static_pointer_cast<const SectionData>(data);
 }
 
 Result<void> SectionManager::saveToDatabase(
@@ -476,9 +476,21 @@ Result<void> SectionManager::saveToDatabase(
                    "sectionY", static_cast<i32>(key.sectionY),
                    "sync", sync);
 
-    // 计算哈希（如果启用）
+    // 计算哈希时使用本地副本，避免原地修改共享缓存对象
     if (m_config.computeHash) {
-        const_cast<SectionData&>(data).computeHash();
+        SectionData dataToSerialize = data;
+        dataToSerialize.computeHash();
+
+        const bool syncWrites = sync || m_config.consistencyMode != ConsistencyMode::Eventual;
+
+        auto serializeResult = dataToSerialize.serialize();
+        if (!serializeResult.success()) {
+            return serializeResult.error();
+        }
+
+        // 写入数据库
+        auto keyBytes = key.toKey();
+        return m_db.put(m_cfName, keyBytes, serializeResult.value(), syncWrites);
     }
 
     const bool syncWrites = sync || m_config.consistencyMode != ConsistencyMode::Eventual;

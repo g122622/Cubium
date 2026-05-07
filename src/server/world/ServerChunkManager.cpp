@@ -391,7 +391,7 @@ std::unique_ptr<ChunkData> ServerChunkManager::loadChunkFromStorage(ChunkCoord x
             continue;
         }
 
-        const auto* sectionData = loadResult.value();
+        const auto sectionData = loadResult.value();
         if (!sectionData) {
             continue;
         }

@@ -130,7 +130,7 @@ TEST_F(WorldStorageServiceTest, SaveAndLoadSection)
     auto loadResult = mgr.loadSection(key);
     ASSERT_TRUE(loadResult.success()) << loadResult.error().message();
 
-    SectionData* loadedData = loadResult.value();
+    const auto loadedData = loadResult.value();
     ASSERT_NE(loadedData, nullptr);
 
     EXPECT_EQ(loadedData->key.chunkX, 0);
@@ -174,11 +174,11 @@ TEST_F(WorldStorageServiceTest, MultipleSections)
 
                 auto loadResult = mgr.loadSection(key);
                 ASSERT_TRUE(loadResult.success());
-                ASSERT_NE(loadResult.value(), nullptr);
 
-                SectionData* data = loadResult.value();
+                const auto sectionSnapshot = loadResult.value();
+                ASSERT_NE(sectionSnapshot, nullptr);
                 u32 expectedBlockId = static_cast<u32>(cx * 100 + cz * 10 + sy);
-                EXPECT_EQ(data->getBlockStateId(0, 0, 0), expectedBlockId);
+                EXPECT_EQ(sectionSnapshot->getBlockStateId(0, 0, 0), expectedBlockId);
             }
         }
     }
@@ -250,21 +250,30 @@ TEST_F(WorldStorageServiceTest, DifferentDimensions)
         auto& overworld = storage.sectionManager(0);
         auto loadResult = overworld.loadSection(SectionKey(0, 0, 0, 0));
         ASSERT_TRUE(loadResult.success());
-        EXPECT_EQ(loadResult.value()->getBlockStateId(0, 0, 0), 1u);
+
+        const auto sectionSnapshot = loadResult.value();
+        ASSERT_NE(sectionSnapshot, nullptr);
+        EXPECT_EQ(sectionSnapshot->getBlockStateId(0, 0, 0), 1u);
     }
 
     {
         auto& nether = storage.sectionManager(1);
         auto loadResult = nether.loadSection(SectionKey(0, 0, 0, 1));
         ASSERT_TRUE(loadResult.success());
-        EXPECT_EQ(loadResult.value()->getBlockStateId(0, 0, 0), 2u);
+
+        const auto sectionSnapshot = loadResult.value();
+        ASSERT_NE(sectionSnapshot, nullptr);
+        EXPECT_EQ(sectionSnapshot->getBlockStateId(0, 0, 0), 2u);
     }
 
     {
         auto& theEnd = storage.sectionManager(2);
         auto loadResult = theEnd.loadSection(SectionKey(0, 0, 0, 2));
         ASSERT_TRUE(loadResult.success());
-        EXPECT_EQ(loadResult.value()->getBlockStateId(0, 0, 0), 3u);
+
+        const auto sectionSnapshot = loadResult.value();
+        ASSERT_NE(sectionSnapshot, nullptr);
+        EXPECT_EQ(sectionSnapshot->getBlockStateId(0, 0, 0), 3u);
     }
 
     storage.close();
@@ -308,18 +317,20 @@ TEST_F(WorldStorageServiceTest, ReopenPreservesData)
         SectionKey key(10, 20, 5, 0);
         auto loadResult = mgr.loadSection(key);
         ASSERT_TRUE(loadResult.success());
-        ASSERT_NE(loadResult.value(), nullptr);
 
-        EXPECT_EQ(loadResult.value()->getBlockStateId(0, 0, 0), 999u);
-        EXPECT_EQ(loadResult.value()->key.chunkX, 10);
-        EXPECT_EQ(loadResult.value()->key.chunkZ, 20);
-        EXPECT_EQ(loadResult.value()->key.sectionY, 5);
+        const auto sectionSnapshot = loadResult.value();
+        ASSERT_NE(sectionSnapshot, nullptr);
+
+        EXPECT_EQ(sectionSnapshot->getBlockStateId(0, 0, 0), 999u);
+        EXPECT_EQ(sectionSnapshot->key.chunkX, 10);
+        EXPECT_EQ(sectionSnapshot->key.chunkZ, 20);
+        EXPECT_EQ(sectionSnapshot->key.sectionY, 5);
 
         storage.close();
     }
 }
 
-TEST_F(WorldStorageServiceTest, SaveAllPersistsUntrackedCachedMutation)
+TEST_F(WorldStorageServiceTest, SaveAllPreservesOverwrittenSectionSnapshot)
 {
     WorldStorageService storage;
     WorldStorageConfig config;
@@ -338,10 +349,17 @@ TEST_F(WorldStorageServiceTest, SaveAllPersistsUntrackedCachedMutation)
 
     auto loadResult = mgr.loadSection(key);
     ASSERT_TRUE(loadResult.success()) << loadResult.error().message();
-    ASSERT_NE(loadResult.value(), nullptr);
 
-    // 直接修改缓存中的对象，但不经过 SectionManager 的脏标记路径。
-    loadResult.value()->setBlockStateId(0, 0, 0, 777);
+    const auto initialSnapshot = loadResult.value();
+    ASSERT_NE(initialSnapshot, nullptr);
+    EXPECT_EQ(initialSnapshot->getBlockStateId(0, 0, 0), 123u);
+
+    // 通过正常保存覆盖同一 Section，验证已返回的快照仍保持原值。
+    SectionData updatedData = createTestSectionData(30, 40, 6, 0, 777);
+    auto overwriteResult = mgr.saveSection(key, updatedData);
+    ASSERT_TRUE(overwriteResult.success()) << overwriteResult.error().message();
+
+    EXPECT_EQ(initialSnapshot->getBlockStateId(0, 0, 0), 123u);
 
     auto fullSaveResult = storage.saveAll();
     ASSERT_TRUE(fullSaveResult.success()) << fullSaveResult.error().message();
@@ -356,15 +374,16 @@ TEST_F(WorldStorageServiceTest, SaveAllPersistsUntrackedCachedMutation)
         auto& reopenedMgr = reopenedStorage.sectionManager(0);
         auto reopenedLoadResult = reopenedMgr.loadSection(key);
         ASSERT_TRUE(reopenedLoadResult.success()) << reopenedLoadResult.error().message();
-        ASSERT_NE(reopenedLoadResult.value(), nullptr);
+        const auto reopenedSnapshot = reopenedLoadResult.value();
+        ASSERT_NE(reopenedSnapshot, nullptr);
 
-        EXPECT_EQ(reopenedLoadResult.value()->getBlockStateId(0, 0, 0), 777u);
+        EXPECT_EQ(reopenedSnapshot->getBlockStateId(0, 0, 0), 777u);
 
         reopenedStorage.close();
     }
 }
 
-TEST_F(WorldStorageServiceTest, FlushAllDirtyDoesNotPersistUntrackedCachedMutation)
+TEST_F(WorldStorageServiceTest, FlushAllDirtyPersistsOverwrittenSectionSnapshot)
 {
     WorldStorageService storage;
     WorldStorageConfig config;
@@ -383,10 +402,17 @@ TEST_F(WorldStorageServiceTest, FlushAllDirtyDoesNotPersistUntrackedCachedMutati
 
     auto loadResult = mgr.loadSection(key);
     ASSERT_TRUE(loadResult.success()) << loadResult.error().message();
-    ASSERT_NE(loadResult.value(), nullptr);
 
-    // 同样直接修改缓存对象，但这次只执行脏刷新。
-    loadResult.value()->setBlockStateId(0, 0, 0, 888);
+    const auto initialSnapshot = loadResult.value();
+    ASSERT_NE(initialSnapshot, nullptr);
+    EXPECT_EQ(initialSnapshot->getBlockStateId(0, 0, 0), 456u);
+
+    // 通过正常保存覆盖同一 Section，验证已返回的快照不受后续缓存替换影响。
+    SectionData updatedData = createTestSectionData(50, 60, 7, 0, 888);
+    auto overwriteResult = mgr.saveSection(key, updatedData);
+    ASSERT_TRUE(overwriteResult.success()) << overwriteResult.error().message();
+
+    EXPECT_EQ(initialSnapshot->getBlockStateId(0, 0, 0), 456u);
 
     auto flushResult = storage.flushAllDirty();
     ASSERT_TRUE(flushResult.success()) << flushResult.error().message();
@@ -401,9 +427,10 @@ TEST_F(WorldStorageServiceTest, FlushAllDirtyDoesNotPersistUntrackedCachedMutati
         auto& reopenedMgr = reopenedStorage.sectionManager(0);
         auto reopenedLoadResult = reopenedMgr.loadSection(key);
         ASSERT_TRUE(reopenedLoadResult.success()) << reopenedLoadResult.error().message();
-        ASSERT_NE(reopenedLoadResult.value(), nullptr);
+        const auto reopenedSnapshot = reopenedLoadResult.value();
+        ASSERT_NE(reopenedSnapshot, nullptr);
 
-        EXPECT_EQ(reopenedLoadResult.value()->getBlockStateId(0, 0, 0), 456u);
+        EXPECT_EQ(reopenedSnapshot->getBlockStateId(0, 0, 0), 888u);
 
         reopenedStorage.close();
     }

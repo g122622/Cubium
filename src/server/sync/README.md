@@ -28,6 +28,7 @@ src/server/sync/
 - 玩家追踪变化时发送/卸载区块
 - 区块卸载前发送卸载通知
 - 异步区块序列化与主线程发送解耦
+- 序列化时优先通过 `ServerChunkManager::getChunkShared()` 获取共享快照，避免 worker 线程回调期间区块被卸载导致的悬空访问
 
 #### 与 ChunkLoadTicketManager 协同工作
 
@@ -146,6 +147,7 @@ MinecraftServer::tick()
 - 区块加载后初始化光照
 - 方块变化时触发光照检查
 - 同步光照数据到 ChunkSection
+- 初始化和同步过程中会持有区块共享快照，确保 worker 线程或回调链路中 chunk 不会在写回前失效
 
 #### 关键方法
 

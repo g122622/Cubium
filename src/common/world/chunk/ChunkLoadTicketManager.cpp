@@ -4,6 +4,17 @@
 #include <algorithm>
 #include <mutex>
 
+namespace {
+
+struct TrackingChangeEvent {
+    mc::PlayerId playerId;
+    mc::ChunkCoord x;
+    mc::ChunkCoord z;
+    bool isTracking;
+};
+
+} // namespace
+
 namespace mc::world {
 
 // ============================================================================
@@ -189,40 +200,46 @@ void ChunkLoadTicketManager::updatePlayerPosition(PlayerId playerId, ChunkCoord 
     }
 
     // 计算差异并更新区块追踪映射
-    std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
+    std::vector<TrackingChangeEvent> trackingEvents;
+    {
+        std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
 
-    // 进入的区块
-    for (u64 key : newChunks) {
-        if (oldChunks.find(key) == oldChunks.end()) {
-            m_chunkTrackingPlayers[key].insert(playerId);
+        // 进入的区块
+        for (u64 key : newChunks) {
+            if (oldChunks.find(key) == oldChunks.end()) {
+                m_chunkTrackingPlayers[key].insert(playerId);
 
-            // 触发追踪进入回调
-            if (m_trackingChangeCallback) {
-                ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
-                ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
-                m_trackingChangeCallback(playerId, cx, cz, true);
+                // 先收集变化，锁外再派发回调，避免回调里再次查询 tracking 数据时自锁
+                if (m_trackingChangeCallback) {
+                    ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
+                    ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
+                    trackingEvents.push_back({playerId, cx, cz, true});
+                }
+            }
+        }
+
+        // 离开的区块
+        for (u64 key : oldChunks) {
+            if (newChunks.find(key) == newChunks.end()) {
+                auto it = m_chunkTrackingPlayers.find(key);
+                if (it != m_chunkTrackingPlayers.end()) {
+                    it->second.erase(playerId);
+                    if (it->second.empty()) {
+                        m_chunkTrackingPlayers.erase(it);
+                    }
+                }
+
+                if (m_trackingChangeCallback) {
+                    ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
+                    ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
+                    trackingEvents.push_back({playerId, cx, cz, false});
+                }
             }
         }
     }
 
-    // 离开的区块
-    for (u64 key : oldChunks) {
-        if (newChunks.find(key) == newChunks.end()) {
-            auto it = m_chunkTrackingPlayers.find(key);
-            if (it != m_chunkTrackingPlayers.end()) {
-                it->second.erase(playerId);
-                if (it->second.empty()) {
-                    m_chunkTrackingPlayers.erase(it);
-                }
-            }
-
-            // 触发追踪离开回调
-            if (m_trackingChangeCallback) {
-                ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
-                ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
-                m_trackingChangeCallback(playerId, cx, cz, false);
-            }
-        }
+    for (const auto& event : trackingEvents) {
+        m_trackingChangeCallback(event.playerId, event.x, event.z, event.isTracking);
     }
 
     // 处理更新
@@ -238,6 +255,7 @@ void ChunkLoadTicketManager::removePlayer(PlayerId playerId) {
     }
 
     // 从区块追踪映射中移除玩家，触发离开回调
+    std::vector<TrackingChangeEvent> trackingEvents;
     {
         std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
         for (u64 key : trackedChunks) {
@@ -249,13 +267,16 @@ void ChunkLoadTicketManager::removePlayer(PlayerId playerId) {
                 }
             }
 
-            // 触发追踪离开回调
             if (m_trackingChangeCallback) {
                 ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
                 ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
-                m_trackingChangeCallback(playerId, cx, cz, false);
+                trackingEvents.push_back({playerId, cx, cz, false});
             }
         }
+    }
+
+    for (const auto& event : trackingEvents) {
+        m_trackingChangeCallback(event.playerId, event.x, event.z, event.isTracking);
     }
 
     // 移除玩家票据
@@ -331,7 +352,6 @@ void ChunkLoadTicketManager::setViewDistance(i32 distance) {
         return;
     }
 
-    i32 oldViewDistance = m_viewDistance;
     m_viewDistance = clampedDistance;
 
     // 更新所有玩家追踪器并处理追踪变化
@@ -346,38 +366,45 @@ void ChunkLoadTicketManager::setViewDistance(i32 distance) {
         std::unordered_set<u64> newChunks = tracker->chunksInRange();
 
         // 计算差异并更新区块追踪映射
-        std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
+        std::vector<TrackingChangeEvent> trackingEvents;
+        {
+            std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
 
-        // 进入的区块
-        for (u64 key : newChunks) {
-            if (oldChunks.find(key) == oldChunks.end()) {
-                m_chunkTrackingPlayers[key].insert(playerId);
+            // 进入的区块
+            for (u64 key : newChunks) {
+                if (oldChunks.find(key) == oldChunks.end()) {
+                    m_chunkTrackingPlayers[key].insert(playerId);
 
-                if (m_trackingChangeCallback) {
-                    ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
-                    ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
-                    m_trackingChangeCallback(playerId, cx, cz, true);
+                    if (m_trackingChangeCallback) {
+                        ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
+                        ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
+                        trackingEvents.push_back({playerId, cx, cz, true});
+                    }
+                }
+            }
+
+            // 离开的区块
+            for (u64 key : oldChunks) {
+                if (newChunks.find(key) == newChunks.end()) {
+                    auto it = m_chunkTrackingPlayers.find(key);
+                    if (it != m_chunkTrackingPlayers.end()) {
+                        it->second.erase(playerId);
+                        if (it->second.empty()) {
+                            m_chunkTrackingPlayers.erase(it);
+                        }
+                    }
+
+                    if (m_trackingChangeCallback) {
+                        ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
+                        ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
+                        trackingEvents.push_back({playerId, cx, cz, false});
+                    }
                 }
             }
         }
 
-        // 离开的区块
-        for (u64 key : oldChunks) {
-            if (newChunks.find(key) == newChunks.end()) {
-                auto it = m_chunkTrackingPlayers.find(key);
-                if (it != m_chunkTrackingPlayers.end()) {
-                    it->second.erase(playerId);
-                    if (it->second.empty()) {
-                        m_chunkTrackingPlayers.erase(it);
-                    }
-                }
-
-                if (m_trackingChangeCallback) {
-                    ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
-                    ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
-                    m_trackingChangeCallback(playerId, cx, cz, false);
-                }
-            }
+        for (const auto& event : trackingEvents) {
+            m_trackingChangeCallback(event.playerId, event.x, event.z, event.isTracking);
         }
     }
 

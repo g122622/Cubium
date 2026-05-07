@@ -62,8 +62,8 @@ public:
     // 回调类型
     // ========================================================================
 
-    /// 加载完成回调 - 使用指针避免 Result 不可拷贝问题
-    using LoadCallback = std::function<void(const SectionKey&, SectionData*)>;
+    /// 加载完成回调 - 使用共享指针保证缓存对象生命周期安全
+    using LoadCallback = std::function<void(const SectionKey&, std::shared_ptr<const SectionData>)>;
 
     /// 保存完成回调 - 使用 bool 表示成功/失败
     using SaveCallback = std::function<void(const SectionKey&, bool success)>;
@@ -102,12 +102,13 @@ public:
     /**
      * @brief 同步加载Section
      *
-     * 优先从缓存加载，缓存未命中则从数据库加载。
+    * 优先从缓存加载，缓存未命中则从数据库加载。
+    * 返回共享指针，避免缓存驱逐或并发保存导致悬空指针。
      *
      * @param key Section标识
-     * @return Section数据指针，失败返回错误
+    * @return Section数据快照，失败返回错误
      */
-    Result<SectionData*> loadSection(const SectionKey& key);
+    Result<std::shared_ptr<const SectionData>> loadSection(const SectionKey& key);
 
     /**
      * @brief 异步加载Section
@@ -116,9 +117,9 @@ public:
      *
      * @param key Section标识
      * @param priority 任务优先级
-     * @return 未来的Section数据
+     * @return 未来的Section数据快照
      */
-    std::future<Result<SectionData*>> loadSectionAsync(
+    std::future<Result<std::shared_ptr<const SectionData>>> loadSectionAsync(
         const SectionKey& key,
         util::TaskPriority priority = util::TaskPriority::Normal
     );
@@ -317,7 +318,7 @@ private:
     /**
      * @brief 从数据库加载Section
      */
-    Result<SectionData*> loadFromDatabase(const SectionKey& key);
+    Result<std::shared_ptr<const SectionData>> loadFromDatabase(const SectionKey& key);
 
     /**
      * @brief 保存Section到数据库

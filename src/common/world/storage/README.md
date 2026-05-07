@@ -188,11 +188,11 @@ Section 数据管理器，提供加载、保存、缓存功能。
 // 创建管理器
 SectionManager manager(db, DimensionId::Overworld, config);
 
-// 同步加载
-Result<SectionData*> loadSection(const SectionKey& key);
+// 同步加载（返回共享快照，避免缓存驱逐后悬空）
+Result<std::shared_ptr<const SectionData>> loadSection(const SectionKey& key);
 
 // 异步加载
-std::future<Result<SectionData*>> loadSectionAsync(
+std::future<Result<std::shared_ptr<const SectionData>>> loadSectionAsync(
     const SectionKey& key, 
     TaskPriority priority = TaskPriority::Normal);
 
@@ -449,14 +449,14 @@ sequenceDiagram
     Game->>Manager: loadSection(key)
     Manager->>Cache: get(key)
     alt 缓存命中
-        Cache-->>Manager: SectionData*
+        Cache-->>Manager: shared_ptr<const SectionData>
     else 缓存未命中
         Manager->>DB: get(cfName, key.toKey())
         DB-->>Manager: serialized data
         Manager->>Codec: deserialize(data)
-        Codec-->>Manager: SectionData
+        Codec-->>Manager: shared_ptr<const SectionData>
         Manager->>Cache: put(key, data)
-        Manager-->>Game: SectionData*
+        Manager-->>Game: shared_ptr<const SectionData>
     end
 ```
 

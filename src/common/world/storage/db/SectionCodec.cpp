@@ -7,6 +7,74 @@
 
 namespace mc::world::storage {
 
+namespace {
+
+[[nodiscard]] Result<void> validateSectionDataLayout(const SectionData& data, const char* context) {
+    if (data.blockStates.size() != SectionData::VOLUME) {
+        spdlog::error("[{}] blockStates size mismatch: expected {}, got {}",
+                      context,
+                      SectionData::VOLUME,
+                      data.blockStates.size());
+        return Error(ErrorCode::InvalidData,
+                     fmt::format("{}: blockStates size mismatch (expected {}, got {})",
+                                 context,
+                                 SectionData::VOLUME,
+                                 data.blockStates.size()));
+    }
+
+    if (data.biomes.size() != SectionData::BIOME_COUNT) {
+        spdlog::error("[{}] biomes size mismatch: expected {}, got {}",
+                      context,
+                      SectionData::BIOME_COUNT,
+                      data.biomes.size());
+        return Error(ErrorCode::InvalidData,
+                     fmt::format("{}: biomes size mismatch (expected {}, got {})",
+                                 context,
+                                 SectionData::BIOME_COUNT,
+                                 data.biomes.size()));
+    }
+
+    if (data.nonEmptyBlockCount > SectionData::VOLUME) {
+        spdlog::error("[{}] nonEmptyBlockCount out of range: expected <= {}, got {}",
+                      context,
+                      SectionData::VOLUME,
+                      data.nonEmptyBlockCount);
+        return Error(ErrorCode::InvalidData,
+                     fmt::format("{}: nonEmptyBlockCount out of range ({} > {})",
+                                 context,
+                                 data.nonEmptyBlockCount,
+                                 SectionData::VOLUME));
+    }
+
+    if (data.skyLight.has_value() && data.skyLight->size() != SectionCodec::LIGHT_DATA_SIZE) {
+        spdlog::error("[{}] skyLight size mismatch: expected {}, got {}",
+                      context,
+                      SectionCodec::LIGHT_DATA_SIZE,
+                      data.skyLight->size());
+        return Error(ErrorCode::InvalidData,
+                     fmt::format("{}: skyLight size mismatch (expected {}, got {})",
+                                 context,
+                                 SectionCodec::LIGHT_DATA_SIZE,
+                                 data.skyLight->size()));
+    }
+
+    if (data.blockLight.has_value() && data.blockLight->size() != SectionCodec::LIGHT_DATA_SIZE) {
+        spdlog::error("[{}] blockLight size mismatch: expected {}, got {}",
+                      context,
+                      SectionCodec::LIGHT_DATA_SIZE,
+                      data.blockLight->size());
+        return Error(ErrorCode::InvalidData,
+                     fmt::format("{}: blockLight size mismatch (expected {}, got {})",
+                                 context,
+                                 SectionCodec::LIGHT_DATA_SIZE,
+                                 data.blockLight->size()));
+    }
+
+    return {};
+}
+
+} // namespace
+
 // ============================================================================
 // SectionData 实现
 // ============================================================================
@@ -103,6 +171,11 @@ void SectionData::setBiome(i32 x, i32 y, i32 z, BiomeId biome) {
 Result<std::vector<u8>> SectionData::serialize() const {
     MC_TRACE_EVENT("storage.db", "SectionData::serialize",
                    "sectionY", static_cast<i32>(key.sectionY));
+
+    auto validationResult = validateSectionDataLayout(*this, "SectionData::serialize");
+    if (validationResult.failed()) {
+        return validationResult.error();
+    }
 
     std::vector<u8> output;
 
@@ -225,6 +298,13 @@ Result<SectionData> SectionData::deserialize(const u8* data, size_t size) {
                          (static_cast<u64>(data[10]) << 8) |
                          static_cast<u64>(data[11]);
 
+    if (result.nonEmptyBlockCount > VOLUME) {
+        return Error(ErrorCode::InvalidData,
+                     fmt::format("Section data has invalid block count: {} > {}",
+                                 result.nonEmptyBlockCount,
+                                 VOLUME));
+    }
+
     size_t offset = 12;
 
     // 方块状态数据
@@ -300,6 +380,11 @@ Result<SectionData> SectionData::deserialize(const u8* data, size_t size) {
         }
         result.blockLight = std::vector<u8>(data + offset, data + offset + SectionCodec::LIGHT_DATA_SIZE);
         offset += SectionCodec::LIGHT_DATA_SIZE;
+    }
+
+    auto validationResult = validateSectionDataLayout(result, "SectionData::deserialize");
+    if (validationResult.failed()) {
+        return validationResult.error();
     }
 
     return result;
@@ -415,6 +500,11 @@ Result<void> SectionCodec::toChunkSection(
     ChunkSection& section
 ) {
     MC_TRACE_EVENT("storage.db", "SectionCodec::toChunkSection");
+
+    auto validationResult = validateSectionDataLayout(data, "SectionCodec::toChunkSection");
+    if (validationResult.failed()) {
+        return validationResult.error();
+    }
 
     // 设置方块状态
     for (i32 i = 0; i < SectionData::VOLUME; ++i) {

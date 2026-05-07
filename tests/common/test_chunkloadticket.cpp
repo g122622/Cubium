@@ -3,6 +3,11 @@
 #include "common/world/chunk/ChunkDistanceGraph.hpp"
 #include "common/world/chunk/ChunkLoadTicketManager.hpp"
 #include "common/core/Types.hpp"
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <future>
+#include <thread>
 
 using namespace mc;
 using namespace mc::world;
@@ -982,6 +987,51 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, LevelChangeCallbackMultipleChanges) {
     manager.removePlayer(1);
     manager.processUpdates();
     EXPECT_GT(unloadCount, 0);
+}
+
+TEST_F(ChunkLoadTicketManagerExtendedTest, LevelChangeCallbackCanQueryTrackingPlayers) {
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(3);
+
+    std::promise<void> callbackPromise;
+    std::future<void> callbackFuture = callbackPromise.get_future();
+    std::promise<void> donePromise;
+    std::future<void> doneFuture = donePromise.get_future();
+    std::atomic<bool> callbackSignaled{false};
+
+    manager.setLevelChangeCallback([&](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
+        if (x != 0 || z != 0) {
+            return;
+        }
+
+        if (newLevel > ChunkLoadTicketManager::MAX_LOADED_LEVEL || oldLevel <= ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
+            return;
+        }
+
+        auto players = manager.getTrackingPlayers(x, z);
+        EXPECT_NE(std::find(players.begin(), players.end(), 1), players.end());
+
+        if (!callbackSignaled.exchange(true)) {
+            callbackPromise.set_value();
+        }
+    });
+
+    std::thread worker([&]() {
+        manager.updatePlayerPosition(1, 0, 0);
+        donePromise.set_value();
+    });
+
+    if (callbackFuture.wait_for(std::chrono::seconds(2)) != std::future_status::ready) {
+        worker.detach();
+        FAIL() << "level change callback blocked while querying tracking players";
+    }
+
+    if (doneFuture.wait_for(std::chrono::seconds(2)) != std::future_status::ready) {
+        worker.detach();
+        FAIL() << "updatePlayerPosition did not finish after level change callback";
+    }
+
+    worker.join();
 }
 
 TEST_F(ChunkLoadTicketManagerExtendedTest, ShouldChunkLoadStaticMethod) {

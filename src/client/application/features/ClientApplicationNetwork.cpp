@@ -200,6 +200,15 @@ void ClientApplication::setupNetworkCallbacks()
         m_commandManager->setEntityNameProvider([this]() {
             return collectEntityCompletionCandidates();
         });
+
+        // 更新 ChatWidget 的 commandManager 指针
+        if (m_kageroEngine && m_chatLayerId != 0) {
+            auto* chatWidget = static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId));
+            if (chatWidget) {
+                chatWidget->setCommandManager(m_commandManager.get());
+                spdlog::info("[ClientApplication] Updated ChatWidget commandManager after command tree sync");
+            }
+        }
     };
 
     callbacks.onTeleport = [this](f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId) {

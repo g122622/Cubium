@@ -115,6 +115,12 @@ public:
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const;
 
     /**
+     * @brief 获取缓存区块的共享所有权
+     */
+    [[nodiscard]] std::shared_ptr<ChunkData> getChunkShared(ChunkCoord x, ChunkCoord z);
+    [[nodiscard]] std::shared_ptr<const ChunkData> getChunkShared(ChunkCoord x, ChunkCoord z) const;
+
+    /**
      * @brief 检查区块是否存在
      */
     [[nodiscard]] bool hasChunk(ChunkCoord x, ChunkCoord z) const;
@@ -410,12 +416,6 @@ private:
         IChunk* centerChunk,
         std::vector<IChunk*>& neighbors,
         std::vector<std::unique_ptr<IChunk>>& neighborAdapters);
-
-    /**
-     * @brief 获取缓存区块的共享所有权
-     */
-    [[nodiscard]] std::shared_ptr<ChunkData> getChunkShared(ChunkCoord x, ChunkCoord z);
-    [[nodiscard]] std::shared_ptr<const ChunkData> getChunkShared(ChunkCoord x, ChunkCoord z) const;
 
     /**
      * @brief 存储已生成区块并同步更新持有者状态
