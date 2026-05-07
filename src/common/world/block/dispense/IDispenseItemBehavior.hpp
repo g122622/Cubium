@@ -3,6 +3,8 @@
 #include "../../../core/Types.hpp"
 #include "../../../item/core/ItemStack.hpp"
 #include "../../../util/math/Vector3.hpp"
+#include <functional>
+#include <memory>
 
 namespace mc {
 
@@ -11,6 +13,7 @@ class IWorld;
 class BlockPos;
 class BlockState;
 enum class Direction : u8;
+class Entity;
 
 namespace blocks {
 
@@ -23,11 +26,11 @@ namespace blocks {
  * ## 使用示例
  * ```cpp
  * // 注册发射行为
- * DispenseItemBehaviorRegistry::registerBehavior(Items::ARROW,
- *     std::make_unique<ProjectileDispenseBehavior>(ProjectileType::Arrow));
+ * DispenseItemBehaviorRegistry::registerBehavior("minecraft:snowball",
+ *     std::make_unique<ProjectileDispenseBehavior>(createSnowball, 1.1f, 6.0f));
  *
  * // 执行发射
- * IDispenseItemBehavior* behavior = DispenseItemBehaviorRegistry::getBehavior(stack);
+ * IDispenseItemBehavior* behavior = DispenseItemBehaviorRegistry::instance().getBehavior(stack);
  * if (behavior) {
  *     behavior->dispense(world, pos, state, stack);
  * }
@@ -84,13 +87,13 @@ protected:
      * @param state 发射器方块状态
      * @param stack 物品堆
      * @param direction 发射方向
-     * @param velocity 发射速度
-     * @param inaccuracy 发射偏差
+     * @param speed 发射速度（MC默认为6.0）
+     * @param inaccuracy 发射偏差（MC默认为6.0，用于高斯扰动）
      * @return ItemStack 投掷后的物品堆
      */
     virtual ItemStack doDispense(IWorld& world, const BlockPos& pos, const BlockState& state,
                                   ItemStack& stack, Direction direction,
-                                  f32 velocity = 0.2f, f32 inaccuracy = 6.0f);
+                                  f32 speed = 6.0f, f32 inaccuracy = 6.0f);
 
     /**
      * @brief 播放发射音效
@@ -103,8 +106,9 @@ protected:
      * @brief 生成发射粒子
      * @param world 世界引用
      * @param pos 发射器位置
+     * @param direction 发射方向
      */
-    virtual void spawnParticles(IWorld& world, const BlockPos& pos);
+    virtual void spawnParticles(IWorld& world, const BlockPos& pos, Direction direction);
 
     /**
      * @brief 计算发射位置
@@ -137,6 +141,16 @@ protected:
      */
     void setSuccess(bool success) { m_success = success; }
 
+    /**
+     * @brief 播放音效（根据成功/失败播放不同音效）
+     */
+    void playSound(IWorld& world, const BlockPos& pos) override;
+
+    /**
+     * @brief 生成粒子（只有成功时才生成）
+     */
+    void spawnParticles(IWorld& world, const BlockPos& pos, Direction direction) override;
+
 private:
     bool m_success;
 };
@@ -145,29 +159,38 @@ private:
  * @brief 投掷物发射行为基类
  *
  * 用于发射投掷物（箭矢、雪球、鸡蛋等）。
+ * 通过工厂函数创建具体的投掷物实体。
  *
  * 参考: net.minecraft.dispenser.ProjectileDispenseBehavior
  */
 class ProjectileDispenseBehavior : public DefaultDispenseItemBehavior {
 public:
     /**
-     * @brief 构造函数
-     * @param projectileType 投掷物类型（箭矢、雪球、鸡蛋等）
-     * @param velocity 发射速度
-     * @param inaccuracy 发射偏差
+     * @brief 投掷物创建函数类型
+     *
+     * @param world 世界引用
+     * @param pos 发射位置
+     * @param stack 物品堆（可能包含药水效果等信息）
+     * @return 创建的投掷物实体
      */
-    explicit ProjectileDispenseBehavior(i32 projectileType, f32 velocity = 1.1f, f32 inaccuracy = 6.0f);
+    using ProjectileFactory = std::function<std::unique_ptr<mc::Entity>(
+        IWorld&, const Vector3&, const ItemStack&)>;
+
+    /**
+     * @brief 构造函数
+     * @param createProjectile 投掷物创建工厂函数
+     * @param velocity 发射速度（默认1.1，与MC一致）
+     * @param inaccuracy 发射偏差（默认6.0，与MC一致）
+     */
+    explicit ProjectileDispenseBehavior(
+        ProjectileFactory createProjectile,
+        f32 velocity = 1.1f,
+        f32 inaccuracy = 6.0f);
 
     ItemStack dispense(IWorld& world, const BlockPos& pos,
                        const BlockState& state, ItemStack& stack) override;
 
 protected:
-    /**
-     * @brief 获取投掷物类型
-     * @return 投掷物类型ID
-     */
-    [[nodiscard]] i32 getProjectileType() const { return m_projectileType; }
-
     /**
      * @brief 获取发射速度
      * @return 发射速度
@@ -181,7 +204,7 @@ protected:
     [[nodiscard]] f32 getInaccuracy() const { return m_inaccuracy; }
 
 private:
-    i32 m_projectileType;
+    ProjectileFactory m_createProjectile;
     f32 m_velocity;
     f32 m_inaccuracy;
 };
