@@ -17,7 +17,90 @@
 
 namespace mc::server::interaction {
 
-// TODO 有不少方法中的逻辑重复，考虑抽离公共逻辑以减少重复代码
+// ============================================================================
+// 辅助方法实现
+// ============================================================================
+
+ServerPlayerData* BlockInteractionManager::validatePlayer(PlayerId playerId) const
+{
+    auto* playerData = m_playerManager.getPlayer(playerId);
+    if (!playerData || !playerData->loggedIn) {
+        return nullptr;
+    }
+    return playerData;
+}
+
+std::optional<Error> BlockInteractionManager::validateInteractionPreconditions(
+    PlayerId playerId,
+    const BlockPos& pos,
+    bool checkYRange) const
+{
+    // 验证玩家
+    auto* playerData = validatePlayer(playerId);
+    if (!playerData) {
+        return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
+    }
+
+    // 验证距离
+    if (!canInteract(playerId, pos)) {
+        return Error(ErrorCode::InvalidArgument, "Block too far away");
+    }
+
+    // 验证 Y 范围（可选）
+    if (checkYRange) {
+        if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
+            return Error(ErrorCode::InvalidArgument, "Block Y out of range");
+        }
+    }
+
+    return std::nullopt;
+}
+
+const BlockState* BlockInteractionManager::getNonAirBlockState(const BlockPos& pos) const
+{
+    const BlockState* state = m_world.getBlockState(pos);
+    if (!state || state->isAir()) {
+        return nullptr;
+    }
+    return state;
+}
+
+std::optional<Error> BlockInteractionManager::checkWorldModificationAllowed() const
+{
+    if (m_world.isDebugWorld()) {
+        return Error(ErrorCode::PermissionDenied, "Cannot modify blocks in debug world");
+    }
+    return std::nullopt;
+}
+
+ItemStack BlockInteractionManager::getHeldTool(PlayerId playerId) const
+{
+    if (!m_inventoryManager) {
+        return ItemStack();
+    }
+    return m_inventoryManager->getHeldItem(playerId);
+}
+
+u32 BlockInteractionManager::setBlockToAir(const BlockPos& pos, const BlockState& oldState, PlayerId playerId)
+{
+    Block* airBlock = Block::getBlock(ResourceLocation("minecraft:air"));
+    if (!airBlock) {
+        return 0;
+    }
+
+    m_world.setBlockState(pos, &airBlock->defaultState());
+
+    if (m_onBlockBreak) {
+        m_onBlockBreak(playerId, pos, oldState);
+    }
+
+    return airBlock->defaultState().stateId();
+}
+
+// ============================================================================
+// 构造函数
+// ============================================================================
+
 BlockInteractionManager::BlockInteractionManager(
     ServerWorld& world,
     core::PlayerManager& playerManager,
@@ -33,6 +116,10 @@ void BlockInteractionManager::setInventoryManager(InventoryManager* inventoryMan
     m_inventoryManager = inventoryManager;
 }
 
+// ============================================================================
+// 公共方法实现
+// ============================================================================
+
 Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
     PlayerId playerId,
     const BlockPos& pos,
@@ -47,25 +134,15 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
             flow(ctx);
     });
 
-    // 获取玩家数据
-    auto* playerData = m_playerManager.getPlayer(playerId);
-    if (!playerData || !playerData->loggedIn) {
-        return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
-    }
-
-    // 验证距离
-    if (!canInteract(playerId, pos)) {
-        return Error(ErrorCode::InvalidArgument, "Block too far away");
-    }
-
-    // 验证 Y 范围
-    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
-        return Error(ErrorCode::InvalidArgument, "Block Y out of range");
+    // 验证前置条件
+    auto preconditionError = validateInteractionPreconditions(playerId, pos, true);
+    if (preconditionError) {
+        return std::move(*preconditionError);
     }
 
     // 获取方块状态
-    const BlockState* state = m_world.getBlockState(pos);
-    if (!state || state->isAir()) {
+    const BlockState* state = getNonAirBlockState(pos);
+    if (!state) {
         return BlockInteractionResult{false, "No block to interact with"};
     }
 
@@ -83,23 +160,13 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
             // 完成破坏
             if (canBreakBlock(playerId, pos, state)) {
                 // 获取手持物品作为工具
-                ItemStack tool;
-                if (m_inventoryManager) {
-                    tool = m_inventoryManager->getHeldItem(playerId);
-                }
+                ItemStack tool = getHeldTool(playerId);
 
                 // 生成掉落物
                 generateBlockDrops(pos, *state, playerId, tool.isEmpty() ? nullptr : &tool);
 
                 // 设置为空气
-                Block* airBlock = Block::getBlock(ResourceLocation("minecraft:air"));
-                if (airBlock) {
-                    m_world.setBlockState(pos, &airBlock->defaultState());
-
-                    if (m_onBlockBreak) {
-                        m_onBlockBreak(playerId, pos, *state);
-                    }
-                }
+                setBlockToAir(pos, *state, playerId);
 
                 return BlockInteractionResult{true, "Block destroyed"};
             }
@@ -128,19 +195,22 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
             flow(ctx);
     });
 
-    // 调试世界禁止方块放置
-    if (m_world.isDebugWorld()) {
-        return Error(ErrorCode::PermissionDenied, "Cannot place blocks in debug world");
+    // 检查世界修改权限
+    auto worldError = checkWorldModificationAllowed();
+    if (worldError) {
+        return std::move(*worldError);
     }
 
-    auto* playerData = m_playerManager.getPlayer(playerId);
-    if (!playerData || !playerData->loggedIn) {
+    // 验证前置条件（不需要检查 Y 范围，因为放置位置可能在不同高度）
+    auto preconditionError = validateInteractionPreconditions(playerId, pos, false);
+    if (preconditionError) {
+        return std::move(*preconditionError);
+    }
+
+    // 获取玩家数据用于游戏模式检查
+    auto* playerData = validatePlayer(playerId);
+    if (!playerData) {
         return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
-    }
-
-    // 验证距离
-    if (!canInteract(playerId, pos)) {
-        return Error(ErrorCode::InvalidArgument, "Block too far away");
     }
 
     // 检查游戏模式
@@ -228,23 +298,27 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
             flow(ctx);
     });
 
-    auto* playerData = m_playerManager.getPlayer(playerId);
-    if (!playerData || !playerData->loggedIn) {
-        return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
+    // 验证前置条件（方块使用不需要检查 Y 范围）
+    auto preconditionError = validateInteractionPreconditions(playerId, pos, false);
+    if (preconditionError) {
+        return std::move(*preconditionError);
     }
 
-    if (!canInteract(playerId, pos)) {
-        return Error(ErrorCode::InvalidArgument, "Block too far away");
-    }
-
-    const BlockState* state = m_world.getBlockState(pos);
-    if (!state || state->isAir()) {
+    // 获取方块状态
+    const BlockState* state = getNonAirBlockState(pos);
+    if (!state) {
         return BlockInteractionResult{false, "No block to use"};
     }
 
     Block* block = Block::getBlock(state->blockId());
     if (!block) {
         return Error(ErrorCode::NotFound, "Block not found for state");
+    }
+
+    // 获取玩家数据用于交互
+    auto* playerData = validatePlayer(playerId);
+    if (!playerData) {
+        return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
     }
 
     Player interactionPlayer(playerId, playerData->username);
@@ -274,30 +348,21 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(
             flow(ctx);
     });
 
-    // 调试世界禁止方块破坏
-    if (m_world.isDebugWorld()) {
-        return Error(ErrorCode::PermissionDenied, "Cannot break blocks in debug world");
+    // 检查世界修改权限
+    auto worldError = checkWorldModificationAllowed();
+    if (worldError) {
+        return std::move(*worldError);
     }
 
-    // 获取玩家数据
-    auto* playerData = m_playerManager.getPlayer(playerId);
-    if (!playerData || !playerData->loggedIn) {
-        return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
-    }
-
-    // 验证距离
-    if (!canInteract(playerId, pos)) {
-        return Error(ErrorCode::InvalidArgument, "Block too far away");
-    }
-
-    // 验证 Y 范围
-    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
-        return Error(ErrorCode::InvalidArgument, "Block Y out of range");
+    // 验证前置条件
+    auto preconditionError = validateInteractionPreconditions(playerId, pos, true);
+    if (preconditionError) {
+        return std::move(*preconditionError);
     }
 
     // 获取方块状态
-    const BlockState* state = m_world.getBlockState(pos);
-    if (!state || state->isAir()) {
+    const BlockState* state = getNonAirBlockState(pos);
+    if (!state) {
         return BlockBreakResult{false, 0, "No block to break"};
     }
 
@@ -309,25 +374,13 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(
     }
 
     // 获取手持物品作为工具
-    ItemStack tool;
-    if (m_inventoryManager) {
-        tool = m_inventoryManager->getHeldItem(playerId);
-    }
+    ItemStack tool = getHeldTool(playerId);
 
     // 生成掉落物
     generateBlockDrops(pos, oldState, playerId, tool.isEmpty() ? nullptr : &tool);
 
     // 设置为空气
-    Block* airBlock = Block::getBlock(ResourceLocation("minecraft:air"));
-    u32 newBlockStateId = airBlock ? airBlock->defaultState().stateId() : 0;
-
-    if (airBlock) {
-        m_world.setBlockState(pos, &airBlock->defaultState());
-
-        if (m_onBlockBreak) {
-            m_onBlockBreak(playerId, pos, oldState);
-        }
-    }
+    u32 newBlockStateId = setBlockToAir(pos, oldState, playerId);
 
     return BlockBreakResult{true, newBlockStateId, "Block destroyed"};
 }

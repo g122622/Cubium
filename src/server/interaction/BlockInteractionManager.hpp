@@ -15,6 +15,9 @@ class BlockState;
 namespace loot {
 class LootTableManager;
 }
+namespace server {
+struct ServerPlayerData;  // 前向声明（struct 而非 class）
+}
 }
 
 namespace mc::server {
@@ -149,6 +152,66 @@ public:
     void setOnBlockPlace(std::function<void(PlayerId, const BlockPos&, const BlockState&)> callback);
 
 private:
+    /**
+     * @brief 验证玩家数据有效性
+     *
+     * 检查玩家是否存在且已登录。
+     *
+     * @param playerId 玩家ID
+     * @return 玩家数据指针，如果无效则返回 nullptr
+     */
+    [[nodiscard]] ServerPlayerData* validatePlayer(PlayerId playerId) const;
+
+    /**
+     * @brief 执行基础交互前置检查
+     *
+     * 包含：玩家验证、距离验证、Y范围验证（可选）
+     *
+     * @param playerId 玩家ID
+     * @param pos 方块位置
+     * @param checkYRange 是否检查Y范围
+     * @return 错误信息，如果检查通过则返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<Error> validateInteractionPreconditions(
+        PlayerId playerId,
+        const BlockPos& pos,
+        bool checkYRange = true) const;
+
+    /**
+     * @brief 获取方块状态并检查是否为空气
+     *
+     * @param pos 方块位置
+     * @return 方块状态指针，如果无效或为空气则返回 nullptr
+     */
+    [[nodiscard]] const BlockState* getNonAirBlockState(const BlockPos& pos) const;
+
+    /**
+     * @brief 检查是否可以在当前世界执行修改操作
+     *
+     * 检查调试世界状态。
+     *
+     * @return 如果禁止修改则返回错误，否则返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<Error> checkWorldModificationAllowed() const;
+
+    /**
+     * @brief 获取玩家手持物品
+     *
+     * @param playerId 玩家ID
+     * @return 手持物品堆，如果无法获取则返回空堆
+     */
+    [[nodiscard]] ItemStack getHeldTool(PlayerId playerId) const;
+
+    /**
+     * @brief 将方块设置为空气并触发回调
+     *
+     * @param pos 方块位置
+     * @param oldState 原方块状态
+     * @param playerId 玩家ID（用于回调）
+     * @return 空气方块状态ID，如果失败返回 0
+     */
+    u32 setBlockToAir(const BlockPos& pos, const BlockState& oldState, PlayerId playerId);
+
     /**
      * @brief 验证玩家是否可以与方块交互（距离检查）
      */
