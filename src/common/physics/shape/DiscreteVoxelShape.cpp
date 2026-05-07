@@ -242,6 +242,61 @@ i32 DiscreteVoxelShape::lastFull(Axis axis, i32 slice1, i32 slice2) const {
 }
 
 // ============================================================================
+// Z轴线操作
+// ============================================================================
+
+bool DiscreteVoxelShape::isZAxisLineFull(i32 fromZ, i32 toZ, i32 x, i32 y) const {
+    // 边界检查
+    if (x < 0 || x >= m_xSize || y < 0 || y >= m_ySize) {
+        return false;
+    }
+    if (fromZ < 0 || toZ > m_zSize || fromZ >= toZ) {
+        return false;
+    }
+
+    // 检查线段内所有体素是否都填充
+    for (i32 z = fromZ; z < toZ; ++z) {
+        if (!m_storage[static_cast<size_t>(getIndex(x, y, z))]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void DiscreteVoxelShape::setZAxisLine(i32 fromZ, i32 toZ, i32 x, i32 y, bool filled) {
+    // 边界检查
+    if (x < 0 || x >= m_xSize || y < 0 || y >= m_ySize) {
+        return;
+    }
+    fromZ = std::max(0, fromZ);
+    toZ = std::min(m_zSize, toZ);
+
+    // 批量设置线段内所有体素
+    for (i32 z = fromZ; z < toZ; ++z) {
+        m_storage[static_cast<size_t>(getIndex(x, y, z))] = filled;
+    }
+    m_boundsDirty = true;
+}
+
+bool DiscreteVoxelShape::isXZRectangleFull(i32 fromX, i32 toX, i32 fromZ, i32 toZ, i32 y) const {
+    // 边界检查
+    if (y < 0 || y >= m_ySize) {
+        return false;
+    }
+    if (fromX >= toX || fromZ >= toZ) {
+        return false;
+    }
+
+    // 检查矩形区域内每条Z轴线的填充状态
+    for (i32 x = fromX; x < toX; ++x) {
+        if (!isZAxisLineFull(fromZ, toZ, x, y)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// ============================================================================
 // 遍历
 // ============================================================================
 
@@ -252,20 +307,89 @@ void DiscreteVoxelShape::forAllEdges(const IntLineConsumer& consumer, bool simpl
 }
 
 void DiscreteVoxelShape::forAllBoxes(const IntLineConsumer& consumer, bool simplify) {
-    // 简化版本：遍历所有体素并生成盒子
-    // 完整实现应该合并相邻体素
-
-    if (simplify) {
-        // TODO: 实现完整的盒子合并算法
-        // 参考MC BitSetDiscreteVoxelShape.forAllBoxes
+    // 空形状直接返回
+    if (isEmpty()) {
+        return;
     }
 
-    // 简单实现：每个填充的体素生成一个1x1x1盒子
+    // 不合并模式：每个体素生成一个盒子
+    if (!simplify) {
+        for (i32 x = 0; x < m_xSize; ++x) {
+            for (i32 y = 0; y < m_ySize; ++y) {
+                for (i32 z = 0; z < m_zSize; ++z) {
+                    if (isFull(x, y, z)) {
+                        consumer(x, y, z, x + 1, y + 1, z + 1);
+                    }
+                }
+            }
+        }
+        return;
+    }
+
+    // 合并模式：贪心算法合并相邻体素
+    // 参考 MC 1.16.5 BitSetDiscreteVoxelShape.forEachBox
+    // 算法：沿Z轴扫描连续填充段，然后向X/Y方向扩展形成最大盒子
+
+    // 创建可修改的副本
+    DiscreteVoxelShape copy(*this);
+
+    // 遍历所有x, y坐标
     for (i32 x = 0; x < m_xSize; ++x) {
         for (i32 y = 0; y < m_ySize; ++y) {
-            for (i32 z = 0; z < m_zSize; ++z) {
-                if (isFull(x, y, z)) {
-                    consumer(x, y, z, x + 1, y + 1, z + 1);
+            i32 zStart = -1;  // Z轴填充段起始位置
+
+            // 沿Z轴扫描
+            for (i32 z = 0; z <= m_zSize; ++z) {
+                if (copy.isFull(x, y, z)) {
+                    // 记录填充段起始
+                    if (zStart == -1) {
+                        zStart = z;
+                    }
+                } else if (zStart != -1) {
+                    // 填充段结束，开始合并扩展
+                    i32 xMin = x;
+                    i32 xMax = x;
+                    i32 yMin = y;
+                    i32 yMax = y;
+                    const i32 zEnd = z;  // zStart 是包含的，zEnd 是不包含的
+
+                    // 清除中心Z轴线
+                    copy.setZAxisLine(zStart, zEnd, x, y, false);
+
+                    // 向左扩展（X轴负方向）
+                    while (copy.isZAxisLineFull(zStart, zEnd, xMin - 1, yMin)) {
+                        copy.setZAxisLine(zStart, zEnd, xMin - 1, yMin, false);
+                        --xMin;
+                    }
+
+                    // 向右扩展（X轴正方向）
+                    while (copy.isZAxisLineFull(zStart, zEnd, xMax + 1, yMin)) {
+                        copy.setZAxisLine(zStart, zEnd, xMax + 1, yMin, false);
+                        ++xMax;
+                    }
+
+                    // 向下扩展（Y轴负方向）
+                    while (copy.isXZRectangleFull(xMin, xMax + 1, zStart, zEnd, yMin - 1)) {
+                        for (i32 xi = xMin; xi <= xMax; ++xi) {
+                            copy.setZAxisLine(zStart, zEnd, xi, yMin - 1, false);
+                        }
+                        --yMin;
+                    }
+
+                    // 向上扩展（Y轴正方向）
+                    while (copy.isXZRectangleFull(xMin, xMax + 1, zStart, zEnd, yMax + 1)) {
+                        for (i32 xi = xMin; xi <= xMax; ++xi) {
+                            copy.setZAxisLine(zStart, zEnd, xi, yMax + 1, false);
+                        }
+                        ++yMax;
+                    }
+
+                    // 输出合并后的盒子
+                    // 参数：(x1, y1, z1, x2, y2, z2) 其中 x2,y2,z2 是不包含的
+                    consumer(xMin, yMin, zStart, xMax + 1, yMax + 1, zEnd);
+
+                    // 重置填充段起始
+                    zStart = -1;
                 }
             }
         }

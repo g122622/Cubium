@@ -110,6 +110,39 @@ public:
      */
     [[nodiscard]] i32 lastFull(Axis axis, i32 slice1, i32 slice2) const;
 
+    // === Z轴线操作（用于盒子合并） ===
+
+    /**
+     * @brief 检查指定位置的Z轴线段是否完全填充
+     * @param fromZ 起始Z坐标（包含）
+     * @param toZ 结束Z坐标（不包含）
+     * @param x X坐标
+     * @param y Y坐标
+     * @return 如果线段内所有体素都填充返回true
+     */
+    [[nodiscard]] bool isZAxisLineFull(i32 fromZ, i32 toZ, i32 x, i32 y) const;
+
+    /**
+     * @brief 设置指定位置的Z轴线段的填充状态
+     * @param fromZ 起始Z坐标（包含）
+     * @param toZ 结束Z坐标（不包含）
+     * @param x X坐标
+     * @param y Y坐标
+     * @param filled 是否填充
+     */
+    void setZAxisLine(i32 fromZ, i32 toZ, i32 x, i32 y, bool filled);
+
+    /**
+     * @brief 检查XZ平面矩形区域是否完全填充
+     * @param fromX 起始X坐标（包含）
+     * @param toX 结束X坐标（不包含）
+     * @param fromZ 起始Z坐标（包含）
+     * @param toZ 结束Z坐标（不包含）
+     * @param y Y坐标
+     * @return 如果矩形区域内所有体素都填充返回true
+     */
+    [[nodiscard]] bool isXZRectangleFull(i32 fromX, i32 toX, i32 fromZ, i32 toZ, i32 y) const;
+
     // === 遍历 ===
 
     /**

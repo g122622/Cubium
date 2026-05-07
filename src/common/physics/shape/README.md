@@ -32,6 +32,18 @@ shape/
 - 高效的位存储
 - 支持填充、清除、遍历等操作
 - 边界缓存优化
+- **盒子合并算法**：`forAllBoxes(consumer, simplify=true)` 可将相邻体素合并为更大的盒子
+
+关键方法：
+
+- `isFull(x, y, z)` / `fill(x, y, z)` / `clear(x, y, z)` - 体素操作
+- `firstFull(axis)` / `lastFull(axis)` - 边界查询
+- `forAllBoxes(consumer, simplify)` - 遍历所有盒子（支持合并）
+- `forAllFaces(consumer)` - 遍历所有面
+- `forAllEdges(consumer, simplify)` - 遍历所有边
+- `isZAxisLineFull(fromZ, toZ, x, y)` - 检查 Z 轴线段是否完全填充
+- `setZAxisLine(fromZ, toZ, x, y, filled)` - 设置 Z 轴线段填充状态
+- `isXZRectangleFull(fromX, toX, fromZ, toZ, y)` - 检查 XZ 矩形是否完全填充
 
 ### VoxelShape
 
