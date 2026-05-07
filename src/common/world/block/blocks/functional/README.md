@@ -8,6 +8,8 @@
 functional/
 ├── BedBlock.hpp/cpp          # 床方块 (16色，双格结构)
 ├── BrewingStandBlock.hpp/cpp # 酿造台 (药水酿造)
+├── CauldronBlock.hpp/cpp     # 炼药锅 (储水、物品清洗)
+├── CompostableItems.hpp/cpp  # 可堆肥物品注册表
 ├── ComposterBlock.hpp/cpp    # 堆肥桶 (堆肥系统)
 ├── CakeBlock.hpp/cpp         # 蛋糕 (可食用，7片)
 ├── BeaconBlock.hpp/cpp       # 信标 (增益效果)
@@ -78,6 +80,11 @@ functional/
 - LEVEL_0_8: 填充等级 (0-8)
 ```
 
+### CauldronBlock
+```cpp
+- LEVEL_0_3: 水位 (0-3, 0=空, 3=满)
+```
+
 ### CakeBlock
 ```cpp
 - BITES_0_6: 已吃的片数 (0-6)
@@ -121,8 +128,14 @@ Block (基类)
 │   └── 双方块结构处理
 ├── BrewingStandBlock
 │   └── 容器方块实体
+├── CauldronBlock
+│   ├── PotionUtils (药水工具类)
+│   ├── DyeableArmorItem (可染色盔甲)
+│   └── 音效系统
 ├── ComposterBlock
-│   └── 堆肥系统
+│   ├── CompostableItems (可堆肥物品注册表)
+│   ├── TickManager (tick调度)
+│   └── ItemDropHelper (物品掉落)
 ├── CakeBlock
 │   └── 可食用方块
 ├── BeaconBlock
@@ -154,7 +167,8 @@ Block (基类)
 
 - [ ] BedBlock: 爆炸逻辑（下界/末地）、睡眠交互
 - [ ] BrewingStandBlock: 方块实体、酿造配方
-- [ ] ComposterBlock: 完整堆肥概率表、骨粉产出
+- [x] ComposterBlock: 完整堆肥概率表、骨粉产出、玩家交互
+- [x] CauldronBlock: 水桶/玻璃瓶/水瓶交互、皮革盔甲清洗
 - [ ] CakeBlock: 食物恢复逻辑
 - [ ] BeaconBlock: 方块实体、效果范围计算
 - [ ] BarrelBlock: 方块实体、容器GUI
@@ -163,6 +177,54 @@ Block (基类)
 - [ ] JukeboxBlock: 方块实体、音乐唱片系统
 - [ ] RespawnAnchorBlock: 维度检测、爆炸逻辑
 - [ ] LodestoneBlock: 指南针绑定系统
+
+## 已实现功能详解
+
+### ComposterBlock (堆肥桶)
+
+完整的 MC 1.16.5 堆肥桶实现：
+
+**功能**:
+- 8层填充等级 (LEVEL_0_8)
+- 等级7→8 转换：20 tick 延迟后产出骨粉
+- 玩家右键交互：添加可堆肥物品
+- 比较器输出：等级值
+
+**CompostableItems 注册表**:
+```cpp
+// 堆肥概率表
+30%: 种子类、干海带、甜浆果
+50%: 西瓜片
+65%: 苹果、农作物、地狱疣
+85%: 面包、曲奇、烤马铃薯
+100%: 南瓜派
+```
+
+**交互流程**:
+1. 玩家右键放置可堆肥物品
+2. 概率性增加等级 (播放成功/失败音效)
+3. 等级7时调度 20 tick 延迟
+4. 等级8时右键收获骨粉
+
+### CauldronBlock (炼药锅)
+
+完整的 MC 1.16.5 炼药锅交互实现：
+
+**功能**:
+- 4级水位 (LEVEL_0_3)
+- 雨天自动填充水
+- 比较器输出：水位值
+
+**交互支持**:
+| 物品 | 操作 | 水位变化 | 音效 |
+|------|------|----------|------|
+| 水桶 | 装水 | → 3 | ITEM_BUCKET_EMPTY |
+| 空桶 | 取水 | 3 → 0 | ITEM_BUCKET_FILL |
+| 玻璃瓶 | 取水 | -1 | ITEM_BOTTLE_FILL |
+| 水瓶 | 倒水 | +1 | ITEM_BOTTLE_EMPTY |
+| 皮革盔甲 | 清洗颜色 | -1 | 无 |
+
+**创造模式**: 不消耗物品
 
 ## 参考
 

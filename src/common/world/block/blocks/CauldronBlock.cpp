@@ -3,11 +3,15 @@
 #include "../VanillaBlocks.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
+#include "../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../item/core/ItemStack.hpp"
 #include "../../../item/Items.hpp"
+#include "../../../item/items/armor/DyeableArmorItem.hpp"
+#include "../../../item/potion/PotionUtils.hpp"
+#include "../../../item/potion/Potions.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../sound/SoundCategory.hpp"
-#include "../../../util/math/random/IRandom.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -226,32 +230,68 @@ ActionResultType CauldronBlock::handleBucketInteraction(
     Player& player,
     ItemStack& heldItem) {
 
-    MC_UNUSED(player);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(state);
-    MC_UNUSED(heldItem);
+    const Item* item = heldItem.getItem();
+    if (item == nullptr) {
+        return ActionResultType::Pass;
+    }
 
-    // TODO: 检查物品类型
-    // if (heldItem.getItem() == Items::WATER_BUCKET) {
-    //     // 水桶装水：空炼药锅 -> 满炼药锅
-    //     if (isEmpty(state)) {
-    //         setLevel(world, pos, state, 3);
-    //         playFillSound(world, pos);
-    //         // TODO: 替换为空桶
-    //         // heldItem = new ItemStack(Items::BUCKET);
-    //         return ActionResultType::Success;
-    //     }
-    // } else if (heldItem.getItem() == Items::BUCKET) {
-    //     // 空桶取水：满炼药锅 -> 空炼药锅
-    //     if (isFull(state)) {
-    //         setLevel(world, pos, state, 0);
-    //         playEmptySound(world, pos);
-    //         // TODO: 替换为水桶
-    //         // heldItem = new ItemStack(Items::WATER_BUCKET);
-    //         return ActionResultType::Success;
-    //     }
-    // }
+    i32 currentLevel = getLevel(state);
+
+    // 水桶：装水到空的或未满的炼药锅
+    if (item == Items::WATER_BUCKET) {
+        if (currentLevel < 3 && !world.isClientSide()) {
+            // 水桶装水：空炼药锅 -> 满炼药锅
+            setLevel(world, pos, state, 3);
+            playFillSound(world, pos);
+
+            // 非创造模式：替换为空桶
+            if (!player.abilities().creativeMode) {
+                heldItem.shrink(1);
+                if (heldItem.isEmpty()) {
+                    heldItem = ItemStack(Items::BUCKET, 1);
+                    player.inventory().setChanged();
+                } else {
+                    // 尝试添加空桶到背包
+                    ItemStack emptyBucket(Items::BUCKET, 1);
+                    player.inventory().add(emptyBucket);
+                    if (!emptyBucket.isEmpty()) {
+                        // 背包满了，在玩家位置掉落物品
+                        ItemDropHelper::spawnItemAtEntity(
+                            &player, emptyBucket, 0.5f, world.getRandom());
+                    }
+                }
+            }
+        }
+        return ActionResultType::Success;
+    }
+
+    // 空桶：从满的炼药锅取水
+    if (item == Items::BUCKET) {
+        if (currentLevel == 3 && !world.isClientSide()) {
+            // 空桶取水：满炼药锅 -> 空炼药锅
+            setLevel(world, pos, state, 0);
+            playEmptySound(world, pos);
+
+            // 非创造模式：替换为水桶
+            if (!player.abilities().creativeMode) {
+                heldItem.shrink(1);
+                if (heldItem.isEmpty()) {
+                    heldItem = ItemStack(Items::WATER_BUCKET, 1);
+                    player.inventory().setChanged();
+                } else {
+                    // 尝试添加水桶到背包
+                    ItemStack waterBucket(Items::WATER_BUCKET, 1);
+                    player.inventory().add(waterBucket);
+                    if (!waterBucket.isEmpty()) {
+                        // 背包满了，在玩家位置掉落物品
+                        ItemDropHelper::spawnItemAtEntity(
+                            &player, waterBucket, 0.5f, world.getRandom());
+                    }
+                }
+            }
+        }
+        return ActionResultType::Success;
+    }
 
     return ActionResultType::Pass;
 }
@@ -263,32 +303,80 @@ ActionResultType CauldronBlock::handleBottleInteraction(
     Player& player,
     ItemStack& heldItem) {
 
-    MC_UNUSED(player);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(state);
-    MC_UNUSED(heldItem);
+    const Item* item = heldItem.getItem();
+    if (item == nullptr) {
+        return ActionResultType::Pass;
+    }
 
-    // TODO: 检查物品类型
-    // if (heldItem.getItem() == Items::GLASS_BOTTLE) {
-    //     // 空瓶取水：水位-1
-    //     if (!isEmpty(state)) {
-    //         setLevel(world, pos, state, getLevel(state) - 1);
-    //         playEmptySound(world, pos);
-    //         // TODO: 替换为水瓶
-    //         // heldItem = new ItemStack(Items::POTION);
-    //         return ActionResultType::Success;
-    //     }
-    // } else if (heldItem.getItem() == Items::POTION && heldItem.getMetadata() == 0) {
-    //     // 水瓶倒水：水位+1
-    //     if (!isFull(state)) {
-    //         setLevel(world, pos, state, getLevel(state) + 1);
-    //         playFillSound(world, pos);
-    //         // TODO: 替换为玻璃瓶
-    //         // heldItem = new ItemStack(Items::GLASS_BOTTLE);
-    //         return ActionResultType::Success;
-    //     }
-    // }
+    i32 currentLevel = getLevel(state);
+
+    // 玻璃瓶：从炼药锅取水
+    if (item == Items::GLASS_BOTTLE) {
+        if (currentLevel > 0 && !world.isClientSide()) {
+            // 创建水瓶
+            ItemStack waterBottle = potion::PotionUtils::createPotionItem(potion::Potions::WATER);
+
+            // 降低水位
+            setLevel(world, pos, state, currentLevel - 1);
+
+            // MC 1.16.5: 玻璃瓶取水使用 ITEM_BOTTLE_FILL
+            world.playSound(SoundEvents::ITEM_BOTTLE_FILL,
+                            sound::SoundCategory::Blocks,
+                            Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                            1.0f, 1.0f);
+
+            // 非创造模式：替换为水瓶
+            if (!player.abilities().creativeMode) {
+                heldItem.shrink(1);
+                if (heldItem.isEmpty()) {
+                    heldItem = waterBottle;
+                    player.inventory().setChanged();
+                } else {
+                    // 尝试添加水瓶到背包
+                    player.inventory().add(waterBottle);
+                    if (!waterBottle.isEmpty()) {
+                        // 背包满了，在玩家位置掉落物品
+                        ItemDropHelper::spawnItemAtEntity(
+                            &player, waterBottle, 0.5f, world.getRandom());
+                    }
+                }
+            }
+        }
+        return ActionResultType::Success;
+    }
+
+    // 水瓶：向炼药锅倒水
+    if (item == Items::POTION && potion::PotionUtils::isWaterBottle(heldItem)) {
+        if (currentLevel < 3 && !world.isClientSide()) {
+            // 增加水位
+            setLevel(world, pos, state, currentLevel + 1);
+
+            // MC 1.16.5: 水瓶倒水使用 ITEM_BOTTLE_EMPTY
+            world.playSound(SoundEvents::ITEM_BOTTLE_EMPTY,
+                            sound::SoundCategory::Blocks,
+                            Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                            1.0f, 1.0f);
+
+            // 非创造模式：替换为玻璃瓶
+            if (!player.abilities().creativeMode) {
+                ItemStack glassBottle(Items::GLASS_BOTTLE, 1);
+                heldItem.shrink(1);
+                if (heldItem.isEmpty()) {
+                    heldItem = glassBottle;
+                    player.inventory().setChanged();
+                } else {
+                    // 尝试添加玻璃瓶到背包
+                    player.inventory().add(glassBottle);
+                    if (!glassBottle.isEmpty()) {
+                        // 背包满了，在玩家位置掉落物品
+                        ItemDropHelper::spawnItemAtEntity(
+                            &player, glassBottle, 0.5f, world.getRandom());
+                    }
+                }
+            }
+        }
+        return ActionResultType::Success;
+    }
 
     return ActionResultType::Pass;
 }
@@ -300,22 +388,31 @@ ActionResultType CauldronBlock::handleLeatherArmorCleaning(
     Player& player,
     ItemStack& heldItem) {
 
-    MC_UNUSED(player);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(state);
-    MC_UNUSED(heldItem);
+    const Item* item = heldItem.getItem();
+    if (item == nullptr) {
+        return ActionResultType::Pass;
+    }
 
-    // TODO: 检查是否为皮革盔甲
-    // if (heldItem.getItem() instanceof LeatherArmorItem) {
-    //     if (heldItem.hasColor() && !isEmpty(state)) {
-    //         setLevel(world, pos, state, getLevel(state) - 1);
-    //         // TODO: 移除颜色
-    //         // heldItem.removeColor();
-    //         playEmptySound(world, pos);
-    //         return ActionResultType::Success;
-    //     }
-    // }
+    // 检查是否为皮革盔甲且有颜色
+    // MC 1.16.5: item instanceof IDyeableArmorItem
+    const auto* dyeableArmor = dynamic_cast<const item::items::DyeableArmorItem*>(item);
+    if (dyeableArmor != nullptr) {
+        i32 currentLevel = getLevel(state);
+
+        // 检查是否有自定义颜色且炼药锅有水
+        if (currentLevel > 0 && item::items::DyeableArmorItem::hasColor(heldItem)) {
+            if (!world.isClientSide()) {
+                // 清除颜色
+                item::items::DyeableArmorItem::clearColor(heldItem);
+
+                // 降低水位
+                setLevel(world, pos, state, currentLevel - 1);
+
+                // MC 1.16.5: 皮革盔甲清洗不播放音效
+            }
+            return ActionResultType::Success;
+        }
+    }
 
     return ActionResultType::Pass;
 }
@@ -333,12 +430,13 @@ ActionResultType CauldronBlock::handleBannerCleaning(
     MC_UNUSED(state);
     MC_UNUSED(heldItem);
 
-    // TODO: 检查是否为旗帜
-    // if (heldItem.getItem() == Items::BANNER) {
-    //     if (heldItem.hasBannerPattern() && !isEmpty(state)) {
+    // 旗帜系统尚未实现
+    // MC 1.16.5: 检查物品是否为 BannerItem 并有图案层
+    // if (item == Items::BANNER) {
+    //     if (BannerTileEntity::getPatterns(heldItem) > 0 && !isEmpty(state)) {
+    //         // 移除最顶层的图案
+    //         // 降低水位
     //         setLevel(world, pos, state, getLevel(state) - 1);
-    //         // TODO: 移除最顶层的图案
-    //         // BannerBlock.removeTopPattern(heldItem);
     //         playEmptySound(world, pos);
     //         return ActionResultType::Success;
     //     }

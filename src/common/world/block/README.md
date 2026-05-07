@@ -27,8 +27,13 @@ block/
     ├── FurnaceBlocks.hpp/cpp # 熔炉方块
     ├── DoorBlock.hpp/cpp   # 门方块
     ├── FenceGateBlock.hpp/cpp # 栅栏门方块
-    ├── CauldronBlock.hpp/cpp # 炼药锅方块
+    ├── CauldronBlock.hpp/cpp # 炼药锅方块（储水、物品清洗）
     ├── EnchantingTableBlock.hpp/cpp # 附魔台方块
+    ├── functional/           # 功能方块（详见 functional/README.md）
+    │   ├── ComposterBlock.hpp/cpp    # 堆肥桶
+    │   ├── CompostableItems.hpp/cpp  # 可堆肥物品注册表
+    │   ├── CauldronBlock.hpp/cpp     # 炼药锅
+    │   └── ... 更多功能方块
     ├── building/           # 建筑方块（楼梯、台阶、墙等）
     │   ├── StairsBlock.hpp/cpp   # 楼梯方块
     │   ├── SlabBlock.hpp/cpp     # 台阶方块
