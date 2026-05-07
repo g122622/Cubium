@@ -562,7 +562,6 @@ add_library(mc_common STATIC
     world/block/blocks/redstone/ActivatorRailBlock.cpp
 
     # World - Block - Dispense
-    world/block/dispense/IBlockSource.cpp
     world/block/dispense/IDispenseItemBehavior.cpp
     world/block/dispense/DispenseItemBehaviorRegistry.cpp
 

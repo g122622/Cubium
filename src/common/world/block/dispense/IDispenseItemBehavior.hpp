@@ -1,9 +1,17 @@
 #pragma once
 
-#include "IBlockSource.hpp"
+#include "../../../core/Types.hpp"
 #include "../../../item/core/ItemStack.hpp"
+#include "../../../util/math/Vector3.hpp"
 
 namespace mc {
+
+// 前向声明
+class IWorld;
+class BlockPos;
+class BlockState;
+enum class Direction : u8;
+
 namespace blocks {
 
 /**
@@ -21,7 +29,7 @@ namespace blocks {
  * // 执行发射
  * IDispenseItemBehavior* behavior = DispenseItemBehaviorRegistry::getBehavior(stack);
  * if (behavior) {
- *     behavior->dispense(source, stack);
+ *     behavior->dispense(world, pos, state, stack);
  * }
  * ```
  *
@@ -34,11 +42,14 @@ public:
     /**
      * @brief 执行发射行为
      *
-     * @param source 发射源（提供位置和世界信息）
+     * @param world 世界引用
+     * @param pos 发射器方块位置
+     * @param state 发射器方块状态
      * @param stack 要发射的物品堆（会被修改，如减少数量）
      * @return ItemStack 发射后的物品堆（可能为空或减少数量）
      */
-    virtual ItemStack dispense(IBlockSource& source, ItemStack& stack) = 0;
+    virtual ItemStack dispense(IWorld& world, const BlockPos& pos,
+                               const BlockState& state, ItemStack& stack) = 0;
 
     /**
      * @brief 是否成功发射
@@ -61,42 +72,48 @@ public:
  */
 class DefaultDispenseItemBehavior : public IDispenseItemBehavior {
 public:
-    ItemStack dispense(IBlockSource& source, ItemStack& stack) override;
+    ItemStack dispense(IWorld& world, const BlockPos& pos,
+                       const BlockState& state, ItemStack& stack) override;
 
 protected:
     /**
      * @brief 执行投掷逻辑
      *
-     * @param source 发射源
+     * @param world 世界引用
+     * @param pos 发射器位置
+     * @param state 发射器方块状态
      * @param stack 物品堆
      * @param direction 发射方向
      * @param velocity 发射速度
      * @param inaccuracy 发射偏差
      * @return ItemStack 投掷后的物品堆
      */
-    virtual ItemStack doDispense(IBlockSource& source, ItemStack& stack,
-                                  Direction direction, f32 velocity = 0.2f, f32 inaccuracy = 6.0f);
+    virtual ItemStack doDispense(IWorld& world, const BlockPos& pos, const BlockState& state,
+                                  ItemStack& stack, Direction direction,
+                                  f32 velocity = 0.2f, f32 inaccuracy = 6.0f);
 
     /**
      * @brief 播放发射音效
-     * @param source 发射源
+     * @param world 世界引用
+     * @param pos 发射器位置
      */
-    virtual void playSound(IBlockSource& source);
+    virtual void playSound(IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 生成发射粒子
-     * @param source 发射源
+     * @param world 世界引用
+     * @param pos 发射器位置
      */
-    virtual void spawnParticles(IBlockSource& source);
+    virtual void spawnParticles(IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 计算发射位置
      *
-     * @param source 发射源
+     * @param pos 发射器位置
      * @param direction 发射方向
-     * @return 发射位置（方块出口处）
+     * @return 发射位置（方块出口处，带偏移）
      */
-    [[nodiscard]] static DispensePosition getDispensePosition(IBlockSource& source, Direction direction);
+    [[nodiscard]] static Vector3 getDispensePosition(const BlockPos& pos, Direction direction);
 };
 
 /**
@@ -141,7 +158,8 @@ public:
      */
     explicit ProjectileDispenseBehavior(i32 projectileType, f32 velocity = 1.1f, f32 inaccuracy = 6.0f);
 
-    ItemStack dispense(IBlockSource& source, ItemStack& stack) override;
+    ItemStack dispense(IWorld& world, const BlockPos& pos,
+                       const BlockState& state, ItemStack& stack) override;
 
 protected:
     /**

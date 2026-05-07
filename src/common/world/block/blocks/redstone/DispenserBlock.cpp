@@ -13,7 +13,6 @@
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../sound/SoundCategory.hpp"
 #include "../../dispense/DispenseItemBehaviorRegistry.hpp"
-#include "../../dispense/IBlockSource.hpp"
 #include <unordered_map>
 #include <chrono>
 
@@ -147,14 +146,11 @@ bool DispenserBlock::tryDispense(IWorld& world, const BlockPos& pos, const Block
     // 发射物品 - 分离一个物品
     ItemStack dispensedStack = stack.split(1);
 
-    // 创建 BlockSource 用于发射行为
-    DispensePosition blockSource(world, pos, state);
-
     // 检查是否有注册的特殊发射行为
     IDispenseItemBehavior* behavior = DispenseItemBehaviorRegistry::instance().getBehavior(dispensedStack);
     if (behavior != nullptr) {
         // 使用特殊发射行为
-        dispensedStack = behavior->dispense(blockSource, dispensedStack);
+        dispensedStack = behavior->dispense(world, pos, state, dispensedStack);
     } else {
         // 使用默认行为：发射物品实体
         dispensedStack = defaultDispense(world, pos, facing, targetPos, dispensedStack);
