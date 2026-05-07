@@ -192,6 +192,21 @@ constexpr i32 CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT;
 **枚举集合** (`src/common/core/EnumSet.hpp`)
 - `EnumSet<T>` - 基于 `std::bitset` 的枚举集合，要求枚举有 `Count` 值
 
+### 实体工具
+
+**物品掉落工具** (`src/common/entity/utils/ItemDropHelper.hpp`)
+- `ItemDropHelper` - 物品掉落工具类，统一的随机速度计算和物品实体生成
+- `getBlockDropVelocity()` - 方块掉落式随机速度
+- `getSimpleDropVelocity()` - 简单随机速度（实体丢弃）
+- `getPlayerDropVelocity()` - 玩家丢弃物品速度
+- `getGaussianVelocity()` - 高斯分布速度（发射器）
+- `spawnItemEntity()` - 在指定位置生成物品实体
+- `spawnItemAtEntity()` - 在实体位置生成物品实体
+- `spawnItemEntities()` - 批量生成物品实体
+- `DEFAULT_PICKUP_DELAY = 10` - 默认拾取延迟（ticks）
+- `DEFAULT_LIFETIME = 6000` - 默认存活时间（ticks）
+- 参考 MC 1.16.5 `InventoryHelper.spawnItemStack()`, `Entity.entityDropItem()`
+
 ### NBT 系统 (`src/common/util/nbt/`)
 
 **核心类型**
