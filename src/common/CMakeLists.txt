@@ -461,6 +461,7 @@ add_library(mc_common STATIC
     world/block/blocks/functional/BedBlock.cpp
     world/block/blocks/functional/BrewingStandBlock.cpp
     world/block/blocks/functional/ComposterBlock.cpp
+    world/block/blocks/functional/CompostableItems.cpp
     world/block/blocks/functional/CakeBlock.cpp
     world/block/blocks/functional/BeaconBlock.cpp
     world/block/blocks/functional/BarrelBlock.cpp

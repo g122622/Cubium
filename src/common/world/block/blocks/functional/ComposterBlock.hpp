@@ -4,6 +4,9 @@
 #include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../core/BlockRaycastResult.hpp"
+#include "../../../../item/core/ActionResult.hpp"
 #include <array>
 
 namespace mc {
@@ -66,6 +69,23 @@ public:
         IWorld& world,
         const BlockPos& pos) const override;
 
+    // ========== 交互 ==========
+
+    /**
+     * @brief 玩家右键交互
+     *
+     * - 如果等级为8，取出骨粉
+     * - 如果玩家手持可堆肥物品，尝试堆肥
+     * - 否则不执行任何操作
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
     // ========== 工具方法 ==========
 
     /**
@@ -77,12 +97,18 @@ public:
 
     /**
      * @brief 尝试堆肥
+     * @param state 当前方块状态
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param block 方块引用（用于调度tick）
+     * @param itemId 物品ID
      * @return 新的方块状态（可能改变等级）
      */
     static BlockState attemptCompost(
         const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
+        Block& block,
         u32 itemId);
 
     /**
@@ -97,7 +123,7 @@ public:
 
     /**
      * @brief 获取物品的堆肥概率
-     * @return 0.0-1.0之间的概率，-1表示不可堆肥
+     * @return 0.0-1.0之间的概率，0.0表示不可堆肥
      */
     [[nodiscard]] static float getCompostChance(u32 itemId);
 

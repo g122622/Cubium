@@ -1,6 +1,10 @@
 #include "ComposterBlock.hpp"
+#include "CompostableItems.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../tick/manager/TickManager.hpp"
+#include "../../../../item/Items.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../sound/SoundEvents.hpp"
@@ -105,6 +109,7 @@ BlockState ComposterBlock::attemptCompost(
     const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
+    Block& block,
     u32 itemId) {
 
     int level = getLevel(state);
@@ -112,7 +117,13 @@ BlockState ComposterBlock::attemptCompost(
         return state;  // 已满或正在完成
     }
 
-    float chance = getCompostChance(itemId);
+    // 从 CompostableItems 注册表获取堆肥概率
+    const Item* item = Item::getItem(static_cast<ItemId>(itemId));
+    if (item == nullptr) {
+        return state;
+    }
+
+    float chance = CompostableItems::getCompostChance(item);
     if (chance <= 0.0f) {
         return state;  // 不可堆肥
     }
@@ -135,10 +146,9 @@ BlockState ComposterBlock::attemptCompost(
             );
         }
 
-        // 如果达到等级7，安排tick
+        // 如果达到等级7，调度 20 tick 后的转变
         if (newLevel == 7) {
-            // TODO: 安排tick
-            // world.getPendingBlockTicks().scheduleTick(pos, this, 20);
+            world.tickManager().scheduleBlockTick(pos, block, 20);
         }
 
         return newState;
@@ -159,8 +169,31 @@ BlockState ComposterBlock::attemptCompost(
 }
 
 BlockState ComposterBlock::empty(IWorld& world, const BlockPos& pos, BlockState& state) {
-    // 生成骨粉物品
-    // TODO: 掉落骨粉物品
+    // MC 1.16.5: 生成骨粉物品
+    // 只有等级为 8 时才能收获
+    int level = getLevel(state);
+    if (level != 8) {
+        return state;
+    }
+
+    // 掉落骨粉物品
+    if (!world.isClientSide() && Items::BONE_MEAL != nullptr) {
+        // 创建骨粉物品堆
+        ItemStack boneMealStack(Items::BONE_MEAL, 1);
+
+        // 使用 ItemDropHelper 生成物品实体
+        math::Random random;
+        ItemDropHelper::spawnItemEntity(
+            &world,
+            boneMealStack,
+            static_cast<f64>(pos.x) + 0.5,
+            static_cast<f64>(pos.y) + 1.0,  // 在堆肥桶上方生成
+            static_cast<f64>(pos.z) + 0.5,
+            random,
+            ItemDropHelper::DEFAULT_PICKUP_DELAY,
+            ""  // 无所有者
+        );
+    }
 
     // 重置为等级0
     BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), 0);
@@ -181,21 +214,65 @@ BlockState ComposterBlock::empty(IWorld& world, const BlockPos& pos, BlockState&
 }
 
 bool ComposterBlock::isCompostable(u32 itemId) {
-    return getCompostChance(itemId) > 0.0f;
+    const Item* item = Item::getItem(static_cast<ItemId>(itemId));
+    return CompostableItems::isCompostable(item);
 }
 
 float ComposterBlock::getCompostChance(u32 itemId) {
-    // TODO: 实现完整的堆肥概率表
-    // 这里简化实现，返回-1表示不可堆肥
-    // 实际应该检查物品类型：
-    // - 树叶、树苗等: 0.3
-    // - 甘蔗、藤蔓等: 0.5
-    // - 苹果、蘑菇等: 0.65
-    // - 干草块、面包等: 0.85
-    // - 蛋糕、南瓜派: 1.0
+    const Item* item = Item::getItem(static_cast<ItemId>(itemId));
+    return CompostableItems::getCompostChance(item);
+}
 
-    MC_UNUSED(itemId);
-    return -1.0f;
+ActionResultType ComposterBlock::onBlockActivated(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit) {
+
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+    int level = getLevel(state);
+
+    // 如果等级为8，取出骨粉
+    if (level == 8) {
+        empty(world, pos, const_cast<BlockState&>(state));
+        return ActionResultType::Success;
+    }
+
+    // 检查玩家手持物品
+    ItemStack heldItem = player.inventory().getSelectedStack();
+    if (heldItem.isEmpty()) {
+        return ActionResultType::Pass;
+    }
+
+    const Item* item = heldItem.getItem();
+    if (item == nullptr) {
+        return ActionResultType::Pass;
+    }
+
+    // 检查物品是否可堆肥
+    float chance = CompostableItems::getCompostChance(item);
+    if (chance <= 0.0f) {
+        return ActionResultType::Pass;
+    }
+
+    // 尝试堆肥
+    BlockState newState = attemptCompost(state, world, pos, *this, static_cast<u32>(item->itemId()));
+
+    // 如果堆肥成功（状态改变了），消耗物品
+    if (newState.get(BlockStateProperties::LEVEL_0_8()) > level) {
+        // 非创造模式消耗物品
+        if (!player.abilities().creativeMode) {
+            heldItem.shrink(1);
+            player.inventory().setChanged();
+        }
+        return ActionResultType::Success;
+    }
+
+    // 堆肥失败但仍播放了音效
+    return ActionResultType::Success;
 }
 
 } // namespace blocks
