@@ -4,6 +4,9 @@
 #include "world/blockentity/processing/SmokerEntity.hpp"
 #include "world/blockentity/processing/FurnaceInventory.hpp"
 #include "world/block/BlockPos.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "item/Items.hpp"
+#include "item/items/block/BlockItemRegistry.hpp"
 
 using namespace mc;
 using namespace mc::blockentity;
@@ -255,4 +258,300 @@ TEST_F(AbstractFurnaceEntityStaticTest, IsFuel_ReturnsFalseForEmptyStack) {
 TEST_F(AbstractFurnaceEntityStaticTest, GetBurnTime_ReturnsZeroForEmptyStack) {
     ItemStack emptyStack;
     EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(emptyStack), 0);
+}
+
+// ========== 燃烧时间测试 ==========
+
+/**
+ * @brief 燃烧时间测试类
+ *
+ * 需要先初始化方块和物品系统才能进行燃烧时间测试。
+ * 参考: MC 1.16.5 AbstractFurnaceTileEntity.getBurnTimes()
+ */
+class FurnaceBurnTimeTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        // 初始化方块和物品系统（只初始化一次）
+        static bool initialized = false;
+        if (!initialized) {
+            VanillaBlocks::initialize();
+            Items::initialize();
+            BlockItemRegistry::instance().initializeVanillaBlockItems();
+            initialized = true;
+        }
+    }
+};
+
+// ========== 特殊燃料测试 ==========
+
+TEST_F(FurnaceBurnTimeTest, LavaBucket_HasCorrectBurnTime) {
+    ASSERT_NE(Items::LAVA_BUCKET, nullptr) << "LAVA_BUCKET should be registered";
+    ItemStack lavaBucket(Items::LAVA_BUCKET, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(lavaBucket), 20000);
+}
+
+TEST_F(FurnaceBurnTimeTest, BlazeRod_HasCorrectBurnTime) {
+    ASSERT_NE(Items::BLAZE_ROD, nullptr) << "BLAZE_ROD should be registered";
+    ItemStack blazeRod(Items::BLAZE_ROD, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(blazeRod), 2400);
+}
+
+// ========== 煤炭类测试 ==========
+
+TEST_F(FurnaceBurnTimeTest, Coal_HasCorrectBurnTime) {
+    ASSERT_NE(Items::COAL, nullptr) << "COAL should be registered";
+    ItemStack coal(Items::COAL, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(coal), 1600);
+}
+
+TEST_F(FurnaceBurnTimeTest, Charcoal_HasCorrectBurnTime) {
+    ASSERT_NE(Items::CHARCOAL, nullptr) << "CHARCOAL should be registered";
+    ItemStack charcoal(Items::CHARCOAL, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(charcoal), 1600);
+}
+
+// ========== 木头类测试 (300 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, OakLog_HasCorrectBurnTime) {
+    // Items::OAK_LOG 是通过 Items 注册的 BlockItem
+    // 它与 BlockItemRegistry 中注册的是同一个物品
+    const Item* oakLogItem = Items::OAK_LOG;
+    ASSERT_NE(oakLogItem, nullptr) << "OAK_LOG should be registered";
+
+    // 直接使用物品指针测试
+    ItemStack log(oakLogItem, 1);
+
+    // 如果物品在 BlockItemRegistry 中也能找到，测试通过
+    // 注意：Items::OAK_LOG 和 BlockItemRegistry 中的是同一个 BlockItem
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(log), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, SpruceLog_HasCorrectBurnTime) {
+    // 通过 BlockItemRegistry 验证原木燃烧时间
+    const BlockItem* spruceLogItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::SPRUCE_LOG);
+    if (spruceLogItem != nullptr) {
+        ItemStack log(static_cast<const Item*>(spruceLogItem), 1);
+        EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(log), 300);
+    } else {
+        // 如果方块物品未注册，跳过测试
+        GTEST_SKIP() << "SPRUCE_LOG BlockItem not registered in BlockItemRegistry";
+    }
+}
+
+TEST_F(FurnaceBurnTimeTest, OakPlanks_HasCorrectBurnTime) {
+    // Items::OAK_PLANKS 是通过 Items 注册的 BlockItem
+    const Item* oakPlanksItem = Items::OAK_PLANKS;
+    ASSERT_NE(oakPlanksItem, nullptr) << "OAK_PLANKS should be registered";
+    ItemStack planks(oakPlanksItem, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(planks), 300);
+}
+
+// ========== 木制工具测试 (200 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, WoodenPickaxe_HasCorrectBurnTime) {
+    ASSERT_NE(Items::WOODEN_PICKAXE, nullptr) << "WOODEN_PICKAXE should be registered";
+    ItemStack tool(Items::WOODEN_PICKAXE, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(tool), 200);
+}
+
+TEST_F(FurnaceBurnTimeTest, WoodenSword_HasCorrectBurnTime) {
+    ASSERT_NE(Items::WOODEN_SWORD, nullptr) << "WOODEN_SWORD should be registered";
+    ItemStack tool(Items::WOODEN_SWORD, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(tool), 200);
+}
+
+// ========== 弓和钓鱼竿测试 (300 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, Bow_HasCorrectBurnTime) {
+    ASSERT_NE(Items::BOW, nullptr) << "BOW should be registered";
+    ItemStack bow(Items::BOW, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(bow), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, FishingRod_HasCorrectBurnTime) {
+    ASSERT_NE(Items::FISHING_ROD, nullptr) << "FISHING_ROD should be registered";
+    ItemStack rod(Items::FISHING_ROD, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(rod), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, Crossbow_HasCorrectBurnTime) {
+    ASSERT_NE(Items::CROSSBOW, nullptr) << "CROSSBOW should be registered";
+    ItemStack crossbow(Items::CROSSBOW, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(crossbow), 300);
+}
+
+// ========== 木棍和碗测试 (100 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, Stick_HasCorrectBurnTime) {
+    ASSERT_NE(Items::STICK, nullptr) << "STICK should be registered";
+    ItemStack stick(Items::STICK, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stick), 100);
+}
+
+TEST_F(FurnaceBurnTimeTest, Bowl_HasCorrectBurnTime) {
+    ASSERT_NE(Items::BOWL, nullptr) << "BOWL should be registered";
+    ItemStack bowl(Items::BOWL, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(bowl), 100);
+}
+
+// ========== 方块物品燃烧时间测试 ==========
+
+TEST_F(FurnaceBurnTimeTest, Bookshelf_HasCorrectBurnTime) {
+    const BlockItem* bookshelfItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BOOKSHELF);
+    ASSERT_NE(bookshelfItem, nullptr) << "BOOKSHELF should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(bookshelfItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, NoteBlock_HasCorrectBurnTime) {
+    const BlockItem* noteBlockItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::NOTE_BLOCK);
+    ASSERT_NE(noteBlockItem, nullptr) << "NOTE_BLOCK should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(noteBlockItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, CraftingTable_HasCorrectBurnTime) {
+    const BlockItem* craftingTableItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CRAFTING_TABLE);
+    ASSERT_NE(craftingTableItem, nullptr) << "CRAFTING_TABLE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(craftingTableItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, DaylightDetector_HasCorrectBurnTime) {
+    const BlockItem* detectorItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::DAYLIGHT_DETECTOR);
+    ASSERT_NE(detectorItem, nullptr) << "DAYLIGHT_DETECTOR should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(detectorItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, OakStairs_HasCorrectBurnTime) {
+    const BlockItem* stairsItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::OAK_STAIRS);
+    ASSERT_NE(stairsItem, nullptr) << "OAK_STAIRS should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(stairsItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, OakSlab_HasCorrectBurnTime) {
+    // 木质台阶燃烧时间是 150 tick
+    const BlockItem* slabItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::OAK_SLAB);
+    ASSERT_NE(slabItem, nullptr) << "OAK_SLAB should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(slabItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 150);
+}
+
+TEST_F(FurnaceBurnTimeTest, OakFence_HasCorrectBurnTime) {
+    const BlockItem* fenceItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::OAK_FENCE);
+    ASSERT_NE(fenceItem, nullptr) << "OAK_FENCE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(fenceItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, OakFenceGate_HasCorrectBurnTime) {
+    const BlockItem* gateItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::OAK_FENCE_GATE);
+    ASSERT_NE(gateItem, nullptr) << "OAK_FENCE_GATE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(gateItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, OakDoor_HasCorrectBurnTime) {
+    const BlockItem* doorItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::OAK_DOOR);
+    ASSERT_NE(doorItem, nullptr) << "OAK_DOOR should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(doorItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, OakTrapdoor_HasCorrectBurnTime) {
+    const BlockItem* trapdoorItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::OAK_TRAPDOOR);
+    ASSERT_NE(trapdoorItem, nullptr) << "OAK_TRAPDOOR should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(trapdoorItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, OakPressurePlate_HasCorrectBurnTime) {
+    const BlockItem* plateItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::OAK_PRESSURE_PLATE);
+    ASSERT_NE(plateItem, nullptr) << "OAK_PRESSURE_PLATE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(plateItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, OakButton_HasCorrectBurnTime) {
+    const BlockItem* buttonItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::OAK_BUTTON);
+    ASSERT_NE(buttonItem, nullptr) << "OAK_BUTTON should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(buttonItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+// ========== 树苗测试 (100 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, OakSapling_HasCorrectBurnTime) {
+    const BlockItem* saplingItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::OAK_SAPLING);
+    ASSERT_NE(saplingItem, nullptr) << "OAK_SAPLING should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(saplingItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+TEST_F(FurnaceBurnTimeTest, BirchSapling_HasCorrectBurnTime) {
+    const BlockItem* saplingItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BIRCH_SAPLING);
+    ASSERT_NE(saplingItem, nullptr) << "BIRCH_SAPLING should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(saplingItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+// ========== 羊毛测试 (100 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, WhiteWool_HasCorrectBurnTime) {
+    const BlockItem* woolItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::WHITE_WOOL);
+    ASSERT_NE(woolItem, nullptr) << "WHITE_WOOL should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(woolItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+TEST_F(FurnaceBurnTimeTest, BlackWool_HasCorrectBurnTime) {
+    const BlockItem* woolItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BLACK_WOOL);
+    ASSERT_NE(woolItem, nullptr) << "BLACK_WOOL should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(woolItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+// ========== 竹子测试 (50 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, Bamboo_HasCorrectBurnTime) {
+    const BlockItem* bambooItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BAMBOO);
+    ASSERT_NE(bambooItem, nullptr) << "BAMBOO should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(bambooItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 50);
+}
+
+// ========== 干海带块测试 (4001 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, DriedKelpBlock_HasCorrectBurnTime) {
+    const BlockItem* kelpItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::DRIED_KELP_BLOCK);
+    ASSERT_NE(kelpItem, nullptr) << "DRIED_KELP_BLOCK should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(kelpItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 4001);
+}
+
+// ========== IsFuel 测试 ==========
+
+TEST_F(FurnaceBurnTimeTest, IsFuel_ReturnsTrueForCoal) {
+    ASSERT_NE(Items::COAL, nullptr);
+    ItemStack coal(Items::COAL, 1);
+    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(coal));
+}
+
+TEST_F(FurnaceBurnTimeTest, IsFuel_ReturnsTrueForStick) {
+    ASSERT_NE(Items::STICK, nullptr);
+    ItemStack stick(Items::STICK, 1);
+    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(stick));
+}
+
+TEST_F(FurnaceBurnTimeTest, IsFuel_ReturnsFalseForDiamond) {
+    ASSERT_NE(Items::DIAMOND, nullptr);
+    ItemStack diamond(Items::DIAMOND, 1);
+    EXPECT_FALSE(AbstractFurnaceEntity::isFuel(diamond));
+}
+
+TEST_F(FurnaceBurnTimeTest, IsFuel_ReturnsFalseForEmptyStack) {
+    ItemStack empty;
+    EXPECT_FALSE(AbstractFurnaceEntity::isFuel(empty));
 }

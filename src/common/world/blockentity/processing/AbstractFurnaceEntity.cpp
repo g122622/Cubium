@@ -1,8 +1,10 @@
 #include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "item/crafting/RecipeManager.hpp"
 #include "item/Items.hpp"
+#include "item/items/block/BlockItemRegistry.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
+#include "world/block/VanillaBlocks.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "util/assert/AssertAll.hpp"
@@ -17,20 +19,79 @@ namespace {
 constexpr i32 FIRE_CRACKLE_CHANCE = 20;
 
 /**
+ * @brief 检查物品是否为指定方块的方块物品
+ * @param item 物品指针
+ * @param block 方块指针
+ * @return 如果物品是该方块的方块物品返回 true
+ */
+[[nodiscard]] bool isBlockItem(const Item* item, const Block* block) {
+    if (item == nullptr || block == nullptr) {
+        return false;
+    }
+    const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*block);
+    return blockItem != nullptr && item == static_cast<const Item*>(blockItem);
+}
+
+/**
+ * @brief 检查物品对应的方块是否在指定方块列表中
+ * @param item 物品指针
+ * @param blocks 方块指针数组
+ * @return 如果物品对应的方块在列表中返回 true
+ */
+[[nodiscard]] bool isBlockInList(const Item* item, std::initializer_list<const Block*> blocks) {
+    if (item == nullptr) {
+        return false;
+    }
+    const Block* block = BlockItemRegistry::instance().getBlock(item->itemId());
+    if (block == nullptr) {
+        return false;
+    }
+    for (const Block* b : blocks) {
+        if (b != nullptr && block == b) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief 检查物品是否在指定物品列表中
+ * @param item 物品指针
+ * @param items 物品指针数组
+ * @return 如果物品在列表中返回 true
+ */
+[[nodiscard]] bool isItemInList(const Item* item, std::initializer_list<const Item*> items) {
+    if (item == nullptr) {
+        return false;
+    }
+    for (const Item* i : items) {
+        if (i != nullptr && item == i) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * @brief 获取指定物品的燃烧时间。
  *
- * 参考: MC 1.16.5 AbstractFurnaceTileEntity 燃烧时间表
+ * 参考: MC 1.16.5 AbstractFurnaceTileEntity.getBurnTimes()
  * 燃烧时间单位：tick
  *
- * 注意：部分物品（煤炭块、岩浆桶等）尚未在 Items 中注册，
- * 待相关物品添加后需补充。
+ * 注意：部分物品尚未在 Items 中注册，待相关物品添加后需补充。
  */
 [[nodiscard]] i32 getBurnTimeByItem(const Item* item) {
         if (item == nullptr) {
             return 0;
         }
 
-        // ========== 燃料（高燃烧值）==========
+        // ========== 特殊燃料（高燃烧值）==========
+        // 岩浆桶: 20000 tick (1000 秒) - 燃烧后返回空桶
+        // 参考: MC 1.16.5 AbstractFurnaceTileEntity.getBurnTimes() 第 97 行
+        if (item == Items::LAVA_BUCKET) {
+            return 20000;
+        }
+
         // 烈焰棒: 2400 tick (120 秒)
         if (item == Items::BLAZE_ROD) {
             return 2400;
@@ -41,22 +102,95 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         if (item == Items::COAL || item == Items::CHARCOAL) {
             return 1600;
         }
-        // TODO: 煤炭块 (COAL_BLOCK) - 16000 tick (800 秒) - 待物品注册
+        // 煤炭块: 16000 tick (800 秒) - 待方块注册
+        // 参考: MC 1.16.5 第 98 行: addItemBurnTime(map, Blocks.COAL_BLOCK, 16000);
 
         // ========== 木头类 (300 tick = 15 秒) ==========
-        // 原木
-        if (item == Items::OAK_LOG || item == Items::SPRUCE_LOG ||
-            item == Items::BIRCH_LOG || item == Items::JUNGLE_LOG ||
-            item == Items::ACACIA_LOG || item == Items::DARK_OAK_LOG) {
+        // 原木 - 所有 6 种木材类型（使用 Items 静态指针直接比较）
+        if (isItemInList(item, {
+            Items::OAK_LOG, Items::SPRUCE_LOG,
+            Items::BIRCH_LOG, Items::JUNGLE_LOG,
+            Items::ACACIA_LOG, Items::DARK_OAK_LOG
+        })) {
             return 300;
         }
-        // 木板
-        if (item == Items::OAK_PLANKS || item == Items::SPRUCE_PLANKS ||
-            item == Items::BIRCH_PLANKS || item == Items::JUNGLE_PLANKS ||
-            item == Items::ACACIA_PLANKS || item == Items::DARK_OAK_PLANKS) {
+        // 木板 - 所有 6 种木材类型
+        if (isItemInList(item, {
+            Items::OAK_PLANKS, Items::SPRUCE_PLANKS,
+            Items::BIRCH_PLANKS, Items::JUNGLE_PLANKS,
+            Items::ACACIA_PLANKS, Items::DARK_OAK_PLANKS
+        })) {
             return 300;
         }
-        // TODO: 木质楼梯、木质门、栅栏、书架、音符盒、箱子等 - 300 tick
+        // 木头（六面树皮）- 所有 6 种木材类型
+        if (isBlockInList(item, {
+            VanillaBlocks::OAK_WOOD, VanillaBlocks::SPRUCE_WOOD,
+            VanillaBlocks::BIRCH_WOOD, VanillaBlocks::JUNGLE_WOOD,
+            VanillaBlocks::ACACIA_WOOD, VanillaBlocks::DARK_OAK_WOOD
+        })) {
+            return 300;
+        }
+        // 去皮原木 - 所有 6 种木材类型
+        if (isBlockInList(item, {
+            VanillaBlocks::STRIPPED_OAK_LOG, VanillaBlocks::STRIPPED_SPRUCE_LOG,
+            VanillaBlocks::STRIPPED_BIRCH_LOG, VanillaBlocks::STRIPPED_JUNGLE_LOG,
+            VanillaBlocks::STRIPPED_ACACIA_LOG, VanillaBlocks::STRIPPED_DARK_OAK_LOG
+        })) {
+            return 300;
+        }
+        // 去皮木头（六面树皮）- 所有 6 种木材类型
+        if (isBlockInList(item, {
+            VanillaBlocks::STRIPPED_OAK_WOOD, VanillaBlocks::STRIPPED_SPRUCE_WOOD,
+            VanillaBlocks::STRIPPED_BIRCH_WOOD, VanillaBlocks::STRIPPED_JUNGLE_WOOD,
+            VanillaBlocks::STRIPPED_ACACIA_WOOD, VanillaBlocks::STRIPPED_DARK_OAK_WOOD
+        })) {
+            return 300;
+        }
+
+        // ========== 木质建筑方块 (300 tick = 15 秒) ==========
+        // 参考: MC 1.16.5 第 104-127 行
+        // 木质楼梯 - 目前只有橡木楼梯
+        if (isBlockItem(item, VanillaBlocks::OAK_STAIRS)) {
+            return 300;
+        }
+        // 栅栏和栅栏门 - 目前只有橡木栅栏
+        if (isBlockInList(item, {VanillaBlocks::OAK_FENCE, VanillaBlocks::OAK_FENCE_GATE})) {
+            return 300;
+        }
+        // 书架
+        if (isBlockItem(item, VanillaBlocks::BOOKSHELF)) {
+            return 300;
+        }
+        // 音符盒
+        if (isBlockItem(item, VanillaBlocks::NOTE_BLOCK)) {
+            return 300;
+        }
+        // 合成台
+        if (isBlockItem(item, VanillaBlocks::CRAFTING_TABLE)) {
+            return 300;
+        }
+        // 光照探测器
+        if (isBlockItem(item, VanillaBlocks::DAYLIGHT_DETECTOR)) {
+            return 300;
+        }
+        // 木质门 - 目前只有橡木门
+        if (isBlockItem(item, VanillaBlocks::OAK_DOOR)) {
+            return 300;
+        }
+        // 木质活板门 - 目前只有橡木活板门
+        if (isBlockItem(item, VanillaBlocks::OAK_TRAPDOOR)) {
+            return 300;
+        }
+        // 木质压力板 - 目前只有橡木压力板
+        if (isBlockItem(item, VanillaBlocks::OAK_PRESSURE_PLATE)) {
+            return 300;
+        }
+
+        // ========== 木质台阶 (150 tick = 7.5 秒) ==========
+        // 参考: MC 1.16.5 第 105 行: addItemTagBurnTime(map, ItemTags.WOODEN_SLABS, 150);
+        if (isBlockItem(item, VanillaBlocks::OAK_SLAB)) {
+            return 150;
+        }
 
         // ========== 木制工具 (200 tick = 10 秒) ==========
         if (item == Items::WOODEN_PICKAXE || item == Items::WOODEN_AXE ||
@@ -65,27 +199,84 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
             return 200;
         }
 
-        // ========== 木棍、树苗、碗 (100 tick = 5 秒) ==========
-        if (item == Items::STICK) {
+        // ========== 弓、钓鱼竿、弩 (300 tick = 15 秒) ==========
+        // 参考: MC 1.16.5 第 129-131 行
+        if (item == Items::BOW || item == Items::FISHING_ROD || item == Items::CROSSBOW) {
+            return 300;
+        }
+
+        // ========== 木棍、树苗、碗、木质按钮 (100 tick = 5 秒) ==========
+        if (item == Items::STICK || item == Items::BOWL) {
             return 100;
         }
-        // TODO: 树苗 (SAPLING) - 100 tick - 待物品注册
-        // TODO: 碗 (BOWL) - 100 tick - 待物品注册
-
-        // ========== 其他木制品 ==========
-        // TODO: 木船 (BOAT) - 1200 tick (60 秒) - 待物品注册
-        // TODO: 羊毛 (WOOL) - 100 tick - 待物品注册
-        // TODO: 地毯 (CARPET) - 67 tick - 待物品注册
-        // TODO: 竹子 (BAMBOO) - 50 tick - 待物品注册
-        // TODO: 脚手架 (SCAFFOLDING) - 400 tick (20 秒) - 待物品注册
-        // TODO: 干海带块 (DRIED_KELP_BLOCK) - 4001 tick - 待物品注册
-
-        // ========== 特殊燃料 ==========
-        // 岩浆桶: 20000 tick (1000 秒) - 燃烧后返回空桶
-        // 参考: MC 1.16.5 AbstractFurnaceTileEntity.getBurnTimes() 第 97 行
-        if (item == Items::LAVA_BUCKET) {
-            return 20000;
+        // 树苗 - 所有 6 种类型
+        // 参考: MC 1.16.5 第 143 行: addItemTagBurnTime(map, ItemTags.SAPLINGS, 100);
+        if (isBlockInList(item, {
+            VanillaBlocks::OAK_SAPLING, VanillaBlocks::SPRUCE_SAPLING,
+            VanillaBlocks::BIRCH_SAPLING, VanillaBlocks::JUNGLE_SAPLING,
+            VanillaBlocks::ACACIA_SAPLING, VanillaBlocks::DARK_OAK_SAPLING
+        })) {
+            return 100;
         }
+        // 木质按钮 - 目前只有橡木按钮
+        // 参考: MC 1.16.5 第 141 行: addItemTagBurnTime(map, ItemTags.WOODEN_BUTTONS, 100);
+        if (isBlockItem(item, VanillaBlocks::OAK_BUTTON)) {
+            return 100;
+        }
+
+        // ========== 羊毛 (100 tick = 5 秒) ==========
+        // 参考: MC 1.16.5 第 140 行: addItemTagBurnTime(map, ItemTags.WOOL, 100);
+        if (isBlockInList(item, {
+            VanillaBlocks::WHITE_WOOL, VanillaBlocks::ORANGE_WOOL,
+            VanillaBlocks::MAGENTA_WOOL, VanillaBlocks::LIGHT_BLUE_WOOL,
+            VanillaBlocks::YELLOW_WOOL, VanillaBlocks::LIME_WOOL,
+            VanillaBlocks::PINK_WOOL, VanillaBlocks::GRAY_WOOL,
+            VanillaBlocks::LIGHT_GRAY_WOOL, VanillaBlocks::CYAN_WOOL,
+            VanillaBlocks::PURPLE_WOOL, VanillaBlocks::BLUE_WOOL,
+            VanillaBlocks::BROWN_WOOL, VanillaBlocks::GREEN_WOOL,
+            VanillaBlocks::RED_WOOL, VanillaBlocks::BLACK_WOOL
+        })) {
+            return 100;
+        }
+
+        // ========== 地毯 (67 tick) ==========
+        // 参考: MC 1.16.5 第 145 行: addItemTagBurnTime(map, ItemTags.CARPETS, 67);
+        // 注意: 地毯方块尚未注册，待注册后补充
+
+        // ========== 竹子 (50 tick) ==========
+        // 参考: MC 1.16.5 第 148 行: addItemBurnTime(map, Blocks.BAMBOO, 50);
+        if (isBlockItem(item, VanillaBlocks::BAMBOO)) {
+            return 50;
+        }
+
+        // ========== 脚手架 (400 tick = 20 秒) ==========
+        // 参考: MC 1.16.5 第 150 行: addItemBurnTime(map, Blocks.SCAFFOLDING, 400);
+        // 注意: 脚手架方块物品尚未注册，待注册后补充
+
+        // ========== 干海带块 (4001 tick) ==========
+        // 参考: MC 1.16.5 第 146 行: addItemBurnTime(map, Blocks.DRIED_KELP_BLOCK, 4001);
+        if (isBlockItem(item, VanillaBlocks::DRIED_KELP_BLOCK)) {
+            return 4001;
+        }
+
+        // ========== TODO 待实现的物品 ==========
+        // 木船 (BOAT): 1200 tick (60 秒) - 待物品注册
+        // 地毯 (CARPET): 67 tick - 待方块注册
+        // 煤炭块 (COAL_BLOCK): 16000 tick (800 秒) - 待方块注册
+        // 旗帜 (BANNER): 300 tick - 待方块注册
+        // 告示牌 (SIGN): 200 tick - 待物品注册
+        // 箱子 (CHEST): 300 tick - 待物品注册
+        // 陷阱箱 (TRAPPED_CHEST): 300 tick - 待方块注册
+        // 织布机 (LOOM): 300 tick - 待方块注册
+        // 木桶 (BARREL): 300 tick - 待方块注册
+        // 制图台 (CARTOGRAPHY_TABLE): 300 tick - 待方块注册
+        // 制箭台 (FLETCHING_TABLE): 300 tick - 待方块注册
+        // 锻造台 (SMITHING_TABLE): 300 tick - 待方块注册
+        // 堆肥桶 (COMPOSTER): 300 tick - 待方块注册
+        // 梯子 (LADDER): 300 tick - 待物品注册
+        // 讲台 (LECTERN): 300 tick - 待方块注册
+        // 唱片机 (JUKEBOX): 300 tick - 待方块注册
+        // 死灌木 (DEAD_BUSH): 100 tick - 待方块注册
 
         return 0;
     }
