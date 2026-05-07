@@ -222,6 +222,46 @@ src/client/
 - `ClientApplication`: 主应用类，协调所有子系统
 - `ClientLaunchParams`: 启动参数配置（窗口大小、服务器地址等）
 
+**主循环架构**:
+
+客户端主循环采用固定时间步长 (fixed timestep) 物理更新 + 可变帧率渲染的架构：
+
+```
+主循环每帧:
+1. 计算 deltaTime（帧间隔时间）
+2. handleEvents() - 处理输入事件
+3. update(deltaTime) - 更新游戏逻辑
+   ├── 玩家物理更新（20 TPS 固定步长）
+   │   └── m_playerPhysicsAccumulator 累积时间
+   ├── 计算 partialTick
+   │   └── partialTick = accumulator / TICK_DURATION (范围 [0.0, 1.0))
+   ├── 相机位置插值（使用 partialTick）
+   ├── 实体 tick 和插值更新
+   │   ├── entityManager.tick() - 每 tick 调用
+   │   ├── entityManager.updateInterpolation(deltaTime) - 每帧平滑插值
+   │   └── entityManager.updateAnimations(partialTick) - 动画插值
+   ├── 世界更新（区块网格构建）
+   ├── 时间和天气同步
+   └── UI 状态更新（传递 partialTick）
+4. render() - 渲染帧
+5. input.endFrame() - 清理瞬时输入状态
+```
+
+**partialTick（部分 tick）**:
+
+`partialTick` 是一个 `[0.0, 1.0)` 范围的浮点值，表示当前渲染帧在两个游戏 tick 之间的位置：
+- `0.0` = 刚完成一个 tick
+- `0.5` = 距离下一个 tick 还有一半时间
+- `~1.0` = 即将执行下一个 tick
+
+**用途**:
+- 实体位置插值：`getInterpolatedPosition(partialTick)` 使实体移动平滑
+- 相机位置插值：玩家视角平滑跟随
+- 动画插值：行走周期、攻击挥动等动画
+- GUI 动画：屏幕过渡效果
+- 天气效果：雨雪粒子动画
+- 方块实体动画：箱子开合、活塞移动
+
 **使用方法**:
 ```cpp
 mc::client::ClientApplication app;

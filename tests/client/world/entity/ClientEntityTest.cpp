@@ -422,3 +422,176 @@ TEST_F(ClientEntityTest, FrameRateIndependentInterpolation) {
     f32 tolerance = std::max(result1, result2) * 0.05f;
     EXPECT_NEAR(result1, result2, tolerance);
 }
+
+// ============================================================================
+// partialTick 边界测试
+// ============================================================================
+
+TEST_F(ClientEntityTest, PartialTickZeroReturnsPrevPosition) {
+    // partialTick = 0.0 应返回 prevPosition
+    entity->setInterpolationSpeed(1.0f);
+    entity->setPosition(0.0f, 0.0f, 0.0f);
+    entity->setTargetPosition(100.0f, 64.0f, 200.0f);
+    entity->tick();  // prevPosition = (0, 0, 0)
+    entity->updateInterpolation(0.05f);  // position = target
+
+    auto pos = entity->getInterpolatedPosition(0.0f);
+    EXPECT_FLOAT_EQ(pos.x, 0.0f);
+    EXPECT_FLOAT_EQ(pos.y, 0.0f);
+    EXPECT_FLOAT_EQ(pos.z, 0.0f);
+}
+
+TEST_F(ClientEntityTest, PartialTickOneReturnsCurrentPosition) {
+    // partialTick = 1.0 应返回当前 position
+    entity->setInterpolationSpeed(1.0f);
+    entity->setPosition(0.0f, 0.0f, 0.0f);
+    entity->setTargetPosition(100.0f, 64.0f, 200.0f);
+    entity->tick();  // prevPosition = (0, 0, 0)
+    entity->updateInterpolation(0.05f);  // position = target
+
+    auto pos = entity->getInterpolatedPosition(1.0f);
+    EXPECT_FLOAT_EQ(pos.x, 100.0f);
+    EXPECT_FLOAT_EQ(pos.y, 64.0f);
+    EXPECT_FLOAT_EQ(pos.z, 200.0f);
+}
+
+TEST_F(ClientEntityTest, PartialTickHalfReturnsMidpoint) {
+    // partialTick = 0.5 应返回中点
+    entity->setInterpolationSpeed(1.0f);
+    entity->setPosition(0.0f, 0.0f, 0.0f);
+    entity->setTargetPosition(100.0f, 64.0f, 200.0f);
+    entity->tick();  // prevPosition = (0, 0, 0)
+    entity->updateInterpolation(0.05f);  // position = target
+
+    auto pos = entity->getInterpolatedPosition(0.5f);
+    EXPECT_FLOAT_EQ(pos.x, 50.0f);
+    EXPECT_FLOAT_EQ(pos.y, 32.0f);
+    EXPECT_FLOAT_EQ(pos.z, 100.0f);
+}
+
+TEST_F(ClientEntityTest, PartialTickRotationInterpolation) {
+    entity->setInterpolationSpeed(1.0f);
+    entity->setRotation(0.0f, 0.0f);
+    entity->setTargetRotation(180.0f, 90.0f);
+    entity->tick();
+    entity->updateInterpolation(0.05f);
+
+    // partialTick = 0.0 应返回 prev 值
+    EXPECT_FLOAT_EQ(entity->getInterpolatedYaw(0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(entity->getInterpolatedPitch(0.0f), 0.0f);
+
+    // partialTick = 1.0 应返回当前值
+    EXPECT_FLOAT_EQ(entity->getInterpolatedYaw(1.0f), 180.0f);
+    EXPECT_FLOAT_EQ(entity->getInterpolatedPitch(1.0f), 90.0f);
+
+    // partialTick = 0.5 应返回中点
+    EXPECT_FLOAT_EQ(entity->getInterpolatedYaw(0.5f), 90.0f);
+    EXPECT_FLOAT_EQ(entity->getInterpolatedPitch(0.5f), 45.0f);
+}
+
+TEST_F(ClientEntityTest, PartialTickHeadYawInterpolation) {
+    entity->setInterpolationSpeed(1.0f);
+    entity->setHeadRotation(0.0f);
+    entity->setTargetHeadRotation(90.0f);
+    entity->tick();
+    entity->updateInterpolation(0.05f);
+
+    EXPECT_FLOAT_EQ(entity->getInterpolatedHeadYaw(0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(entity->getInterpolatedHeadYaw(1.0f), 90.0f);
+    EXPECT_FLOAT_EQ(entity->getInterpolatedHeadYaw(0.5f), 45.0f);
+}
+
+TEST_F(ClientEntityTest, PartialTickSwingProgressInterpolation) {
+    // 设置 swingProgress，getInterpolatedSwingProgress 在 prev 和 current 之间插值
+    // 注意：prevSwingProgress 需要通过调用 startSwing() 或在 tick 中手动更新
+    entity->setSwingProgress(0.5f);
+    // 在当前实现中，prevSwingProgress 初始为 0
+    EXPECT_FLOAT_EQ(entity->prevSwingProgress(), 0.0f);
+    EXPECT_FLOAT_EQ(entity->swingProgress(), 0.5f);
+
+    // partialTick 插值测试
+    EXPECT_FLOAT_EQ(entity->getInterpolatedSwingProgress(0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(entity->getInterpolatedSwingProgress(1.0f), 0.5f);
+    EXPECT_FLOAT_EQ(entity->getInterpolatedSwingProgress(0.5f), 0.25f);
+}
+
+TEST_F(ClientEntityTest, PartialTickNegativePosition) {
+    // 测试负坐标
+    entity->setInterpolationSpeed(1.0f);
+    entity->setPosition(-100.0f, -64.0f, -200.0f);
+    entity->setTargetPosition(100.0f, 64.0f, 200.0f);
+    entity->tick();
+    entity->updateInterpolation(0.05f);
+
+    auto pos0 = entity->getInterpolatedPosition(0.0f);
+    EXPECT_FLOAT_EQ(pos0.x, -100.0f);
+    EXPECT_FLOAT_EQ(pos0.y, -64.0f);
+    EXPECT_FLOAT_EQ(pos0.z, -200.0f);
+
+    auto pos1 = entity->getInterpolatedPosition(1.0f);
+    EXPECT_FLOAT_EQ(pos1.x, 100.0f);
+    EXPECT_FLOAT_EQ(pos1.y, 64.0f);
+    EXPECT_FLOAT_EQ(pos1.z, 200.0f);
+
+    auto posHalf = entity->getInterpolatedPosition(0.5f);
+    EXPECT_FLOAT_EQ(posHalf.x, 0.0f);
+    EXPECT_FLOAT_EQ(posHalf.y, 0.0f);
+    EXPECT_FLOAT_EQ(posHalf.z, 0.0f);
+}
+
+TEST_F(ClientEntityTest, PartialTickSmallValues) {
+    // 测试小数值精度
+    entity->setInterpolationSpeed(1.0f);
+    entity->setPosition(0.0f, 0.0f, 0.0f);
+    entity->setTargetPosition(0.001f, 0.001f, 0.001f);
+    entity->tick();
+    entity->updateInterpolation(0.05f);
+
+    auto pos = entity->getInterpolatedPosition(0.5f);
+    EXPECT_NEAR(pos.x, 0.0005f, 1e-7f);
+    EXPECT_NEAR(pos.y, 0.0005f, 1e-7f);
+    EXPECT_NEAR(pos.z, 0.0005f, 1e-7f);
+}
+
+TEST_F(ClientEntityTest, PartialTickLargeValues) {
+    // 测试大坐标值
+    entity->setInterpolationSpeed(1.0f);
+    entity->setPosition(0.0f, 0.0f, 0.0f);
+    entity->setTargetPosition(30000000.0f, 256.0f, 30000000.0f);
+    entity->tick();
+    entity->updateInterpolation(0.05f);
+
+    auto pos = entity->getInterpolatedPosition(0.5f);
+    EXPECT_FLOAT_EQ(pos.x, 15000000.0f);
+    EXPECT_FLOAT_EQ(pos.y, 128.0f);
+    EXPECT_FLOAT_EQ(pos.z, 15000000.0f);
+}
+
+TEST_F(ClientEntityTest, PartialTickAnimationValues) {
+    // 测试动画相关值的插值
+    // updateAnimation 更新 limbSwing 和 limbSwingAmount
+    entity->updateAnimation(1.0f);  // limbSwingAmount = 1.0
+    // 此时 prevLimbSwingAmount 已被保存为旧值，limbSwingAmount 被设为 1.0
+    EXPECT_FLOAT_EQ(entity->prevLimbSwingAmount(), 0.0f);  // 初始为 0
+    EXPECT_FLOAT_EQ(entity->limbSwingAmount(), 1.0f);
+
+    entity->updateAnimation(0.5f);  // limbSwingAmount = 0.5, prevLimbSwingAmount = 1.0
+    EXPECT_FLOAT_EQ(entity->prevLimbSwingAmount(), 1.0f);
+    EXPECT_FLOAT_EQ(entity->limbSwingAmount(), 0.5f);
+}
+
+TEST_F(ClientEntityTest, PartialTickConsistencyMultipleCalls) {
+    // 多次调用 getInterpolatedPosition 应返回一致的结果
+    entity->setInterpolationSpeed(1.0f);
+    entity->setPosition(0.0f, 0.0f, 0.0f);
+    entity->setTargetPosition(100.0f, 64.0f, 200.0f);
+    entity->tick();
+    entity->updateInterpolation(0.05f);
+
+    for (int i = 0; i < 10; ++i) {
+        auto pos = entity->getInterpolatedPosition(0.75f);
+        EXPECT_FLOAT_EQ(pos.x, 75.0f);
+        EXPECT_FLOAT_EQ(pos.y, 48.0f);
+        EXPECT_FLOAT_EQ(pos.z, 150.0f);
+    }
+}

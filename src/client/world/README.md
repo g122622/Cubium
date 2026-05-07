@@ -41,6 +41,45 @@ src/client/world/
 - 维护雨强、雷强和状态过渡。
 - 为渲染侧提供插值后的天气参数。
 
+### entity/ClientEntityManager.hpp / ClientEntityManager.cpp
+
+职责：
+- 管理客户端实体（接收服务端实体数据、位置插值、动画更新）。
+- 提供两种插值机制：
+  - **平滑插值**：`updateInterpolation(deltaTime)` - 每帧调用，向目标位置平滑移动
+  - **帧间插值**：`getInterpolatedPosition(partialTick)` - 渲染时在 prev 和 current 之间插值
+
+核心接口：
+- `tick()` - 每 tick 调用，更新实体状态和保存 prev 位置
+- `updateInterpolation(deltaTime)` - 每帧调用，平滑网络位置更新
+- `updateAnimations(partialTick)` - 每帧调用，更新动画状态
+
+### entity/ClientEntity.hpp / ClientEntity.cpp
+
+职责：
+- 客户端实体代理，维护位置、旋转、动画等状态。
+- 提供基于 `partialTick` 的插值方法。
+
+核心插值方法：
+```cpp
+// 位置插值
+Vector3 getInterpolatedPosition(f32 partialTick) const;
+
+// 旋转插值
+f32 getInterpolatedYaw(f32 partialTick) const;
+f32 getInterpolatedPitch(f32 partialTick) const;
+f32 getInterpolatedHeadYaw(f32 partialTick) const;
+
+// 动画插值
+f32 getInterpolatedSwingProgress(f32 partialTick) const;
+```
+
+**partialTick 使用说明**：
+- `partialTick` 范围：`[0.0, 1.0)`
+- `0.0` = 返回 prev 值（上一 tick 结束时的状态）
+- `1.0` = 返回当前值
+- `0.5` = 返回中点值
+
 ## 3. 模块关系
 
 ```mermaid
