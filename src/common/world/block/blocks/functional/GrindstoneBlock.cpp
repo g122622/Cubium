@@ -1,5 +1,10 @@
 #include "GrindstoneBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/items/block/BlockItemRegistry.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
@@ -94,11 +99,24 @@ BlockState GrindstoneBlock::updatePostPlacement(
     Direction grindstoneFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
 
     // 检查附着的墙是否还存在
+    // 参考 MC 1.16.5: GrindstoneBlock.updatePostPlacement
     if (facing == grindstoneFacing) {
         if (!facingState.isSolid()) {
-            // 墙被移除，掉落
-            // TODO: 掉落物品
-            return world.getBlockState(currentPos)->getBlock().defaultState();
+            // 墙被移除，掉落砂轮物品
+            const Block* block = &state.getBlock();
+            if (block != nullptr) {
+                const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*block);
+                if (blockItem != nullptr) {
+                    ItemStack dropStack(blockItem, 1);
+                    math::Random rng;
+                    ItemDropHelper::spawnItemEntity(&world, dropStack,
+                        static_cast<f64>(currentPos.x) + 0.5,
+                        static_cast<f64>(currentPos.y) + 0.5,
+                        static_cast<f64>(currentPos.z) + 0.5,
+                        rng);
+                }
+            }
+            return VanillaBlocks::AIR->defaultState();
         }
     }
 

@@ -3,6 +3,11 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
+#include "../../VanillaBlocks.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/items/block/BlockItemRegistry.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include <unordered_map>
 
@@ -58,8 +63,21 @@ void TripWireHookBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const B
     const BlockState* attachState = world.getBlockState(attachPos);
 
     if (!attachState || !attachState->isSolid()) {
-        // 没有支撑，掉落
-        // TODO: 掉落物品
+        // 没有支撑，掉落绊线钩物品
+        // 参考 MC 1.16.5: TripWireHookBlock.onBlockAdded
+        const Block* block = &state.getBlock();
+        if (block != nullptr) {
+            const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*block);
+            if (blockItem != nullptr) {
+                ItemStack dropStack(blockItem, 1);
+                math::Random rng;
+                ItemDropHelper::spawnItemEntity(&world, dropStack,
+                    static_cast<f64>(pos.x) + 0.5,
+                    static_cast<f64>(pos.y) + 0.5,
+                    static_cast<f64>(pos.z) + 0.5,
+                    rng);
+            }
+        }
         world.setBlockState(pos, nullptr, 3);
     }
 }
@@ -82,8 +100,21 @@ void TripWireHookBlock::neighborChanged(IWorld& world, const BlockPos& pos, Bloc
     const BlockState* attachState = world.getBlockState(attachPos);
 
     if (!attachState || !attachState->isSolid()) {
-        // 没有支撑，掉落
-        // TODO: 掉落物品
+        // 没有支撑，掉落绊线钩物品
+        // 参考 MC 1.16.5: TripWireHookBlock.neighborChanged
+        const Block* block = &state->getBlock();
+        if (block != nullptr) {
+            const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*block);
+            if (blockItem != nullptr) {
+                ItemStack dropStack(blockItem, 1);
+                math::Random rng;
+                ItemDropHelper::spawnItemEntity(&world, dropStack,
+                    static_cast<f64>(pos.x) + 0.5,
+                    static_cast<f64>(pos.y) + 0.5,
+                    static_cast<f64>(pos.z) + 0.5,
+                    rng);
+            }
+        }
         world.setBlockState(pos, nullptr, 3);
     } else {
         // 重新计算状态

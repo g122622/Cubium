@@ -7,6 +7,10 @@
 #include "../../../IWorld.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../blockentity/interactive/PistonBlockEntity.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/items/block/BlockItemRegistry.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -301,7 +305,21 @@ bool PistonBlock::doMove(IWorld& world, const BlockPos& pos, Direction facing, b
         const BlockPos& destroyPos = *it;
         const BlockState* destroyState = world.getBlockState(destroyPos);
         if (destroyState && !destroyState->isAir()) {
-            // TODO: 掉落物品
+            // 参考 MC 1.16.5: PistonBlock.doMove
+            // 破坏方块时掉落物品
+            const Block* destroyBlock = &destroyState->getBlock();
+            if (destroyBlock != nullptr) {
+                const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*destroyBlock);
+                if (blockItem != nullptr) {
+                    ItemStack dropStack(blockItem, 1);
+                    math::Random rng;
+                    ItemDropHelper::spawnItemEntity(&world, dropStack,
+                        static_cast<f64>(destroyPos.x) + 0.5,
+                        static_cast<f64>(destroyPos.y) + 0.5,
+                        static_cast<f64>(destroyPos.z) + 0.5,
+                        rng);
+                }
+            }
             world.setBlockState(destroyPos, nullptr, 18);
         }
     }

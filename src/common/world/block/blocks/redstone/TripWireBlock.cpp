@@ -2,6 +2,11 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
+#include "../../VanillaBlocks.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/items/block/BlockItemRegistry.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../../entity/core/Entity.hpp"
 #include "../../../../util/AxisAlignedBB.hpp"
 #include "../../../../util/property/Properties.hpp"
@@ -85,8 +90,21 @@ void TripWireBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& n
     BlockPos belowPos = pos.down();
     const BlockState* belowState = world.getBlockState(belowPos);
     if (!belowState || !belowState->isSolid()) {
-        // 没有支撑，掉落
-        // TODO: 掉落线物品
+        // 没有支撑，掉落绊线物品
+        // 参考 MC 1.16.5: TripWireBlock.neighborChanged
+        const Block* block = &state->getBlock();
+        if (block != nullptr) {
+            const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*block);
+            if (blockItem != nullptr) {
+                ItemStack dropStack(blockItem, 1);
+                math::Random rng;
+                ItemDropHelper::spawnItemEntity(&world, dropStack,
+                    static_cast<f64>(pos.x) + 0.5,
+                    static_cast<f64>(pos.y) + 0.5,
+                    static_cast<f64>(pos.z) + 0.5,
+                    rng);
+            }
+        }
         world.setBlockState(pos, nullptr, 3);
     }
 }
