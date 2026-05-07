@@ -1,6 +1,7 @@
 #include "LanternBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../WaterLoggableHelpers.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
@@ -57,11 +58,20 @@ bool LanternBlock::isValidPosition(
     IBlockReader& world,
     const BlockPos& pos) const
 {
-    MC_UNUSED(state);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    // TODO: 检查是否有支撑方块
-    return true;
+    // 参考 MC 1.16.5: LanternBlock.isValidPosition
+    // 根据悬挂状态检查支撑方块
+    bool hanging = state.get(BlockStateProperties::HANGING());
+    // 悬挂时检查上方方块，站立时检查下方方块
+    Direction supportDir = hanging ? Direction::Up : Direction::Down;
+    BlockPos supportPos = pos.offset(supportDir);
+    const BlockState* supportState = world.getBlockState(supportPos);
+
+    if (supportState == nullptr || supportState->isAir()) {
+        return false;
+    }
+
+    // 检查支撑面是否为足够坚固的实体面
+    return supportState->isSolidSide(world, supportPos, Directions::opposite(supportDir));
 }
 
 BlockState LanternBlock::updatePostPlacement(
@@ -72,12 +82,30 @@ BlockState LanternBlock::updatePostPlacement(
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
+    MC_UNUSED(facingState);
+    MC_UNUSED(facingPos);
+
     // 处理含水状态
     if (state.get(BlockStateProperties::WATERLOGGED())) {
         waterloggable::scheduleWaterTick(world, currentPos);
     }
 
-    // TODO: 检查支撑是否仍然存在
+    // 参考 MC 1.16.5: LanternBlock.updatePostPlacement
+    // 如果支撑方块被移除，则移除灯笼
+    bool hanging = state.get(BlockStateProperties::HANGING());
+    Direction supportDir = hanging ? Direction::Up : Direction::Down;
+
+    if (facing == supportDir) {
+        // 支撑方块发生变化，检查是否仍然有效
+        BlockPos supportPos = currentPos.offset(supportDir);
+        const BlockState* supportState = world.getBlockState(supportPos);
+
+        if (supportState == nullptr || supportState->isAir() ||
+            !supportState->isSolidSide(world, supportPos, Directions::opposite(supportDir))) {
+            return VanillaBlocks::AIR->defaultState();
+        }
+    }
+
     return state;
 }
 

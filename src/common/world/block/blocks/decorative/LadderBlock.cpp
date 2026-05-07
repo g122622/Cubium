@@ -1,6 +1,7 @@
 #include "LadderBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../WaterLoggableHelpers.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 
@@ -61,11 +62,19 @@ bool LadderBlock::isValidPosition(
     IBlockReader& world,
     const BlockPos& pos) const
 {
-    MC_UNUSED(state);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    // TODO: 检查背面是否有固体方块
-    return true;
+    // 参考 MC 1.16.5: LadderBlock.isValidPosition
+    // 梯子需要附着在固体方块的侧面
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    // 获取梯子背面的方块位置（朝向的反方向）
+    BlockPos attachPos = pos.offset(Directions::opposite(facing));
+    const BlockState* attachState = world.getBlockState(attachPos);
+
+    if (attachState == nullptr) {
+        return false;
+    }
+
+    // 检查背面方块的朝向梯子的面是否为实体面
+    return attachState->isSolidSide(world, attachPos, facing);
 }
 
 BlockState LadderBlock::updatePostPlacement(
@@ -76,12 +85,27 @@ BlockState LadderBlock::updatePostPlacement(
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
+    MC_UNUSED(facingState);
+    MC_UNUSED(facingPos);
+
     // 处理含水状态
     if (state.get(BlockStateProperties::WATERLOGGED())) {
         waterloggable::scheduleWaterTick(world, currentPos);
     }
 
-    // TODO: 检查背面方块是否仍然存在
+    // 参考 MC 1.16.5: LadderBlock.updatePostPlacement
+    // 如果梯子背面方块被移除，则移除梯子
+    Direction ladderFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    if (facing == Directions::opposite(ladderFacing)) {
+        // 背面方块发生变化，检查是否仍然可以附着
+        BlockPos attachPos = currentPos.offset(Directions::opposite(ladderFacing));
+        const BlockState* attachState = world.getBlockState(attachPos);
+
+        if (attachState == nullptr || !attachState->isSolidSide(world, attachPos, ladderFacing)) {
+            return VanillaBlocks::AIR->defaultState();
+        }
+    }
+
     return state;
 }
 

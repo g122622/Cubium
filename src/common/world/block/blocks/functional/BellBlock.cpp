@@ -1,5 +1,10 @@
 #include "BellBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../VanillaBlocks.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/items/block/BlockItemRegistry.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
@@ -104,9 +109,24 @@ BlockState BellBlock::updatePostPlacement(
     }
 
     if (!valid) {
-        // 掉落
-        // TODO: 掉落物品
-        return world.getBlockState(currentPos)->getBlock().defaultState();
+        // 参考 MC 1.16.5: BellBlock.updatePostPlacement
+        // 支撑失效时，掉落钟物品并移除方块
+        // 生成物品掉落
+        const Block* block = &state.getBlock();
+        if (block != nullptr) {
+            // 获取方块对应的物品
+            const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*block);
+            if (blockItem != nullptr) {
+                ItemStack dropStack(blockItem, 1);
+                math::Random rng;
+                ItemDropHelper::spawnItemEntity(&world, dropStack,
+                    static_cast<f64>(currentPos.x) + 0.5,
+                    static_cast<f64>(currentPos.y) + 0.5,
+                    static_cast<f64>(currentPos.z) + 0.5,
+                    rng);
+            }
+        }
+        return VanillaBlocks::AIR->defaultState();
     }
 
     return state;

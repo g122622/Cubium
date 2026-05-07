@@ -1,4 +1,6 @@
 #include "CarpetBlock.hpp"
+#include "../../../IWorld.hpp"
+#include "../../VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -28,10 +30,12 @@ bool CarpetBlock::isValidPosition(
     const BlockPos& pos) const
 {
     MC_UNUSED(state);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    // TODO: 检查下方是否有固体方块
-    return true;
+    // 参考 MC 1.16.5: CarpetBlock.isValidPosition
+    // 地毯需要放置在非空气方块上方
+    const BlockPos belowPos = pos.down();
+    const BlockState* belowState = world.getBlockState(belowPos);
+    // 检查下方是否为空气方块
+    return belowState != nullptr && !belowState->isAir();
 }
 
 BlockState CarpetBlock::updatePostPlacement(
@@ -42,12 +46,17 @@ BlockState CarpetBlock::updatePostPlacement(
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-    MC_UNUSED(facing);
     MC_UNUSED(facingState);
-    MC_UNUSED(world);
-    MC_UNUSED(currentPos);
     MC_UNUSED(facingPos);
-    // TODO: 检查下方方块是否仍然存在
+    // 参考 MC 1.16.5: CarpetBlock.updatePostPlacement
+    // 如果下方方块被移除，则移除地毯
+    if (facing == Direction::Down) {
+        const BlockPos belowPos = currentPos.down();
+        const BlockState* belowState = world.getBlockState(belowPos);
+        if (belowState == nullptr || belowState->isAir()) {
+            return VanillaBlocks::AIR->defaultState();
+        }
+    }
     return state;
 }
 

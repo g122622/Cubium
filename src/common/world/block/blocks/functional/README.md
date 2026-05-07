@@ -151,7 +151,9 @@ Block (基类)
 ├── LoomBlock
 │   └── 配方处理
 ├── BellBlock
-│   └── 多方向附着
+│   ├── 多方向附着
+│   ├── 支撑检测
+│   └── 物品掉落 (支撑失效时)
 ├── JukeboxBlock
 │   └── 音乐播放
 ├── RespawnAnchorBlock

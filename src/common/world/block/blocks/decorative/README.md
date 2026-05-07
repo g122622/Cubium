@@ -14,6 +14,7 @@ decorative/
 ├── ChainBlock.hpp/cpp          # 锁链
 ├── LadderBlock.hpp/cpp         # 梯子
 ├── ScaffoldingBlock.hpp/cpp    # 脚手架
+├── CampfireBlock.hpp/cpp       # 营火
 └── README.md
 ```
 
@@ -45,8 +46,12 @@ decorative/
 
 **特性**:
 - 单层高度（1/16格）
-- 可放置在任何固体上
+- 可放置在任何非空气方块上
 - 16种颜色
+
+**放置逻辑**:
+- `isValidPosition()`: 检查下方是否为非空气方块
+- `updatePostPlacement()`: 下方方块被移除时，地毯自动变为空气
 
 ### GlazedTerracottaBlock.hpp/cpp
 
@@ -65,6 +70,10 @@ decorative/
 
 **方块实体**: `FlowerPotEntity`（存储植物内容）
 
+**放置逻辑**:
+- `isValidPosition()`: 花盆可放置在任何完整方块上（默认返回 true）
+- `updatePostPlacement()`: 下方方块被移除时，花盆自动变为空气
+
 **衍生方块**:
 - 空花盆
 - 盆栽树苗（6种）
@@ -81,6 +90,12 @@ decorative/
 - HANGING: bool  // 是否悬挂
 - WATERLOGGED: bool
 ```
+
+**放置逻辑**:
+- `isValidPosition()`: 根据悬挂状态检查支撑
+  - 悬挂时检查上方方块是否有实体底面
+  - 站立时检查下方方块是否有实体顶面
+- `updatePostPlacement()`: 支撑方块被移除时，灯笼自动变为空气
 
 **衍生方块**:
 - LANTERN（灯笼）
@@ -102,12 +117,17 @@ decorative/
 
 **状态属性**:
 ```cpp
-- FACING: Direction (NORTH, SOUTH, EAST, WEST)  // 附着方向
+- HORIZONTAL_FACING: Direction (NORTH, SOUTH, EAST, WEST)  // 附着方向
+- WATERLOGGED: bool
 ```
 
+**放置逻辑**:
+- `isValidPosition()`: 检查背面是否有固体方块（使用 `isSolidSide()` 判断）
+- `updatePostPlacement()`: 背面方块被移除时，梯子自动变为空气
+
 **特性**:
-- 可攀爬
-- 只能附在固体方块侧面
+- 可攀爬（`isLadder()` 始终返回 true）
+- 无碰撞箱
 
 ### ScaffoldingBlock.hpp/cpp
 
@@ -131,6 +151,7 @@ decorative/
 - `world/block/Block.hpp` - 方块基类
 - `world/block/BlockState.hpp` - 方块状态
 - `world/block/BlockProperties.hpp` - 方块属性构建器
+- `world/block/VanillaBlocks.hpp` - 空气方块常量
 
 ### 外部依赖
 - `<memory>` - 智能指针
