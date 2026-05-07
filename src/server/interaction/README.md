@@ -105,10 +105,35 @@ struct MiningState {
 | `broadcastBreakAnim()` | 广播破坏动画 |
 
 **挖掘速度计算**：
-- 创造模式：瞬间破坏（速度 = 1.0）
-- 硬度为0的方块：瞬间破坏
-- 不可破坏方块（硬度 < 0）：速度 = 0
-- 常规模式：基础速度 = 1.0 / (hardness * 30.0)
+
+MiningManager 实现了完整的 MC 1.16.5 挖掘速度算法：
+
+**最终挖掘速度公式**：
+```
+最终挖掘速度 = (基础工具速度 + 效率附魔加成)
+                × 急迫效果乘数
+                × 挖掘疲劳乘数
+                × 水下惩罚
+                × 空中惩罚
+
+方块相对硬度 = 挖掘速度 / 方块硬度 / 工具系数
+```
+
+**各因素详解**：
+
+| 因素 | 公式/值 | 说明 |
+|------|---------|------|
+| 基础工具速度 | `ItemStack.getDestroySpeed()` | 工具材质效率（木2.0、石4.0、铁6.0、钻石8.0、金12.0、下界合金9.0） |
+| 效率附魔加成 | `level² + 1` | I:2, II:5, III:10, IV:17, V:26（仅当基础速度>1时生效） |
+| 急迫效果乘数 | `1 + (amplifier+1) × 0.2` | I:1.2, II:1.4, III:1.6...（急迫+潮涌能量取最大） |
+| 挖掘疲劳乘数 | I:0.3, II:0.09, III:0.0027, IV+:0.00081 | 大幅降低挖掘速度 |
+| 水下惩罚 | 无水下速掘时 ÷5 | 眼睛在水中 |
+| 空中惩罚 | 不在地面时 ÷5 | 玩家未着地 |
+| 正确工具除数 | 30 | 可采集方块 |
+| 错误工具除数 | 100 | 不可采集方块 |
+
+**创造模式**：瞬间破坏（速度 = 1.0）
+**硬度 ≤ 0**：不可破坏（速度 = 0）或瞬间破坏（硬度 = 0）
 
 **动画阶段**：
 - 阶段范围：0-9
@@ -218,7 +243,7 @@ struct OpenContainer {
 | 模块 | 依赖 |
 |------|------|
 | BlockInteractionManager | ServerWorld, PlayerManager, LootTableManager, InventoryManager, BlockDropHandler, BlockItemRegistry |
-| MiningManager | PlayerManager, ConnectionManager, ServerWorld |
+| MiningManager | PlayerManager, ConnectionManager, ServerWorld, InventoryManager |
 | ContainerManager | PlayerManager |
 | InventoryManager | PlayerManager |
 

@@ -3,12 +3,43 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "InventoryManager.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
+#include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include <spdlog/spdlog.h>
 #include "common/perfetto/TraceEvents.hpp"
 
 namespace mc::server::interaction {
+
+// ============================================================================
+// 常量定义（MC 1.16.5 挖掘速度参数）
+// ============================================================================
+
+namespace {
+/// 正确工具挖掘除数（MC 1.16.5: 30）
+constexpr f32 CORRECT_TOOL_DIVISOR = 30.0f;
+/// 错误工具挖掘除数（MC 1.16.5: 100）
+constexpr f32 WRONG_TOOL_DIVISOR = 100.0f;
+/// 水下挖掘惩罚（MC 1.16.5: 除以 5）
+constexpr f32 UNDERWATER_PENALTY = 5.0f;
+/// 空中挖掘惩罚（MC 1.16.5: 除以 5）
+constexpr f32 OFF_GROUND_PENALTY = 5.0f;
+
+/// 挖掘疲劳乘数表（MC 1.16.5）
+/// 等级 0(I) = 0.3, 1(II) = 0.09, 2(III) = 0.0027, 3+(IV+) = 0.00081
+constexpr f32 MINING_FATIGUE_MULTIPLIERS[] = {0.3f, 0.09f, 0.0027f, 0.00081f};
+constexpr size_t MINING_FATIGUE_MULTIPLIERS_COUNT = 4;
+} // namespace
+
+// ============================================================================
+// 构造函数
+// ============================================================================
 
 MiningManager::MiningManager(core::PlayerManager& playerManager,
                              core::ConnectionManager& connectionManager)
@@ -17,8 +48,19 @@ MiningManager::MiningManager(core::PlayerManager& playerManager,
 {
 }
 
-void MiningManager::startMining(PlayerId playerId, const BlockPos& pos, EntityId entityId)
-{
+// ============================================================================
+// 设置依赖
+// ============================================================================
+
+void MiningManager::setInventoryManager(InventoryManager* inventoryManager) {
+    m_inventoryManager = inventoryManager;
+}
+
+// ============================================================================
+// 核心方法
+// ============================================================================
+
+void MiningManager::startMining(PlayerId playerId, const BlockPos& pos, EntityId entityId) {
     auto& state = m_miningStates[playerId];
     state.position = pos;
     state.progress = 0.0f;
@@ -31,8 +73,7 @@ void MiningManager::startMining(PlayerId playerId, const BlockPos& pos, EntityId
                   playerId, pos.x, pos.y, pos.z);
 }
 
-void MiningManager::abortMining(PlayerId playerId)
-{
+void MiningManager::abortMining(PlayerId playerId) {
     auto it = m_miningStates.find(playerId);
     if (it != m_miningStates.end()) {
         if (it->second.active) {
@@ -44,8 +85,7 @@ void MiningManager::abortMining(PlayerId playerId)
 }
 
 void MiningManager::handleBlockInteraction(PlayerId playerId, const BlockPos& pos,
-                                           network::BlockInteractionAction action)
-{
+                                           network::BlockInteractionAction action) {
     switch (action) {
         case network::BlockInteractionAction::StartDestroyBlock:
             startMining(playerId, pos, static_cast<EntityId>(playerId));
@@ -62,8 +102,7 @@ void MiningManager::handleBlockInteraction(PlayerId playerId, const BlockPos& po
     }
 }
 
-void MiningManager::tick(ServerWorld& world)
-{
+void MiningManager::tick(ServerWorld& world) {
     MC_TRACE_EVENT("server.world.mining", "MiningManager::tick", "phase", "tick");
 
     for (auto& [playerId, state] : m_miningStates) {
@@ -112,8 +151,7 @@ void MiningManager::tick(ServerWorld& world)
     }
 }
 
-f32 MiningManager::getMiningProgress(PlayerId playerId) const
-{
+f32 MiningManager::getMiningProgress(PlayerId playerId) const {
     auto it = m_miningStates.find(playerId);
     if (it != m_miningStates.end() && it->second.active) {
         return it->second.progress;
@@ -121,14 +159,12 @@ f32 MiningManager::getMiningProgress(PlayerId playerId) const
     return 0.0f;
 }
 
-bool MiningManager::isMining(PlayerId playerId) const
-{
+bool MiningManager::isMining(PlayerId playerId) const {
     auto it = m_miningStates.find(playerId);
     return it != m_miningStates.end() && it->second.active;
 }
 
-std::optional<BlockPos> MiningManager::getMiningPosition(PlayerId playerId) const
-{
+std::optional<BlockPos> MiningManager::getMiningPosition(PlayerId playerId) const {
     auto it = m_miningStates.find(playerId);
     if (it != m_miningStates.end() && it->second.active) {
         return it->second.position;
@@ -137,51 +173,199 @@ std::optional<BlockPos> MiningManager::getMiningPosition(PlayerId playerId) cons
 }
 
 void MiningManager::setOnBreakAnimBroadcast(
-    std::function<void(PlayerId, i32, i32, i32, i8)> callback)
-{
+    std::function<void(PlayerId, i32, i32, i32, i8)> callback) {
     m_onBreakAnimBroadcast = std::move(callback);
 }
 
 void MiningManager::setOnMiningComplete(
-    std::function<void(PlayerId, const BlockPos&)> callback)
-{
+    std::function<void(PlayerId, const BlockPos&)> callback) {
     m_onMiningComplete = std::move(callback);
 }
 
+// ============================================================================
+// 挖掘速度计算（MC 1.16.5 算法）
+// ============================================================================
+
 f32 MiningManager::calculateMiningSpeed(ServerWorld& world,
                                          const BlockPos& pos,
-                                         PlayerId playerId) const
-{
+                                         PlayerId playerId) const {
+    // 1. 获取方块状态
     const BlockState* state = world.getBlockState(pos);
     if (!state || state->isAir()) {
         return 1.0f;  // 方块不存在，快速完成
     }
 
-    // 获取方块硬度
+    // 2. 获取方块硬度
     f32 hardness = state->hardness();
     if (hardness < 0.0f) {
-        return 0.0f;  // 不可破坏
+        return 0.0f;  // 不可破坏（基岩等）
     }
 
-    // TODO: 考虑工具、附魔、药水效果等
-    // 简化版本：基础速度 = 1 / (hardness * 30)
-    // 创造模式：更快
+    // 3. 获取玩家数据
     auto* playerData = m_playerManager.getPlayer(playerId);
-    if (playerData && playerData->gameMode == GameMode::Creative) {
-        return 1.0f;  // 创造模式瞬间破坏
+    if (!playerData) {
+        return 0.0f;
     }
 
+    // 4. 创造模式瞬间破坏
+    if (playerData->gameMode == GameMode::Creative) {
+        return 1.0f;  // 创造模式一 tick 破坏任何方块
+    }
+
+    // 5. 硬度为 0 的方块瞬间破坏
     if (hardness == 0.0f) {
-        return 1.0f;  // 瞬间破坏
+        return 1.0f;
     }
 
-    // 基础挖掘速度
-    f32 baseSpeed = 1.0f / (hardness * 30.0f);
-    return baseSpeed;
+    // 6. 获取手持物品
+    ItemStack heldItem;
+    if (m_inventoryManager) {
+        heldItem = m_inventoryManager->getHeldItem(playerId);
+    }
+
+    // 7. 计算挖掘速度倍率
+    f32 digSpeed = calculateDigSpeedMultiplier(heldItem, *state, *playerData);
+
+    // 8. 检查是否可以使用正确工具
+    bool canHarvest = false;
+    if (!heldItem.isEmpty()) {
+        canHarvest = heldItem.canHarvestBlock(*state);
+    } else {
+        // 空手只能采集不需要工具的方块
+        canHarvest = !state->requiresTool();
+    }
+
+    // 9. 计算工具除数
+    f32 divisor = canHarvest ? CORRECT_TOOL_DIVISOR : WRONG_TOOL_DIVISOR;
+
+    // 10. 计算最终挖掘进度
+    // 方块相对硬度 = digSpeed / hardness / divisor
+    // 挖掘时间（tick）= 1 / 相对硬度
+    // 每tick进度 = 相对硬度
+    f32 relativeHardness = digSpeed / hardness / divisor;
+
+    return relativeHardness;
 }
 
-void MiningManager::broadcastBreakAnim(PlayerId playerId, const BlockPos& pos, i8 stage)
-{
+f32 MiningManager::calculateDigSpeedMultiplier(const ItemStack& heldItem,
+                                                const BlockState& blockState,
+                                                const ServerPlayerData& playerData) const {
+    // MC 1.16.5 PlayerEntity.getDigSpeed() 实现
+
+    // 1. 获取工具基础挖掘速度
+    f32 speed = heldItem.isEmpty() ? 1.0f : heldItem.getDestroySpeed(blockState);
+
+    // 2. 效率附魔加成（仅当工具对当前方块有效时）
+    if (speed > 1.0f) {
+        i32 efficiencyLevel = item::enchant::EnchantmentHelper::getEfficiencyLevel(heldItem);
+        if (efficiencyLevel > 0) {
+            // 效率附魔加成公式: level^2 + 1
+            // I: 2, II: 5, III: 10, IV: 17, V: 26
+            speed += static_cast<f32>(item::enchant::EfficiencyEnchantment::getMiningSpeedBonus(efficiencyLevel));
+        }
+    }
+
+    // 3. 急迫效果和潮涌能量加成
+    f32 hasteMultiplier = calculateHasteMultiplier(playerData);
+    speed *= hasteMultiplier;
+
+    // 4. 挖掘疲劳惩罚
+    f32 fatigueMultiplier = calculateMiningFatigueMultiplier(playerData);
+    speed *= fatigueMultiplier;
+
+    // 5. 水下挖掘惩罚（仅当眼睛在水中且没有水下速掘附魔）
+    // 注意：ServerPlayerData 目前不存储眼睛是否在水中的信息
+    // 这里暂时使用 isInWater 标志，后续可以通过扩展 ServerPlayerData 来实现
+    // MC 1.16.5: if (this.areEyesInFluid(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(this))
+    // 目前简化：使用玩家位置检测是否在水中
+    // TODO: 需要实现眼睛位置检测
+    bool inWater = false;  // 暂时假设不在水中，后续可以从 world 查询
+    if (inWater && !hasAquaAffinity(playerData)) {
+        speed /= UNDERWATER_PENALTY;
+    }
+
+    // 6. 空中挖掘惩罚
+    if (!playerData.onGround) {
+        speed /= OFF_GROUND_PENALTY;
+    }
+
+    return speed;
+}
+
+f32 MiningManager::calculateHasteMultiplier(const ServerPlayerData& playerData) const {
+    // MC 1.16.5 EffectUtils.getMiningSpeedup()
+    // 急迫和潮涌能量都可以增加挖掘速度，取最大值
+
+    i32 hasteLevel = -1;   // -1 表示没有效果
+    i32 conduitLevel = -1;
+
+    // 检查急迫效果
+    const auto* hasteEffect = playerData.getEffect(entity::effect::EffectType::Haste);
+    if (hasteEffect) {
+        hasteLevel = hasteEffect->amplifier();  // amplifier = level - 1
+    }
+
+    // 检查潮涌能量效果
+    const auto* conduitEffect = playerData.getEffect(entity::effect::EffectType::ConduitPower);
+    if (conduitEffect) {
+        conduitLevel = conduitEffect->amplifier();
+    }
+
+    // 如果两个效果都没有，返回 1.0
+    i32 maxLevel = std::max(hasteLevel, conduitLevel);
+    if (maxLevel < 0) {
+        return 1.0f;
+    }
+
+    // 计算乘数: 1.0 + (amplifier + 1) * 0.2
+    // I级: 1.2, II级: 1.4, III级: 1.6, ...
+    return 1.0f + static_cast<f32>(maxLevel + 1) * 0.2f;
+}
+
+f32 MiningManager::calculateMiningFatigueMultiplier(const ServerPlayerData& playerData) const {
+    // MC 1.16.5 PlayerEntity.getDigSpeed() 中的挖掘疲劳处理
+    const auto* fatigueEffect = playerData.getEffect(entity::effect::EffectType::MiningFatigue);
+    if (!fatigueEffect) {
+        return 1.0f;
+    }
+
+    i32 amplifier = fatigueEffect->amplifier();
+
+    // 使用预定义的乘数表
+    if (amplifier >= 0 && static_cast<size_t>(amplifier) < MINING_FATIGUE_MULTIPLIERS_COUNT) {
+        return MINING_FATIGUE_MULTIPLIERS[amplifier];
+    }
+
+    // 超出范围使用最小值
+    return MINING_FATIGUE_MULTIPLIERS[MINING_FATIGUE_MULTIPLIERS_COUNT - 1];
+}
+
+bool MiningManager::hasAquaAffinity(const ServerPlayerData& playerData) const {
+    // MC 1.16.5 EnchantmentHelper.hasAquaAffinity()
+    // 检查头盔是否有水下速掘附魔
+    // 需要通过 InventoryManager 获取头盔
+
+    if (!m_inventoryManager) {
+        return false;
+    }
+
+    // 获取玩家物品栏
+    const PlayerInventory* inventory = m_inventoryManager->getInventory(playerData.playerId);
+    if (!inventory) {
+        return false;
+    }
+
+    // 获取头盔
+    ItemStack helmet = inventory->getHelmet();
+    if (helmet.isEmpty()) {
+        return false;
+    }
+
+    // 检查是否有水下速掘附魔
+    return item::enchant::EnchantmentHelper::hasAquaAffinity(helmet);
+}
+
+void MiningManager::broadcastBreakAnim(PlayerId playerId, const BlockPos& pos, i8 stage) {
     if (m_onBreakAnimBroadcast) {
         m_onBreakAnimBroadcast(playerId, pos.x, pos.y, pos.z, stage);
     }

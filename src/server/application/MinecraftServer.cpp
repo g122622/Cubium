@@ -337,7 +337,10 @@ void MinecraftServer::initializeInteractionManagers()
         sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
     });
 
+    // 设置 InventoryManager 到其他管理器
     m_containerManager->setInventoryManager(m_inventoryManager.get());
+    m_blockInteractionManager->setInventoryManager(m_inventoryManager.get());
+    m_miningManager->setInventoryManager(m_inventoryManager.get());
 }
 
 void MinecraftServer::initializeSyncManagers()

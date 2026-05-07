@@ -115,6 +115,7 @@ add_executable(mc_tests
     server/test_integrated_server.cpp
     server/BlockDropHandlerTest.cpp
     server/BlockInteractionManagerTest.cpp
+    server/MiningManagerTest.cpp
     server/menu/CraftingMenuTest.cpp
     server/BlockUpdateSyncManagerTest.cpp
     server/test_chunk_worker_pool.cpp

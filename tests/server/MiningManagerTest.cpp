@@ -1,0 +1,391 @@
+#include <gtest/gtest.h>
+
+#include "server/interaction/MiningManager.hpp"
+#include "server/interaction/InventoryManager.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "server/world/ServerWorld.hpp"
+
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/network/connection/LocalConnection.hpp"
+#include "common/network/connection/LocalServerConnection.hpp"
+
+using namespace mc;
+
+namespace {
+
+/**
+ * @brief MiningManager 测试夹具
+ */
+class MiningManagerTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // 初始化方块和物品
+        VanillaBlocks::initialize();
+        Items::initialize();
+        BlockItemRegistry::instance().initializeVanillaBlockItems();
+
+        // 创建测试世界
+        server::ServerWorldConfig config;
+        config.viewDistance = 8;
+        config.dimension = 0;
+        config.seed = 114514;
+        config.isDebugWorld = false;
+
+        m_world = std::make_unique<server::ServerWorld>(config);
+        auto worldInit = m_world->initialize();
+        ASSERT_TRUE(worldInit.success());
+
+        // 创建连接
+        m_connectionPair = std::make_unique<network::LocalConnectionPair>();
+        m_connectionPair->connect();
+
+        // 创建玩家管理器
+        m_playerManager = std::make_unique<server::core::PlayerManager>();
+        auto connection = std::make_shared<network::LocalServerConnection>(&m_connectionPair->serverEndpoint());
+        m_player = m_playerManager->addPlayer(m_playerId, "MiningTester", connection);
+        ASSERT_NE(m_player, nullptr);
+
+        // 设置玩家位置
+        m_player->x = 0.5f;
+        m_player->y = 64.0f;
+        m_player->z = 0.5f;
+        m_player->yaw = 0.0f;
+        m_player->pitch = 0.0f;
+        m_player->gameMode = GameMode::Survival;
+        m_player->onGround = true;
+
+        // 创建物品栏管理器
+        m_inventoryManager = std::make_unique<server::interaction::InventoryManager>(*m_playerManager);
+        m_inventoryManager->initializeInventory(m_playerId);
+
+        // 创建连接管理器
+        m_connectionManager = std::make_unique<server::core::ConnectionManager>(*m_playerManager);
+
+        // 创建挖掘管理器
+        m_miningManager = std::make_unique<server::interaction::MiningManager>(
+            *m_playerManager, *m_connectionManager);
+        m_miningManager->setInventoryManager(m_inventoryManager.get());
+    }
+
+    void TearDown() override {
+        m_miningManager.reset();
+        m_inventoryManager.reset();
+        m_connectionManager.reset();
+        m_playerManager.reset();
+        m_connectionPair.reset();
+
+        if (m_world) {
+            m_world->shutdown();
+            m_world.reset();
+        }
+    }
+
+    /**
+     * @brief 设置玩家手持物品
+     */
+    void setHeldItem(const Item& item, i32 count) {
+        PlayerInventory* inventory = m_inventoryManager->getInventory(m_playerId);
+        ASSERT_NE(inventory, nullptr);
+        inventory->setSelectedSlot(0);
+        inventory->setItem(0, ItemStack(item, count));
+    }
+
+    /**
+     * @brief 设置玩家手持物品（带附魔）
+     */
+    void setHeldItemWithEnchantment(const Item& item, i32 count, const String& enchantmentId, i32 level) {
+        PlayerInventory* inventory = m_inventoryManager->getInventory(m_playerId);
+        ASSERT_NE(inventory, nullptr);
+        inventory->setSelectedSlot(0);
+        ItemStack stack(item, count);
+        stack.addEnchantment(enchantmentId, level);
+        inventory->setItem(0, stack);
+    }
+
+    /**
+     * @brief 获取玩家数据
+     */
+    server::ServerPlayerData* getPlayerData() {
+        return m_playerManager->getPlayer(m_playerId);
+    }
+
+protected:
+    static constexpr PlayerId m_playerId = 1;
+    static constexpr PlayerId m_inventoryId = m_playerId;  // 同一个 ID
+
+    std::unique_ptr<server::ServerWorld> m_world;
+    std::unique_ptr<network::LocalConnectionPair> m_connectionPair;
+    std::unique_ptr<server::core::PlayerManager> m_playerManager;
+    std::unique_ptr<server::core::ConnectionManager> m_connectionManager;
+    std::unique_ptr<server::interaction::InventoryManager> m_inventoryManager;
+    std::unique_ptr<server::interaction::MiningManager> m_miningManager;
+    server::ServerPlayerData* m_player = nullptr;
+};
+
+// ============================================================================
+// 基础挖掘测试
+// ============================================================================
+
+TEST_F(MiningManagerTest, StartAndAbortMining) {
+    BlockPos pos(0, 63, 0);
+
+    // 开始挖掘
+    m_miningManager->startMining(m_playerId, pos, m_playerId);
+
+    EXPECT_TRUE(m_miningManager->isMining(m_playerId));
+    EXPECT_FLOAT_EQ(m_miningManager->getMiningProgress(m_playerId), 0.0f);
+
+    auto miningPos = m_miningManager->getMiningPosition(m_playerId);
+    EXPECT_TRUE(miningPos.has_value());
+    EXPECT_EQ(miningPos.value(), pos);
+
+    // 中止挖掘
+    m_miningManager->abortMining(m_playerId);
+
+    EXPECT_FALSE(m_miningManager->isMining(m_playerId));
+    EXPECT_FALSE(m_miningManager->getMiningPosition(m_playerId).has_value());
+}
+
+TEST_F(MiningManagerTest, CreativeModeInstantBreak) {
+    // 设置创造模式
+    m_player->gameMode = GameMode::Creative;
+
+    // 设置石头方块
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+
+    // 开始挖掘
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+
+    // 创造模式应该瞬间破坏
+    // tick 后进度应该达到 1.0
+    m_miningManager->tick(*m_world);
+
+    // 在创造模式下，tick 之后应该已经完成挖掘（进度 >= 1.0）
+    // 注意：由于 tick 会检查进度并调用回调，所以挖掘状态可能已经变为 false
+    // 让我们直接检查进度是否达到 1.0 或挖掘已完成
+    EXPECT_TRUE(m_miningManager->getMiningProgress(m_playerId) >= 1.0f ||
+                !m_miningManager->isMining(m_playerId));
+}
+
+TEST_F(MiningManagerTest, UnbreakableBlockReturnsZeroSpeed) {
+    // 设置基岩（不可破坏）
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::BEDROCK->defaultState());
+
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+
+    // 基岩硬度为 -1，应该无法破坏
+    // 挖掘进度应该保持为 0
+    EXPECT_FLOAT_EQ(m_miningManager->getMiningProgress(m_playerId), 0.0f);
+    EXPECT_TRUE(m_miningManager->isMining(m_playerId));  // 仍然在挖掘状态，但进度为 0
+}
+
+// ============================================================================
+// 挖掘速度计算测试
+// ============================================================================
+
+TEST_F(MiningManagerTest, HasteEffectIncreasesMiningSpeed) {
+    // 设置生存模式
+    m_player->gameMode = GameMode::Survival;
+    m_player->onGround = true;
+
+    // 设置石头方块
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+
+    // 设置钻石镐
+    const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
+    ASSERT_NE(diamondPickaxe, nullptr);
+    setHeldItem(*diamondPickaxe, 1);
+
+    // 记录基础挖掘进度
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 baseProgress = m_miningManager->getMiningProgress(m_playerId);
+    m_miningManager->abortMining(m_playerId);
+
+    // 添加急迫 II 效果 (amplifier = 1)
+    m_player->addEffect(entity::effect::EffectInstance(
+        entity::effect::EffectType::Haste, 600, 1, false, true, true));
+
+    // 使用急迫效果后再次挖掘
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 hasteProgress = m_miningManager->getMiningProgress(m_playerId);
+
+    // 急迫效果应该增加挖掘速度
+    // 急迫 II 乘数 = 1 + (1 + 1) * 0.2 = 1.4
+    EXPECT_GT(hasteProgress, baseProgress);
+    EXPECT_NEAR(hasteProgress, baseProgress * 1.4f, 0.01f);
+}
+
+TEST_F(MiningManagerTest, MiningFatigueDecreasesMiningSpeed) {
+    // 设置生存模式
+    m_player->gameMode = GameMode::Survival;
+    m_player->onGround = true;
+
+    // 设置石头方块
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+
+    // 设置钻石镐
+    const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
+    ASSERT_NE(diamondPickaxe, nullptr);
+    setHeldItem(*diamondPickaxe, 1);
+
+    // 记录基础挖掘进度
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 baseProgress = m_miningManager->getMiningProgress(m_playerId);
+    m_miningManager->abortMining(m_playerId);
+
+    // 添加挖掘疲劳 II 效果 (amplifier = 1)
+    m_player->addEffect(entity::effect::EffectInstance(
+        entity::effect::EffectType::MiningFatigue, 600, 1, false, true, true));
+
+    // 使用挖掘疲劳效果后再次挖掘
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 fatigueProgress = m_miningManager->getMiningProgress(m_playerId);
+
+    // 挖掘疲劳应该降低挖掘速度
+    // 挖掘疲劳 II 乘数 = 0.09
+    EXPECT_LT(fatigueProgress, baseProgress);
+    EXPECT_NEAR(fatigueProgress, baseProgress * 0.09f, 0.001f);
+}
+
+TEST_F(MiningManagerTest, OffGroundPenalty) {
+    // 设置生存模式
+    m_player->gameMode = GameMode::Survival;
+
+    // 设置石头方块
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+
+    // 设置钻石镐
+    const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
+    ASSERT_NE(diamondPickaxe, nullptr);
+    setHeldItem(*diamondPickaxe, 1);
+
+    // 在地面上的挖掘进度
+    m_player->onGround = true;
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 groundProgress = m_miningManager->getMiningProgress(m_playerId);
+    m_miningManager->abortMining(m_playerId);
+
+    // 在空中的挖掘进度（应该降低 5 倍）
+    m_player->onGround = false;
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 airProgress = m_miningManager->getMiningProgress(m_playerId);
+
+    // 空中挖掘应该慢 5 倍
+    EXPECT_NEAR(airProgress, groundProgress / 5.0f, 0.001f);
+}
+
+TEST_F(MiningManagerTest, DifferentToolMaterialsHaveDifferentSpeeds) {
+    // 设置生存模式
+    m_player->gameMode = GameMode::Survival;
+    m_player->onGround = true;
+
+    // 设置石头方块
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+
+    // 木质镐
+    const Item* woodPickaxe = Items::WOODEN_PICKAXE;
+    ASSERT_NE(woodPickaxe, nullptr);
+    setHeldItem(*woodPickaxe, 1);
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 woodProgress = m_miningManager->getMiningProgress(m_playerId);
+    m_miningManager->abortMining(m_playerId);
+
+    // 铁质镐
+    const Item* ironPickaxe = Items::IRON_PICKAXE;
+    ASSERT_NE(ironPickaxe, nullptr);
+    setHeldItem(*ironPickaxe, 1);
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 ironProgress = m_miningManager->getMiningProgress(m_playerId);
+    m_miningManager->abortMining(m_playerId);
+
+    // 钻石镐
+    const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
+    ASSERT_NE(diamondPickaxe, nullptr);
+    setHeldItem(*diamondPickaxe, 1);
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 diamondProgress = m_miningManager->getMiningProgress(m_playerId);
+    m_miningManager->abortMining(m_playerId);
+
+    // 验证不同材质的挖掘速度顺序
+    // 钻石(8.0) > 铁(6.0) > 木(2.0)
+    EXPECT_GT(diamondProgress, ironProgress);
+    EXPECT_GT(ironProgress, woodProgress);
+}
+
+TEST_F(MiningManagerTest, WrongToolIsSlowerThanCorrectTool) {
+    // 设置生存模式
+    m_player->gameMode = GameMode::Survival;
+    m_player->onGround = true;
+
+    // 设置石头方块（需要镐）
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+
+    // 使用正确的工具（钻石镐）
+    const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
+    ASSERT_NE(diamondPickaxe, nullptr);
+    setHeldItem(*diamondPickaxe, 1);
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 correctToolProgress = m_miningManager->getMiningProgress(m_playerId);
+    m_miningManager->abortMining(m_playerId);
+
+    // 使用错误的工具（钻石剑）
+    const Item* diamondSword = Items::DIAMOND_SWORD;
+    ASSERT_NE(diamondSword, nullptr);
+    setHeldItem(*diamondSword, 1);
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 wrongToolProgress = m_miningManager->getMiningProgress(m_playerId);
+    m_miningManager->abortMining(m_playerId);
+
+    // 正确工具应该更快
+    // 正确工具除数 30，错误工具除数 100
+    EXPECT_GT(correctToolProgress, wrongToolProgress);
+}
+
+// ============================================================================
+// 边界情况测试
+// ============================================================================
+
+TEST_F(MiningManagerTest, UnknownBlockReturnsInstantBreak) {
+    // 不设置任何方块（空气）
+    // 空气方块硬度为 0，应该瞬间破坏
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+
+    // 空气应该瞬间破坏
+    EXPECT_TRUE(m_miningManager->getMiningProgress(m_playerId) >= 1.0f ||
+                !m_miningManager->isMining(m_playerId));
+}
+
+TEST_F(MiningManagerTest, MultipleMiningSessionsDontConflict) {
+    // 开始挖掘第一个方块
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    EXPECT_TRUE(m_miningManager->isMining(m_playerId));
+    EXPECT_EQ(m_miningManager->getMiningPosition(m_playerId).value(), BlockPos(0, 63, 0));
+
+    // 开始挖掘另一个方块应该覆盖之前的
+    m_miningManager->startMining(m_playerId, BlockPos(1, 63, 0), m_playerId);
+    EXPECT_TRUE(m_miningManager->isMining(m_playerId));
+    EXPECT_EQ(m_miningManager->getMiningPosition(m_playerId).value(), BlockPos(1, 63, 0));
+}
+
+} // namespace
