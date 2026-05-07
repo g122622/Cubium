@@ -20,6 +20,7 @@
 #include "particles/ambient/CloudParticle.hpp"
 #include "particles/RainParticle.hpp"
 #include "particles/weather/SplashParticle.hpp"
+#include "particles/weather/FishingParticle.hpp"
 #include "particles/mob/HeartParticle.hpp"
 #include "particles/mob/VillagerParticle.hpp"
 #include "particles/block/DiggingParticle.hpp"
@@ -227,6 +228,13 @@ void registerBuiltinParticleFactories() {
         SplashParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         10.0f, true, false);
+
+    registry.registerType(
+        ParticleTypeId::Fishing,
+        "minecraft:fishing",
+        FishingParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
+        8.0f, false, false);
 
     // 生物相关粒子
     registry.registerType(

@@ -10,6 +10,7 @@
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "ProjectileHelper.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
 namespace mc {
@@ -141,10 +142,19 @@ void TridentEntity::tickReturning() {
     }
     ++m_returningTicks;
 
-    // 检查是否在水中
-    if (isInWater()) {
+    // 检查是否在水中，生成气泡粒子
+    // MC 1.16.5 TridentEntity.tick() 第88-91行
+    if (isInWater() && m_world) {
         for (int i = 0; i < 4; ++i) {
-            // TODO: 生成气泡粒子
+            f32 offset = 0.25f;
+            Vector3 pos(
+                x() - m_velocity.x * offset,
+                y() - m_velocity.y * offset,
+                z() - m_velocity.z * offset
+            );
+            m_world->addParticle(
+                client::renderer::trident::particle::ParticleTypeId::Bubble,
+                pos, m_velocity);
         }
     }
 

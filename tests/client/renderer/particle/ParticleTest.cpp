@@ -7,6 +7,7 @@
 #include "client/renderer/trident/particle/particles/RainParticle.hpp"
 #include "client/renderer/trident/particle/particles/SnowParticle.hpp"
 #include "client/renderer/trident/particle/particles/weather/SplashParticle.hpp"
+#include "client/renderer/trident/particle/particles/weather/FishingParticle.hpp"
 #include "client/renderer/trident/particle/data/BasicParticleData.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include <glm/glm.hpp>
@@ -446,4 +447,123 @@ TEST(ParticleTypesTest, DataRequirements) {
     // 需要红石颜色的类型
     EXPECT_TRUE(requiresDustColor(ParticleTypeId::Redstone));
     EXPECT_TRUE(requiresDustColor(ParticleTypeId::Dust));
+}
+
+/**
+ * @brief 测试钓鱼粒子构造
+ *
+ * 参考 MC 1.16.5 FishingParticle：
+ * - 无重力（漂浮在水面）
+ * - 生命周期较短
+ * - 半透明淡蓝色
+ */
+TEST(ParticleTest, FishingParticle_Construction) {
+    FishingParticle particle(glm::vec3(0.5f, 62.0f, 0.5f), glm::vec3(0.01f, 0.0f, 0.01f));
+
+    EXPECT_EQ(particle.getRenderType(), ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    EXPECT_EQ(particle.getTextureLocation(), mc::ResourceLocation("minecraft:particle/fishing"));
+    EXPECT_TRUE(particle.isAlive());
+    EXPECT_DOUBLE_EQ(particle.gravity(), 0.0);  // 无重力
+}
+
+/**
+ * @brief 测试钓鱼粒子工厂方法
+ */
+TEST(ParticleTest, FishingParticle_CreateReturnsFishingParticle) {
+    auto particle = FishingParticle::create(glm::vec3(0.5f, 62.0f, 0.5f), glm::vec3(0.01f, 0.0f, 0.01f), nullptr);
+    ASSERT_NE(particle, nullptr);
+
+    EXPECT_EQ(particle->getRenderType(), ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    EXPECT_EQ(particle->getTextureLocation(), mc::ResourceLocation("minecraft:particle/fishing"));
+}
+
+/**
+ * @brief 测试钓鱼粒子 tick 行为
+ */
+TEST(ParticleTest, FishingParticle_TickMovement) {
+    glm::vec3 initialPos(0.5f, 62.0f, 0.5f);
+    glm::vec3 initialVel(0.02f, 0.0f, 0.02f);
+    FishingParticle particle(initialPos, initialVel);
+    particle.setMaxAge(100.0f);
+
+    // 多次 tick
+    for (int i = 0; i < 5; ++i) {
+        particle.tick(nullptr);
+    }
+
+    // 位置应该根据速度移动
+    EXPECT_GT(particle.position().x, initialPos.x);
+    EXPECT_GT(particle.position().z, initialPos.z);
+
+    // 速度应该因摩擦力而减小
+    EXPECT_LT(std::abs(particle.velocity().x), std::abs(initialVel.x));
+    EXPECT_LT(std::abs(particle.velocity().z), std::abs(initialVel.z));
+}
+
+/**
+ * @brief 测试钓鱼粒子淡出效果
+ */
+TEST(ParticleTest, FishingParticle_FadeOut) {
+    FishingParticle particle(glm::vec3(0.0f, 62.0f, 0.0f), glm::vec3(0.0f));
+    particle.setMaxAge(10.0f);
+
+    // 保存初始 alpha
+    f32 initialAlpha = particle.color().a;
+
+    // 在生命周期前 30%，alpha 应该保持
+    for (int i = 0; i < 3; ++i) {
+        particle.tick(nullptr);
+    }
+    EXPECT_FLOAT_EQ(particle.color().a, initialAlpha);
+
+    // 在后 70%，alpha 应该逐渐减小
+    for (int i = 0; i < 5; ++i) {
+        particle.tick(nullptr);
+    }
+    EXPECT_LT(particle.color().a, initialAlpha);
+}
+
+/**
+ * @brief 测试钓鱼粒子生命周期结束
+ */
+TEST(ParticleTest, FishingParticle_LifecycleEnd) {
+    FishingParticle particle(glm::vec3(0.0f, 62.0f, 0.0f), glm::vec3(0.0f));
+    particle.setMaxAge(5.0f);
+
+    EXPECT_TRUE(particle.isAlive());
+
+    // Tick 到生命结束
+    for (int i = 0; i < 10; ++i) {
+        particle.tick(nullptr);
+    }
+
+    EXPECT_FALSE(particle.isAlive());
+}
+
+/**
+ * @brief 测试钓鱼粒子注册
+ *
+ * 注意：工厂函数需要在客户端初始化时通过 registerBuiltinParticleFactories() 注册
+ * 此测试仅验证类型元数据已注册
+ */
+TEST(ParticleRegistryTest, FishingParticleRegistration) {
+    auto& registry = ParticleRegistry::instance();
+
+    // 检查类型已注册
+    EXPECT_TRUE(registry.isRegistered(ParticleTypeId::Fishing));
+    EXPECT_TRUE(registry.isRegistered("minecraft:fishing"));
+
+    // 检查名称
+    EXPECT_EQ(registry.getTypeName(ParticleTypeId::Fishing), "minecraft:fishing");
+
+    // 检查类型信息（元数据）
+    const ParticleTypeInfo* info = registry.getTypeInfo(ParticleTypeId::Fishing);
+    ASSERT_NE(info, nullptr);
+    EXPECT_EQ(info->id, ParticleTypeId::Fishing);
+    EXPECT_EQ(info->name, "minecraft:fishing");
+    // Fishing 粒子渲染类型应该是半透明
+    EXPECT_EQ(info->defaultRenderType, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+
+    // 工厂创建需要 registerBuiltinParticleFactories() 初始化，
+    // 这通常在客户端启动时调用，测试环境不初始化图形系统
 }

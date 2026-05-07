@@ -35,14 +35,7 @@ ProjectileItemEntity::ProjectileItemEntity(LegacyEntityType type, EntityId id)
 
 void ProjectileItemEntity::tick() {
     ThrowableEntity::tick();
-
-    // 在水中生成气泡粒子
-    if (isInWater() && m_world) {
-        m_world->addParticle(
-            client::renderer::trident::particle::ParticleTypeId::Bubble,
-            m_position,
-            Vector3(0.0f, 0.1f, 0.0f));
-    }
+    // 气泡粒子已在 ThrowableEntity::tick() 中处理，此处无需重复
 }
 
 // ============================================================================

@@ -2,7 +2,7 @@
 
 ## 概述
 
-天气粒子用于雨、雪、溅射等天气效果。
+天气粒子用于雨、雪、溅射、钓鱼等天气和水体效果。
 
 ## 文件
 
@@ -11,6 +11,7 @@
 | RainParticle.hpp/cpp | 雨滴粒子 - 雨天效果 |
 | SnowParticle.hpp/cpp | 雪花粒子 - 雪天效果 |
 | SplashParticle.hpp/cpp | 溅射粒子 - 雨滴落地效果 |
+| FishingParticle.hpp/cpp | 钓鱼粒子 - 水面涟漪效果 |
 
 ## 特性
 
@@ -44,6 +45,20 @@
   - 淡出消失
 - **颜色**：淡蓝色半透明
 
+### FishingParticle（钓鱼粒子）
+
+- **渲染类型**：PARTICLE_SHEET_TRANSLUCENT
+- **生命周期**：约 8 ticks（随机变化）
+- **行为**：
+  - 无重力（漂浮在水面）
+  - 向下移动形成涟漪效果
+  - 生命周期后半段淡出
+- **颜色**：淡蓝色半透明
+- **用途**：
+  - 钓鱼浮标水面涟漪
+  - 鱼接近浮标时的水面波纹
+- **参考**：MC 1.16.5 `FishingBobberEntity.catchingFish()`
+
 ## 用法
 
 ```cpp
@@ -53,6 +68,13 @@ auto splash = std::make_unique<SplashParticle>(
     glm::vec3(0.0f, 0.1f, 0.0f)  // 初始向上速度
 );
 particleManager.addParticle(std::move(splash));
+
+// 创建钓鱼涟漪粒子
+auto fishing = std::make_unique<FishingParticle>(
+    position,
+    glm::vec3(0.01f, 0.0f, 0.01f)  // 水平漂移
+);
+particleManager.addParticle(std::move(fishing));
 ```
 
 ## 参考
@@ -60,3 +82,4 @@ particleManager.addParticle(std::move(splash));
 - Minecraft Java 1.16.5 `net.minecraft.client.particle.RainParticle`
 - Minecraft Java 1.16.5 `net.minecraft.client.particle.SnowParticle`
 - Minecraft Java 1.16.5 `net.minecraft.client.particle.SplashParticle`
+- Minecraft Java 1.16.5 `net.minecraft.client.particle.FishingParticle`

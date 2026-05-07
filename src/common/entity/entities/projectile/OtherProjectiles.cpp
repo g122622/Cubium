@@ -5,6 +5,8 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
+#include "../../../sound/SoundEvents.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
 namespace mc {
@@ -230,8 +232,21 @@ void FishingBobberEntity::catchingFish() {
         m_ticksCaughtDelay--;
 
         // 接近咬钩时产生水花
-        if (m_ticksCaughtDelay < 100 && m_ticksCaughtDelay % 10 == 0) {
-            // TODO: 生成水花粒子
+        // MC 1.16.5 FishingBobberEntity.catchingFish() 第334-354行
+        if (m_ticksCaughtDelay < 100 && m_ticksCaughtDelay % 10 == 0 && m_world) {
+            // 生成水花粒子
+            math::Random rng;
+            f32 angle = rng.nextFloat() * 360.0f * math::DEG_TO_RAD;
+            f32 radius = rng.nextFloat(25.0f, 60.0f) * 0.1f;
+            f32 px = x() + std::sin(angle) * radius;
+            f32 py = std::floor(y()) + 1.0f;
+            f32 pz = z() + std::cos(angle) * radius;
+            m_world->addParticle(
+                client::renderer::trident::particle::ParticleTypeId::Splash,
+                Vector3(px, py, pz),
+                Vector3(0.0f, 0.0f, 0.0f),
+                Vector3(0.1f, 0.0f, 0.1f),
+                2 + rng.nextInt(2));
         }
         return;
     }
@@ -241,8 +256,33 @@ void FishingBobberEntity::catchingFish() {
         m_ticksCatchableDelay--;
 
         // 产生气泡和钓鱼粒子
-        if (m_ticksCatchableDelay % 5 == 0) {
-            // TODO: 生成气泡粒子
+        // MC 1.16.5 FishingBobberEntity.catchingFish() 第306-324行
+        if (m_ticksCatchableDelay % 5 == 0 && m_world) {
+            math::Random rng;
+            f32 angle = m_fishAngle * math::DEG_TO_RAD;
+            f32 sinAngle = std::sin(angle);
+            f32 cosAngle = std::cos(angle);
+            f32 d0 = x() + sinAngle * static_cast<f32>(m_ticksCatchableDelay) * 0.1f;
+            f32 d1 = std::floor(y()) + 1.0f;
+            f32 d2 = z() + cosAngle * static_cast<f32>(m_ticksCatchableDelay) * 0.1f;
+
+            // 15% 概率生成气泡
+            if (rng.nextFloat() < 0.15f) {
+                m_world->addParticle(
+                    client::renderer::trident::particle::ParticleTypeId::Bubble,
+                    Vector3(d0, d1 - 0.1f, d2),
+                    Vector3(sinAngle, 0.1f, cosAngle));
+            }
+
+            // 钓鱼涟漪粒子
+            m_world->addParticle(
+                client::renderer::trident::particle::ParticleTypeId::Fishing,
+                Vector3(d0, d1, d2),
+                Vector3(cosAngle * 0.04f, 0.01f, -sinAngle * 0.04f));
+            m_world->addParticle(
+                client::renderer::trident::particle::ParticleTypeId::Fishing,
+                Vector3(d0, d1, d2),
+                Vector3(-cosAngle * 0.04f, 0.01f, sinAngle * 0.04f));
         }
 
         // 鱼接近角度动画
@@ -252,7 +292,8 @@ void FishingBobberEntity::catchingFish() {
         if (m_ticksCatchableDelay <= 0) {
             m_ticksCatchable = math::Random().nextInt(MIN_CATCHABLE_TICKS, MAX_CATCHABLE_TICKS);
             m_state = State::Fishing;
-            // TODO: 播放水溅音效
+            // MC 1.16.5: 播放水溅音效
+            playSound(SoundEvents::ENTITY_FISHING_BOBBER_SPLASH, 0.25f, 1.0f + (math::Random().nextFloat() - math::Random().nextFloat()) * 0.4f);
         }
         return;
     }
@@ -265,8 +306,17 @@ void FishingBobberEntity::catchingFish() {
 }
 
 void FishingBobberEntity::spawnFishingParticles() {
-    // TODO: 生成钓鱼粒子效果
-    // 水面涟漪、浮标摇摆等
+    // MC 1.16.5: 钓鱼粒子效果
+    // 浮标在水面时的涟漪效果
+    if (isInWater() && m_world) {
+        math::Random rng;
+        if (rng.nextInt(5) == 0) {
+            m_world->addParticle(
+                client::renderer::trident::particle::ParticleTypeId::Fishing,
+                m_position,
+                Vector3(0.0f, 0.01f, 0.0f));
+        }
+    }
 }
 
 void FishingBobberEntity::setWaitTime() {

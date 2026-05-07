@@ -45,7 +45,8 @@ void ProjectileEntity::tick()
 
     Vector3 velocity = m_velocity;
     if (isInWater()) {
-        // TODO: 接入投掷物气泡粒子
+        // 水中阻力（子类可重写 getWaterDrag()）
+        // 水中气泡粒子由子类（ThrowableEntity、AbstractArrowEntity 等）自行处理
         velocity = velocity * getWaterDrag();
     } else {
         velocity = velocity * getAirDrag();

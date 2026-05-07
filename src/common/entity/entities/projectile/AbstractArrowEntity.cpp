@@ -52,9 +52,24 @@ void AbstractArrowEntity::tick() {
         --m_arrowShake;
     }
 
-    // 如果在水中，灭火
+    // 如果在水中，灭火并生成气泡粒子
     if (isInWater()) {
         setFire(0);
+        // MC 1.16.5 AbstractArrowEntity.tick() 第239-244行
+        // 水中生成气泡粒子尾迹
+        if (m_world) {
+            for (int j = 0; j < 4; ++j) {
+                f32 offset = 0.25f;
+                Vector3 pos(
+                    x() - m_velocity.x * offset,
+                    y() - m_velocity.y * offset,
+                    z() - m_velocity.z * offset
+                );
+                m_world->addParticle(
+                    client::renderer::trident::particle::ParticleTypeId::Bubble,
+                    pos, m_velocity);
+            }
+        }
     }
 
     // ========== MC 1.16.5: 检查是否在方块内 ==========

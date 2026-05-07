@@ -183,6 +183,7 @@ void ParticleRegistry::registerBuiltinTypes() {
     registerSimpleType(ParticleTypeId::Rain, "minecraft:rain", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(ParticleTypeId::Snowflake, "minecraft:snowflake", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(ParticleTypeId::Splash, "minecraft:splash", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::Fishing, "minecraft:fishing", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
 
     // 生物相关粒子
     registerSimpleType(ParticleTypeId::Heart, "minecraft:heart", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);

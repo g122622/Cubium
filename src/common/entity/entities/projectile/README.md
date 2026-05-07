@@ -249,3 +249,10 @@ auto damageSource = std::make_unique<IndirectEntityDamageSource>(
   - ExperienceBottleEntity：生成3-11个经验球实体，粒子效果完整
   - PotionEntity：框架已就绪，待药水系统完善后实现效果应用
 - 投掷物品(ThrowableItem)已实现完整的createProjectile实体生成逻辑。
+- 水中粒子效果已完善实现（2026-05-08）：
+  - AbstractArrowEntity：水中每tick生成4个气泡粒子（参考MC 1.16.5 第239-244行）
+  - TridentEntity：返回状态下的三叉戟在水中生成气泡轨迹
+  - ThrowableEntity：水中移动时生成气泡粒子
+  - ProjectileItemEntity：气泡粒子已在ThrowableEntity中处理，无需重复
+  - FishingBobberEntity：钓鱼粒子效果完整（水花、气泡、涟漪）
+  - 新增FishingParticle粒子类型用于水面涟漪效果

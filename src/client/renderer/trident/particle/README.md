@@ -193,6 +193,10 @@ auto particle = ParticleRegistry::instance().createParticle(
 - **SplashParticle**: 水溅粒子
   - 由 RainParticle 落地时生成
   - 小型向上喷射效果
+- **FishingParticle**: 钓鱼涟漪粒子
+  - 无重力，漂浮在水面
+  - 向下移动形成涟漪效果
+  - 用于钓鱼浮标水面效果和鱼接近浮标时的波纹
 
 ### 生物粒子（mob/）
 - **HeartParticle**: 爱心粒子
