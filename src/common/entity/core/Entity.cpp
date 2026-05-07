@@ -12,6 +12,7 @@
 #include "../../world/fluid/Fluid.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../util/text/StringTextComponent.hpp"
+#include "../damage/DamageSource.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -1250,6 +1251,34 @@ bool Entity::canSee(const Entity& other) const {
     // return m_world && !m_world->raycastBlocks(eyePos, targetEyePos);
 
     return true;
+}
+
+// ============================================================================
+// 伤害处理
+// ============================================================================
+
+bool Entity::hurt(DamageSource& source, f32 amount) {
+    // 基类实现：检查无敌状态
+    if (isInvulnerableTo(source)) {
+        return false;
+    }
+
+    // 默认实现：简单标记为已移除（非生物实体的默认行为）
+    // 生物实体（LivingEntity）会重写此方法实现更复杂的伤害逻辑
+    MC_UNUSED(source);
+    MC_UNUSED(amount);
+    return false;
+}
+
+bool Entity::isInvulnerableTo(DamageSource& source) const {
+    // 参考 MC 1.16.5 Entity.isInvulnerableTo()
+    // 1. 检查实体是否处于无敌状态
+    if (m_invulnerable) {
+        // 虚空伤害和创造模式玩家可以绕过无敌
+        // 参考: DamageSource.bypassesInvulnerability()
+        return !source.bypassesInvulnerability();
+    }
+    return false;
 }
 
 String Entity::toString() const {

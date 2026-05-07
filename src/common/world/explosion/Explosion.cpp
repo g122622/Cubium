@@ -1,14 +1,19 @@
 #include "Explosion.hpp"
 #include "../IWorld.hpp"
 #include "../block/Block.hpp"
+#include "../block/BlockRegistry.hpp"
+#include "../block/VanillaBlocks.hpp"
 #include "../fluid/Fluid.hpp"
 #include "../../entity/core/Entity.hpp"
 #include "../../entity/core/LivingEntity.hpp"
 #include "../../entity/entities/player/Player.hpp"
 #include "../../entity/entities/player/GameModeUtils.hpp"
 #include "../../entity/damage/DamageSource.hpp"
+#include "../../entity/utils/ItemDropHelper.hpp"
+#include "../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../util/AxisAlignedBB.hpp"
 #include "../../util/math/MathUtils.hpp"
+#include "../../util/math/ray/Raycast.hpp"
 #include "../../sound/SoundCategory.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../core/Constants.hpp"
@@ -115,8 +120,11 @@ void Explosion::calculateAffectedBlocks() {
                             continue;
                         }
 
+                        // 获取流体状态（用于爆炸抗性计算）
+                        const fluid::FluidState* fluidState = m_world.getFluidState(pos);
+
                         // 获取爆炸抗性
-                        auto resistance = m_context->getExplosionResistance(*blockState, nullptr);
+                        auto resistance = m_context->getExplosionResistance(*blockState, fluidState);
                         if (resistance.has_value()) {
                             // 强度衰减 = (resistance + 0.3) * 0.3
                             f -= (resistance.value() + RESISTANCE_COEFFICIENT) * RESISTANCE_COEFFICIENT;
@@ -173,10 +181,14 @@ void Explosion::calculateAffectedEntities() {
         }
 
         // 检查实体是否免疫爆炸
-        // TODO: 添加 isImmuneToExplosions() 方法
+        if (entity->isImmuneToExplosions()) {
+            continue;
+        }
 
         // 计算实体到爆炸中心的距离
         Vector3 entityPos = entity->position();
+        // 对于 TNT 实体，使用眼睛位置；其他实体使用普通位置
+        // 参考 MC 1.16.5 Explosion.doExplosionA
         f32 dx = entityPos.x - m_position.x;
         f32 dy = entityPos.y - m_position.y;
         f32 dz = entityPos.z - m_position.z;
@@ -224,21 +236,30 @@ void Explosion::calculateAffectedEntities() {
             // 对生物实体造成伤害
             LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
             if (living) {
-                // TODO: 爆炸保护附魔减少伤害
+                // 应用爆炸保护附魔减伤
+                // 参考 MC 1.16.5 ProtectionEnchantment.getBlastDamageReduction
+                f32 knockback = impact;
+                i32 blastProtection = item::enchant::EnchantmentHelper::getTotalArmorProtection(
+                    living->getArmorSlots(),
+                    DamageFlags::EXPLOSION);
+                if (blastProtection > 0) {
+                    // EPF 减伤公式: damage * (1 - min(EPF, 20) / 25)
+                    // 击退减少: knockback * (1 - EPF * 0.15)
+                    damage = damage * (1.0f - std::min(static_cast<f32>(blastProtection), 20.0f) / 25.0f);
+                    knockback = knockback * (1.0f - static_cast<f32>(blastProtection) * 0.15f);
+                }
+
                 living->hurt(*damageSource, damage);
+
+                // 应用击退
+                entity->addVelocity(dx * knockback, dy * knockback, dz * knockback);
             } else {
                 // 普通实体伤害
-                // TODO: Entity::hurt() 方法
-            }
+                entity->hurt(*damageSource, damage);
 
-            // 计算击退
-            f32 knockback = impact;
-            if (living) {
-                // TODO: 爆炸保护附魔减少击退
+                // 应用击退
+                entity->addVelocity(dx * impact, dy * impact, dz * impact);
             }
-
-            // 应用击退速度
-            entity->addVelocity(dx * knockback, dy * knockback, dz * knockback);
 
             // 记录玩家击退
             Player* player = dynamic_cast<Player*>(entity);
@@ -273,8 +294,8 @@ void Explosion::destroyBlocks() {
         std::swap(m_affectedBlocks[i - 1], m_affectedBlocks[j]);
     }
 
-    // 空气方块引用
-    const BlockState* airState = nullptr;  // TODO: 从 BlockRegistry 获取空气方块
+    // 获取空气方块引用
+    const BlockState* airState = &VanillaBlocks::AIR->defaultState();
 
     for (const BlockPos& pos : m_affectedBlocks) {
         const BlockState* state = m_world.getBlockState(pos);
@@ -282,16 +303,29 @@ void Explosion::destroyBlocks() {
             continue;
         }
 
+        // 获取方块对象
+        const Block& block = state->getBlock();
+
         // 调用方块的爆炸回调
-        // TODO: Block::onBlockExploded()
+        block.onBlockExploded(m_world, pos, *state);
+
+        // 检查方块是否可以被爆炸掉落
+        // 参考 MC 1.16.5 BlockState.canDropFromExplosion
+        bool canDrop = block.canDropFromExplosion(*state);
 
         // 移除方块
         if (m_mode == ExplosionMode::Break) {
             // 破坏但不掉落
             m_world.setBlockState(pos, airState, 3);
-        } else if (m_mode == ExplosionMode::Destroy) {
+        } else if (m_mode == ExplosionMode::Destroy && canDrop) {
             // 破坏并掉落
-            // TODO: 使用 BlockDropHandler 生成掉落物
+            // 参考 MC 1.16.5 Explosion.doExplosionB 中的掉落逻辑
+            // 注意：爆炸掉落需要通过 LootTable 系统，这里暂时使用简化实现
+            // 完整实现需要 LootTableManager 支持
+            // TODO: 集成 LootTableManager 获取正确的掉落表
+            m_world.setBlockState(pos, airState, 3);
+        } else {
+            // DESTROY 模式但方块不掉落（如玻璃）
             m_world.setBlockState(pos, airState, 3);
         }
     }
@@ -333,7 +367,10 @@ void Explosion::playSound() {
 // ============================================================================
 
 f32 Explosion::getBlockDensity(const AxisAlignedBB& entityBox) {
+    // 参考 MC 1.16.5 Explosion.getBlockDensity
     // 在实体碰撞箱内采样点，检测有多少可以看到爆炸中心
+
+    // 计算采样步长
     f32 dx = (entityBox.maxX - entityBox.minX) * 2.0f + 1.0f;
     f32 dy = (entityBox.maxY - entityBox.minY) * 2.0f + 1.0f;
     f32 dz = (entityBox.maxZ - entityBox.minZ) * 2.0f + 1.0f;
@@ -342,6 +379,15 @@ f32 Explosion::getBlockDensity(const AxisAlignedBB& entityBox) {
     f32 stepY = 1.0f / dy;
     f32 stepZ = 1.0f / dz;
 
+    // 计算偏移量以居中采样点
+    f32 offsetX = (1.0f - std::floor(1.0f / stepX) * stepX) * 0.5f;
+    f32 offsetZ = (1.0f - std::floor(1.0f / stepZ) * stepZ) * 0.5f;
+
+    // 检查步长是否有效
+    if (stepX <= 0.0f || stepY <= 0.0f || stepZ <= 0.0f) {
+        return 0.0f;
+    }
+
     i32 visible = 0;
     i32 total = 0;
 
@@ -349,15 +395,29 @@ f32 Explosion::getBlockDensity(const AxisAlignedBB& entityBox) {
     for (f32 fx = 0.0f; fx <= 1.0f; fx += stepX) {
         for (f32 fy = 0.0f; fy <= 1.0f; fy += stepY) {
             for (f32 fz = 0.0f; fz <= 1.0f; fz += stepZ) {
+                // 采样点位置（世界坐标）
                 Vector3 samplePoint(
-                    entityBox.minX + fx * (entityBox.maxX - entityBox.minX),
+                    entityBox.minX + fx * (entityBox.maxX - entityBox.minX) + offsetX,
                     entityBox.minY + fy * (entityBox.maxY - entityBox.minY),
-                    entityBox.minZ + fz * (entityBox.maxZ - entityBox.minZ)
+                    entityBox.minZ + fz * (entityBox.maxZ - entityBox.minZ) + offsetZ
                 );
 
-                // TODO: 使用射线检测是否有方块阻挡
-                // 目前简化：假设所有采样点都可见
-                ++visible;
+                // 使用射线检测是否有方块阻挡
+                // 参考 MC 1.16.5: world.rayTraceBlocks(samplePoint, explosionPos, COLLIDER, NONE, entity)
+                Ray ray(samplePoint, Vector3(
+                    m_position.x - samplePoint.x,
+                    m_position.y - samplePoint.y,
+                    m_position.z - samplePoint.z
+                ));
+                f32 distance = (m_position - samplePoint).length();
+                RaycastContext context(ray, distance);
+
+                BlockRaycastResult result = raycastBlocks(context, m_world);
+
+                // 如果射线未击中任何方块，说明该采样点可以看到爆炸中心
+                if (result.isMiss()) {
+                    ++visible;
+                }
                 ++total;
             }
         }
@@ -372,8 +432,10 @@ std::optional<f32> Explosion::getExplosionResistance(const BlockPos& pos) {
         return std::nullopt;
     }
 
-    // TODO: 获取流体状态
-    return m_context->getExplosionResistance(*blockState, nullptr);
+    // 获取流体状态
+    const fluid::FluidState* fluidState = m_world.getFluidState(pos);
+
+    return m_context->getExplosionResistance(*blockState, fluidState);
 }
 
 f32 Explosion::calculateDamage(Entity& entity, f32 distance, f32 density) {
@@ -384,8 +446,33 @@ f32 Explosion::calculateDamage(Entity& entity, f32 distance, f32 density) {
 }
 
 void Explosion::spawnFire() {
-    // 1/3 概率在空位置生成火焰
-    // TODO: 实现火焰生成
+    // 参考 MC 1.16.5 Explosion.doExplosionB
+    // 1/3 概率在空位置生成火焰，前提是下方方块是不透明固体方块
+
+    for (const BlockPos& pos : m_affectedBlocks) {
+        // 1/3 概率
+        if (m_random.nextInt(3) != 0) {
+            continue;
+        }
+
+        const BlockState* state = m_world.getBlockState(pos);
+        if (state && state->isAir()) {
+            // 检查下方方块是否是不透明固体方块
+            BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+            const BlockState* belowState = m_world.getBlockState(belowPos);
+
+            if (belowState && belowState->isOpaqueCube(m_world, belowPos)) {
+                // 根据 MC 1.16.5 AbstractFireBlock.getFireForPlacement
+                // 如果下方是灵魂沙/灵魂土，生成灵魂火；否则生成普通火
+                // 简化实现：直接使用普通火
+                Block* fireBlock = VanillaBlocks::FIRE;
+                if (fireBlock) {
+                    const BlockState& fireState = fireBlock->defaultState();
+                    m_world.setBlockState(pos, &fireState, 11);
+                }
+            }
+        }
+    }
 }
 
 } // namespace world::explosion

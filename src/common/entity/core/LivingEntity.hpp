@@ -259,6 +259,23 @@ public:
      */
     void setOffHandItem(const ItemStack& stack) { setEquipment(EquipmentSlot::OffHand, stack); }
 
+    /**
+     * @brief 获取护甲槽位数组
+     *
+     * 返回头盔、胸甲、护腿、靴子的指针数组，用于附魔保护计算。
+     * 参考 MC 1.16.5 LivingEntity.getArmorInventoryList()
+     *
+     * @return 护甲槽位数组 [头盔, 胸甲, 护腿, 靴子]
+     */
+    [[nodiscard]] std::array<const ItemStack*, 4> getArmorSlots() const {
+        return {
+            &m_equipment[static_cast<size_t>(EquipmentSlot::Head)],   // 头盔
+            &m_equipment[static_cast<size_t>(EquipmentSlot::Chest)],  // 胸甲
+            &m_equipment[static_cast<size_t>(EquipmentSlot::Legs)],   // 护腿
+            &m_equipment[static_cast<size_t>(EquipmentSlot::Feet)]    // 靴子
+        };
+    }
+
     // ========== 主手偏好 ==========
 
     /**

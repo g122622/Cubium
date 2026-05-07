@@ -23,6 +23,7 @@ namespace mc {
 class PhysicsEngine;
 class IWorld;
 class BlockState;
+class DamageSource;
 
 /**
  * @brief 实体推动反应类型
@@ -893,6 +894,39 @@ public:
      * @brief 设置无敌状态
      */
     void setInvulnerable(bool invulnerable) { m_invulnerable = invulnerable; }
+
+    /**
+     * @brief 检查是否免疫爆炸伤害
+     *
+     * 参考 MC 1.16.5 Entity.isImmuneToExplosions()
+     * 默认返回 false，凋灵、末影龙等实体需要重写此方法。
+     *
+     * @return 如果免疫爆炸返回 true
+     */
+    [[nodiscard]] virtual bool isImmuneToExplosions() const { return false; }
+
+    /**
+     * @brief 受伤入口方法
+     *
+     * 参考 MC 1.16.5 Entity.attackEntityFrom()
+     * 处理实体受伤的通用逻辑。基类实现检查无敌状态。
+     * 子类（如 LivingEntity）应重写此方法以实现具体的受伤逻辑。
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量
+     * @return 是否成功造成伤害
+     */
+    virtual bool hurt(DamageSource& source, f32 amount);
+
+    /**
+     * @brief 检查是否对特定伤害类型免疫
+     *
+     * 参考 MC 1.16.5 Entity.isInvulnerableTo()
+     *
+     * @param source 伤害来源
+     * @return 如果免疫该伤害类型返回 true
+     */
+    [[nodiscard]] virtual bool isInvulnerableTo(DamageSource& source) const;
 
     // ========== 自定义名称 ==========
 

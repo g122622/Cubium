@@ -9,6 +9,8 @@
 - **击退效果**：根据爆炸强度应用击退
 - **粒子和音效**：生成爆炸视觉效果和声音
 - **爆炸模式**：支持 NONE/BREAK/DESTROY 三种模式
+- **附魔保护**：爆炸保护附魔减少伤害和击退
+- **火焰生成**：在条件满足时生成火焰
 
 ## 目录结构
 
@@ -43,10 +45,10 @@ enum class ExplosionMode : u8 {
 ```cpp
 class ExplosionContext {
 public:
-    // 获取方块的爆炸抗性
+    // 获取方块的爆炸抗性（考虑流体）
     virtual std::optional<f32> getExplosionResistance(
         const BlockState& blockState,
-        const FluidState* fluidState) const;
+        const fluid::FluidState* fluidState) const;
 
     // 判断方块是否可被破坏
     virtual bool canDestroyBlock(
@@ -92,14 +94,26 @@ public:
 3. 初始强度 = radius × (0.7 + random × 0.6)
 4. 每步衰减 = (resistance + 0.3) × 0.3
 5. 强度 > 0 时标记方块为受影响
+6. **流体影响**：水和岩浆具有 100.0 的爆炸抗性
 
 ### 实体伤害
 
 1. 影响范围 = radius × 2
 2. 计算距离系数 = distance / (radius × 2)
 3. 计算阻挡密度（视线检测）
+   - 使用射线追踪检测实体与爆炸中心之间的方块阻挡
+   - 采样实体碰撞箱内的多个点
 4. 伤害 = floor((impact² + impact) / 2 × 7 × radius + 1)
 5. 击退 = 归一化方向向量 × impact
+6. **爆炸保护附魔**：
+   - 减少伤害：damage × (1 - min(EPF, 20) / 25)
+   - 减少击退：knockback × (1 - EPF × 0.15)
+
+### 火焰生成
+
+1. 仅在 causesFire = true 时触发
+2. 1/3 概率在破坏的方块位置生成火焰
+3. 前提条件：下方方块必须是不透明固体方块
 
 ## 使用方法
 
@@ -124,7 +138,7 @@ class CustomExplosionContext : public ExplosionContext {
 public:
     std::optional<f32> getExplosionResistance(
         const BlockState& blockState,
-        const FluidState* fluidState) const override {
+        const fluid::FluidState* fluidState) const override {
         // 例如：凋灵之首可以破坏更高抗性的方块
         return ExplosionContext::getExplosionResistance(blockState, fluidState);
     }
@@ -154,7 +168,7 @@ public:
     }
 
     // 爆炸回调
-    void onBlockExploded(IWorld& world, const BlockPos& pos, const BlockState& state) override {
+    void onBlockExploded(IWorld& world, const BlockPos& pos, const BlockState& state) const override {
         // 例如：TNT 方块被爆炸时点燃
     }
 };
@@ -188,10 +202,12 @@ public:
 ### 伤害系统
 
 使用 `DamageSources::explosion(source)` 创建爆炸伤害。
+支持爆炸保护附魔减少伤害和击退。
 
 ### 方块掉落
 
 通过 `BlockDropHandler::generateDrops()` 生成掉落物。
+调用 `Block::canDropFromExplosion()` 判断是否掉落。
 
 ## 注意事项
 
@@ -199,3 +215,4 @@ public:
 2. **服务端/客户端同步**：爆炸在服务端计算，结果广播给客户端
 3. **游戏规则**：应检查 `mobGriefing` 规则以决定是否破坏方块
 4. **方块实体**：被破坏的方块实体（如箱子）应正确处理其内容物
+5. **实体免疫**：实体可通过 `isImmuneToExplosions()` 方法免疫爆炸伤害

@@ -1114,7 +1114,7 @@ public:
      *
      * 参考: net.minecraft.block.Block.onBlockExploded
      */
-    virtual void onBlockExploded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    virtual void onBlockExploded(IWorld& world, const BlockPos& pos, const BlockState& state) const {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         MC_UNUSED(state);
