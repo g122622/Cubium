@@ -58,7 +58,9 @@ add_executable(mc_tests
     common/entity/inventory/container/BrewingStandContainerTest.cpp
     common/entity/inventory/container/AnvilContainerTest.cpp
     common/entity/entities/passive/basic/ChickenEntityTest.cpp
-    # 缁忛獙绯荤粺娴嬭瘯
+    # ItemDropHelper 测试
+    common/entity/utils/ItemDropHelperTest.cpp
+    # 经验系统测试
     common/entity/experience/ExperienceTest.cpp
     common/entity/experience/ExperienceManagerTest.cpp
     common/entity/experience/ExperienceOrbEntityTest.cpp
