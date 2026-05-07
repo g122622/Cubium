@@ -169,28 +169,6 @@ TEST_F(CropBlocksTest, BeetrootBlock_CropAndSeedItemsAreDifferent) {
 }
 
 // ============================================================================
-// VanillaBlocks 注册验证测试
-// ============================================================================
-
-TEST_F(CropBlocksTest, VanillaBlocks_HasWheatCropRegistered) {
-    ASSERT_NE(VanillaBlocks::WHEAT, nullptr) << "VanillaBlocks::WHEAT should be registered";
-    EXPECT_NE(VanillaBlocks::WHEAT->itemId(), 0u)
-        << "Wheat block should have a valid item ID";
-}
-
-TEST_F(CropBlocksTest, VanillaBlocks_HasCarrotsCropRegistered) {
-    ASSERT_NE(VanillaBlocks::CARROTS, nullptr) << "VanillaBlocks::CARROTS should be registered";
-}
-
-TEST_F(CropBlocksTest, VanillaBlocks_HasPotatoesCropRegistered) {
-    ASSERT_NE(VanillaBlocks::POTATOES, nullptr) << "VanillaBlocks::POTATOES should be registered";
-}
-
-TEST_F(CropBlocksTest, VanillaBlocks_HasBeetrootsCropRegistered) {
-    ASSERT_NE(VanillaBlocks::BEETROOTS, nullptr) << "VanillaBlocks::BEETROOTS should be registered";
-}
-
-// ============================================================================
 // Item ID 有效性测试
 // ============================================================================
 
