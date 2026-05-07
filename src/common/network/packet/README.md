@@ -280,6 +280,12 @@ if (result.success()) {
 - **物品拾取动画包** (`CollectItemPacket`) [S→C]
   - 通知客户端播放物品拾取动画
 
+- **实体交互包** (`UseEntityPacket`) [C→S]
+  - 玩家对实体的交互请求（攻击、右键交互）
+  - 交互类型: INTERACT（普通交互）、ATTACK（攻击）、INTERACT_AT（指定位置交互）
+  - 包含: 实体ID、交互类型、手（主手/副手）、命中位置（仅INTERACT_AT）、潜行状态
+  - 服务端处理: 调用 Player::interactOn() 或 Player::attack()
+
 #### EntityMetadataSerializer.hpp / EntityMetadataSerializer.cpp
 
 **职责**: 实体元数据序列化

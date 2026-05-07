@@ -18,6 +18,7 @@
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../../item/enchantment/enchantments/AllEnchantments.hpp"
 #include "../../../item/items/tool/SwordItem.hpp"
+#include "../../../item/core/ActionResult.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -1773,6 +1774,64 @@ void Player::attack(Entity& target) {
             livingTarget->setFire(0);  // 移除之前点燃的火焰
         }
     }
+}
+
+ActionResultType Player::interactOn(Entity& target, Hand hand) {
+    // MC 1.16.5: PlayerEntity.interactOn()
+
+    // 1. 旁观者模式：只能打开命名容器
+    if (isSpectator()) {
+        // TODO: 如果目标实现了 INamedContainerProvider，打开容器
+        // if (auto* provider = dynamic_cast<INamedContainerProvider*>(&target)) {
+        //     openContainer(provider);
+        //     return ActionResultType::Success;
+        // }
+        return ActionResultType::Pass;
+    }
+
+    // 2. 获取手持物品
+    ItemStack itemstack = getHeldItem(hand);
+    ItemStack itemstackCopy = itemstack;  // 保存副本用于创造模式恢复
+
+    // 3. 先调用实体的 processInitialInteract 方法
+    // TODO: ActionResultType entityResult = target.processInitialInteract(*this, hand);
+    // if (entityResult.isSuccessOrConsume()) {
+    //     // 创造模式恢复物品数量
+    //     if (isCreative() && itemstack.isEmpty()) {
+    //         inventory().setItem(hand == Hand::MainHand ? 0 : 40, itemstackCopy);
+    //     }
+    //     return entityResult;
+    // }
+
+    // 4. 如果实体不处理，尝试物品的 interactWithEntity
+    if (!itemstack.isEmpty()) {
+        // 只有生物实体才支持物品交互
+        LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(&target);
+        if (livingTarget != nullptr) {
+            // 创造模式使用物品副本，避免消耗
+            if (isCreative()) {
+                itemstack = itemstackCopy;
+            }
+
+            // 调用物品的 itemInteractionForEntity
+            // 注意: ItemStack::getItem() 返回 const Item*，需要转换为非 const
+            // 这是安全的，因为 itemInteractionForEntity 可能会修改 ItemStack
+            Item* item = const_cast<Item*>(itemstack.getItem());
+            if (item != nullptr) {
+                bool success = item->itemInteractionForEntity(itemstack, *this, *livingTarget, hand);
+                if (success) {
+                    // 物品被消耗处理
+                    if (!isCreative() && itemstack.isEmpty()) {
+                        // TODO: 触发 PlayerDestroyItem 事件
+                        inventory().setItem(hand == Hand::MainHand ? 0 : 40, ItemStack());
+                    }
+                    return ActionResultType::Success;
+                }
+            }
+        }
+    }
+
+    return ActionResultType::Pass;
 }
 
 } // namespace mc

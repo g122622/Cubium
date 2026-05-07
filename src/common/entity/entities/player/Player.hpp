@@ -8,6 +8,7 @@
 #include "../../food/FoodStats.hpp"
 #include "../../../network/packet/ProtocolPackets.hpp"
 #include "../../../world/GlobalPos.hpp"
+#include "../../../item/core/ActionResult.hpp"
 #include "ChatVisibility.hpp"
 #include "GameModeUtils.hpp"
 #include "PlayerModelPart.hpp"
@@ -924,6 +925,23 @@ public:
      * @param target 目标实体
      */
     void attack(Entity& target);
+
+    /**
+     * @brief 与实体交互
+     *
+     * MC 1.16.5: PlayerEntity.interactOn()
+     * 玩家右键点击实体时调用，处理实体交互和物品交互。
+     *
+     * 交互流程：
+     * 1. 旁观者模式：只能打开命名容器
+     * 2. 先调用实体的 processInitialInteract() 方法
+     * 3. 如果实体不处理，尝试物品的 interactWithEntity()
+     *
+     * @param target 目标实体
+     * @param hand 使用的手
+     * @return 交互结果类型
+     */
+    ActionResultType interactOn(Entity& target, Hand hand);
 
     // ========== 重生 ==========
 

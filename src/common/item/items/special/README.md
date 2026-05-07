@@ -115,19 +115,31 @@ Item* codBucket = Items::COD_BUCKET;
 
 ## 集成状态
 
-### 已完成
+### 已完成 ✅
 - `Item::itemInteractionForEntity()` 虚方法接口已定义
 - `BucketItem::itemInteractionForEntity()` 实现挤奶逻辑
 - `ShearsItem::itemInteractionForEntity()` 实现剪毛逻辑
 - `NameTagItem::itemInteractionForEntity()` 实现命名逻辑
+- `Player::interactOn()` 方法调用 `itemInteractionForEntity`
+- `UseEntityPacket` 网络包定义和序列化
+- `PacketHandler::handleUseEntity()` 处理实体交互请求
 - 单元测试验证核心逻辑正确
 
-### 待集成
-- 服务端玩家→实体交互网络包（如 `UseEntityPacket`）
-- `Player::interactOn()` 方法调用 `itemInteractionForEntity`
-- `PacketHandler::handleEntityInteraction()` 处理交互请求
+### 调用链路
 
-**注意**: 当前代码遵循 MC 1.16.5 设计模式，非孤岛代码。等待网络层集成后即可完整运作。
+```
+客户端 UseEntityPacket
+        ↓
+服务端 PacketHandler::handleUseEntity()
+        ↓ (INTERACT 动作)
+Player::interactOn(entity, hand)
+        ↓
+Entity::processInitialInteract() [待实现]
+        ↓ (如果返回 PASS)
+Item::itemInteractionForEntity() [已完成]
+        ↓
+BucketItem / ShearsItem / NameTagItem 具体实现
+```
 
 ## 参考
 

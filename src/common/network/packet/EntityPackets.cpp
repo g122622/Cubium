@@ -610,4 +610,82 @@ Result<void> EntityActionPacket::deserialize(const u8* data, size_t size) {
     return {};
 }
 
+// ==================== UseEntityPacket ====================
+
+Result<std::vector<u8>> UseEntityPacket::serialize() const {
+    PacketSerializer serializer;
+    serializer.writeVarInt(static_cast<i32>(m_entityId));
+    serializer.writeVarInt(static_cast<i32>(m_action));
+
+    // INTERACT_AT 需要写入命中位置
+    if (m_action == UseEntityAction::InteractAt) {
+        serializer.writeF32(m_hitX);
+        serializer.writeF32(m_hitY);
+        serializer.writeF32(m_hitZ);
+    }
+
+    // INTERACT 和 INTERACT_AT 需要写入手
+    if (m_action == UseEntityAction::Interact || m_action == UseEntityAction::InteractAt) {
+        serializer.writeVarInt(static_cast<i32>(m_hand));
+    }
+
+    // 潜行标志
+    serializer.writeBool(m_isSneaking);
+
+    return serializer.buffer();
+}
+
+Result<void> UseEntityPacket::deserialize(const u8* data, size_t size) {
+    PacketDeserializer deserializer(data, size);
+
+    // 读取实体ID
+    auto idResult = deserializer.readVarInt();
+    if (!idResult.success()) return Error(idResult.error());
+    m_entityId = static_cast<u32>(idResult.value());
+
+    // 读取动作类型
+    auto actionResult = deserializer.readVarInt();
+    if (!actionResult.success()) return Error(actionResult.error());
+    m_action = static_cast<UseEntityAction>(actionResult.value());
+
+    // 验证动作类型
+    if (static_cast<i32>(m_action) < 0 || static_cast<i32>(m_action) > 2) {
+        return Error(ErrorCode::InvalidData, "Invalid use entity action type");
+    }
+
+    // INTERACT_AT 需要读取命中位置
+    if (m_action == UseEntityAction::InteractAt) {
+        auto xResult = deserializer.readF32();
+        if (!xResult.success()) return Error(xResult.error());
+        m_hitX = xResult.value();
+
+        auto yResult = deserializer.readF32();
+        if (!yResult.success()) return Error(yResult.error());
+        m_hitY = yResult.value();
+
+        auto zResult = deserializer.readF32();
+        if (!zResult.success()) return Error(zResult.error());
+        m_hitZ = zResult.value();
+    }
+
+    // INTERACT 和 INTERACT_AT 需要读取手
+    if (m_action == UseEntityAction::Interact || m_action == UseEntityAction::InteractAt) {
+        auto handResult = deserializer.readVarInt();
+        if (!handResult.success()) return Error(handResult.error());
+        m_hand = static_cast<Hand>(handResult.value());
+
+        // 验证手
+        if (static_cast<i32>(m_hand) < 0 || static_cast<i32>(m_hand) > 1) {
+            return Error(ErrorCode::InvalidData, "Invalid hand value");
+        }
+    }
+
+    // 读取潜行标志
+    auto sneakingResult = deserializer.readBool();
+    if (!sneakingResult.success()) return Error(sneakingResult.error());
+    m_isSneaking = sneakingResult.value();
+
+    return {};
+}
+
 } // namespace mc::network

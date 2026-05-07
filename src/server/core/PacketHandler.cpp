@@ -69,6 +69,9 @@ PacketHandleResult PacketHandler::handlePacket(u32 sessionId, const u8* data, si
         case network::PacketType::EntityAction:
             return handleEntityAction(sessionId, payload, payloadSize);
 
+        case network::PacketType::UseEntity:
+            return handleUseEntity(sessionId, payload, payloadSize);
+
         case network::PacketType::TeleportConfirm:
             return handleTeleportConfirm(sessionId, payload, payloadSize);
 
@@ -330,6 +333,71 @@ PacketHandleResult PacketHandler::handleChatMessage(u32 sessionId, const u8* dat
     if (m_onChat) {
         m_onChat(playerId, player->username, message);
     }
+
+    return PacketHandleResult::Success;
+}
+
+PacketHandleResult PacketHandler::handleUseEntity(u32 sessionId, const u8* data, size_t size) {
+    // MC 1.16.5: ServerPlayNetHandler.processUseEntity()
+    PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
+    if (playerId == 0) {
+        spdlog::trace("PacketHandler: UseEntity from unknown session {}", sessionId);
+        return PacketHandleResult::Ignore;
+    }
+
+    // 反序列化数据包
+    network::UseEntityPacket packet;
+    auto result = packet.deserialize(data, size);
+
+    if (result.failed()) {
+        spdlog::error("PacketHandler: Failed to parse UseEntity from player {}", playerId);
+        return PacketHandleResult::Error;
+    }
+
+    // TODO: 获取玩家实体和目标实体
+    // auto* player = m_playerManager.getPlayerEntity(playerId);
+    // auto* world = player ? player->getWorld() : nullptr;
+    // if (!player || !world) {
+    //     return PacketHandleResult::Ignore;
+    // }
+
+    // Entity* target = world->getEntity(packet.entityId());
+    // if (!target) {
+    //     spdlog::debug("PacketHandler: Target entity {} not found", packet.entityId());
+    //     return PacketHandleResult::Ignore;
+    // }
+
+    // 距离检查：玩家与实体距离必须小于 36.0 (6格的平方)
+    // f32 distanceSq = player->distanceSq(*target);
+    // if (distanceSq >= 36.0f) {
+    //     spdlog::debug("PacketHandler: Player {} too far from entity {}", playerId, packet.entityId());
+    //     return PacketHandleResult::Ignore;
+    // }
+
+    // 根据交互类型处理
+    switch (packet.action()) {
+        case network::UseEntityAction::Interact:
+            // player->interactOn(*target, packet.hand());
+            spdlog::trace("PacketHandler: Player {} INTERACT entity {} hand={}",
+                         playerId, packet.entityId(), static_cast<int>(packet.hand()));
+            break;
+
+        case network::UseEntityAction::Attack:
+            // player->attack(*target);
+            spdlog::trace("PacketHandler: Player {} ATTACK entity {}",
+                         playerId, packet.entityId());
+            break;
+
+        case network::UseEntityAction::InteractAt:
+            // TODO: entity->applyPlayerInteraction(player, packet.hitPosition(), packet.hand())
+            spdlog::trace("PacketHandler: Player {} INTERACT_AT entity {} pos=({},{},{}) hand={}",
+                         playerId, packet.entityId(),
+                         packet.hitX(), packet.hitY(), packet.hitZ(),
+                         static_cast<int>(packet.hand()));
+            break;
+    }
+
+    // TODO: 成功交互后触发成就和挥手动画
 
     return PacketHandleResult::Success;
 }

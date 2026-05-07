@@ -180,6 +180,15 @@ public:
      */
     PacketHandleResult handleChatMessage(u32 sessionId, const u8* data, size_t size);
 
+    /**
+     * @brief 处理实体交互
+     * @param sessionId 会话ID
+     * @param data 数据包负载
+     * @param size 负载大小
+     * @return 处理结果
+     */
+    PacketHandleResult handleUseEntity(u32 sessionId, const u8* data, size_t size);
+
     // ========== 回调设置 ==========
 
     /**

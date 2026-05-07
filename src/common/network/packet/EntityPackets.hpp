@@ -685,4 +685,60 @@ private:
     i32 m_auxData = 0;
 };
 
+// ============================================================================
+// 实体交互包 (客户端 -> 服务端)
+// ============================================================================
+
+/**
+ * @brief 实体交互类型枚举
+ *
+ * 参考 MC 1.16.5 CUseEntityPacket.Action
+ */
+enum class UseEntityAction : u8 {
+    Interact = 0,       // 右键交互（不指定位置）
+    Attack = 1,         // 左键攻击
+    InteractAt = 2      // 右键交互（指定具体位置）
+};
+
+/**
+ * @brief 实体交互包
+ *
+ * 客户端发送玩家对实体的交互请求（攻击、右键交互）。
+ * 服务端收到后调用 Player::interactOn() 或 Player::attack()。
+ *
+ * 参考 MC 1.16.5 CUseEntityPacket
+ */
+class UseEntityPacket : public Packet {
+public:
+    UseEntityPacket() : Packet(PacketType::UseEntity) {}
+
+    [[nodiscard]] Result<std::vector<u8>> serialize() const override;
+    [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
+
+    // Getters
+    u32 entityId() const { return m_entityId; }
+    UseEntityAction action() const { return m_action; }
+    Hand hand() const { return m_hand; }
+    f32 hitX() const { return m_hitX; }
+    f32 hitY() const { return m_hitY; }
+    f32 hitZ() const { return m_hitZ; }
+    bool isSneaking() const { return m_isSneaking; }
+
+    // Setters
+    void setEntityId(u32 id) { m_entityId = id; }
+    void setAction(UseEntityAction action) { m_action = action; }
+    void setHand(Hand hand) { m_hand = hand; }
+    void setHitPosition(f32 x, f32 y, f32 z) { m_hitX = x; m_hitY = y; m_hitZ = z; }
+    void setSneaking(bool sneaking) { m_isSneaking = sneaking; }
+
+private:
+    u32 m_entityId = 0;
+    UseEntityAction m_action = UseEntityAction::Interact;
+    Hand m_hand = Hand::MainHand;
+    f32 m_hitX = 0.0f;
+    f32 m_hitY = 0.0f;
+    f32 m_hitZ = 0.0f;
+    bool m_isSneaking = false;
+};
+
 } // namespace mc::network
