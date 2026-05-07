@@ -15,6 +15,7 @@
 #include "common/world/chunk/ChunkPos.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/chunk/ChunkLoadTicket.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/village/VillageManager.hpp"
@@ -406,6 +407,10 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     // 初始化方块物品注册表
     BlockItemRegistry::instance().initializeVanillaBlockItems();
     spdlog::info("Block items initialized");
+
+    // 初始化发射器行为注册表
+    blocks::DispenseItemBehaviorRegistry::instance().initDefaultBehaviors();
+    spdlog::info("Dispense item behaviors initialized");
 
     // 加载配方
     RecipeLoader recipeLoader;

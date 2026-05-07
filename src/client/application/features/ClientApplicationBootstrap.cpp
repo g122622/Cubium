@@ -26,6 +26,7 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -62,6 +63,13 @@ void ClientApplication::initializeCoreRegistries()
         MC_TRACE_EVENT("client.initialization", "InitializeVanillaBlockItems");
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         spdlog::info("Block items initialized");
+    }
+
+    // 初始化发射器行为注册表
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeDispenseBehaviors");
+        blocks::DispenseItemBehaviorRegistry::instance().initDefaultBehaviors();
+        spdlog::info("Dispense item behaviors initialized");
     }
 }
 
