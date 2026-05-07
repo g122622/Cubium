@@ -33,6 +33,8 @@ src/common/network/packet/
 ├── DimensionPackets.cpp           # 维度数据包实现
 ├── SpawnPositionPacket.hpp        # 世界出生点数据包
 ├── SpawnPositionPacket.cpp        # 世界出生点包实现
+├── ExplosionPacket.hpp            # 爆炸事件数据包
+├── ExplosionPacket.cpp            # 爆炸事件包实现
 ├── TitlePacket.hpp                # 标题显示包
 ├── TitlePacket.cpp                # 标题显示包实现
 └── SleepPacket.hpp                # 睡眠状态同步包
@@ -479,6 +481,67 @@ void onDifficultyChange(mc::Difficulty difficulty, bool locked) {
 - 工厂方法: `create()`, `createSingle()`
 - 用于服务端向客户端广播粒子效果
 
+### 爆炸数据包
+
+#### ExplosionPacket.hpp / ExplosionPacket.cpp
+
+**职责**: 爆炸事件数据包 (S->C)
+
+**主要内容**:
+- 爆炸位置 (f32 x, y, z)
+- 爆炸威力 (f32 strength)
+- 受影响方块列表 (使用相对坐标编码)
+- 玩家击退向量 (f32 motionX, motionY, motionZ)
+
+**协议格式** (MC 1.16.5 SExplosionPacket):
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| x | f32 | 爆炸位置 X |
+| y | f32 | 爆炸位置 Y |
+| z | f32 | 爆炸位置 Z |
+| strength | f32 | 爆炸威力（半径） |
+| affectedBlockCount | VarInt | 受影响方块数量 |
+| affectedBlocks | bytes[] | 方块相对坐标列表（每方块3字节） |
+| motionX | f32 | 玩家击退速度 X |
+| motionY | f32 | 玩家击退速度 Y |
+| motionZ | f32 | 玩家击退速度 Z |
+
+**方块坐标编码**:
+- 每个方块使用3字节存储相对坐标
+- deltaX = blockX - floor(explosionX)
+- deltaY = blockY - floor(explosionY)
+- deltaZ = blockZ - floor(explosionZ)
+- 使用有符号字节存储（范围 -128 到 127）
+
+**使用场景**:
+- TNT 爆炸
+- 苦力怕爆炸
+- 末地水晶爆炸
+- 床/重生锚在错误维度爆炸
+
+**使用示例**:
+```cpp
+// 服务端广播爆炸
+mc::network::ExplosionPacket packet(
+    position,           // 爆炸位置
+    4.0f,              // TNT 威力
+    affectedBlocks,    // 受影响方块列表
+    playerKnockback,   // 玩家击退映射
+    playerId           // 目标玩家ID
+);
+
+auto result = packet.serialize();
+if (result.success()) {
+    auto fullPacket = mc::server::core::ConnectionManager::encapsulatePacket(
+        mc::network::PacketType::Explosion, result.value());
+    sendToPlayer(playerId, fullPacket.data(), fullPacket.size());
+}
+```
+
+**广播范围**:
+- 参考 MC 1.16.5: 发送给爆炸点 64 格范围内的玩家
+- 每个玩家收到独立的击退向量
+
 ### 标题数据包
 
 #### TitlePacket.hpp / TitlePacket.cpp
@@ -571,6 +634,10 @@ PacketModule.hpp (统一入口)
     └── ParticlePacket.hpp (粒子包)
             ├── ParticlePacket.cpp
             └── 依赖 Packet.hpp, ParticleTypes.hpp, Vector3.hpp
+
+    └── ExplosionPacket.hpp (爆炸事件包)
+            ├── ExplosionPacket.cpp
+            └── 依赖 Packet.hpp, BlockPos.hpp, Vector3.hpp
 
     └── TitlePacket.hpp (标题显示包)
             ├── TitlePacket.cpp
@@ -721,8 +788,12 @@ auto f = deserializer.readF32();         // 3.14f
 | 测试文件 | 测试内容 |
 |---------|---------|
 | `EntityPacketsTest.cpp` | 实体数据包序列化/反序列化测试 |
+| `ParticlePacketTest.cpp` | 粒子数据包序列化/反序列化测试 |
+| `ExplosionPacketTest.cpp` | 爆炸数据包序列化/反序列化测试 |
+| `WorldEventPacketTest.cpp` | 世界事件数据包序列化/反序列化测试 |
 | `SpawnPositionPacketTest.cpp` | 世界出生点数据包序列化/反序列化测试 |
 | `LocalServerConnectionTest.cpp` | 本地连接测试 |
+| `TitlePacketTest.cpp` | 标题显示数据包序列化/反序列化测试 |
 
 `tests/common/test_container.cpp` 也包含 `CreativeInventoryActionPacket` 的序列化/反序列化测试，以及创造模式物品库辅助函数测试。
 
