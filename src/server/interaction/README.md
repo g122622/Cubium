@@ -63,6 +63,17 @@ struct BlockPlacementResult {
 | `setOnBlockBreak()` | 设置方块破坏回调 |
 | `setOnBlockPlace()` | 设置方块放置回调 |
 
+**私有辅助方法**（重构后抽取的公共逻辑）：
+
+| 方法 | 说明 |
+|------|------|
+| `validatePlayer()` | 验证玩家数据有效性（存在且已登录） |
+| `validateInteractionPreconditions()` | 组合验证：玩家验证 + 距离验证 + Y范围验证（可选） |
+| `getNonAirBlockState()` | 获取方块状态并检查是否为空气 |
+| `checkWorldModificationAllowed()` | 检查是否可以在当前世界执行修改操作（调试世界检查） |
+| `getHeldTool()` | 获取玩家手持物品 |
+| `setBlockToAir()` | 将方块设置为空气并触发回调 |
+
 **交互距离验证**：
 - 玩家眼睛位置到方块中心距离平方 <= 36.0（6格）
 
