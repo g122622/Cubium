@@ -117,7 +117,7 @@ enum class WeatherType : u8 {
 | 函数 | 说明 |
 |------|------|
 | `getPrecipitationType(temperature)` | 根据生物群系温度判断雨/雪类型（无降水生物群系需由调用者额外过滤） |
-| `canSeeSky(world, pos)` | 判断位置是否可以看到天空 |
+| `canSeeSky(world, pos)` | 判断位置是否可以看到天空（基于天空光照判断，委托给 `IWorld::canSeeSky()`） |
 | `canRainAt(world, pos)` | 判断位置是否可以降雨 |
 | `canSnowAt(world, pos)` | 判断位置是否可以降雪 |
 | `getRandomWeatherDuration(rng, min, max)` | 获取随机天气持续时间 |

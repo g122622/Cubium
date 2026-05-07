@@ -191,6 +191,7 @@ public:
     virtual u8 getSkyLight(i32 x, i32 y, i32 z) const = 0;
     virtual u8 getLightSubtracted(const BlockPos& pos, u32 skyDarkening) const;
     virtual f32 getBrightness(const BlockPos& pos) const;  // Returns 0.0-1.0
+    virtual bool canSeeSky(const BlockPos& pos) const;  // Based on sky light >= 15
 
     // Collision detection
     virtual bool hasBlockCollision(const AxisAlignedBB& box) const = 0;
@@ -560,9 +561,30 @@ u8 blockLight = world.getBlockLight(x, y, z);
 u8 skyLight = world.getSkyLight(x, z);
 u8 combined = std::max(blockLight, skyLight - skyDarkening);
 
+// Check if position can see sky (based on sky light level)
+bool outdoor = world.canSeeSky(pos);  // Returns true if skyLight >= 15
+
 // Height query
 i32 height = world.getHeight(x, z);  // Top solid block
 ```
+
+**canSeeSky Implementation:**
+
+The `canSeeSky()` method checks if a position has direct line of sight to the sky. This is implemented based on MC 1.16.5:
+
+```cpp
+bool canSeeSky(const BlockPos& pos) const {
+    if (!hasSkyLight()) {
+        return false;  // Nether/End have no sky light
+    }
+    return getSkyLight(pos) >= 15;
+}
+```
+
+This correctly handles:
+- Transparent blocks (glass, water) - sky light passes through
+- Partial blocks (slabs, stairs) - uses shape-based occlusion
+- Indoor positions - sky light is blocked by solid blocks
 
 ### Chunk Loading with Tickets
 
