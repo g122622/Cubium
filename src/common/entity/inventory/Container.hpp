@@ -32,6 +32,15 @@ struct SlotRange {
 /**
  * @brief 容器类
  *
+ * @deprecated 此类是早期实现，功能不完整。
+ *             请使用 AbstractContainerMenu 代替，它提供了完整的容器功能：
+ *             - 物品丢弃回调机制（setItemDropCallback/dropItem）
+ *             - 拖拽分发状态机（MC 1.16.5 对齐）
+ *             - Player 引用支持
+ *             - 完整的网络同步
+ *
+ *             仅保留用于测试和 PlayerContainer 兼容性。
+ *
  * 管理客户端-服务端的背包同步。
  * 持有多个槽位引用，支持物品操作和同步。
  *

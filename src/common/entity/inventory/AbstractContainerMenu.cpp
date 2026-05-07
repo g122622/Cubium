@@ -247,28 +247,24 @@ void AbstractContainerMenu::clearContainer(Player& player, IInventory* inventory
     // 如果玩家死亡或断线，物品掉落到世界
     // 否则尝试放回玩家背包
 
-    // TODO: 检查玩家是否存活/断线
-    // 目前简化实现：尝试放回背包，放不下的掉落
+    // 检查玩家是否存活（死亡时物品直接掉落，不尝试放回背包）
+    bool playerIsAlive = player.isAlive();
 
     for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
         ItemStack stack = inventory->removeItemNoUpdate(i);
         if (!stack.isEmpty()) {
-            if (m_playerInventory != nullptr) {
-                // 尝试放回玩家背包
+            if (playerIsAlive && m_playerInventory != nullptr) {
+                // 玩家存活且有背包，尝试放回玩家背包
                 // add() 返回剩余未添加的数量，会修改 stack 的数量
                 i32 remaining = m_playerInventory->add(stack);
                 if (remaining > 0) {
-                    // 放不下的物品，调整数量后掉落
+                    // 放不下的物品掉落到世界
                     stack.setCount(remaining);
-                    // TODO: 掉落剩余物品到世界
-                    // player.dropItem(stack, false);
-                    (void)stack;
+                    dropItem(stack, player, false);
                 }
             } else {
-                // 没有玩家背包，直接掉落
-                // TODO: 掉落物品到世界
-                // player.dropItem(stack, false);
-                (void)stack;
+                // 玩家死亡或没有背包，物品掉落到世界
+                dropItem(stack, player, false);
             }
         }
     }
