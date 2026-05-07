@@ -9,6 +9,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
@@ -95,6 +96,8 @@ private:
 class BucketItemMilkingTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
+        // 流体注册表必须在物品注册之前初始化
+        fluid::FluidRegistry::instance().initialize();
         Items::initialize();
     }
 
