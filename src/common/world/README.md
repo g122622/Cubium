@@ -189,6 +189,8 @@ public:
     // Light queries
     virtual u8 getBlockLight(i32 x, i32 y, i32 z) const = 0;
     virtual u8 getSkyLight(i32 x, i32 y, i32 z) const = 0;
+    virtual u8 getLightSubtracted(const BlockPos& pos, u32 skyDarkening) const;
+    virtual f32 getBrightness(const BlockPos& pos) const;  // Returns 0.0-1.0
 
     // Collision detection
     virtual bool hasBlockCollision(const AxisAlignedBB& box) const = 0;
@@ -213,6 +215,8 @@ public:
 - `isLavaAt(const BlockPos&)`
 - `getBlockLight(const BlockPos&)`
 - `getSkyLight(const BlockPos&)`
+- `getLightSubtracted(const BlockPos&, u32 skyDarkening)`
+- `getBrightness(const BlockPos&)`
 - `isWithinWorldBounds(const BlockPos&)`
 
 `ServerWorld` 会通过 `using IWorld::...` 重新暴露这些重载，避免自身的 xyz 成员把它们隐藏掉。像 `ISpawnWorldReader`、`ClientWorld`、`StarLightEngine` 这类非 `IWorld` surface 仍然保持原始 xyz 签名，不要强行把它们改成 `BlockPos` 风格。

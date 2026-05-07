@@ -364,6 +364,23 @@ public:
         return false;
     }
 
+    /**
+     * @brief 获取位置的亮度因子
+     *
+     * 根据位置的光照等级计算亮度因子（0.0-1.0）。
+     * 用于阴影渲染、生物生成等。
+     *
+     * 参考: net.minecraft.world.IWorldReader#getBrightness
+     *
+     * @param pos 方块位置
+     * @return 亮度因子 (0.0-1.0)
+     */
+    [[nodiscard]] virtual f32 getBrightness(const BlockPos& pos) const {
+        // 默认实现：使用 getLightSubtracted(pos, 0) 计算亮度
+        u8 light = getLightSubtracted(pos, 0);
+        return static_cast<f32>(light) / 15.0f;
+    }
+
     // ========== 碰撞检测 ==========
 
     /**
