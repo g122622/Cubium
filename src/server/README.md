@@ -431,6 +431,7 @@ server.commandRegistry().dispatcher().registerCommand(
 | `ServerChunkManagerCallbackTest.cpp` | 区块回调 |
 | `test_integrated_server.cpp` | 内置服务器 |
 | `BlockDropHandlerTest.cpp` | 方块掉落 |
+| `MiningManagerTest.cpp` | 挖掘速度计算（急迫、挖掘疲劳、工具材质、空中惩罚等） |
 
 运行测试：
 ```powershell
