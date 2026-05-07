@@ -432,6 +432,7 @@ bool NetherWartBlock::isValidPosition(
     MC_UNUSED(state);
 
     // 检查下方是否为灵魂沙
+    // 参考 MC 1.16.5: NetherWartBlock.isValidPosition
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
 
@@ -439,8 +440,8 @@ bool NetherWartBlock::isValidPosition(
         return false;
     }
 
-    // TODO: 检查是否为灵魂沙
-    return belowState->isSolid();
+    // 检查是否为灵魂沙
+    return belowState->is(VanillaBlocks::SOUL_SAND) || belowState->is(VanillaBlocks::SOUL_SOIL);
 }
 
 void NetherWartBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
