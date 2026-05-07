@@ -1,5 +1,8 @@
 #include "SheepEntity.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/core/ItemRegistry.hpp"
+#include "../../../../item/items/block/BlockItemRegistry.hpp"
+#include "../../../../world/block/VanillaBlocks.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
@@ -68,12 +71,15 @@ std::vector<ItemStack> SheepEntity::shear(Player* /*player*/) {
     math::Random rng(ticksExisted());
     i32 woolCount = 1 + rng.nextInt(3);
 
-    // TODO: 使用颜色映射获取正确的羊毛物品
-    // 当前暂时使用 Items::WHITE_WOOL
-    // 实际应该根据 m_fleeceColor 获取对应颜色的羊毛
-    for (i32 i = 0; i < woolCount; ++i) {
-        // drops.emplace_back(Items::getWoolByColor(m_fleeceColor), 1);
-        // 暂时跳过，等待 Items 定义羊毛颜色映射
+    // 获取对应颜色的羊毛物品
+    const Block* woolBlock = getWoolBlockByColor(m_fleeceColor);
+    if (woolBlock != nullptr) {
+        const BlockItem* woolItem = BlockItemRegistry::instance().getBlockItem(*woolBlock);
+        if (woolItem != nullptr) {
+            for (i32 i = 0; i < woolCount; ++i) {
+                drops.emplace_back(static_cast<const Item*>(woolItem), 1);
+            }
+        }
     }
 
     return drops;
@@ -148,6 +154,29 @@ DyeColor SheepEntity::getRandomSheepColor(math::Random& random) {
     }
 }
 
+const Block* SheepEntity::getWoolBlockByColor(DyeColor color) {
+    // MC 1.16.5: 根据颜色返回对应的羊毛方块
+    switch (color) {
+        case DyeColor::White:      return VanillaBlocks::WHITE_WOOL;
+        case DyeColor::Orange:     return VanillaBlocks::ORANGE_WOOL;
+        case DyeColor::Magenta:    return VanillaBlocks::MAGENTA_WOOL;
+        case DyeColor::LightBlue:  return VanillaBlocks::LIGHT_BLUE_WOOL;
+        case DyeColor::Yellow:     return VanillaBlocks::YELLOW_WOOL;
+        case DyeColor::Lime:       return VanillaBlocks::LIME_WOOL;
+        case DyeColor::Pink:       return VanillaBlocks::PINK_WOOL;
+        case DyeColor::Gray:       return VanillaBlocks::GRAY_WOOL;
+        case DyeColor::LightGray:  return VanillaBlocks::LIGHT_GRAY_WOOL;
+        case DyeColor::Cyan:       return VanillaBlocks::CYAN_WOOL;
+        case DyeColor::Purple:     return VanillaBlocks::PURPLE_WOOL;
+        case DyeColor::Blue:       return VanillaBlocks::BLUE_WOOL;
+        case DyeColor::Brown:      return VanillaBlocks::BROWN_WOOL;
+        case DyeColor::Green:      return VanillaBlocks::GREEN_WOOL;
+        case DyeColor::Red:        return VanillaBlocks::RED_WOOL;
+        case DyeColor::Black:      return VanillaBlocks::BLACK_WOOL;
+        default:                   return VanillaBlocks::WHITE_WOOL;
+    }
+}
+
 void SheepEntity::registerGoals() {
     // 调用父类方法（AgeableEntity 会调用 AnimalEntity，现在 AnimalEntity 不注册任何目标）
     AgeableEntity::registerGoals();
@@ -179,7 +208,7 @@ void SheepEntity::registerGoals() {
     // 优先级 5: 随机漫步
     m_goalSelector.addGoal(5, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
 
-    // TODO: 优先级 6: EatGrassGoal - 需要实现
+    // TODO: 优先级 6: EatGrassGoal - TODO 需要实现
 
     // 优先级 7: 看向玩家
     m_goalSelector.addGoal(7, new entity::ai::goal::LookAtGoal(this, 6.0f));

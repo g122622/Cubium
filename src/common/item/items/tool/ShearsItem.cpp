@@ -5,9 +5,11 @@
 #include "../../../entity/core/LivingEntity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/interfaces/IShearable.hpp"
+#include "../../../entity/entities/item/ItemEntity.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../core/ActionResult.hpp"
 #include "../../../core/Types.hpp"
+#include "../../../util/math/random/Random.hpp"
 
 namespace mc {
 namespace item {
@@ -130,11 +132,31 @@ bool ShearsItem::itemInteractionForEntity(ItemStack& stack,
     std::vector<ItemStack> drops = shearable->shear(&player);
 
     // 在世界中生成掉落物
-    // TODO: 当 IWorld::spawnEntity 方法实现后，在世界中生成掉落物品实体
-    // 目前 SheepEntity::shear() 方法已经播放了声音，掉落物生成待完善
     IWorld* world = target.world();
-    MC_UNUSED(world);
-    MC_UNUSED(drops);
+    if (world != nullptr && !drops.empty()) {
+        math::Random& rng = world->getRandom();
+
+        for (auto& drop : drops) {
+            if (!drop.isEmpty()) {
+                // MC 1.16.5: 在实体位置生成物品实体，带随机散射速度
+                // TODO 封装为公共方法
+                f32 vx = (rng.nextFloat() - 0.5f) * 0.1f + rng.nextFloat() * 0.2f;
+                f32 vy = rng.nextFloat() * 0.2f;
+                f32 vz = (rng.nextFloat() - 0.5f) * 0.1f + rng.nextFloat() * 0.2f;
+
+                auto itemEntity = std::make_unique<ItemEntity>(
+                    static_cast<EntityId>(0), drop,
+                    target.x(), target.y() + 0.5, target.z(),
+                    vx, vy, vz);
+
+                // 设置拾取延迟，防止立即被拾取
+                itemEntity->setPickupDelay(10);
+
+                // 生成到世界
+                world->spawnEntity(std::move(itemEntity));
+            }
+        }
+    }
 
     // 消耗剪刀耐久（非创造模式）
     if (!player.isCreative()) {

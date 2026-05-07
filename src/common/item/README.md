@@ -157,7 +157,7 @@ item/
 | ShovelItem | items/tool/ShovelItem.hpp | ✅ 完成 (含营火熄灭、土径创建) |
 | HoeItem | items/tool/HoeItem.hpp | ✅ 完成 |
 | SwordItem | items/tool/SwordItem.hpp | ✅ 完成 |
-| ShearsItem | items/tool/ShearsItem.hpp | ✅ 完成 (剪刀，可剪羊毛、高效破坏蜘蛛网/树叶/羊毛) |
+| ShearsItem | items/tool/ShearsItem.hpp | ✅ 完成 (剪刀，可剪羊毛、高效破坏蜘蛛网/树叶/羊毛，支持实体交互) |
 
 **已注册工具物品**:
 - 木工具 (镐、斧、锹、锄、剑)
@@ -249,10 +249,10 @@ item/
    - EnchantedBookItem (附魔书) ✅ 完成
    - FlintAndSteelItem (打火石) ✅ 完成 (点燃营火、放置火焰)
    - BoneMealItem (骨粉) ✅ 完成
-   - ShearsItem (剪刀) ✅ 完成 (见工具系统)
+   - ShearsItem (剪刀) ✅ 完成 (见工具系统，支持实体交互剪羊毛)
 
 6. **桶类物品** (items/special/)
-   - BucketItem (空桶) ✅ 完成
+   - BucketItem (空桶) ✅ 完成 (支持对牛挤奶)
    - WaterBucketItem (水桶) ✅ 完成
    - LavaBucketItem (熔岩桶) ✅ 完成
    - FishBucketItem (鱼桶) ✅ 完成 (鳕鱼、鲑鱼、河豚、热带鱼)
@@ -416,4 +416,20 @@ ActionResultType action = item.onItemUse(context);
 
 ## 测试文件
 
-相关测试文件位于 `tests/common/item/` 目录。
+相关测试文件位于 `tests/common/item/` 目录：
+
+| 测试文件 | 测试内容 |
+|---------|---------|
+| `test_item.cpp` | Item/ItemStack 基础功能 |
+| `NewItemTest.cpp` | 新物品测试 |
+| `tool/ToolTests.cpp` | 工具类测试 |
+| `tool/ShearsItemTest.cpp` | 剪刀与羊剪羊毛交互测试 |
+| `special/BucketItemTest.cpp` | 桶类物品与牛挤奶交互测试 |
+| `weapon/ThrowableItemTest.cpp` | 可投掷物品测试 |
+| `weapon/WeaponItemTest.cpp` | 武器物品测试 |
+| `potion/GlassBottleItemTest.cpp` | 玻璃瓶物品测试 |
+| `enchantment/EnchantmentTest.cpp` | 附魔系统测试 |
+| `enchantment/EnchantmentCallbackTest.cpp` | 附魔回调测试 |
+| `crafting/RecipeLoaderTest.cpp` | 配方加载测试 |
+| `crafting/ShapedRecipeTest.cpp` | 有序合成测试 |
+| `crafting/ShapelessRecipeTest.cpp` | 无序合成测试 |

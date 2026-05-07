@@ -13,6 +13,7 @@ namespace mc {
 class ItemStack;
 class Player;
 class DamageSource;
+class Block;
 
 /**
  * @brief 羊毛颜色枚举
@@ -168,6 +169,13 @@ public:
      * - 81.8% 白色
      */
     [[nodiscard]] static DyeColor getRandomSheepColor(math::Random& random);
+
+    /**
+     * @brief 根据染料颜色获取对应的羊毛方块
+     * @param color 染料颜色
+     * @return 对应的羊毛方块指针，无效颜色返回 nullptr
+     */
+    [[nodiscard]] static const Block* getWoolBlockByColor(DyeColor color);
 
     // ========== 生命周期 ==========
 

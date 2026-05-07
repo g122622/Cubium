@@ -42,9 +42,11 @@ add_executable(mc_tests
     common/item/crafting/ShapelessRecipeTest.cpp
     common/item/crafting/RecipeLoaderTest.cpp
     common/item/tool/ToolTests.cpp
+    common/item/tool/ShearsItemTest.cpp
     common/item/potion/GlassBottleItemTest.cpp
     common/item/weapon/ThrowableItemTest.cpp
     common/item/weapon/WeaponItemTest.cpp
+    common/item/special/BucketItemTest.cpp
     common/item/NewItemTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp

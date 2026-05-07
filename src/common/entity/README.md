@@ -166,7 +166,7 @@ src/common/entity/
 ├── interfaces/                     # 实体接口
 │   ├── IAngerable.hpp              # 愤怒接口
 │   ├── IRideable.hpp/cpp           # 可骑乘接口（猪、炽足兽、马等）
-│   ├── IShearable.hpp              # 可剪毛接口
+│   ├── IShearable.hpp              # 可剪毛接口（羊、雪傀儡、哞菇）
 │   ├── IRangedAttackMob.hpp        # 远程攻击接口
 │   ├── ICrossbowUser.hpp           # 弩使用者接口
 │   ├── IFlyingAnimal.hpp           # 飞行动物接口
@@ -967,6 +967,8 @@ void asyncTask() {
 | `CraftingInventoryTest.cpp` | 合成背包功能 |
 | `AnimalModelTests.cpp` | 动物渲染模型 |
 | `ServerWorldTest.cpp` | 服务端世界声音回调转发 |
+| `tests/common/item/tool/ShearsItemTest.cpp` | 剪刀物品与羊剪毛交互测试 |
+| `tests/common/item/special/BucketItemTest.cpp` | 桶物品与牛挤奶交互测试 |
 
 ## 参考
 
