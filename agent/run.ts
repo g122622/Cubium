@@ -137,6 +137,11 @@ ${STOP_HOOK_PROMPT}
           for (const block of message.message.content) {
             if ("text" in block) {
               resultText += block.text;
+            } else if ("name" in block && block.type === "tool_use") {
+              // 工具调用，例如 Read、Edit、Bash 等
+              console.log(
+                `\n🛠️ 审查代理调用工具: ${block.name} (${block.input ? JSON.stringify(block.input).slice(0, 200) : ""})`,
+              );
             }
           }
         } else if (message.type === "result") {
