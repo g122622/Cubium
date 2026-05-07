@@ -5,6 +5,7 @@
 #include "common/entity/loot/LootTable.hpp"
 #include "common/entity/loot/LootConditions.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/experience/ExperienceConstants.hpp"
@@ -72,49 +73,11 @@ std::vector<EntityId> BlockDropHandler::spawnDrops(
         return spawnedEntities;
     }
 
-    // 在方块中心位置生成物品实体
-    f32 centerX = static_cast<f32>(pos.x) + 0.5f;
-    f32 centerY = static_cast<f32>(pos.y) + 0.5f;
-    f32 centerZ = static_cast<f32>(pos.z) + 0.5f;
-
     // 使用固定种子生成随机速度
     math::Random random(static_cast<u64>(pos.x ^ pos.z));
 
-    for (const auto& stack : drops) {
-        if (stack.isEmpty()) {
-            continue;
-        }
-
-        // 创建物品实体
-        auto itemEntity = std::make_unique<ItemEntity>(
-            0,  // ID将由世界分配
-            stack,
-            centerX,
-            centerY,
-            centerZ
-        );
-
-        // 设置随机散射速度（参考 MC 1.16.5 ItemEntity）
-        // 速度范围：[-0.05, 0.05] + [0.0, 0.2]
-        f32 vx = (random.nextFloat() - 0.5f) * 0.1f + random.nextFloat() * 0.2f;
-        f32 vy = random.nextFloat() * 0.2f;
-        f32 vz = (random.nextFloat() - 0.5f) * 0.1f + random.nextFloat() * 0.2f;
-        itemEntity->setVelocity(vx, vy, vz);
-
-        // 设置投掷者UUID（防止立即拾取）
-        if (!throwerUuid.empty()) {
-            itemEntity->setOwner(throwerUuid, throwerUuid);
-        }
-
-        // 设置拾取延迟
-        itemEntity->setPickupDelay(10);  // 10 ticks = 0.5秒
-
-        // 生成到世界
-        EntityId entityId = world.spawnEntity(std::move(itemEntity));
-        spawnedEntities.push_back(entityId);
-    }
-
-    return spawnedEntities;
+    // 使用 ItemDropHelper 统一生成物品实体
+    return ItemDropHelper::spawnItemEntities(&world, pos, drops, random, throwerUuid);
 }
 
 std::vector<EntityId> BlockDropHandler::spawnDrops(
@@ -151,16 +114,15 @@ std::vector<EntityId> BlockDropHandler::spawnDrops(
             centerZ
         );
 
-        f32 vx = (random.nextFloat() - 0.5f) * 0.1f + random.nextFloat() * 0.2f;
-        f32 vy = random.nextFloat() * 0.2f;
-        f32 vz = (random.nextFloat() - 0.5f) * 0.1f + random.nextFloat() * 0.2f;
-        itemEntity->setVelocity(vx, vy, vz);
+        // 使用 ItemDropHelper 统一随机速度计算
+        Vector3 velocity = ItemDropHelper::getBlockDropVelocity(random);
+        itemEntity->setVelocity(velocity.x, velocity.y, velocity.z);
 
         if (!throwerUuid.empty()) {
             itemEntity->setOwner(throwerUuid, throwerUuid);
         }
 
-        itemEntity->setPickupDelay(10);
+        itemEntity->setPickupDelay(ItemDropHelper::DEFAULT_PICKUP_DELAY);
 
         if (physicsEngine) {
             itemEntity->setPhysicsEngine(physicsEngine);

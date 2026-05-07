@@ -14,6 +14,7 @@
 #include "../../../item/core/ItemStack.hpp"
 #include "../player/Player.hpp"
 #include "../item/ItemEntity.hpp"
+#include "../../utils/ItemDropHelper.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../inventory/IInventory.hpp"
 #include "../../../util/math/random/Random.hpp"
@@ -885,25 +886,16 @@ void AbstractMinecartEntity::dropItem() {
         stack.setCustomName(customNameText());
     }
 
-    // 创建物品实体
-    // MC 1.16.5: entityDropItem(stack) - 在实体位置生成物品
+    // 使用 ItemDropHelper 在实体位置生成物品
+    // 参考 MC 1.16.5: entityDropItem(stack)
     math::Random& rng = worldPtr->getRandom();
-    f32 vx = rng.nextFloat(-0.1f, 0.1f);
-    f32 vy = 0.2f;  // 轻微向上
-    f32 vz = rng.nextFloat(-0.1f, 0.1f);
-
-    auto itemEntity = std::make_unique<ItemEntity>(
-        EntityId(0),
+    ItemDropHelper::spawnItemEntity(
+        worldPtr,
         stack,
         x(), y(), z(),
-        vx, vy, vz
+        rng,
+        ItemDropHelper::DEFAULT_PICKUP_DELAY
     );
-
-    // 设置拾取延迟，防止立即被玩家拾取
-    itemEntity->setPickupDelay(10);
-
-    // 生成实体
-    worldPtr->spawnEntity(std::move(itemEntity));
 
     remove();
 }
@@ -1056,19 +1048,14 @@ void ChestMinecartEntity::dropItem() {
         for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
             ItemStack stack = m_inventory->getItem(i);
             if (!stack.isEmpty()) {
-                // 在矿车位置生成物品实体
-                f32 vx = rng.nextFloat(-0.1f, 0.1f);
-                f32 vy = 0.2f;
-                f32 vz = rng.nextFloat(-0.1f, 0.1f);
-
-                auto itemEntity = std::make_unique<ItemEntity>(
-                    EntityId(0),
+                // 使用 ItemDropHelper 在矿车位置生成物品实体
+                ItemDropHelper::spawnItemEntity(
+                    worldPtr,
                     stack,
                     x(), y(), z(),
-                    vx, vy, vz
+                    rng,
+                    ItemDropHelper::DEFAULT_PICKUP_DELAY
                 );
-                itemEntity->setPickupDelay(10);
-                worldPtr->spawnEntity(std::move(itemEntity));
             }
         }
     }

@@ -60,6 +60,7 @@ add_library(mc_common STATIC
     # Entity Core
     entity/core/Entity.cpp
     entity/utils/EntityUtils.cpp
+    entity/utils/ItemDropHelper.cpp
     entity/core/EntityType.cpp
     entity/core/EntityClassification.cpp
     entity/core/EntitySpawnPlacementRegistry.cpp

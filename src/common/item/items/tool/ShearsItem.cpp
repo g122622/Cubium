@@ -6,6 +6,7 @@
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/interfaces/IShearable.hpp"
 #include "../../../entity/entities/item/ItemEntity.hpp"
+#include "../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../core/ActionResult.hpp"
 #include "../../../core/Types.hpp"
@@ -138,22 +139,18 @@ bool ShearsItem::itemInteractionForEntity(ItemStack& stack,
 
         for (auto& drop : drops) {
             if (!drop.isEmpty()) {
-                // MC 1.16.5: 在实体位置生成物品实体，带随机散射速度
-                // TODO 封装为公共方法
-                f32 vx = (rng.nextFloat() - 0.5f) * 0.1f + rng.nextFloat() * 0.2f;
-                f32 vy = rng.nextFloat() * 0.2f;
-                f32 vz = (rng.nextFloat() - 0.5f) * 0.1f + rng.nextFloat() * 0.2f;
-
-                auto itemEntity = std::make_unique<ItemEntity>(
-                    static_cast<EntityId>(0), drop,
-                    target.x(), target.y() + 0.5, target.z(),
-                    vx, vy, vz);
-
-                // 设置拾取延迟，防止立即被拾取
-                itemEntity->setPickupDelay(10);
-
-                // 生成到世界
-                world->spawnEntity(std::move(itemEntity));
+                // 使用 ItemDropHelper 统一生成物品实体
+                // 参考 MC 1.16.5 ShearsItem.itemInteractionForEntity()
+                ItemDropHelper::spawnItemEntity(
+                    world,
+                    drop,
+                    target.x(),
+                    target.y() + 0.5,
+                    target.z(),
+                    rng,
+                    ItemDropHelper::DEFAULT_PICKUP_DELAY,
+                    player.uuid()
+                );
             }
         }
     }
