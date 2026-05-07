@@ -113,6 +113,22 @@ Item* codBucket = Items::COD_BUCKET;
 | `world/IWorld` | 世界接口 |
 | `entity/entities/player/Player` | 玩家接口 |
 
+## 集成状态
+
+### 已完成
+- `Item::itemInteractionForEntity()` 虚方法接口已定义
+- `BucketItem::itemInteractionForEntity()` 实现挤奶逻辑
+- `ShearsItem::itemInteractionForEntity()` 实现剪毛逻辑
+- `NameTagItem::itemInteractionForEntity()` 实现命名逻辑
+- 单元测试验证核心逻辑正确
+
+### 待集成
+- 服务端玩家→实体交互网络包（如 `UseEntityPacket`）
+- `Player::interactOn()` 方法调用 `itemInteractionForEntity`
+- `PacketHandler::handleEntityInteraction()` 处理交互请求
+
+**注意**: 当前代码遵循 MC 1.16.5 设计模式，非孤岛代码。等待网络层集成后即可完整运作。
+
 ## 参考
 
 - MC 1.16.5: net.minecraft.item.SpawnEggItem

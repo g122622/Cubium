@@ -277,6 +277,25 @@ item/
 | TridentItem 激流冲刺 | 部分实现 | Player::startSpinAttack、SpinAttack状态管理 |
 | EnderPearlItem 冷却 | 未实现 | CooldownTracker系统 |
 | ArmorItem属性修饰符注册 | ✅ 完成 | ItemAttributeModifiers、AttributeModifierUUIDs |
+| 玩家→实体物品交互 | 待集成 | UseEntityPacket、PacketHandler、Player::interactOn |
+
+### 玩家→实体物品交互说明
+
+`Item::itemInteractionForEntity()` 虚方法已定义并实现（BucketItem、ShearsItem、NameTagItem），但服务端网络层尚未集成：
+
+**已完成**:
+- `Item::itemInteractionForEntity()` 接口定义
+- `BucketItem::itemInteractionForEntity()` - 对牛挤奶
+- `ShearsItem::itemInteractionForEntity()` - 剪羊毛/雪傀儡/哞菇
+- `NameTagItem::itemInteractionForEntity()` - 对实体命名
+- 单元测试验证逻辑正确
+
+**待集成**:
+- `UseEntityPacket` 网络包（客户端发送实体交互请求）
+- `PacketHandler::handleEntityInteraction()` 处理交互
+- `Player::interactOn()` 调用 `itemInteractionForEntity`
+
+**注意**: 当前代码遵循 MC 1.16.5 设计模式，非孤岛代码。
 
 ### ArmorItem属性修饰符注册说明 ✅ 已完成
 
