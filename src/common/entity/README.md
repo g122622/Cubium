@@ -268,7 +268,9 @@ src/common/entity/
     ├── LootEntry.hpp/cpp          # 掉落条目
     ├── LootContext.hpp/cpp        # 掉落上下文
     ├── LootConditions.hpp/cpp     # 掉落条件
-    └── LootFunctions.hpp/cpp      # 掉落函数
+    ├── LootFunctions.hpp/cpp      # 掉落函数
+    ├── LootSerializers.hpp/cpp    # JSON 序列化器
+    └── README.md                  # 模块说明
 
 ### utils/ (非模板工具)
 
@@ -972,6 +974,7 @@ void asyncTask() {
 | `RandomWalkingGoalTest.cpp` | 随机漫步目标 |
 | `LootTest.cpp` | 掉落表生成、条件判断 |
 | `LootConditionTest.cpp` | 掉落条件系统 |
+| `LootSerializersTest.cpp` | JSON 序列化、解析和往返测试 |
 | `AutoJumpTest.cpp` | 自动跳跃检测 |
 | `PlayerMovementTest.cpp` | 玩家移动物理、受伤和死亡声音事件 |
 | `PlayerPoseCollisionTest.cpp` | 玩家姿态切换与碰撞箱可容纳性 |
