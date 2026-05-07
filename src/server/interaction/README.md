@@ -102,7 +102,41 @@ struct MiningState {
 | `isMining()` | 检查是否正在挖掘 |
 | `getMiningPosition()` | 获取当前挖掘位置 |
 | `calculateMiningSpeed()` | 计算挖掘速度（基于方块硬度、工具、游戏模式） |
+| `calculateDigSpeedMultiplier()` | 计算挖掘速度倍率（包含水下惩罚） |
+| `calculateHasteMultiplier()` | 计算急迫效果乘数 |
+| `calculateMiningFatigueMultiplier()` | 计算挖掘疲劳乘数 |
+| `hasAquaAffinity()` | 检查玩家是否有水下速掘附魔 |
+| `areEyesInWater()` | 检查玩家眼睛是否在水中 |
 | `broadcastBreakAnim()` | 广播破坏动画 |
+
+**眼睛位置检测（水下挖掘惩罚）**：
+
+MC 1.16.5 的水下挖掘惩罚不是简单地检测玩家身体是否在水中，而是检测玩家**眼睛位置**是否在水中。这需要精确的眼睛位置计算和流体状态查询：
+
+```cpp
+// 眼睛位置计算（MC 1.16.5 PlayerEntity.getPosYEye()）
+f64 eyeY = playerY + PLAYER_EYE_HEIGHT;  // 1.62格
+
+// 检测点向下偏移 0.11 格（避免边界精度问题）
+// MC 1.16.5: double d0 = this.getPosYEye() - 0.11111111D;
+f64 checkY = eyeY - 0.11111111;
+
+// 获取检测点坐标的流体状态
+const FluidState* fluidState = world.getFluidState(eyeBlockX, eyeBlockY, eyeBlockZ);
+
+// 检查是否为水（使用 FluidTags）
+if (fluidState != nullptr && !fluidState->isEmpty() && 
+    fluidState->getFluid().isIn(FluidTags::WATER())) {
+    // 计算流体表面高度
+    f32 fluidHeight = fluidState->getHeight();
+    f64 fluidSurfaceY = eyeBlockY + fluidHeight;
+    
+    // 如果流体表面高于检测点，眼睛在水中
+    if (fluidSurfaceY > checkY) {
+        return true;  // 眼睛在水中
+    }
+}
+```
 
 **挖掘速度计算**：
 

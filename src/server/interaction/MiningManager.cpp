@@ -12,6 +12,8 @@
 #include "common/item/enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/world/fluid/FluidTags.hpp"
+#include "common/core/Constants.hpp"
 #include <spdlog/spdlog.h>
 #include "common/perfetto/TraceEvents.hpp"
 
@@ -224,7 +226,7 @@ f32 MiningManager::calculateMiningSpeed(ServerWorld& world,
     }
 
     // 7. 计算挖掘速度倍率
-    f32 digSpeed = calculateDigSpeedMultiplier(heldItem, *state, *playerData);
+    f32 digSpeed = calculateDigSpeedMultiplier(world, heldItem, *state, *playerData);
 
     // 8. 检查是否可以使用正确工具
     bool canHarvest = false;
@@ -247,7 +249,8 @@ f32 MiningManager::calculateMiningSpeed(ServerWorld& world,
     return relativeHardness;
 }
 
-f32 MiningManager::calculateDigSpeedMultiplier(const ItemStack& heldItem,
+f32 MiningManager::calculateDigSpeedMultiplier(ServerWorld& world,
+                                                const ItemStack& heldItem,
                                                 const BlockState& blockState,
                                                 const ServerPlayerData& playerData) const {
     // MC 1.16.5 PlayerEntity.getDigSpeed() 实现
@@ -274,13 +277,8 @@ f32 MiningManager::calculateDigSpeedMultiplier(const ItemStack& heldItem,
     speed *= fatigueMultiplier;
 
     // 5. 水下挖掘惩罚（仅当眼睛在水中且没有水下速掘附魔）
-    // 注意：ServerPlayerData 目前不存储眼睛是否在水中的信息
-    // 这里暂时使用 isInWater 标志，后续可以通过扩展 ServerPlayerData 来实现
     // MC 1.16.5: if (this.areEyesInFluid(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(this))
-    // 目前简化：使用玩家位置检测是否在水中
-    // TODO: 需要实现眼睛位置检测
-    bool inWater = false;  // 暂时假设不在水中，后续可以从 world 查询
-    if (inWater && !hasAquaAffinity(playerData)) {
+    if (areEyesInWater(world, playerData) && !hasAquaAffinity(playerData)) {
         speed /= UNDERWATER_PENALTY;
     }
 
@@ -363,6 +361,43 @@ bool MiningManager::hasAquaAffinity(const ServerPlayerData& playerData) const {
 
     // 检查是否有水下速掘附魔
     return item::enchant::EnchantmentHelper::hasAquaAffinity(helmet);
+}
+
+bool MiningManager::areEyesInWater(ServerWorld& world, const ServerPlayerData& playerData) const {
+    // MC 1.16.5 Entity.updateEyesInWater() 实现
+    // 检测玩家眼睛是否在水中
+
+    // 1. 计算眼睛检测点 Y 坐标
+    // MC 1.16.5: double d0 = this.getPosYEye() - 0.11111111D;
+    // 眼睛位置向下偏移约 0.11 格，避免边界精度问题
+    constexpr f64 EYE_OFFSET = 0.11111111;
+    const f64 eyeY = static_cast<f64>(playerData.y) + static_cast<f64>(game::PLAYER_EYE_HEIGHT) - EYE_OFFSET;
+
+    // 2. 获取检测点坐标（玩家脚下位置）
+    const i32 eyeBlockX = static_cast<i32>(std::floor(playerData.x));
+    const i32 eyeBlockY = static_cast<i32>(std::floor(eyeY));
+    const i32 eyeBlockZ = static_cast<i32>(std::floor(playerData.z));
+
+    // 3. 获取该位置的流体状态
+    const fluid::FluidState* fluidState = world.getFluidState(eyeBlockX, eyeBlockY, eyeBlockZ);
+    if (fluidState == nullptr || fluidState->isEmpty()) {
+        return false;
+    }
+
+    // 4. 检查流体是否为水
+    const fluid::Fluid& fluid = fluidState->getFluid();
+    if (!fluid.isIn(fluid::FluidTags::WATER())) {
+        return false;
+    }
+
+    // 5. 计算流体表面高度
+    // MC 1.16.5: double d1 = (double)((float)blockpos.getY() + fluidstate.getActualHeight(this.world, blockpos));
+    const BlockPos pos(eyeBlockX, eyeBlockY, eyeBlockZ);
+    const f32 fluidHeight = fluidState->getHeight();
+    const f64 fluidSurfaceY = static_cast<f64>(eyeBlockY) + static_cast<f64>(fluidHeight);
+
+    // 6. 如果流体表面高度 > 检测点高度，则眼睛在水中
+    return fluidSurfaceY > eyeY;
 }
 
 void MiningManager::broadcastBreakAnim(PlayerId playerId, const BlockPos& pos, i8 stage) {

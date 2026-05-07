@@ -12,19 +12,20 @@ class ItemStack;
 }
 
 namespace mc::server {
-
-// 前向声明
 class ServerWorld;
 struct ServerPlayerData;
-namespace core {
+}
+
+namespace mc::server::core {
 class PlayerManager;
 class ConnectionManager;
 }
-namespace interaction {
+
+namespace mc::server::interaction {
 class InventoryManager;
 }
 
-namespace interaction {
+namespace mc::server::interaction {
 
 /**
  * @brief 挖掘进度管理器
@@ -138,12 +139,14 @@ private:
      *
      * 参考 MC 1.16.5 PlayerEntity.getDigSpeed()
      *
+     * @param world 世界引用（用于检测眼睛是否在水中）
      * @param heldItem 手持物品
      * @param blockState 目标方块状态
      * @param playerData 玩家数据（用于获取效果和状态）
      * @return 挖掘速度倍率
      */
-    [[nodiscard]] f32 calculateDigSpeedMultiplier(const ItemStack& heldItem,
+    [[nodiscard]] f32 calculateDigSpeedMultiplier(ServerWorld& world,
+                                                   const ItemStack& heldItem,
                                                    const BlockState& blockState,
                                                    const ServerPlayerData& playerData) const;
 
@@ -167,6 +170,19 @@ private:
      * @return 如果头盔有水下速掘返回 true
      */
     [[nodiscard]] bool hasAquaAffinity(const ServerPlayerData& playerData) const;
+
+    /**
+     * @brief 检查玩家眼睛是否在水中
+     *
+     * 参考 MC 1.16.5 Entity.updateEyesInWater()
+     * 眼睛检测点向下偏移约 0.11 格以避免边界精度问题
+     *
+     * @param world 世界引用（用于查询流体状态）
+     * @param playerData 玩家数据（用于获取位置）
+     * @return 如果眼睛在水中返回 true
+     */
+    [[nodiscard]] bool areEyesInWater(ServerWorld& world,
+                                      const ServerPlayerData& playerData) const;
 
     /**
      * @brief 广播破坏动画
@@ -195,5 +211,4 @@ private:
     std::function<void(PlayerId, const BlockPos&)> m_onMiningComplete;
 };
 
-} // namespace interaction
-} // namespace mc::server
+} // namespace mc::server::interaction

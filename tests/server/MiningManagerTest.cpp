@@ -388,4 +388,151 @@ TEST_F(MiningManagerTest, MultipleMiningSessionsDontConflict) {
     EXPECT_EQ(m_miningManager->getMiningPosition(m_playerId).value(), BlockPos(1, 63, 0));
 }
 
+// ============================================================================
+// 水下挖掘测试
+// ============================================================================
+
+TEST_F(MiningManagerTest, UnderwaterMiningPenalty) {
+    // 设置生存模式
+    m_player->gameMode = GameMode::Survival;
+    m_player->onGround = true;
+
+    // 设置石头方块
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+
+    // 设置钻石镐
+    const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
+    ASSERT_NE(diamondPickaxe, nullptr);
+    setHeldItem(*diamondPickaxe, 1);
+
+    // 记录在地面上的挖掘进度（玩家眼睛位置约 y + 1.62 = 65.62）
+    // 当前玩家在 y=64，眼睛在 65.62，没有水
+    m_player->y = 64.0f;
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 groundProgress = m_miningManager->getMiningProgress(m_playerId);
+    m_miningManager->abortMining(m_playerId);
+
+    // 设置水源方块在玩家眼睛位置
+    // 玩家 y=64，眼睛高度 1.62，眼睛位置约 65.62
+    // 需要在 y=65 处放置水
+    m_world->setBlockState(0, 65, 0, &VanillaBlocks::WATER->defaultState());
+
+    // 再次挖掘 - 眼睛在水中的挖掘速度应该降低 5 倍
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 underwaterProgress = m_miningManager->getMiningProgress(m_playerId);
+
+    // 水下挖掘速度应该是地面上的 1/5
+    EXPECT_NEAR(underwaterProgress, groundProgress / 5.0f, 0.001f);
+}
+
+TEST_F(MiningManagerTest, AquaAffinityNegatesUnderwaterPenalty) {
+    // 设置生存模式
+    m_player->gameMode = GameMode::Survival;
+    m_player->onGround = true;
+
+    // 设置石头方块
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+
+    // 设置带有水下速掘附魔的头盔
+    const Item* diamondHelmet = Items::DIAMOND_HELMET;
+    ASSERT_NE(diamondHelmet, nullptr);
+    PlayerInventory* inventory = m_inventoryManager->getInventory(m_playerId);
+    ASSERT_NE(inventory, nullptr);
+    ItemStack helmetStack(*diamondHelmet, 1);
+    helmetStack.addEnchantment("minecraft:aqua_affinity", 1);
+    inventory->setHelmet(helmetStack);
+
+    // 设置钻石镐
+    const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
+    ASSERT_NE(diamondPickaxe, nullptr);
+    setHeldItem(*diamondPickaxe, 1);
+
+    // 记录在地面上的挖掘进度
+    m_player->y = 64.0f;
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 groundProgress = m_miningManager->getMiningProgress(m_playerId);
+    m_miningManager->abortMining(m_playerId);
+
+    // 设置水源方块在玩家眼睛位置
+    m_world->setBlockState(0, 65, 0, &VanillaBlocks::WATER->defaultState());
+
+    // 水下速掘附魔应该抵消水下挖掘惩罚
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 underwaterWithAquaAffinity = m_miningManager->getMiningProgress(m_playerId);
+
+    // 有水下速掘附魔时，水下挖掘速度应该接近地面速度
+    EXPECT_NEAR(underwaterWithAquaAffinity, groundProgress, 0.001f);
+}
+
+TEST_F(MiningManagerTest, EyesPositionDetectionInWater) {
+    // 玩家位置 y=64，眼睛高度 1.62
+    // 眼睛位置 = 64 + 1.62 = 65.62
+    // 检测点向下偏移 0.11，所以检测点 Y = 65.51
+
+    // 测试 1: 眼睛不在水中（没有水方块）
+    m_player->y = 64.0f;
+    m_player->onGround = true;
+
+    // 不放置水方块
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+
+    // 设置钻石镐
+    const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
+    ASSERT_NE(diamondPickaxe, nullptr);
+    setHeldItem(*diamondPickaxe, 1);
+
+    // 记录基准挖掘速度
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 baseProgress = m_miningManager->getMiningProgress(m_playerId);
+    m_miningManager->abortMining(m_playerId);
+
+    // 测试 2: 眼睛在水中（在 y=65 放置水源）
+    m_world->setBlockState(0, 65, 0, &VanillaBlocks::WATER->defaultState());
+
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 inWaterProgress = m_miningManager->getMiningProgress(m_playerId);
+
+    // 眼睛在水中时挖掘速度应该降低 5 倍
+    EXPECT_NEAR(inWaterProgress, baseProgress / 5.0f, 0.001f);
+}
+
+TEST_F(MiningManagerTest, OffGroundAndUnderwaterPenaltiesStack) {
+    // 设置生存模式
+    m_player->gameMode = GameMode::Survival;
+
+    // 设置石头方块
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+
+    // 设置钻石镐
+    const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
+    ASSERT_NE(diamondPickaxe, nullptr);
+    setHeldItem(*diamondPickaxe, 1);
+
+    // 在地面且不在水中的挖掘进度
+    m_player->y = 64.0f;
+    m_player->onGround = true;
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 baseProgress = m_miningManager->getMiningProgress(m_playerId);
+    m_miningManager->abortMining(m_playerId);
+
+    // 设置水源方块
+    m_world->setBlockState(0, 65, 0, &VanillaBlocks::WATER->defaultState());
+
+    // 既不在地面，眼睛又在水中
+    m_player->onGround = false;
+    m_miningManager->startMining(m_playerId, BlockPos(0, 63, 0), m_playerId);
+    m_miningManager->tick(*m_world);
+    f32 stackedPenaltyProgress = m_miningManager->getMiningProgress(m_playerId);
+
+    // 两种惩罚应该叠加：水下 /5，空中 /5 = 总共 /25
+    EXPECT_NEAR(stackedPenaltyProgress, baseProgress / 25.0f, 0.0001f);
+}
+
 } // namespace
