@@ -1,5 +1,6 @@
 import { query, HookCallback, StopHookInput, PreToolUseHookInput } from "@anthropic-ai/claude-agent-sdk";
 import fs from 'fs/promises';
+import { initQQBot } from './qqBot';
 
 (async () => {
 
@@ -339,6 +340,9 @@ ${STOP_HOOK_PROMPT}
   }
 
   async function main() {
+    // 初始化 QQ 机器人（劫持 console 方法）
+    await initQQBot();
+
     const outerLoops = 300;
     const innerLoops = 300;
 
