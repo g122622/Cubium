@@ -326,8 +326,8 @@ void ClientApplication::update(f32 deltaTime)
 {
     // 根据状态决定更新逻辑
     if (!m_stateMachine.hasActiveGameSession()) {
-        // 无活跃游戏会话：只更新 UI 和音频
-        updateUiFrameState(deltaTime);
+        // 无活跃游戏会话：只更新 UI 和音频（无玩家物理，partialTick 为 0）
+        updateUiFrameState(deltaTime, 0.0f);
         updateAudioPauseState();
         return;
     }
@@ -372,9 +372,12 @@ void ClientApplication::update(f32 deltaTime)
         }
     }
 
+    // 计算 partialTick（用于渲染插值）
+    // 在物理更新后计算，表示当前帧在两个 tick 之间的位置 [0.0, 1.0)
+    const f32 partialTick = std::clamp(m_playerPhysicsAccumulator / PLAYER_PHYSICS_INTERVAL, 0.0f, 1.0f);
+
     // 更新相机（暂停时也更新，以便 UI 渲染）
     if (m_player) {
-        const f32 partialTick = std::clamp(m_playerPhysicsAccumulator / PLAYER_PHYSICS_INTERVAL, 0.0f, 1.0f);
         const Vector3 renderPosition = m_player->prevPosition().lerp(m_player->position(), partialTick);
 
         // 同步相机位置到玩家眼睛位置
@@ -427,7 +430,6 @@ void ClientApplication::update(f32 deltaTime)
         m_world.entityManager().updateInterpolation(deltaTime);
 
         // 更新实体动画状态（用于渲染插值）
-        constexpr f32 partialTick = 0.0f;  // TODO: 从主循环获取实际的部分tick
         m_world.entityManager().updateAnimations(partialTick);
 
         // 更新世界音频状态（入水/出水、环境音等）
@@ -441,7 +443,7 @@ void ClientApplication::update(f32 deltaTime)
     }
 
     // 更新每帧 UI 状态（ScreenStackWidget、KageroEngine 等）
-    updateUiFrameState(deltaTime);
+    updateUiFrameState(deltaTime, partialTick);
 
     // 更新射线检测结果（暂停时也更新，以便 UI 显示）
     updateRaycastResult();

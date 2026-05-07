@@ -344,7 +344,7 @@ private:
     void updateTimeAndWeather(f32 deltaTime);
 
     // 更新每帧 UI 状态（ScreenStackWidget 参数、KageroEngine tick 等）
-    void updateUiFrameState(f32 deltaTime);
+    void updateUiFrameState(f32 deltaTime, f32 partialTick);
 
     // 处理覆盖层输入（聊天框、屏幕栈）
     [[nodiscard]] bool handleUiOverlayInput();
