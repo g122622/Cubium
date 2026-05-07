@@ -1,6 +1,10 @@
 #include "SnowBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../block/VanillaBlocks.hpp"
+#include "../../../../item/Items.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/math/random/IRandom.hpp"
 #include <unordered_map>
 
@@ -38,9 +42,19 @@ void SnowBlock::randomTick(
     u8 lightLevel = std::max(blockLight, skyLight);
 
     if (lightLevel > 11) {
-        // 融化：生成掉落物并移除方块
-        // TODO: 当添加物品系统后，这里应该掉落雪球
-        // 目前直接移除方块
+        // 融化：掉落雪球并移除方块
+        // 参考 MC 1.16.5: spawnDrops(state, world, pos)
+        // 雪层掉落雪球数量等于层数
+        i32 layers = state.get(LAYERS());
+        if (layers > 0 && Items::SNOWBALL != nullptr) {
+            ItemStack dropStack(*Items::SNOWBALL, layers);
+            math::Random rng;
+            ItemDropHelper::spawnItemEntity(&world, dropStack,
+                static_cast<f64>(pos.x) + 0.5,
+                static_cast<f64>(pos.y) + 0.5,
+                static_cast<f64>(pos.z) + 0.5,
+                rng);
+        }
         const BlockState* airState = &VanillaBlocks::AIR->defaultState();
         if (airState != nullptr) {
             world.setBlockState(pos, airState);
