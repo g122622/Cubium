@@ -107,6 +107,19 @@ BlockProperties stemProps = BlockProperties::create()
 auto melonStemBlock = std::make_unique<StemBlock>(melonBlock, stemProps);
 ```
 
+## 已实现功能
+
+### 农作物方块（CropBlocks）
+
+所有作物方块的 `getCropItem()` 和 `getSeedItem()` 方法已完整实现：
+
+| 方块 | 作物物品 | 种子物品 | 说明 |
+|------|---------|---------|------|
+| WheatBlock | WHEAT | WHEAT_SEEDS | 小麦和种子是不同的物品 |
+| CarrotBlock | CARROT | CARROT | 胡萝卜的作物和种子是同一个物品 |
+| PotatoBlock | POTATO | POTATO | 马铃薯的作物和种子是同一个物品 |
+| BeetrootBlock | BEETROOT | BEETROOT_SEEDS | 甜菜根和种子是不同的物品 |
+
 ## 待实现
 
 - [x] 小麦作物（WheatBlock）- 已创建 CropBlocks.hpp/cpp
