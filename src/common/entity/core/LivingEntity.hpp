@@ -758,6 +758,18 @@ protected:
     virtual void updateAnimation();
 
     /**
+     * @brief 更新移动动画参数
+     *
+     * MC 1.16.5: func_233629_a_(LivingEntity, boolean)
+     * 在 travel() 结束时调用，更新 limbSwingAmount 和 limbSwing。
+     *
+     * @param includeVertical 是否包含垂直位移
+     *                        true: 飞行实体（蜜蜂、鹦鹉等）包含 Y 轴位移
+     *                        false: 普通实体只计算水平位移
+     */
+    void updateTravelAnimation(bool includeVertical);
+
+    /**
      * @brief 播放受伤声音
      */
     virtual void playHurtSound(DamageSource& source);

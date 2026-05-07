@@ -486,6 +486,34 @@ void LivingEntity::updateAnimation() {
     m_movedDistance = distance;
 }
 
+void LivingEntity::updateTravelAnimation(bool includeVertical) {
+    // MC 1.16.5: LivingEntity.func_233629_a_(LivingEntity, boolean)
+    // 在 travel() 结束时调用，更新肢体摆动动画
+
+    // 保存上一帧的 limbSwingAmount
+    m_prevLimbSwingAmount = m_limbSwingAmount;
+
+    // 计算位移
+    f64 dx = static_cast<f64>(x() - prevX());
+    f64 dy = includeVertical ? static_cast<f64>(y() - prevY()) : 0.0;
+    f64 dz = static_cast<f64>(z() - prevZ());
+
+    // 计算移动距离并乘以 4（用于动画速度）
+    // MC: float f = MathHelper.sqrt(d0 * d0 + d1 * d1 + d2 * d2) * 4.0F
+    f32 distance = static_cast<f32>(std::sqrt(dx * dx + dy * dy + dz * dz)) * 4.0f;
+
+    // 限制最大值为 1.0
+    if (distance > 1.0f) {
+        distance = 1.0f;
+    }
+
+    // 平滑插值 limbSwingAmount
+    m_limbSwingAmount += (distance - m_limbSwingAmount) * 0.4f;
+
+    // 增加 limbSwing 周期计数
+    m_limbSwing += m_limbSwingAmount;
+}
+
 void LivingEntity::tickHealth() {
     // 自然回血逻辑
     // MC 1.16.5: 生命恢复效果每 50/(level+1) tick 治疗 1 点生命

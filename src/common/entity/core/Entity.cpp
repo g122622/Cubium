@@ -261,6 +261,52 @@ void Entity::setVelocity(f32 x, f32 y, f32 z) {
     m_velocity = Vector3(x, y, z);
 }
 
+void Entity::moveRelative(f32 factor, f32 strafe, f32 vertical, f32 forward) {
+    // MC 1.16.5 Entity.moveRelative(float, Vector3d)
+    // 参考 Entity.java 行 1166-1180
+
+    // 计算输入向量长度平方
+    f32 lengthSq = strafe * strafe + vertical * vertical + forward * forward;
+    if (lengthSq < 1.0E-7f) {
+        // 输入向量太短，不移动
+        return;
+    }
+
+    // 如果长度大于 1，归一化
+    f32 length = std::sqrt(lengthSq);
+    f32 normalizedStrafe, normalizedVertical, normalizedForward;
+    if (lengthSq > 1.0f) {
+        normalizedStrafe = strafe / length;
+        normalizedVertical = vertical / length;
+        normalizedForward = forward / length;
+    } else {
+        normalizedStrafe = strafe;
+        normalizedVertical = vertical;
+        normalizedForward = forward;
+    }
+
+    // 应用移动因子
+    normalizedStrafe *= factor;
+    normalizedVertical *= factor;
+    normalizedForward *= factor;
+
+    // 根据偏航角旋转移动向量
+    // MC 公式: absoluteX = vec.x * cos - vec.z * sin
+    //          absoluteZ = vec.z * cos + vec.x * sin
+    // 注意: strafe 对应 x 方向，forward 对应 z 方向
+    f32 yawRad = m_yaw * math::DEG_TO_RAD;
+    f32 sinYaw = std::sin(yawRad);
+    f32 cosYaw = std::cos(yawRad);
+
+    f32 moveX = normalizedStrafe * cosYaw - normalizedForward * sinYaw;
+    f32 moveZ = normalizedForward * cosYaw + normalizedStrafe * sinYaw;
+
+    // 添加到当前速度
+    m_velocity.x += moveX;
+    m_velocity.y += normalizedVertical;
+    m_velocity.z += moveZ;
+}
+
 void Entity::tick() {
     m_ticksExisted++;
 

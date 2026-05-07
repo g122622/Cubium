@@ -399,6 +399,33 @@ public:
      */
     void addVelocity(const Vector3& delta) { addVelocity(delta.x, delta.y, delta.z); }
 
+    /**
+     * @brief 缩放速度向量
+     * @param factor 缩放因子
+     *
+     * MC 1.16.5: setMotion(getMotion().scale(factor))
+     * 用于阻力计算。
+     */
+    void scaleVelocity(f32 factor) {
+        m_velocity.x *= factor;
+        m_velocity.y *= factor;
+        m_velocity.z *= factor;
+    }
+
+    /**
+     * @brief 根据偏航角计算相对移动并添加到速度
+     *
+     * MC 1.16.5 Entity.moveRelative(float, Vector3d)
+     * 根据实体的偏航角，将相对移动向量转换为绝对移动向量，
+     * 并乘以移动因子后添加到当前速度。
+     *
+     * @param factor 移动因子（速度倍率）
+     * @param strafe 左右移动（负值向左，正值向右）
+     * @param vertical 垂直移动（负值向下，正值向上）
+     * @param forward 前后移动（负值向后，正值向前）
+     */
+    void moveRelative(f32 factor, f32 strafe, f32 vertical, f32 forward);
+
     void setOnGround(bool onGround) { m_onGround = onGround; }
     void setPose(EntityPose pose);
     void setFlags(EntityFlags flags);
