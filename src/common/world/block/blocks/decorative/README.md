@@ -176,15 +176,52 @@ public:
 
 **状态属性**:
 ```cpp
-- DISTANCE: IntegerProperty(0-7)  // 距离支撑的距离
-- BOTTOM: bool  // 是否在底部
-- WATERLOGGED: bool
+- DISTANCE_0_7: IntegerProperty(0-7)  // 距离支撑点的距离，0=直接支撑，7=过远需掉落
+- BOTTOM: bool  // 是否显示底部支撑柱
+- WATERLOGGED: bool  // 是否含水
 ```
 
 **特性**:
-- 可攀爬
-- 可下沉
-- 无需支撑可扩展距离
+- 可攀爬（`isLadder()` 始终返回 true）
+- 距离支撑过远时会掉落
+- 支持含水
+
+**距离计算** (`calculateDistance` 静态方法):
+- 检查下方方块：
+  - 若为固体方块顶面，返回 0（直接支撑）
+  - 若为脚手架，继承其距离值
+- 检查下方水平方向的脚手架：
+  - 遍历北东南西四个方向
+  - 若 `pos.down().offset(dir)` 位置有脚手架，取其距离+1
+- 返回最小距离值（最大为 7）
+
+**底部支撑柱显示** (`shouldShowBottom` 静态方法):
+- 当 `distance > 0` 且下方不是脚手架时返回 true
+- 用于渲染脚手架底部的站立平台
+
+**Tick 更新机制**:
+- `onBlockAdded`: 方块放置时调度 1 tick 延迟的 tick
+- `updatePostPlacement`: 邻居更新时调度 tick
+- `tick`: 
+  - 重新计算距离和底部状态
+  - 若 `distance == 7`：掉落或破坏方块
+  - 若状态改变：更新方块状态
+
+**放置检测** (`isValidPosition`):
+- 只有当 `calculateDistance(world, pos) < 7` 时才能放置
+
+**碰撞形状** (`getCollisionShape`):
+- `distance == 0`: 无碰撞（玩家可穿过）
+- `distance != 0 && bottom == true`: 底部平台碰撞（玩家可站立）
+- 其他情况: 无碰撞（玩家可穿过）
+
+**渲染形状** (`getShape`):
+- `bottom == true`: 完整形状（含角支柱和底部平台）
+- `bottom == false`: 顶部平台形状
+
+**参考**: MC 1.16.5 `net.minecraft.block.ScaffoldingBlock`
+
+**测试**: `tests/common/world/block/blocks/decorative/ScaffoldingBlockTest.cpp`
 
 ## 依赖项
 
@@ -240,3 +277,10 @@ auto redCarpet = std::make_unique<CarpetBlock>(
     - `getBeaconColor()` 返回正确的 DyeColor
     - `getBeaconColorMultiplier()` 返回正确的 RGB 值
     - IBeaconBeamColorProvider 接口验证
+- `ScaffoldingBlockTest.cpp` - 脚手架方块测试
+  - 构造和默认状态验证
+  - 攀爬属性 (`isLadder` 始终返回 true)
+  - 形状和碰撞形状测试
+  - 含水状态测试
+  - DISTANCE_0_7 属性范围测试
+  - BOTTOM 属性切换测试
