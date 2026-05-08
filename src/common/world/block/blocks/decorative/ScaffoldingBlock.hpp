@@ -19,7 +19,7 @@ namespace blocks {
  * - 距离底部过远会掉落
  * - 实现 IWaterLoggable 接口支持含水功能
  *
- * 参考: net.minecraft.block.ScaffoldingBlock
+ * 参考: net.minecraft.block.ScaffoldingBlock (MC 1.16.5)
  */
 class ScaffoldingBlock : public Block, public IWaterLoggable {
 public:
@@ -48,6 +48,16 @@ public:
         IWorld& world,
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
+
+    /**
+     * @brief 方块被添加到世界时的处理
+     */
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    /**
+     * @brief 执行方块计划刻
+     */
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     // ========== 放置检测 ==========
 
@@ -106,16 +116,47 @@ public:
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 
+    // ========== 静态方法 ==========
+
+    /**
+     * @brief 计算脚手架距离支撑点的距离
+     *
+     * 参考: net.minecraft.block.ScaffoldingBlock#func_220117_a
+     *
+     * @param world 世界引用
+     * @param pos 脚手架位置
+     * @return 距离值 (0-7)，0 表示直接支撑，7 表示过远需要掉落
+     */
+    static i32 calculateDistance(IWorld& world, const BlockPos& pos);
+
 protected:
     /// 底部形状（站立平台）
     CollisionShape m_baseShape;
+    /// 顶部横杆形状
+    CollisionShape m_topShape;
     /// 完整形状（含支撑柱）
     CollisionShape m_fullShape;
+    /// 碰撞形状（用于掉落检测）
+    CollisionShape m_collisionShape;
+    /// 无碰撞形状（当脚手架距离=0且有底部支撑时）
+    CollisionShape m_emptyShape;
 
     /**
-     * @brief 检查是否有支撑
+     * @brief 检查是否应该显示底部支撑柱
+     *
+     * 参考: net.minecraft.block.ScaffoldingBlock#func_220116_a
+     *
+     * @param world 世界引用
+     * @param pos 脚手架位置
+     * @param distance 距离值
+     * @return 如果应该显示底部返回 true
      */
-    [[nodiscard]] bool hasSupport(IBlockReader& world, const BlockPos& pos) const;
+    [[nodiscard]] static bool shouldShowBottom(IWorld& world, const BlockPos& pos, i32 distance);
+
+    /**
+     * @brief 检查方块是否为脚手架
+     */
+    [[nodiscard]] static bool isScaffolding(const BlockState* state);
 };
 
 } // namespace blocks

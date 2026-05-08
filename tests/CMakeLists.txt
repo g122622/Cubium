@@ -88,6 +88,7 @@ add_executable(mc_tests
     common/world/block/blocks/decorative/PaneBlockTest.cpp
     common/world/block/blocks/decorative/DecorativeBlockTest.cpp
     common/world/block/blocks/decorative/StainedGlassBlockTest.cpp
+    common/world/block/blocks/decorative/ScaffoldingBlockTest.cpp
     common/world/block/blocks/functional/BellBlockTest.cpp
     common/world/block/WaterLoggableTest.cpp
     common/world/block/blocks/HopperBlockTest.cpp
