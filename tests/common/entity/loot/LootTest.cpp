@@ -8,6 +8,7 @@
 #include "entity/loot/RandomRanges.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/Items.hpp"
+#include "resource/ResourceLocation.hpp"
 #include "world/IWorld.hpp"
 #include "world/chunk/ChunkData.hpp"
 #include "world/block/Block.hpp"
@@ -472,4 +473,58 @@ TEST_F(LootTest, LootFunctionBuilder_NewFunctions) {
     auto setStew = LootFunctionBuilder::setStewEffect();
     ASSERT_NE(setStew, nullptr);
     EXPECT_EQ("set_stew_effect", setStew->getType());
+}
+
+// ============================================================================
+// FurnaceSmeltFunction Tests
+// ============================================================================
+
+TEST_F(LootTest, FurnaceSmeltFunction_EmptyStack) {
+    // 空物品栈应返回空栈
+    FurnaceSmeltFunction func;
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    ItemStack emptyStack;
+    ItemStack result = func.apply(emptyStack, context);
+    EXPECT_TRUE(result.isEmpty());
+}
+
+TEST_F(LootTest, FurnaceSmeltFunction_Type) {
+    FurnaceSmeltFunction func;
+    EXPECT_EQ("furnace_smelt", func.getType());
+}
+
+TEST_F(LootTest, FurnaceSmeltFunction_Clone) {
+    FurnaceSmeltFunction func;
+    func.addCondition(std::make_unique<RandomChanceCondition>(0.5f));
+
+    auto cloned = func.clone();
+    ASSERT_NE(cloned, nullptr);
+    EXPECT_EQ("furnace_smelt", cloned->getType());
+    EXPECT_EQ(1, cloned->getConditions().size());
+}
+
+TEST_F(LootTest, FurnaceSmeltFunction_NoRecipe) {
+    // 没有对应熔炼配方的物品应返回原物品
+    FurnaceSmeltFunction func;
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建一个物品（钻石没有熔炼配方）
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+
+    ItemStack stack(*diamond, 5);
+    ItemStack result = func.apply(stack, context);
+
+    // 没有熔炼配方时返回原物品
+    EXPECT_EQ(stack.getItem(), result.getItem());
+    EXPECT_EQ(5, result.getCount());
+}
+
+TEST_F(LootTest, FurnaceSmeltFunction_Builder) {
+    auto func = LootFunctionBuilder::furnaceSmelt();
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ("furnace_smelt", func->getType());
 }

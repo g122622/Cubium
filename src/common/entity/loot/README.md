@@ -805,4 +805,5 @@ entry.generate(consumer, context);  // 条件在这里检查
    - SetContentsFunction（需要容器物品支持）
    - ExplorationMapFunction（需要地图数据系统）
    - SetStewEffectFunction（需要药水效果系统）
-6. **JSON 函数解析** - 为 Pool 和 Table 级别的函数提供完整支持
+6. ~~**FurnaceSmeltFunction 熔炼函数** - 已通过 RecipeManager 实现完整功能~~ ✅ 已完成
+7. **JSON 函数解析** - 为 Pool 和 Table 级别的函数提供完整支持

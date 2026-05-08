@@ -6,6 +6,8 @@
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/item/crafting/RecipeManager.hpp"
+#include "common/item/crafting/SmeltingRecipe.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <algorithm>
@@ -385,10 +387,27 @@ ItemStack FurnaceSmeltFunction::apply(ItemStack stack, LootContext& context) con
         return stack;
     }
 
-    // TODO: 实现熔炼逻辑
-    // 需要查找熔炼配方，返回熔炼后的物品
-    // 参考: net.minecraft.loot.functions.FurnaceSmelt
+    // 参考 MC 1.16.5 net.minecraft.loot.functions.Smelting.doApply
+    // 从 RecipeManager 查找熔炼配方
+    const auto& recipeManager = crafting::RecipeManager::instance();
+    const crafting::SmeltingRecipe* recipe = recipeManager.getSmeltingRecipe(
+        stack, crafting::RecipeType::Smelting);
 
+    if (recipe != nullptr) {
+        // 获取熔炼结果物品
+        ItemStack result = recipe->getResultItem();
+        if (!result.isEmpty()) {
+            // 复制结果物品
+            ItemStack smelted = result.copy();
+            // 计算输出数量：输入数量 * 配方输出数量
+            // Forge 扩展：支持配方返回多个物品
+            smelted.setCount(stack.getCount() * result.getCount());
+            return smelted;
+        }
+    }
+
+    // 没有找到熔炼配方，返回原始物品
+    // 注：MC 1.16.5 会记录警告日志，但本项目暂无日志系统
     MC_UNUSED(context);
     return stack;
 }
