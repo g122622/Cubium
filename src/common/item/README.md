@@ -447,6 +447,18 @@ ActionResultType action = item.onItemUse(context);
 
 **解决方案**：使用 `WallOrFloorItem` 类，根据玩家视线方向自动选择放置地板方块或墙壁方块。
 
+### 11. BlockItem 实体碰撞检查
+
+**问题**：方块放置时需要检查是否与实体碰撞，否则玩家可以将方块放置到其他实体内部。
+
+**解决方案**：`BlockItem::canPlace()` 在放置前检查方块的碰撞箱是否与实体相交：
+- 使用 `CollisionShape::getWorldBoxes()` 获取方块的世界坐标碰撞箱
+- 调用 `IWorld::hasEntityCollision()` 检查实体碰撞
+- 排除放置者实体本身，避免玩家阻止自己放置方块
+- 对无碰撞箱的方块（如水、空气）跳过此检查
+
+**参考**：MC 1.16.5 `world.func_226663_a_(state, pos, ISelectionContext.dummy())`
+
 ## 测试文件
 
 相关测试文件位于 `tests/common/item/` 目录：
