@@ -23,31 +23,45 @@ namespace mc {
 
 namespace {
 
-std::string trimStateToken(std::string_view token) {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::trimStateToken");
+bool isAsciiWhitespace(char ch) {
+    switch (ch) {
+    case ' ':
+    case '\t':
+    case '\n':
+    case '\r':
+    case '\f':
+    case '\v':
+        return true;
+    default:
+        return false;
+    }
+}
+
+std::string_view trimStateToken(std::string_view token) {
+    // MC_TRACE_EVENT("client.resource", "ResourceManager::trimStateToken");
 
     size_t start = 0;
     size_t end = token.size();
 
-    while (start < end && std::isspace(static_cast<unsigned char>(token[start]))) {
+    while (start < end && isAsciiWhitespace(token[start])) {
         ++start;
     }
-    while (end > start && std::isspace(static_cast<unsigned char>(token[end - 1]))) {
+    while (end > start && isAsciiWhitespace(token[end - 1])) {
         --end;
     }
 
-    return std::string(token.substr(start, end - start));
+    return token.substr(start, end - start);
 }
 
 std::string normalizeStateString(std::string_view stateStr) {
     MC_TRACE_EVENT("client.resource", "ResourceManager::normalizeStateString");
 
-    std::string trimmed = trimStateToken(stateStr);
+    const std::string_view trimmed = trimStateToken(stateStr);
     if (trimmed.empty() || trimmed == "normal") {
         return "normal";
     }
 
-    std::map<std::string, std::string> props;
+    std::map<std::string_view, std::string_view> props;
     size_t start = 0;
     while (start < trimmed.size()) {
         size_t end = trimmed.find(',', start);
@@ -55,12 +69,12 @@ std::string normalizeStateString(std::string_view stateStr) {
             end = trimmed.size();
         }
 
-        std::string token = trimStateToken(std::string_view(trimmed.data() + start, end - start));
+        const std::string_view token = trimStateToken(trimmed.substr(start, end - start));
         if (!token.empty()) {
             size_t eq = token.find('=');
             if (eq != std::string::npos) {
-                std::string key = trimStateToken(std::string_view(token.data(), eq));
-                std::string value = trimStateToken(std::string_view(token.data() + eq + 1, token.size() - eq - 1));
+                const std::string_view key = trimStateToken(token.substr(0, eq));
+                const std::string_view value = trimStateToken(token.substr(eq + 1));
                 if (!key.empty()) {
                     props[key] = value;
                 }
@@ -80,7 +94,9 @@ std::string normalizeStateString(std::string_view stateStr) {
         if (!first) {
             normalized += ",";
         }
-        normalized += key + "=" + value;
+        normalized.append(key.data(), key.size());
+        normalized.push_back('=');
+        normalized.append(value.data(), value.size());
         first = false;
     }
 
@@ -92,19 +108,19 @@ std::vector<std::pair<std::string, std::string>> parseStateConditions(std::strin
 
     std::vector<std::pair<std::string, std::string>> conditions;
 
-    const std::string normalized = normalizeStateString(stateStr);
-    if (normalized.empty() || normalized == "normal") {
+    const std::string_view trimmed = trimStateToken(stateStr);
+    if (trimmed.empty() || trimmed == "normal") {
         return conditions;
     }
 
     size_t start = 0;
-    while (start < normalized.size()) {
-        size_t end = normalized.find(',', start);
+    while (start < trimmed.size()) {
+        size_t end = trimmed.find(',', start);
         if (end == std::string::npos) {
-            end = normalized.size();
+            end = trimmed.size();
         }
 
-        std::string_view token(normalized.data() + start, end - start);
+        const std::string_view token = trimStateToken(trimmed.substr(start, end - start));
         size_t eq = token.find('=');
         if (eq != std::string_view::npos) {
             std::string key(token.substr(0, eq));
