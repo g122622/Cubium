@@ -240,6 +240,17 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
     // 设置实体渲染回调
     m_renderer->setEntityRenderCallback([this](VkCommandBuffer cmd, f64 partialTick) {
         const auto& frustum = m_renderer->frustum();
+        const auto& frameContext = m_renderer->frameContext();
+
+        // 设置相机信息给 EntityRendererManager（用于名称标签渲染）
+        if (frameContext.camera) {
+            m_renderer->entityRendererManager().setCameraInfo(
+                frameContext.camera->position(),
+                frameContext.viewMatrix,
+                frustum
+            );
+        }
+
         m_world.entityManager().forEachEntity([&](client::ClientEntity& entity) {
             m_renderer->entityRendererManager().renderWithPipeline(cmd, entity, partialTick, frustum);
         });

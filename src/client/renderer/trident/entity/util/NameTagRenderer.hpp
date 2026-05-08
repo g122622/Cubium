@@ -2,6 +2,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
 #include <vulkan/vulkan.h>
 #include <string>
 #include <array>
@@ -50,6 +51,13 @@ public:
      * @brief 设置视图矩阵（用于 billboard 计算）
      */
     static void setViewMatrix(const std::array<f64, 16>& viewMatrix);
+
+    /**
+     * @brief 设置视锥体（用于视锥剔除）
+     *
+     * @param frustum 视锥体对象
+     */
+    static void setFrustum(const mc::math::frustum::Frustum& frustum);
 
     /**
      * @brief 渲染实体名称标签（GPU管线路径）
@@ -127,6 +135,7 @@ private:
     static u8 s_bgColorA;
     static Vector3d s_cameraPosition;
     static std::array<f64, 16> s_viewMatrix;
+    static mc::math::frustum::Frustum s_frustum;  // 视锥体（用于视锥剔除）
 
     static constexpr f64 DEFAULT_MAX_DISTANCE = 64.0;
     static constexpr f64 DEFAULT_SCALE = 0.025;

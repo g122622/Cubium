@@ -3,6 +3,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/Vector4.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
 #include "client/ui/Font.hpp"
 #include "client/ui/Glyph.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
@@ -80,6 +81,20 @@ public:
      * @brief 设置视图矩阵（用于 billboard 计算）
      */
     static void setViewMatrix(const std::array<f64, 16>& viewMatrix);
+
+    /**
+     * @brief 设置视锥体（用于视锥剔除）
+     *
+     * @param frustum 视锥体对象
+     */
+    static void setFrustum(const mc::math::frustum::Frustum& frustum);
+
+    /**
+     * @brief 设置相机前向方向（用于背面剔除）
+     *
+     * @param forward 相机前向向量（归一化）
+     */
+    static void setCameraForward(const Vector3f& forward);
 
     /**
      * @brief 渲染世界空间文本
@@ -190,11 +205,23 @@ private:
 
     /**
      * @brief 检查是否应该渲染文本
+     *
+     * @param position 文本世界位置
+     * @param distance 到相机的距离
+     * @return true 如果应该渲染
      */
     [[nodiscard]] static bool shouldRenderText(
         const Vector3f& position,
         f32 distance
     );
+
+    /**
+     * @brief 检查文本是否在相机背后（背面剔除）
+     *
+     * @param textPosition 文本世界位置
+     * @return true 如果文本在相机背后
+     */
+    [[nodiscard]] static bool isBackFacing(const Vector3f& textPosition);
 
     /**
      * @brief 从UTF-8字符串解码码点
@@ -213,6 +240,8 @@ private:
     static u8 s_bgColorA;
     static Vector3d s_cameraPosition;
     static std::array<f64, 16> s_viewMatrix;
+    static mc::math::frustum::Frustum s_frustum;       // 视锥体（用于视锥剔除）
+    static Vector3f s_cameraForward;                   // 相机前向向量（用于背面剔除）
 
     // Vulkan 资源
     static VkDevice s_device;

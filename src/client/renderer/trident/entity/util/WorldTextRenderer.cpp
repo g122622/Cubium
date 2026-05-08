@@ -25,6 +25,8 @@ std::array<f64, 16> WorldTextRenderer::s_viewMatrix = {
     0.0, 0.0, 1.0, 0.0,
     0.0, 0.0, 0.0, 1.0
 };
+mc::math::frustum::Frustum WorldTextRenderer::s_frustum;
+Vector3f WorldTextRenderer::s_cameraForward(0.0f, 0.0f, -1.0f);
 std::unordered_map<u32, WorldGlyphMesh> WorldTextRenderer::s_glyphMeshCache;
 pipeline::EntityMesh* WorldTextRenderer::s_backgroundMesh = nullptr;
 
@@ -375,6 +377,40 @@ void WorldTextRenderer::setCameraPosition(const Vector3d& position) {
 
 void WorldTextRenderer::setViewMatrix(const std::array<f64, 16>& viewMatrix) {
     s_viewMatrix = viewMatrix;
+
+    // 从视图矩阵提取相机前向向量（用于背面剔除）
+    // 视图矩阵的第三列（Z轴）是相机的前向方向（在视图空间中指向相机前方）
+    // 由于视图矩阵是相机的逆矩阵，我们取第三行的负值作为前向向量
+    s_cameraForward = Vector3f(
+        static_cast<f32>(-viewMatrix[8]),
+        static_cast<f32>(-viewMatrix[9]),
+        static_cast<f32>(-viewMatrix[10])
+    );
+    // 手动归一化
+    f32 len = std::sqrt(s_cameraForward.x * s_cameraForward.x +
+                        s_cameraForward.y * s_cameraForward.y +
+                        s_cameraForward.z * s_cameraForward.z);
+    if (len > 0.0001f) {
+        s_cameraForward.x /= len;
+        s_cameraForward.y /= len;
+        s_cameraForward.z /= len;
+    }
+}
+
+void WorldTextRenderer::setFrustum(const mc::math::frustum::Frustum& frustum) {
+    s_frustum = frustum;
+}
+
+void WorldTextRenderer::setCameraForward(const Vector3f& forward) {
+    // 手动归一化
+    f32 len = std::sqrt(forward.x * forward.x + forward.y * forward.y + forward.z * forward.z);
+    if (len > 0.0001f) {
+        s_cameraForward.x = forward.x / len;
+        s_cameraForward.y = forward.y / len;
+        s_cameraForward.z = forward.z / len;
+    } else {
+        s_cameraForward = forward;
+    }
 }
 
 const WorldGlyphMesh* WorldTextRenderer::getGlyphMesh(u32 codepoint) {
@@ -647,17 +683,57 @@ bool WorldTextRenderer::shouldRenderText(
     const Vector3f& position,
     f32 distance)
 {
-    (void)position;
-
     // 距离检查
     if (distance > s_maxDistance) {
         return false;
     }
 
-    // TODO: 视锥体剔除
-    // TODO: 背面剔除（如果玩家背对文本）
+    // 视锥体剔除
+    // 使用球体测试，名称标签大小约 1-2 格，使用半径 2.0f 进行保守测试
+    if (s_frustum.isValid()) {
+        mc::Vector3 frustumPos(position.x, position.y, position.z);
+        if (!s_frustum.isSphereVisible(frustumPos, 2.0f)) {
+            return false;
+        }
+    }
+
+    // 背面剔除：检查玩家是否背对文本位置
+    if (isBackFacing(position)) {
+        return false;
+    }
 
     return true;
+}
+
+bool WorldTextRenderer::isBackFacing(const Vector3f& textPosition) {
+    // 计算从文本位置指向相机的方向向量
+    Vector3f toCamera(
+        static_cast<f32>(s_cameraPosition.x - textPosition.x),
+        static_cast<f32>(s_cameraPosition.y - textPosition.y),
+        static_cast<f32>(s_cameraPosition.z - textPosition.z)
+    );
+
+    f32 distanceSq = toCamera.x * toCamera.x + toCamera.y * toCamera.y + toCamera.z * toCamera.z;
+
+    // 如果相机非常接近文本位置（距离接近0），不进行背面剔除
+    if (distanceSq < 0.0001f) {
+        return false;
+    }
+
+    // 归一化方向向量
+    f32 invDistance = 1.0f / std::sqrt(distanceSq);
+    toCamera.x *= invDistance;
+    toCamera.y *= invDistance;
+    toCamera.z *= invDistance;
+
+    // 计算相机前向向量与"到相机方向"的点积
+    // 如果点积 < 0，表示相机背对文本位置（夹角大于90度）
+    f32 dot = toCamera.x * s_cameraForward.x +
+              toCamera.y * s_cameraForward.y +
+              toCamera.z * s_cameraForward.z;
+
+    // 点积 < 0 表示文本在相机背后
+    return dot < 0.0f;
 }
 
 u32 WorldTextRenderer::decodeCodepoint(const std::string& text, size_t& pos) {

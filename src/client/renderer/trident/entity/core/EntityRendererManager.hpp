@@ -8,6 +8,7 @@
 #include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
+#include <glm/glm.hpp>
 #include <unordered_map>
 #include <memory>
 #include <functional>
@@ -173,6 +174,21 @@ public:
     void setCameraDescriptorSet(VkDescriptorSet descriptorSet) { m_cameraDescriptorSet = descriptorSet; }
 
     /**
+     * @brief 设置相机信息（用于名称标签渲染）
+     *
+     * 必须在每帧渲染实体前调用，以便名称标签渲染器进行视锥剔除和背面剔除。
+     *
+     * @param position 相机世界位置
+     * @param viewMatrix 视图矩阵
+     * @param frustum 视锥体
+     */
+    void setCameraInfo(
+        const glm::dvec3& position,
+        const glm::mat4& viewMatrix,
+        const mc::math::frustum::Frustum& frustum
+    );
+
+    /**
      * @brief 获取实体渲染管线
      */
     [[nodiscard]] pipeline::EntityPipeline* pipeline() { return m_pipeline; }
@@ -223,6 +239,12 @@ private:
 
     // 相机描述符集（set = 0）
     VkDescriptorSet m_cameraDescriptorSet = VK_NULL_HANDLE;
+
+    // 相机信息（用于名称标签渲染）
+    glm::dvec3 m_cameraPosition{0.0, 0.0, 0.0};
+    glm::mat4 m_viewMatrix{1.0f};
+    mc::math::frustum::Frustum m_frustum;
+    bool m_hasCameraInfo = false;
 
     bool m_renderShadows = true;
     bool m_renderNameTags = true;

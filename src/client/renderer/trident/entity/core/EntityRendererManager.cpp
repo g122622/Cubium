@@ -29,6 +29,7 @@
 #include "../renderer/projectile/ExperienceOrbRenderer.hpp"
 #include "../pipeline/EntityTextureAtlas.hpp"
 #include "../util/ShadowRenderer.hpp"
+#include "../util/NameTagRenderer.hpp"
 #include "../effect/fire/FireEffect.hpp"
 #include "client/resource/EntityTextureLoader.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
@@ -107,6 +108,30 @@ void EntityRendererManager::setTextureAtlas(const EntityTextureAtlas* textureAtl
     m_textureAtlas = textureAtlas;
     // 图集变化后，旧网格的UV映射可能失效，强制重建
     clearMeshes();
+}
+
+void EntityRendererManager::setCameraInfo(
+    const glm::dvec3& position,
+    const glm::mat4& viewMatrix,
+    const mc::math::frustum::Frustum& frustum)
+{
+    m_cameraPosition = position;
+    m_viewMatrix = viewMatrix;
+    m_frustum = frustum;
+    m_hasCameraInfo = true;
+
+    // 更新 NameTagRenderer 的相机信息
+    util::NameTagRenderer::setCameraPosition(Vector3d(position.x, position.y, position.z));
+
+    // 转换视图矩阵为 double 数组
+    std::array<f64, 16> viewMatrixArray;
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            viewMatrixArray[i * 4 + j] = static_cast<f64>(viewMatrix[j][i]);
+        }
+    }
+    util::NameTagRenderer::setViewMatrix(viewMatrixArray);
+    util::NameTagRenderer::setFrustum(frustum);
 }
 
 void EntityRendererManager::registerRenderer(const std::string& typeId, RendererCreator creator) {

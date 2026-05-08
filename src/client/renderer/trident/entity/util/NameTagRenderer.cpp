@@ -3,6 +3,7 @@
 #include "../pipeline/EntityPipeline.hpp"
 #include "../model/core/ModelRenderer.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -24,6 +25,7 @@ std::array<f64, 16> NameTagRenderer::s_viewMatrix = {
     0.0, 0.0, 1.0, 0.0,
     0.0, 0.0, 0.0, 1.0
 };
+mc::math::frustum::Frustum NameTagRenderer::s_frustum;
 
 bool NameTagRenderer::initialize(pipeline::EntityPipeline& pipeline) {
     if (s_initialized) {
@@ -54,6 +56,10 @@ void NameTagRenderer::setCameraPosition(const Vector3d& position) {
 
 void NameTagRenderer::setViewMatrix(const std::array<f64, 16>& viewMatrix) {
     s_viewMatrix = viewMatrix;
+}
+
+void NameTagRenderer::setFrustum(const mc::math::frustum::Frustum& frustum) {
+    s_frustum = frustum;
 }
 
 void NameTagRenderer::renderNameTag(
@@ -128,6 +134,7 @@ void NameTagRenderer::renderNameTag(
     // 设置相机信息到 WorldTextRenderer
     WorldTextRenderer::setCameraPosition(s_cameraPosition);
     WorldTextRenderer::setViewMatrix(s_viewMatrix);
+    WorldTextRenderer::setFrustum(s_frustum);
     WorldTextRenderer::setShowBackground(s_showBackground);
     WorldTextRenderer::setBackgroundColor(s_bgColorR, s_bgColorG, s_bgColorB, s_bgColorA);
     WorldTextRenderer::setMaxDistance(static_cast<f32>(s_maxDistance));
@@ -268,9 +275,8 @@ void NameTagRenderer::renderBackground(
     f64 scale,
     pipeline::EntityPipeline& pipeline)
 {
-    // TODO: 渲染背景面板
-    // 需要创建一个简单的四边形网格
-
+    // 背景渲染已在 WorldTextRenderer::renderText 中实现
+    // 此方法保留用于未来扩展（如需要特殊背景效果）
     (void)cmd;
     (void)position;
     (void)width;
