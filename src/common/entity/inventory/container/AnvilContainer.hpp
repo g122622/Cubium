@@ -181,6 +181,12 @@ private:
      */
     [[nodiscard]] bool areEnchantmentsCompatible(const std::string& ench1, const std::string& ench2) const;
 
+    /**
+     * @brief 检查玩家是否是创造模式
+     * @return 如果关联的玩家是创造模式返回true
+     */
+    [[nodiscard]] bool isPlayerCreative() const;
+
 private:
     std::unique_ptr<IInventory> m_anvilInventory;  ///< 铁砧背包
     BlockPos m_position;                           ///< 铁砧位置

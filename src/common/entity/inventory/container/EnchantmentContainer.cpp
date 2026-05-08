@@ -229,11 +229,11 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex) {
     lapis.shrink(cost);
     m_enchantmentInventory->setItem(SLOT_LAPIS, lapis);
 
-    // 消耗玩家经验（创造模式不消耗）
-    // TODO: 检查玩家是否是创造模式
-    // if (!player.isCreativeMode()) {
-    player.addExperienceLevels(-cost);
-    // }
+    // MC 1.16.5: 消耗玩家经验（创造模式不消耗）
+    // 参考 EnchantmentContainer line 214-215
+    if (!player.isCreative()) {
+        player.addExperienceLevels(-cost);
+    }
 
     // 获取物品
     ItemStack item = m_enchantmentInventory->getItem(SLOT_ITEM);

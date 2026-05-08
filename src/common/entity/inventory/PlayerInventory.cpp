@@ -559,10 +559,9 @@ bool PlayerInventory::isUsableByPlayer(const Player& player) const {
     }
 
     // 检查玩家是否存活
-    // TODO: 需要 Player 类提供 isAlive() 方法
-    // if (!player.isAlive()) {
-    //     return false;
-    // }
+    if (!player.isAlive()) {
+        return false;
+    }
 
     return true;
 }

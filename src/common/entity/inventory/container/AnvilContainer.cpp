@@ -37,8 +37,12 @@ public:
     }
 
     [[nodiscard]] bool mayPickup(Player& player) const override {
-        (void)player;
-        // 检查是否可以取出（经验等级是否足够）
+        // MC 1.16.5: 创造模式玩家可以无视经验等级要求取出物品
+        // 参考 RepairContainer.func_230303_b_
+        if (player.isCreative()) {
+            return m_container && !m_container->getOutputSlot().isEmpty();
+        }
+        // 生存模式检查经验等级是否足够
         return m_container && !m_container->isTooExpensive();
     }
 
@@ -402,8 +406,11 @@ void AnvilContainer::updateRepairOutput() {
 
                 // 检查附魔是否可以应用到结果物品
                 bool canApply = enchant2->canApply(result);
-                // 创造模式或附魔书可以应用任何附魔
-                // TODO: 检查玩家是否是创造模式
+                // MC 1.16.5: 创造模式或附魔书可以应用任何附魔
+                // 参考 RepairContainer line 158-161
+                if (isPlayerCreative() || input2.getItem() == Items::ENCHANTED_BOOK) {
+                    canApply = true;
+                }
 
                 // 检查与现有附魔的兼容性
                 for (const auto& [enchant1, level1] : enchantments1) {
@@ -505,7 +512,9 @@ void AnvilContainer::updateRepairOutput() {
     }
 
     // 检查是否太贵
-    if (m_repairCost >= MAX_REPAIR_COST) {
+    // MC 1.16.5: 创造模式可以绕过 40 级费用上限
+    // 参考 RepairContainer line 236-238
+    if (m_repairCost >= MAX_REPAIR_COST && !isPlayerCreative()) {
         result = ItemStack();
         m_repairCost = 0;
     }
@@ -549,6 +558,16 @@ bool AnvilContainer::areEnchantmentsCompatible(const std::string& ench1, const s
     }
 
     return enchantment1->isCompatibleWith(*enchantment2);
+}
+
+bool AnvilContainer::isPlayerCreative() const {
+    // MC 1.16.5: 创造模式玩家在铁砧中有特殊权限
+    // 参考 RepairContainer.field_234645_f_.abilities.isCreativeMode
+    if (m_playerInventory == nullptr) {
+        return false;
+    }
+    Player* player = m_playerInventory->getPlayer();
+    return player != nullptr && player->isCreative();
 }
 
 } // namespace mc
