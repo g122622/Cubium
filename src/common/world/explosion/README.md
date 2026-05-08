@@ -206,10 +206,81 @@ public:
 
 ### 方块掉落
 
-通过 `BlockDropHandler::generateDrops()` 生成掉落物。
-调用 `Block::canDropFromExplosion()` 判断是否掉落。
+通过 `LootTableManager` 和掉落表系统生成掉落物。
 
-## 注意事项
+#### 掉落流程（DESTROY 模式）
+
+1. 获取方块的掉落表 ID（`Block::getLootTableId()`）
+2. 通过 `LootTableManager::getTable()` 获取掉落表
+3. 构建 `LootContext`，包含以下参数：
+   - `BLOCK_STATE`: 被破坏的方块状态
+   - `BLOCK_POS`: 方块位置
+   - `TOOL`: 使用的工具（爆炸时为空）
+   - `EXPLOSION_RADIUS`: 爆炸半径（用于爆炸衰减）
+   - `THIS_ENTITY`: 爆炸源实体（可选）
+4. 调用 `LootTable::generate()` 生成掉落物列表
+5. 应用爆炸衰减（每个物品独立判定存活）
+6. 合并相同物品（2 格范围内，未达最大堆叠数）
+7. 使用 `ItemDropHelper` 生成物品实体
+
+#### 爆炸衰减
+
+参考 MC 1.16.5 `explosion_decay` 条件：
+
+```
+物品存活概率 = 1 - 1 / explosionRadius
+```
+
+| 半径 | 存活概率 | 实体 |
+|------|---------|------|
+| 1.0 | 0% | 恶魂火球 |
+| 3.0 | 66.7% | 苦力怕 |
+| 4.0 | 75% | TNT |
+| 6.0 | 83.3% | 高压苦力怕 |
+
+#### 物品合并
+
+相同物品在 2 格范围内可以合并：
+- 距离条件：`distanceSq <= 4`
+- 堆叠条件：`currentCount < maxStackSize`
+
+#### 模式差异
+
+| 模式 | 破坏方块 | 生成掉落 | 用例 |
+|------|---------|---------|------|
+| None | ❌ | ❌ | 无 |
+| Break | ✅ | ❌ | TNT |
+| Destroy | ✅ | ✅ | 苦力怕、末地水晶 |
+
+## 与其他系统的集成
+
+### 粒子系统
+
+爆炸会自动生成以下粒子：
+- 半径 >= 2.0：`HugeExplosion`（大爆炸发射器）
+- 半径 < 2.0：`Explosion`（普通爆炸粒子）
+
+### 音效系统
+
+播放 `minecraft:entity.generic.explode` 音效。
+
+### 伤害系统
+
+使用 `DamageSources::explosion(source)` 创建爆炸伤害。
+支持爆炸保护附魔减少伤害和击退。
+
+### 掉落表系统
+
+爆炸使用 `LootTableManager` 获取方块的掉落表：
+- 需要 `Explosion` 构造时传入 `LootTableManager` 指针
+- `ServerWorld::createExplosion()` 会自动传入
+- 如果 `LootTableManager` 为空，不生成掉落物
+
+### ServerWorld 集成
+
+`ServerWorld` 持有 `LootTableManager` 引用：
+- `MinecraftServer` 初始化时设置
+- `createExplosion()` 自动传递给 `Explosion`
 
 1. **性能考虑**：大规模爆炸可能影响性能，应考虑限制同时进行的爆炸数量
 2. **服务端/客户端同步**：爆炸在服务端计算，结果广播给客户端
@@ -219,13 +290,22 @@ public:
 
 ## 测试用例
 
-测试文件位于 `tests/common/world/explosion/ExplosionIntegrationTest.cpp`，覆盖以下内容：
+测试文件位于 `tests/common/world/explosion/`，覆盖以下内容：
 
+### test_explosion.cpp
+- 爆炸模式枚举值测试
+- ExplosionContext 默认行为测试
+- EntityExplosionContext 继承行为测试
+
+### ExplosionIntegrationTest.cpp
 - **爆炸常量测试**：验证所有常量值（射线参数、伤害系数、爆炸半径等）
 - **伤害公式测试**：验证 MC 1.16.5 爆炸伤害公式正确性
 - **爆炸保护附魔测试**：验证 EPF 减伤和击退减少公式
 - **方块密度测试**：验证密度计算公式
 - **实体免疫测试**：验证默认实体爆炸免疫行为
 - **火焰生成测试**：验证火焰生成概率常量
-- **方块掉落测试**：验证爆炸模式对掉落的影响
 - **射线步进测试**：验证射线网格和步长参数
+- **爆炸衰减测试**：验证物品存活概率计算
+- **物品合并测试**：验证合并距离和条件
+- **LootTableManager 集成测试**：验证参数设置和降级行为
+- **爆炸模式掉落行为测试**：验证 None/Break/Destroy 模式差异

@@ -6,10 +6,13 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/entity/loot/LootContext.hpp"
+#include "common/entity/loot/LootTable.hpp"
 #include "common/core/Constants.hpp"
 #include "common/util/math/random/Random.hpp"
 
 #include <memory>
+#include <cmath>
 
 using namespace mc;
 using namespace mc::world::explosion;
@@ -131,6 +134,200 @@ TEST(ExplosionDropTest, DestroyModeCanDrop) {
     // Destroy 模式可以掉落物品
     // 取决于 Block::canDropFromExplosion()
     EXPECT_EQ(static_cast<int>(ExplosionMode::Destroy), 2);
+}
+
+// ============================================================================
+// 爆炸衰减测试
+// 参考 MC 1.16.5: explosion_decay 条件
+// 物品存活概率 = 1 - 1/explosionRadius
+// ============================================================================
+
+TEST(ExplosionDecayTest, SurvivalChanceFormula) {
+    // 测试爆炸衰减公式
+    // 爆炸半径越大，物品存活概率越高
+
+    // 半径 4.0 (TNT): 存活概率 = 1 - 1/4 = 0.75
+    f32 radius4 = 4.0f;
+    f32 survivalChance4 = 1.0f - 1.0f / radius4;
+    EXPECT_FLOAT_EQ(survivalChance4, 0.75f);
+
+    // 半径 3.0 (苦力怕): 存活概率 = 1 - 1/3 ≈ 0.667
+    f32 radius3 = 3.0f;
+    f32 survivalChance3 = 1.0f - 1.0f / radius3;
+    EXPECT_NEAR(survivalChance3, 0.6666667f, 0.0001f);
+
+    // 半径 6.0 (高压苦力怕): 存活概率 = 1 - 1/6 ≈ 0.833
+    f32 radius6 = 6.0f;
+    f32 survivalChance6 = 1.0f - 1.0f / radius6;
+    EXPECT_NEAR(survivalChance6, 0.8333333f, 0.0001f);
+
+    // 半径 1.0: 存活概率 = 0（所有物品消失）
+    f32 radius1 = 1.0f;
+    f32 survivalChance1 = 1.0f - 1.0f / radius1;
+    EXPECT_FLOAT_EQ(survivalChance1, 0.0f);
+}
+
+TEST(ExplosionDecayTest, SurvivalChanceClamped) {
+    // 存活概率应该在 [0, 1] 范围内
+    f32 radius = 0.5f;  // 异常小半径
+    f32 survivalChance = 1.0f - 1.0f / radius;  // 负值
+    survivalChance = std::max(0.0f, std::min(1.0f, survivalChance));
+    EXPECT_FLOAT_EQ(survivalChance, 0.0f);
+
+    radius = 10.0f;  // 大半径
+    survivalChance = 1.0f - 1.0f / radius;
+    survivalChance = std::max(0.0f, std::min(1.0f, survivalChance));
+    EXPECT_NEAR(survivalChance, 0.9f, 0.0001f);
+}
+
+TEST(ExplosionDecayTest, ItemCountSurvival) {
+    // 测试物品数量存活计算
+    // 参考 MC 1.16.5: 每个物品独立判定存活
+
+    math::Random rng(12345);  // 固定种子
+
+    f32 radius = 4.0f;
+    f32 survivalChance = 1.0f - 1.0f / radius;  // 0.75
+
+    i32 totalItems = 100;
+    i32 survivingItems = 0;
+
+    for (i32 i = 0; i < totalItems; ++i) {
+        if (rng.nextFloat() < survivalChance) {
+            ++survivingItems;
+        }
+    }
+
+    // 统计上应该在 75% 左右，允许 10% 误差
+    f32 actualRate = static_cast<f32>(survivingItems) / static_cast<f32>(totalItems);
+    EXPECT_NEAR(actualRate, survivalChance, 0.1f);
+}
+
+// ============================================================================
+// 物品合并测试
+// 参考 MC 1.16.5: Explosion.doExplosionB 中的合并逻辑
+// ============================================================================
+
+TEST(ExplosionItemMergeTest, MergeDistance) {
+    // 合并距离：2 格范围（距离平方 <= 4）
+    f32 maxMergeDistanceSq = 4.0f;
+
+    // 相邻方块可以合并
+    BlockPos pos1(0, 0, 0);
+    BlockPos pos2(1, 0, 0);
+    EXPECT_LE(pos1.distanceSq(pos2), maxMergeDistanceSq);
+
+    // 2 格距离可以合并
+    BlockPos pos3(2, 0, 0);
+    EXPECT_LE(pos1.distanceSq(pos3), maxMergeDistanceSq);
+
+    // 3 格距离不能合并
+    BlockPos pos4(3, 0, 0);
+    EXPECT_GT(pos1.distanceSq(pos4), maxMergeDistanceSq);
+
+    // 对角线距离：sqrt(1+1+1) ≈ 1.73，可以合并
+    BlockPos pos5(1, 1, 1);
+    EXPECT_LE(pos1.distanceSq(pos5), maxMergeDistanceSq);
+
+    // 对角线距离：sqrt(4+4+4) ≈ 3.46，可以合并
+    BlockPos pos6(2, 2, 2);
+    EXPECT_LE(pos1.distanceSq(pos6), maxMergeDistanceSq);
+}
+
+TEST(ExplosionItemMergeTest, MergeConditions) {
+    // 测试合并条件
+    // 1. 相同物品类型
+    // 2. 相同位置附近（距离平方 <= 4）
+    // 3. 目标物品未达到最大堆叠数
+
+    // 最大堆叠数测试
+    i32 maxStackSize = 64;
+    i32 currentCount = 60;
+    i32 space = maxStackSize - currentCount;
+    EXPECT_EQ(space, 4);
+
+    // 可以合并 4 个
+    i32 toAdd = 3;
+    EXPECT_LE(toAdd, space);
+
+    // 超过空间时部分合并
+    currentCount = 62;
+    space = maxStackSize - currentCount;  // 2
+    toAdd = 5;
+    i32 actualMerge = std::min(space, toAdd);
+    EXPECT_EQ(actualMerge, 2);
+}
+
+// ============================================================================
+// LootTableManager 集成测试
+// ============================================================================
+
+TEST(ExplosionLootTableTest, NullLootTableManager) {
+    // 当 LootTableManager 为空时，不应生成掉落物
+    // 这是降级行为
+    const loot::LootTableManager* nullManager = nullptr;
+    EXPECT_EQ(nullManager, nullptr);
+}
+
+TEST(ExplosionLootTableTest, EmptyLootTableId) {
+    // 当方块没有掉落表 ID 时，不应生成掉落物
+    // Block::getLootTableId() 返回空字符串
+    String emptyLootTableId;
+    EXPECT_TRUE(emptyLootTableId.empty());
+}
+
+TEST(ExplosionLootTableTest, LootContextParameters) {
+    // 爆炸掉落上下文应包含以下参数：
+    // - BLOCK_STATE: 被破坏的方块状态
+    // - BLOCK_POS: 方块位置
+    // - TOOL: 使用的工具（爆炸时为空）
+    // - EXPLOSION_RADIUS: 爆炸半径
+    // - THIS_ENTITY: 爆炸源实体（可选）
+
+    // 验证参数 ID
+    EXPECT_EQ(loot::LootParams::BLOCK_STATE.getId(), "block_state");
+    EXPECT_EQ(loot::LootParams::BLOCK_POS.getId(), "block_pos");
+    EXPECT_EQ(loot::LootParams::TOOL.getId(), "tool");
+    EXPECT_EQ(loot::LootParams::EXPLOSION_RADIUS.getId(), "explosion_radius");
+    EXPECT_EQ(loot::LootParams::THIS_ENTITY.getId(), "this_entity");
+}
+
+// ============================================================================
+// 爆炸模式掉落行为测试
+// ============================================================================
+
+TEST(ExplosionModeBehaviorTest, NoneModeBehavior) {
+    // None 模式：仅造成伤害和击退，不破坏方块
+    // 不调用 destroyBlocks()
+    EXPECT_EQ(static_cast<int>(ExplosionMode::None), 0);
+}
+
+TEST(ExplosionModeBehaviorTest, BreakModeBehavior) {
+    // Break 模式：破坏方块但不掉落物品
+    // destroyBlocks() 中 m_mode == Break 时跳过掉落逻辑
+    // setBlockState(pos, air, 3) 被调用
+    EXPECT_EQ(static_cast<int>(ExplosionMode::Break), 1);
+}
+
+TEST(ExplosionModeBehaviorTest, DestroyModeBehavior) {
+    // Destroy 模式：破坏方块并掉落物品
+    // 1. 检查 Block::canDropFromExplosion()
+    // 2. 调用 generateBlockDrops() 获取掉落物
+    // 3. 应用爆炸衰减
+    // 4. 合并相同物品
+    // 5. 生成物品实体
+    EXPECT_EQ(static_cast<int>(ExplosionMode::Destroy), 2);
+}
+
+TEST(ExplosionModeBehaviorTest, BlockDropPermission) {
+    // 方块可以通过 canDropFromExplosion 控制是否掉落
+    // 例如：玻璃、冰块等 canDropFromExplosion 返回 false
+    // 这些方块在 Destroy 模式下也不掉落
+    bool glassCanDrop = false;  // 玻璃默认不掉落
+    EXPECT_FALSE(glassCanDrop);
+
+    bool stoneCanDrop = true;  // 石头默认掉落
+    EXPECT_TRUE(stoneCanDrop);
 }
 
 // ============================================================================

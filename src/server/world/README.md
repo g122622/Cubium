@@ -61,8 +61,15 @@ class ServerWorld : public IWorld, public ICollisionWorld, public StarLightLight
     std::unique_ptr<WorldLightManager> m_lightManager;        // 光照管理器
     std::unique_ptr<WeatherManager> m_weatherManager;         // 天气管理器
     ItemPickupManager m_itemPickupManager;                    // 物品拾取管理器
+    const loot::LootTableManager* m_lootTableManager;         // 掉落表管理器（用于爆炸掉落等）
 };
 ```
+
+**爆炸系统集成**：
+- `ServerWorld` 持有 `LootTableManager` 引用，用于爆炸掉落生成
+- `MinecraftServer` 初始化时通过 `setLootTableManager()` 设置
+- `createExplosion()` 自动将 `LootTableManager` 传递给 `Explosion`
+- 参考 `src/common/world/explosion/README.md` 了解爆炸掉落机制
 
 **不负责**：
 - 玩家管理（由 `PlayerManager` 管理）
