@@ -3,6 +3,7 @@
 #include "LootConditions.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <chrono>
 
@@ -22,6 +23,7 @@ namespace LootParams {
     const LootParameter<BlockState> BLOCK_STATE("block_state");
     const LootParameter<BlockPos> BLOCK_POS("block_pos");
     const LootParameter<ItemStack> TOOL("tool");
+    const LootParameter<BlockEntity> BLOCK_ENTITY("block_entity");
 
     // 附魔等级参数
     const LootParameter<i32> FORTUNE_LEVEL("fortune_level");

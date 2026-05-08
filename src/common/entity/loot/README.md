@@ -797,7 +797,7 @@ entry.generate(consumer, context);  // 条件在这里检查
 3. **更多条目** - 标签条目、动态条目
 4. **缓存优化** - 掉落表缓存和预编译
 5. **桩实现完善** - 完善以下函数的实际实现（当前为桩）：
-   - CopyNameFunction（需要 Entity INameable 接口）
+   - ~~CopyNameFunction~~ ✅ 已完成（从实体/方块实体复制名称）
    - CopyBlockStateFunction（需要 BlockState 属性复制机制）
    - CopyNbtFunction（需要 NBT 路径解析）
    - FillPlayerHeadFunction（需要玩家皮肤系统）

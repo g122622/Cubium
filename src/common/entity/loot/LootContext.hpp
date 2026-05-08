@@ -18,6 +18,7 @@ class ServerWorld;
 class IWorld;
 class BlockState;
 class BlockPos;
+class BlockEntity;
 
 namespace loot {
 
@@ -131,6 +132,7 @@ namespace LootParams {
     extern const LootParameter<BlockState> BLOCK_STATE;       // 被破坏的方块状态
     extern const LootParameter<BlockPos> BLOCK_POS;           // 方块位置
     extern const LootParameter<ItemStack> TOOL;               // 使用的工具
+    extern const LootParameter<BlockEntity> BLOCK_ENTITY;     // 方块实体
 
     // 附魔等级参数
     extern const LootParameter<i32> FORTUNE_LEVEL;             // 时运附魔等级

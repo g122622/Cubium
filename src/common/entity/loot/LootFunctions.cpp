@@ -9,6 +9,9 @@
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/crafting/SmeltingRecipe.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <algorithm>
 #include <cmath>
@@ -566,16 +569,60 @@ ItemStack CopyNameFunction::apply(ItemStack stack, LootContext& context) const {
         return stack;
     }
 
-    // TODO: 实现名称复制
-    // 参考: net.minecraft.loot.functions.CopyName
-    // 需要从以下来源获取名称:
-    // - Source::This: 从 THIS_ENTITY 参数获取实体名称
-    // - Source::Killer: 从 KILLER_ENTITY 参数获取击杀者名称
-    // - Source::KillerPlayer: 从 KILLER_PLAYER 参数获取玩家名称
-    // - Source::BlockEntity: 从 BLOCK_STATE 参数获取方块实体名称
-    // 需要 Entity/Player 类实现 INameable 接口
+    // 参考 MC 1.16.5 net.minecraft.loot.functions.CopyName
+    // 根据来源类型从 LootContext 获取对应对象，检查是否有自定义名称，复制到物品
 
-    MC_UNUSED(context);
+    switch (m_source) {
+        case Source::This: {
+            // 从当前实体获取名称
+            auto* entity = context.get<Entity>(LootParams::THIS_ENTITY);
+            if (entity != nullptr && entity->hasCustomName()) {
+                auto displayName = entity->getDisplayName();
+                if (displayName) {
+                    stack.setCustomNameComponent(std::move(displayName));
+                }
+            }
+            break;
+        }
+
+        case Source::Killer: {
+            // 从击杀实体获取名称
+            auto* killer = context.get<Entity>(LootParams::KILLER_ENTITY);
+            if (killer != nullptr && killer->hasCustomName()) {
+                auto displayName = killer->getDisplayName();
+                if (displayName) {
+                    stack.setCustomNameComponent(std::move(displayName));
+                }
+            }
+            break;
+        }
+
+        case Source::KillerPlayer: {
+            // 从击杀玩家获取名称
+            auto* player = context.get<Player>(LootParams::KILLER_PLAYER);
+            if (player != nullptr) {
+                // 玩家总是有名称（用户名），即使没有自定义名称
+                auto displayName = player->getDisplayName();
+                if (displayName) {
+                    stack.setCustomNameComponent(std::move(displayName));
+                }
+            }
+            break;
+        }
+
+        case Source::BlockEntity: {
+            // 从方块实体获取名称
+            auto* blockEntity = context.get<BlockEntity>(LootParams::BLOCK_ENTITY);
+            if (blockEntity != nullptr) {
+                std::string customName = blockEntity->getCustomName();
+                if (!customName.empty()) {
+                    stack.setCustomName(customName);
+                }
+            }
+            break;
+        }
+    }
+
     return stack;
 }
 
