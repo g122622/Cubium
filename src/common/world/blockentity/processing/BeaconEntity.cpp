@@ -14,6 +14,7 @@
 #include "util/assert/AssertAll.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 namespace mc {
@@ -70,8 +71,8 @@ constexpr const char* PAYMENT_ITEM_KEY = "payment_item";
     return block == VanillaBlocks::IRON_BLOCK ||
            block == VanillaBlocks::GOLD_BLOCK ||
            block == VanillaBlocks::DIAMOND_BLOCK ||
-           block == VanillaBlocks::EMERALD_BLOCK;
-           // TODO: 添加 VanillaBlocks::NETHERITE_BLOCK 当方块注册后
+           block == VanillaBlocks::EMERALD_BLOCK ||
+           block == VanillaBlocks::NETHERITE_BLOCK;
 }
 
 /**
@@ -434,13 +435,10 @@ void BeaconEntity::updateBeamSegments(IWorld& world) {
             continue;
         }
 
-        // 检查方块是否提供颜色修改（如染色玻璃）
-        // TODO: 实现 IBeaconBeamColorProvider 接口和颜色获取
-        // 目前假设大多数方块不修改颜色
         const Block* block = &state->getBlock();
 
         // 检查方块是否阻挡光束（不透明方块且不是基岩）
-        const i32 opacity = state->getOpacity(); // 假设有这个方法
+        const i32 opacity = state->getOpacity();
         const bool blocksBeam = (opacity >= 15 && block != VanillaBlocks::BEDROCK);
 
         if (blocksBeam) {
@@ -449,18 +447,12 @@ void BeaconEntity::updateBeamSegments(IWorld& world) {
             return;
         }
 
-        // 检查方块是否提供颜色
-        // TODO: 从方块获取颜色（染色玻璃等）
-        // 目前使用白色默认
-        std::array<f32, 3> blockColor = {1.0f, 1.0f, 1.0f};
+        // 从方块获取信标光束颜色
+        // 参考 MC 1.16.5: Block.getBeaconColorMultiplier() / IBeaconBeamColorProvider
+        const std::array<f32, 3>* blockColorPtr = block->getBeaconColorMultiplier(*state, &world, &checkPos, &m_pos);
 
-        // 检查染色玻璃的颜色
-        // 参考 MC 1.16.5 IBeaconBeamColorProvider.getBeaconColorMultiplier()
-        // 需要在 Block 类中添加 getBeaconColorMultiplier 方法
-        // 目前简化处理，假设染色玻璃已经实现了颜色接口
-
-        // 如果没有颜色提供者，继续增加高度
-        if (blockColor[0] == 1.0f && blockColor[1] == 1.0f && blockColor[2] == 1.0f) {
+        if (blockColorPtr == nullptr) {
+            // 方块不提供颜色，继续增加当前段高度
             if (currentSegment != nullptr) {
                 currentSegment->incrementHeight();
             } else {
@@ -470,13 +462,20 @@ void BeaconEntity::updateBeamSegments(IWorld& world) {
             }
         } else {
             // 方块提供了颜色
+            std::array<f32, 3> blockColor = *blockColorPtr;
+
             if (m_beamSegments.empty()) {
-                // 第一个段
+                // 第一个段，使用方块颜色
                 m_beamSegments.emplace_back(blockColor);
                 currentSegment = &m_beamSegments.back();
             } else if (currentSegment != nullptr) {
-                // 检查颜色是否相同
-                if (currentSegment->colors == blockColor) {
+                // 检查颜色是否相同（使用容差比较）
+                const f32 epsilon = 0.001f;
+                bool sameColor = (std::abs(currentSegment->colors[0] - blockColor[0]) < epsilon &&
+                                  std::abs(currentSegment->colors[1] - blockColor[1]) < epsilon &&
+                                  std::abs(currentSegment->colors[2] - blockColor[2]) < epsilon);
+
+                if (sameColor) {
                     currentSegment->incrementHeight();
                 } else {
                     // 颜色不同，创建新段（颜色混合）

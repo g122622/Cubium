@@ -1599,6 +1599,38 @@ public:
     }
 
     // ========================================================================
+    // 信标光束颜色
+    // ========================================================================
+
+    /**
+     * @brief 获取信标光束颜色倍数
+     *
+     * 当方块位于信标上方时，此方法返回该方块对信标光束颜色的影响。
+     * 染色玻璃等透明方块会重写此方法返回对应的颜色。
+     * 默认实现返回 nullptr，表示不改变光束颜色。
+     *
+     * 参考 MC 1.16.5: net.minecraft.block.Block#getBeaconColorMultiplier
+     * Forge: IForgeBlock#getBeaconColorMultiplier
+     *
+     * @param state 方块状态
+     * @param world 世界（可选）
+     * @param pos 方块位置（可选）
+     * @param beaconPos 信标位置（可选）
+     * @return RGB 颜色数组指针 {r, g, b}，范围 [0.0, 1.0]；返回 nullptr 表示不修改颜色
+     */
+    [[nodiscard]] virtual const std::array<f32, 3>* getBeaconColorMultiplier(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr,
+        const BlockPos* beaconPos = nullptr) const {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(beaconPos);
+        return nullptr;
+    }
+
+    // ========================================================================
     // 旋转和镜像
     // ========================================================================
 

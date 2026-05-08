@@ -17,6 +17,7 @@
 #include "blocks/decorative/LadderBlock.hpp"
 #include "blocks/decorative/ChainBlock.hpp"
 #include "blocks/decorative/ScaffoldingBlock.hpp"
+#include "blocks/decorative/StainedGlassBlock.hpp"
 #include "blocks/ice/IceBlock.hpp"
 #include "blocks/ice/SnowBlock.hpp"
 #include "blocks/dirt/SpreadableSnowyDirtBlock.hpp"
@@ -138,6 +139,7 @@ Block* VanillaBlocks::IRON_BLOCK = nullptr;
 Block* VanillaBlocks::LAPIS_BLOCK = nullptr;
 Block* VanillaBlocks::EMERALD_BLOCK = nullptr;
 Block* VanillaBlocks::REDSTONE_BLOCK = nullptr;
+Block* VanillaBlocks::NETHERITE_BLOCK = nullptr;
 
 // 建筑方块
 Block* VanillaBlocks::BRICKS = nullptr;
@@ -1113,6 +1115,20 @@ void VanillaBlocks::registerMineralBlocks() {
         ResourceLocation("minecraft:redstone_block"),
         BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f)
     );
+
+    // 下界合金块
+    // 参考 MC 1.16.5: new Block(Properties.create(Material.IRON)
+    //     .setRequiresTool().hardnessAndResistance(50.0F, 1200.0F))
+    // 需要钻石镐及以上 (harvestLevel 3)
+    NETHERITE_BLOCK = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:netherite_block"),
+        BlockProperties(Material::IRON)
+            .hardness(50.0f)
+            .resistance(1200.0f)
+            .harvestTool(HarvestTool::Pickaxe)
+            .harvestLevel(3)
+            .requiresTool()
+    );
 }
 
 // ============================================================================
@@ -1647,42 +1663,43 @@ void VanillaBlocks::registerColoredBlocks() {
     auto& registry = BlockRegistry::instance();
 
     // 染色玻璃属性
-    // 参考: new GlassBlock(Properties.create(Material.GLASS).hardnessAndResistance(0.3F).notSolid())
+    // 参考: new StainedGlassBlock(Properties.create(Material.GLASS).hardnessAndResistance(0.3F).notSolid())
     // 染色玻璃：透明度0，不传播天空光
     BlockProperties stainedGlassProps = BlockProperties(Material::GLASS).hardness(0.3f).notSolid();
 
-    WHITE_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:white_stained_glass"), stainedGlassProps);
-    ORANGE_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:orange_stained_glass"), stainedGlassProps);
-    MAGENTA_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:magenta_stained_glass"), stainedGlassProps);
-    LIGHT_BLUE_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:light_blue_stained_glass"), stainedGlassProps);
-    YELLOW_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:yellow_stained_glass"), stainedGlassProps);
-    LIME_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:lime_stained_glass"), stainedGlassProps);
-    PINK_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:pink_stained_glass"), stainedGlassProps);
-    GRAY_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:gray_stained_glass"), stainedGlassProps);
-    LIGHT_GRAY_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:light_gray_stained_glass"), stainedGlassProps);
-    CYAN_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:cyan_stained_glass"), stainedGlassProps);
-    PURPLE_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:purple_stained_glass"), stainedGlassProps);
-    BLUE_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:blue_stained_glass"), stainedGlassProps);
-    BROWN_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:brown_stained_glass"), stainedGlassProps);
-    GREEN_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:green_stained_glass"), stainedGlassProps);
-    RED_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:red_stained_glass"), stainedGlassProps);
-    BLACK_STAINED_GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:black_stained_glass"), stainedGlassProps);
+    // 使用 StainedGlassBlock 注册染色玻璃（支持信标光束颜色）
+    WHITE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:white_stained_glass"), stainedGlassProps, DyeColor::White);
+    ORANGE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:orange_stained_glass"), stainedGlassProps, DyeColor::Orange);
+    MAGENTA_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:magenta_stained_glass"), stainedGlassProps, DyeColor::Magenta);
+    LIGHT_BLUE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:light_blue_stained_glass"), stainedGlassProps, DyeColor::LightBlue);
+    YELLOW_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:yellow_stained_glass"), stainedGlassProps, DyeColor::Yellow);
+    LIME_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:lime_stained_glass"), stainedGlassProps, DyeColor::Lime);
+    PINK_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:pink_stained_glass"), stainedGlassProps, DyeColor::Pink);
+    GRAY_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:gray_stained_glass"), stainedGlassProps, DyeColor::Gray);
+    LIGHT_GRAY_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:light_gray_stained_glass"), stainedGlassProps, DyeColor::LightGray);
+    CYAN_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:cyan_stained_glass"), stainedGlassProps, DyeColor::Cyan);
+    PURPLE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:purple_stained_glass"), stainedGlassProps, DyeColor::Purple);
+    BLUE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:blue_stained_glass"), stainedGlassProps, DyeColor::Blue);
+    BROWN_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:brown_stained_glass"), stainedGlassProps, DyeColor::Brown);
+    GREEN_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:green_stained_glass"), stainedGlassProps, DyeColor::Green);
+    RED_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:red_stained_glass"), stainedGlassProps, DyeColor::Red);
+    BLACK_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+        ResourceLocation("minecraft:black_stained_glass"), stainedGlassProps, DyeColor::Black);
 
     // 混凝土属性
     // 参考: new Block(Properties.create(Material.ROCK).hardnessAndResistance(1.8F))

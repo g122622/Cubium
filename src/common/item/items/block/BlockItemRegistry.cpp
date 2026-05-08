@@ -167,6 +167,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::EMERALD_BLOCK, "emerald_block");
     registerSimpleBlock(VanillaBlocks::LAPIS_BLOCK, "lapis_block");
     registerSimpleBlock(VanillaBlocks::REDSTONE_BLOCK, "redstone_block");
+    registerSimpleBlock(VanillaBlocks::NETHERITE_BLOCK, "netherite_block");
 
     // 建筑方块
     registerSimpleBlock(VanillaBlocks::BRICKS, "bricks");

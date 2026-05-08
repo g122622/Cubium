@@ -93,6 +93,7 @@ public:
     static Block* LAPIS_BLOCK;
     static Block* EMERALD_BLOCK;
     static Block* REDSTONE_BLOCK;
+    static Block* NETHERITE_BLOCK;      // 下界合金块
 
     // ========================================================================
     // 建筑方块

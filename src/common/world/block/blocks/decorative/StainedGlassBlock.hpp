@@ -1,0 +1,73 @@
+#pragma once
+
+#include "../../Block.hpp"
+#include "../../IBeaconBeamColorProvider.hpp"
+
+namespace mc {
+namespace block {
+
+/**
+ * @brief 染色玻璃方块
+ *
+ * 透明玻璃方块，可以为信标光束提供颜色。
+ * 实现 IBeaconBeamColorProvider 接口以支持信标光束颜色修改。
+ *
+ * 参考 MC 1.16.5: net.minecraft.block.StainedGlassBlock
+ */
+class StainedGlassBlock : public Block, public IBeaconBeamColorProvider {
+public:
+    /**
+     * @brief 构造染色玻璃方块
+     *
+     * @param properties 方块属性
+     * @param color 染料颜色
+     */
+    StainedGlassBlock(BlockProperties properties, DyeColor color);
+
+    /**
+     * @brief 是否为固体
+     *
+     * 玻璃不是固体方块。
+     */
+    [[nodiscard]] bool isSolid(const BlockState& state) const override {
+        MC_UNUSED(state);
+        return false;
+    }
+
+    /**
+     * @brief 获取信标光束颜色
+     *
+     * 实现 IBeaconBeamColorProvider 接口。
+     * 返回此染色玻璃对应的染料颜色。
+     *
+     * @return 染料颜色
+     */
+    [[nodiscard]] DyeColor getBeaconColor() const override {
+        return m_color;
+    }
+
+    /**
+     * @brief 获取信标光束颜色倍数
+     *
+     * 重写 Block::getBeaconColorMultiplier。
+     * 返回与此染色玻璃颜色对应的 RGB 值。
+     *
+     * @param state 方块状态
+     * @param world 世界（可选）
+     * @param pos 方块位置（可选）
+     * @param beaconPos 信标位置（可选）
+     * @return RGB 颜色数组指针
+     */
+    [[nodiscard]] const std::array<f32, 3>* getBeaconColorMultiplier(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr,
+        const BlockPos* beaconPos = nullptr) const override;
+
+private:
+    DyeColor m_color;
+    std::array<f32, 3> m_colorComponents;
+};
+
+} // namespace block
+} // namespace mc
