@@ -357,6 +357,37 @@ public:
 
 **实现状态：** ✅ 完整实现
 
+#### SetBlockCommand - /setblock 命令
+
+在指定位置放置或替换方块。
+
+**用法：**
+
+- `/setblock <pos> <block>` - 在指定位置放置方块（默认 replace 模式）
+- `/setblock <pos> <block> destroy` - 破坏原有方块并掉落物品，然后放置新方块
+- `/setblock <pos> <block> keep` - 仅当目标位置为空气时放置
+- `/setblock <pos> <block> replace` - 直接替换目标位置的方块
+
+**模式说明：**
+
+| 模式 | 说明 |
+|------|------|
+| `destroy` | 破坏原有方块，触发掉落物和经验，播放破坏效果，然后放置新方块 |
+| `keep` | 仅当目标位置为空气时才放置新方块 |
+| `replace`（默认） | 直接替换目标位置的方块，不掉落物品 |
+
+**destroy 模式行为：**
+
+1. 检查目标位置是否为空气（空气不触发任何效果）
+2. 播放方块破坏效果（WorldEvents::BREAK_BLOCK_EFFECTS，事件 ID 2001）
+3. 从方块掉落表生成物品实体
+4. 处理矿石经验掉落（煤矿、钻石矿、绿宝石矿等）
+5. 放置新方块
+
+**权限等级：** 2
+
+**实现状态：** ✅ 完整实现
+
 #### LocateCommand - /locate 命令
 
 定位最近的建筑结构。

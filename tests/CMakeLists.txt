@@ -150,6 +150,7 @@ add_executable(mc_tests
     server/weather/WeatherManagerTest.cpp
     server/world/spawn/DespawnManagerTest.cpp
     server/command/CommandRegistryTest.cpp
+    server/command/SetBlockCommandTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
     client/world/player/LocalPlayerIdentityTest.cpp
     client/world/player/ClientPlayerPredictorTest.cpp
