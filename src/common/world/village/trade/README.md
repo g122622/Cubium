@@ -9,8 +9,8 @@ trade/
 ├── Merchant.hpp              # 商人接口
 ├── MerchantOffer.hpp/cpp     # 单个交易优惠
 ├── MerchantOffers.hpp/cpp    # 交易列表（在Merchant.hpp中定义）
-├── VillagerTrades.hpp/cpp    # 村民交易配方表（TODO）
-├── WanderingTraderTrades.hpp/cpp # 流浪商人交易表（TODO）
+├── VillagerTrades.hpp/cpp    # 村民交易配方表（已完成）
+├── WanderingTraderTrades.hpp/cpp # 流浪商人交易表（已完成）
 └── README.md                 # 本文档
 ```
 
@@ -101,7 +101,7 @@ MerchantOffer offer = MerchantOffer::deserialize(tag);
 
 ## TODO
 
-- [ ] 实现VillagerTrades（所有职业的交易配方）
-- [ ] 实现WanderingTraderTrades
+- [x] 实现VillagerTrades（所有职业的交易配方）
+- [x] 实现WanderingTraderTrades
 - [ ] 集成到VillagerEntity
 - [ ] 实现交易UI

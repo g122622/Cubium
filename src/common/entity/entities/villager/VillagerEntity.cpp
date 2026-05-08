@@ -9,7 +9,9 @@
 #include "../../ai/brain/schedule/Activity.hpp"
 #include "../../ai/brain/sensor/Sensors.hpp"
 #include "../../../world/village/trade/VillagerTrades.hpp"
+#include "../../../world/village/trade/WanderingTraderTrades.hpp"
 #include "../../../world/village/trade/Merchant.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include <memory>
 
 namespace mc {
@@ -288,8 +290,24 @@ void WanderingTraderEntity::registerAttributes() {
 }
 
 void WanderingTraderEntity::updateOffers() {
-    // 流浪商人的交易列表是固定的
-    // TODO: 根据世界种子生成交易列表
+    using namespace world::village::trade;
+
+    // 确保交易系统已初始化
+    if (!WanderingTraderTrades::isInitialized()) {
+        WanderingTraderTrades::initialize();
+    }
+
+    // 获取世界种子作为交易生成的随机种子
+    u64 seed = 0;
+    if (m_world) {
+        seed = m_world->seed();
+    }
+
+    // 使用实体ID混合种子，确保每个流浪商人有独特的交易
+    seed = seed * 31 + static_cast<u64>(id());
+
+    // 生成交易列表
+    m_offers = WanderingTraderTrades::generateOffers(seed);
 }
 
 } // namespace entity
