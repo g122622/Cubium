@@ -9,6 +9,10 @@ namespace mc {
 class PlayerInventory;
 class IInventory;
 
+namespace blockentity {
+class HopperEntity;
+}
+
 /**
  * @brief 漏斗容器
  *
@@ -46,10 +50,12 @@ public:
      * @param id 容器ID
      * @param playerInventory 玩家背包
      * @param hopperInventory 漏斗背包
+     * @param hopperEntity 漏斗实体（可选，用于距离检查）
      */
     HopperContainer(ContainerId id,
                     PlayerInventory* playerInventory,
-                    IInventory* hopperInventory);
+                    IInventory* hopperInventory,
+                    blockentity::HopperEntity* hopperEntity = nullptr);
 
     /**
      * @brief 析构函数
@@ -85,7 +91,8 @@ private:
      */
     void initSlots(PlayerInventory* playerInventory);
 
-    IInventory* m_hopperInventory;  ///< 漏斗背包
+    IInventory* m_hopperInventory;           ///< 漏斗背包
+    blockentity::HopperEntity* m_hopperEntity; ///< 漏斗实体（可选，用于距离检查）
 };
 
 } // namespace mc

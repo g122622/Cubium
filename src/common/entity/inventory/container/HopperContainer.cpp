@@ -1,6 +1,7 @@
 #include "entity/inventory/container/HopperContainer.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
+#include "world/blockentity/transport/HopperEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
 
@@ -10,9 +11,11 @@ namespace mc {
 
 HopperContainer::HopperContainer(ContainerId id,
                                  PlayerInventory* playerInventory,
-                                 IInventory* hopperInventory)
+                                 IInventory* hopperInventory,
+                                 blockentity::HopperEntity* hopperEntity)
     : AbstractContainerMenu(id, playerInventory)
-    , m_hopperInventory(hopperInventory) {
+    , m_hopperInventory(hopperInventory)
+    , m_hopperEntity(hopperEntity) {
 
     MC_ASSERT(playerInventory != nullptr);
     MC_ASSERT(hopperInventory != nullptr);
@@ -28,8 +31,19 @@ HopperContainer::HopperContainer(ContainerId id,
 // ========== 容器接口 ==========
 
 bool HopperContainer::stillValid(const Player& player) const {
-    // MC 1.16.5: 检查背包是否可用
-    return m_hopperInventory->isUsableByPlayer(player);
+    // MC 1.16.5: 如果没有关联的方块实体，背包可访问
+    if (m_hopperEntity == nullptr) {
+        return m_hopperInventory->isUsableByPlayer(player);
+    }
+
+    // MC 1.16.5: 检查玩家是否在漏斗附近（8格范围内）
+    // 参考 net.minecraft.inventory.container.HopperContainer.canInteractWith
+    // -> lowerChestInventory.isUsableByPlayer(playerIn)
+    const BlockPos pos = m_hopperEntity->getPos();
+    return player.distanceSqTo(
+               static_cast<f32>(pos.x) + 0.5f,
+               static_cast<f32>(pos.y) + 0.5f,
+               static_cast<f32>(pos.z) + 0.5f) <= 64.0f;  // 8^2 = 64
 }
 
 void HopperContainer::slotsChanged(IInventory* inventory) {
