@@ -1103,6 +1103,11 @@ std::vector<Entity*> ServerWorld::getEntitiesInRange(const Vector3& pos, f32 ran
     return m_entityManager.getEntitiesInRange(pos, range, except);
 }
 
+std::vector<Entity*> ServerWorld::getPlayers() const
+{
+    return m_entityManager.getPlayers();
+}
+
 // ============================================================================
 // 碰撞缓存
 // ============================================================================

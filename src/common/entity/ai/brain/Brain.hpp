@@ -33,17 +33,11 @@ namespace mc {
 
 // Forward declarations
 class LivingEntity;
-
-namespace server {
-class ServerWorld;
-}
+class IWorld;
 
 namespace entity {
 namespace ai {
 namespace brain {
-
-// 使用完整命名空间
-using ::mc::server::ServerWorld;
 
 /**
  * @brief Brain系统 - 高级AI控制系统
@@ -293,7 +287,7 @@ public:
      * @param dayTime 日内时间
      * @param random 随机数生成器（用于任务持续时间）
      */
-    void tick(ServerWorld* world, E* entity, i64 gameTime, i32 dayTime, math::Random& random) {
+    void tick(IWorld* world, E* entity, i64 gameTime, i32 dayTime, math::Random& random) {
         // 更新记忆TTL
         tickMemories();
 
@@ -314,7 +308,7 @@ public:
      * @brief 停止所有任务
      * MC 1.16.5: 直接遍历避免临时vector分配
      */
-    void stopAllTasks(ServerWorld* world, E* owner, i64 gameTime) {
+    void stopAllTasks(IWorld* world, E* owner, i64 gameTime) {
         for (auto& [priority, activityMap] : m_tasks) {
             for (auto& [activity, taskSet] : activityMap) {
                 for (auto& task : taskSet) {
@@ -358,7 +352,7 @@ private:
     /**
      * @brief 更新传感器
      */
-    void tickSensors(ServerWorld* world, E* entity) {
+    void tickSensors(IWorld* world, E* entity) {
         for (auto& sensor : m_sensors) {
             sensor->tick(world, entity);
         }
@@ -425,7 +419,7 @@ private:
     /**
      * @brief 启动任务
      */
-    void startTasks(ServerWorld* world, E* entity, i64 gameTime, math::Random& random) {
+    void startTasks(IWorld* world, E* entity, i64 gameTime, math::Random& random) {
         for (auto& [priority, activityMap] : m_tasks) {
             for (auto& [activity, taskSet] : activityMap) {
                 if (hasActivity(activity)) {
@@ -443,7 +437,7 @@ private:
      * @brief 更新任务
      * MC 1.16.5: 直接遍历避免临时vector分配
      */
-    void tickTasks(ServerWorld* world, E* entity, i64 gameTime) {
+    void tickTasks(IWorld* world, E* entity, i64 gameTime) {
         for (auto& [priority, activityMap] : m_tasks) {
             for (auto& [activity, taskSet] : activityMap) {
                 for (auto& task : taskSet) {

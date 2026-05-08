@@ -216,6 +216,7 @@ public:
         const AxisAlignedBB& box, const Entity* except = nullptr) const override;
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(
         const Vector3& pos, f32 range, const Entity* except = nullptr) const override;
+    [[nodiscard]] std::vector<Entity*> getPlayers() const override;
     [[nodiscard]] DimensionId dimension() const override { return m_config.dimension; }
     [[nodiscard]] bool isUltraWarm() const override { return getDimensionType().ultraWarm(); }
     [[nodiscard]] DimensionType getDimensionType() const;
@@ -495,8 +496,8 @@ public:
 
     // ========== 村庄管理 ==========
 
-    [[nodiscard]] ::mc::world::village::VillageManager* villageManager() { return m_villageManager.get(); }
-    [[nodiscard]] const ::mc::world::village::VillageManager* villageManager() const { return m_villageManager.get(); }
+    [[nodiscard]] ::mc::world::village::VillageManager* villageManager() override { return m_villageManager.get(); }
+    [[nodiscard]] const ::mc::world::village::VillageManager* villageManager() const override { return m_villageManager.get(); }
 
     // ========== 袭击管理 ==========
 

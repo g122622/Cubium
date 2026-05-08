@@ -6,6 +6,7 @@
 #include "../../physics/PhysicsConstants.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "../../util/math/MathUtils.hpp"
+#include "../../util/math/ray/Raycast.hpp"
 #include "../../world/block/Block.hpp"
 #include "../../world/block/BlockPos.hpp"
 #include "../../world/block/BlockSoundType.hpp"
@@ -1284,10 +1285,6 @@ bool Entity::canPassengerSteer() const {
 }
 
 bool Entity::canSee(const Entity& other) const {
-    // TODO: 使用射线检测实现视线检查
-    // 当前简化实现：只检查距离和基本条件
-    // 完整实现需要使用世界的射线追踪功能
-
     // 检查目标是否存活
     if (!other.isAlive()) {
         return false;
@@ -1302,12 +1299,31 @@ bool Entity::canSee(const Entity& other) const {
         return false;
     }
 
-    // TODO: 使用世界射线追踪检查视线是否被方块阻挡
-    // Vector3 eyePos = Vector3(x(), y() + eyeHeight(), z());
-    // Vector3 targetEyePos = Vector3(other.x(), other.y() + other.eyeHeight(), other.z());
-    // return m_world && !m_world->raycastBlocks(eyePos, targetEyePos);
+    // 检查世界是否存在
+    if (!m_world) {
+        return false;
+    }
 
-    return true;
+    // 使用射线检测检查视线是否被方块阻挡
+    // 参考 MC 1.16.5 LivingEntity.canEntityBeSeen()
+    Vector3 eyePos = Vector3(x(), y() + eyeHeight(), z());
+    Vector3 targetEyePos = Vector3(other.x(), other.y() + other.eyeHeight(), other.z());
+
+    // 计算射线方向和距离
+    Vector3 direction = targetEyePos - eyePos;
+    f32 distance = direction.length();
+    direction = direction.normalized();
+
+    // 创建射线检测上下文
+    Ray ray(eyePos, direction);
+    RaycastContext context(ray, distance);
+
+    // 执行射线检测
+    BlockRaycastResult result = raycastBlocks(context, *m_world);
+
+    // 如果射线没有击中方块（或击中点超出目标位置），则表示可见
+    // MC 1.16.5: 如果 rayTraceBlocks 返回 MISS 类型，表示没有方块阻挡
+    return result.isMiss();
 }
 
 // ============================================================================

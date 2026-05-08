@@ -12,18 +12,12 @@ namespace mc {
 
 // Forward declarations
 class LivingEntity;
-
-namespace server {
-class ServerWorld;
-}
+class IWorld;
 
 namespace entity {
 namespace ai {
 namespace brain {
 namespace task {
-
-// 使用完整命名空间
-using ::mc::server::ServerWorld;
 
 /**
  * @brief Brain任务状态
@@ -74,7 +68,7 @@ public:
      * @param random 随机数生成器（MC 1.16.5使用world.getRandom()）
      * @return 是否成功启动
      */
-    bool start(ServerWorld* world, E* owner, i64 gameTime, math::Random& random) {
+    bool start(IWorld* world, E* owner, i64 gameTime, math::Random& random) {
         if (hasRequiredMemories(owner) && shouldExecute(world, owner)) {
             m_status = TaskStatus::RUNNING;
 
@@ -99,7 +93,7 @@ public:
      * @param owner 实体
      * @param gameTime 游戏时间
      */
-    void tick(ServerWorld* world, E* owner, i64 gameTime) {
+    void tick(IWorld* world, E* owner, i64 gameTime) {
         if (!isTimedOut(gameTime) && shouldContinueExecuting(world, owner, gameTime)) {
             updateTask(world, owner, gameTime);
         } else {
@@ -113,7 +107,7 @@ public:
      * @param owner 实体
      * @param gameTime 游戏时间
      */
-    void stop(ServerWorld* world, E* owner, i64 gameTime) {
+    void stop(IWorld* world, E* owner, i64 gameTime) {
         m_status = TaskStatus::STOPPED;
         resetTask(world, owner, gameTime);
     }
@@ -129,31 +123,31 @@ protected:
     /**
      * @brief 检查是否应该执行
      */
-    virtual bool shouldExecute(ServerWorld* /*world*/, E* /*owner*/) {
+    virtual bool shouldExecute(IWorld* /*world*/, E* /*owner*/) {
         return true;
     }
 
     /**
      * @brief 检查是否应该继续执行
      */
-    virtual bool shouldContinueExecuting(ServerWorld* /*world*/, E* /*owner*/, i64 /*gameTime*/) {
+    virtual bool shouldContinueExecuting(IWorld* /*world*/, E* /*owner*/, i64 /*gameTime*/) {
         return false;
     }
 
     /**
      * @brief 开始执行时的回调
      */
-    virtual void startExecuting(ServerWorld* /*world*/, E* /*owner*/, i64 /*gameTime*/) {}
+    virtual void startExecuting(IWorld* /*world*/, E* /*owner*/, i64 /*gameTime*/) {}
 
     /**
      * @brief 更新任务
      */
-    virtual void updateTask(ServerWorld* /*world*/, E* /*owner*/, i64 /*gameTime*/) {}
+    virtual void updateTask(IWorld* /*world*/, E* /*owner*/, i64 /*gameTime*/) {}
 
     /**
      * @brief 重置任务
      */
-    virtual void resetTask(ServerWorld* /*world*/, E* /*owner*/, i64 /*gameTime*/) {}
+    virtual void resetTask(IWorld* /*world*/, E* /*owner*/, i64 /*gameTime*/) {}
 
     /**
      * @brief 检查是否超时

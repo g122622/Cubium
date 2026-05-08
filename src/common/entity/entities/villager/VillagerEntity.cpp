@@ -7,14 +7,10 @@
 #include "../../ai/brain/memory/MemoryModuleType.hpp"
 #include "../../ai/brain/schedule/Schedule.hpp"
 #include "../../ai/brain/schedule/Activity.hpp"
+#include "../../ai/brain/sensor/Sensors.hpp"
 #include "../../../world/village/trade/VillagerTrades.hpp"
 #include "../../../world/village/trade/Merchant.hpp"
 #include <memory>
-
-// ServerWorld 前向声明在 server 模块
-namespace mc {
-class ServerWorld;
-}
 
 namespace mc {
 namespace entity {
@@ -45,11 +41,9 @@ void VillagerEntity::tick() {
         i64 gameTime = m_world->currentTick();
         i32 dayTime = static_cast<i32>(m_world->dayTime());
 
-        // Brain tick需要ServerWorld和Random
-        if (auto* serverWorld = m_world->asServerWorld()) {
-            math::Random random(ticksExisted());
-            m_brain->tick(serverWorld, this, gameTime, dayTime, random);
-        }
+        // Brain tick使用 IWorld 和 Random
+        math::Random random(ticksExisted());
+        m_brain->tick(m_world, this, gameTime, dayTime, random);
     }
 
     // 更新声音冷却
@@ -67,20 +61,37 @@ void VillagerEntity::initializeBrain() {
     }
 
     using namespace ai::brain::memory;
+    using namespace ai::brain::sensor;
 
     // 注册记忆模块 - 使用 MemoryModuleTypes 标准类型
     // 注意：必须先调用 MemoryModuleTypes::initialize() 初始化
     m_brain->registerMemory(MemoryModuleTypes::HOME);
     m_brain->registerMemory(MemoryModuleTypes::JOB_SITE);
+    m_brain->registerMemory(MemoryModuleTypes::POTENTIAL_JOB_SITE);
     m_brain->registerMemory(MemoryModuleTypes::MEETING_POINT);
     m_brain->registerMemory(MemoryModuleTypes::NEAREST_BED);
     m_brain->registerMemory(MemoryModuleTypes::WALK_TARGET);
     m_brain->registerMemory(MemoryModuleTypes::LOOK_TARGET);
     m_brain->registerMemory(MemoryModuleTypes::VISIBLE_MOBS);
     m_brain->registerMemory(MemoryModuleTypes::NEAREST_HOSTILE);
+    m_brain->registerMemory(MemoryModuleTypes::NEAREST_PLAYERS);
+    m_brain->registerMemory(MemoryModuleTypes::NEAREST_VISIBLE_PLAYER);
+    m_brain->registerMemory(MemoryModuleTypes::HURT_BY);
     m_brain->registerMemory(MemoryModuleTypes::HURT_BY_ENTITY);
+    m_brain->registerMemory(MemoryModuleTypes::AVOID_TARGET);
     m_brain->registerMemory(MemoryModuleTypes::LAST_SLEPT);
     m_brain->registerMemory(MemoryModuleTypes::LAST_WORKED_AT_POI);
+    m_brain->registerMemory(MemoryModuleTypes::VISIBLE_VILLAGER_BABIES);
+    m_brain->registerMemory(MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
+
+    // 注册传感器
+    m_brain->registerSensor(std::make_unique<NearestPlayersSensor<VillagerEntity>>());
+    m_brain->registerSensor(std::make_unique<NearestVisibleLivingEntitySensor<VillagerEntity>>());
+    m_brain->registerSensor(std::make_unique<HurtBySensor<VillagerEntity>>());
+    m_brain->registerSensor(std::make_unique<MobSensor<VillagerEntity>>());
+    m_brain->registerSensor(std::make_unique<WorkStationSensor<VillagerEntity>>());
+    m_brain->registerSensor(std::make_unique<VillagePoiSensor<VillagerEntity>>());
+    m_brain->registerSensor(std::make_unique<BabySensor<VillagerEntity>>());
 
     // 设置日程
     m_brain->setSchedule(&ai::brain::schedule::Schedule::VILLAGER_DEFAULT);
@@ -88,9 +99,6 @@ void VillagerEntity::initializeBrain() {
     // 设置默认活动
     m_brain->setDefaultActivities({ai::brain::schedule::Activity::IDLE});
     m_brain->setFallbackActivity(ai::brain::schedule::Activity::IDLE);
-
-    // 注意：传感器和任务的注册需要在有ServerWorld的环境中进行
-    // 这里只完成基础初始化
 }
 
 void VillagerEntity::setProfession(VillagerProfession profession) {

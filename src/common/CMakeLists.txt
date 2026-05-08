@@ -246,6 +246,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/villager/VillagerGoals.cpp
     # Entity - AI - Brain System
     entity/ai/brain/memory/MemoryModuleType.cpp
+    entity/ai/brain/sensor/Sensors.cpp
     # Entity - Villager
     entity/entities/villager/ProfessionMapping.cpp
     entity/ai/brain/schedule/Activity.cpp

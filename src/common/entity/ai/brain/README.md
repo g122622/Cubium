@@ -11,26 +11,27 @@ brain/
 │   ├── Memory.hpp               # 内存存储容器(带TTL)
 │   ├── MemoryModuleStatus.hpp   # 内存状态枚举
 │   ├── MemoryModuleType.hpp     # 内存类型定义 (85+种)
-│   └── MemoryModuleType.cpp     # 内存类型注册
+│   ├── MemoryModuleType.cpp     # 内存类型注册
+│   ├── IPositionTarget.hpp      # 位置目标接口
+│   ├── WalkTarget.hpp           # 行走目标
+│   └── BlockPosTarget.hpp       # 方块位置目标
 ├── schedule/                    # 日程系统
 │   ├── Activity.hpp             # 活动类型定义 (15种)
 │   ├── Activity.cpp             # 活动类型实现
 │   ├── Schedule.hpp             # 日程安排
-│   └── Schedule.cpp             # 日程实现 (4种预定义日程)
+│   ├── Schedule.cpp             # 日程实现 (4种预定义日程)
+│   └── DutyTime.hpp             # 值班时间定义
 ├── sensor/                      # 传感器系统
 │   ├── Sensor.hpp               # 传感器基类
 │   ├── SensorType.hpp           # 传感器类型
-│   └── Sensors.hpp              # 传感器实现 (7种)
+│   ├── Sensors.hpp              # 传感器声明 (8种)
+│   └── Sensors.cpp              # 传感器实现
 ├── task/                        # 任务系统
 │   ├── Task.hpp                 # 任务基类
-│   ├── tasks/                   # 具体任务实现
-│   │   ├── movement/            # 移动相关任务
-│   │   │   └── MovementTasks.hpp
-│   │   ├── action/              # 行动相关任务
-│   │   │   └── ActionTasks.hpp
-│   │   └── interact/            # 互动相关任务
-│   │       └── InteractTasks.hpp
-│   └── README.md
+│   └── tasks/                   # 具体任务实现
+│       ├── movement/            # 移动相关任务
+│       ├── action/              # 行动相关任务
+│       └── interact/            # 互动相关任务
 └── README.md
 ```
 
@@ -44,20 +45,27 @@ brain/
 | MemoryModuleType | ✅ | 85+种记忆类型 |
 | Activity | ✅ | 15种活动类型 |
 | Schedule | ✅ | 4种预定义日程 |
-| Sensor | ⚠️ | 7种传感器，框架完成，TODO需填充 |
+| Sensor | ✅ | 8种传感器，已完整实现 |
 | Task | ✅ | 基类完成 |
 | Task实现 | ⚠️ | 20种任务，框架完成，TODO需填充 |
+
+### ✅ 传感器实现状态
+| 传感器 | 状态 | 说明 |
+|--------|------|------|
+| NearestPlayersSensor | ✅ | 检测附近玩家，设置 NEAREST_PLAYERS、NEAREST_VISIBLE_PLAYER、NEAREST_VISIBLE_TARGETABLE_PLAYER 记忆 |
+| NearestVisibleLivingEntitySensor | ✅ | 检测可见生物，设置 VISIBLE_MOBS 记忆 |
+| HurtBySensor | ✅ | 检测伤害来源，设置 HURT_BY、HURT_BY_ENTITY 记忆 |
+| MobSensor | ✅ | 检测附近生物和敌对目标，设置 MOBS、NEAREST_HOSTILE 记忆 |
+| WorkStationSensor | ✅ | 检测工作站点，设置 JOB_SITE、POTENTIAL_JOB_SITE 记忆 |
+| VillagePoiSensor | ✅ | 检测床和集会点，设置 HOME、MEETING_POINT、NEAREST_BED 记忆 |
+| BabySensor | ✅ | 检测幼年和成年实体，设置 VISIBLE_VILLAGER_BABIES、NEAREST_VISIBLE_ADULT 记忆 |
+| AvoidEntitySensor | ✅ | 检测避险目标，设置 AVOID_TARGET 记忆 |
 
 ### ⚠️ 待完善
 | 问题 | 说明 |
 |------|------|
-| Sensor实现 | 所有传感器的update()方法只有TODO注释 |
 | Task实现 | 所有任务的update()方法只有TODO注释 |
-| 实体集成 | VillagerEntity、PiglinEntity未使用Brain |
-
-### ❌ 未集成
-- VillagerEntity 仍使用传统Goal系统
-- PiglinEntity 仍使用传统Goal系统
+| 实体集成 | PiglinEntity未使用Brain |
 
 ## 核心组件
 

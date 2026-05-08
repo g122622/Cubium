@@ -36,6 +36,10 @@ namespace world::explosion {
 class Explosion;  // 前向声明
 }
 
+namespace world::village {
+class VillageManager;  // 前向声明
+}
+
 namespace server {
 class ServerWorld;  // 前向声明，用于asServerWorld()
 }
@@ -506,6 +510,14 @@ public:
         f32 range,
         const Entity* except = nullptr) const = 0;
 
+    /**
+     * @brief 获取所有玩家实体
+     * @return 玩家实体列表
+     */
+    [[nodiscard]] virtual std::vector<Entity*> getPlayers() const {
+        return {};
+    }
+
     // ========== 维度信息 ==========
 
     /**
@@ -764,6 +776,18 @@ public:
      */
     [[nodiscard]] virtual server::ServerWorld* asServerWorld() { return nullptr; }
     [[nodiscard]] virtual const server::ServerWorld* asServerWorld() const { return nullptr; }
+
+    // ========== 村庄管理 ==========
+
+    /**
+     * @brief 获取村庄管理器
+     *
+     * 只有ServerWorld会返回有效的指针，其他实现返回nullptr。
+     *
+     * @return VillageManager指针，如果不存在返回nullptr
+     */
+    [[nodiscard]] virtual world::village::VillageManager* villageManager() { return nullptr; }
+    [[nodiscard]] virtual const world::village::VillageManager* villageManager() const { return nullptr; }
 
     // ========== 实体状态广播 ==========
 
