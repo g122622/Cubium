@@ -54,6 +54,15 @@
 - `LivingEntity::applyKnockbackFrom(attacker, strength)` - 从攻击者方向计算击退
 - 击退抗性属性 `generic.knockback_resistance` 自动应用
 
+### 挥动动画系统
+- `LivingEntity::swing(Hand)` - 触发手臂挥动动画
+- `LivingEntity::swingingHand()` - 获取当前挥动的手（MainHand/OffHand）
+- `LivingEntity::getArmSwingAnimationEnd()` - 获取挥动动画时长（tick 数）
+  - 基础值：6 tick
+  - 急迫效果：减少动画时长 (1 + hasteLevel)
+  - 挖掘疲劳效果：增加动画时长 ((1 + fatigueLevel) * 2)
+  - 最小值：1 tick
+
 ### 姿态系统
 - `Entity::setPose()` / `Entity::getPose()` - 姿态状态管理
 - `Entity::refreshDimensions()` - 刷新尺寸和碰撞箱

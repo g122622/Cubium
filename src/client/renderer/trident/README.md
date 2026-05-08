@@ -45,6 +45,14 @@ trident/
 │       └── AnimalModels.hpp/cpp     # 动物模型
 ├── fog/                     # 雾效果
 │   └── FogManager.hpp/cpp   # 雾管理器（Linear/Exp2）
+├── firstperson/             # 第一人称渲染
+│   ├── FirstPersonRenderer.hpp/cpp  # 第一人称渲染器（手部、手持物品）
+│   ├── PlayerModel.hpp/cpp          # 玩家模型（双足模型扩展）
+│   ├── ItemInHandRenderer.hpp/cpp   # 手持物品渲染器
+│   ├── MatrixStack.hpp/cpp          # 矩阵栈（变换层级管理）
+│   ├── ItemCameraTransforms.hpp/cpp # 物品相机变换
+│   ├── ArmPose.hpp                  # 手臂姿态枚举
+│   └── README.md                    # 模块文档
 ├── gui/                     # GUI 渲染
 │   ├── GuiRenderer.hpp/cpp  # GUI 渲染器
 │   ├── GuiTextureAtlas.hpp/cpp  # GUI 纹理图集

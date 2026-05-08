@@ -121,21 +121,34 @@ TridentEngine::render()
 当玩家攻击或使用物品时触发：
 - `swingProgress`: 0.0 - 1.0，表示挥动进度
 - 使用三角函数计算手臂旋转角度
+- `LivingEntity::swing(Hand)` 触发挥动动画
+- `LivingEntity::swingingHand()` 获取当前挥动的手
+- `LivingEntity::getArmSwingAnimationEnd()` 获取挥动动画时长（支持 Haste/MiningFatigue 效果）
 
 ### 装备动画 (Equip)
 
 当切换手持物品时触发：
 - `equippedProgress`: 0.0 - 1.0，表示装备进度
 - 物品从下方升起
+- 使用攻击冷却进度计算装备动画 (f^3 公式)
 
 ### 使用物品动画 (Use)
 
-根据物品类型不同：
-- **食物/药水**: 移向嘴边
-- **弓**: 拉弓姿势
-- **弩**: 装填姿势
-- **盾牌**: 格挡姿势
-- **三叉戟**: 投掷姿势
+根据物品类型不同，通过 `determineArmPose()` 确定手臂姿态：
+
+| UseAction | ArmPose | 变换方法 |
+|-----------|---------|----------|
+| Eat/Drink | EatOrDrink | `transformEatOrDrink()` |
+| Block | Block | 无额外变换 |
+| Bow | BowAndArrow | `transformBow()` |
+| Spear | ThrowSpear | `transformSpear()` |
+| Crossbow | CrossbowCharge | `transformCrossbow()` |
+
+各变换方法参考 MC 1.16.5 `FirstPersonRenderer` 实现：
+- **transformEatOrDrink**: 进食/饮用动画，物品移向嘴边，带有轻微摆动
+- **transformBow**: 拉弓动画，弓从休息位置移到拉弓位置
+- **transformSpear**: 三叉戟投掷动画，准备投掷姿势
+- **transformCrossbow**: 弩装填动画，装填过程中的位置变化
 
 ## 变换系统
 
