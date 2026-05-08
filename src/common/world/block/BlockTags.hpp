@@ -66,6 +66,13 @@ public:
     [[nodiscard]] bool contains(const Block* block) const;
 
     /**
+     * @brief 检查方块是否在标签中
+     * @param block 方块引用
+     * @return 是否在标签中
+     */
+    [[nodiscard]] bool contains(const Block& block) const;
+
+    /**
      * @brief 检查方块状态是否在标签中
      * @param state 方块状态引用
      * @return 是否在标签中

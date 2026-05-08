@@ -33,6 +33,10 @@ bool BlockTag::contains(const Block* block) const {
     return contains(block->blockLocation());
 }
 
+bool BlockTag::contains(const Block& block) const {
+    return contains(block.blockLocation());
+}
+
 bool BlockTag::contains(const BlockState& state) const {
     return contains(state.blockLocation());
 }
