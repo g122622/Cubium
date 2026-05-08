@@ -378,10 +378,12 @@ public:
      *
      * MC 1.16.5: MobEntity.preventDespawn()
      * 当实体正在被骑乘时，不应消失。
+     * 子类可以重写此方法添加额外的阻止消失条件。
+     * 例如：AbstractFishEntity 在从桶放出时也应阻止消失。
      *
      * @return 如果实体应阻止消失返回 true
      */
-    [[nodiscard]] bool preventDespawn() const { return isRiding(); }
+    [[nodiscard]] virtual bool preventDespawn() const { return isRiding(); }
 
     /**
      * @brief 检查是否可以消失

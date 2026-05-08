@@ -9,9 +9,13 @@
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/core/EntityRegistry.hpp"
 #include "../../../entity/core/EntityType.hpp"
+#include "../../../entity/entities/passive/fish/AbstractFishEntity.hpp"
+#include "../../../entity/utils/ItemDropHelper.hpp"
 #include "../../context/BlockItemUseContext.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../core/ItemStack.hpp"
+#include "../../Items.hpp"
+#include "../../../util/math/random/Random.hpp"
 
 namespace mc {
 namespace item {
@@ -55,11 +59,13 @@ ActionResultType FishBucketItem::onItemUse(ItemUseContext& context) {
 
     // 在水中生成鱼
     if (spawnFish(world, placePos)) {
-        // 返回空桶 (非创造模式)
+        // 返回空桶（非创造模式）
         Player* player = context.getPlayer();
         if (player != nullptr && !player->isCreative()) {
-            // TODO: 返回空桶
+            // 减少鱼桶数量
             context.getItemStackMut().shrink(1);
+            // 返回空桶
+            returnEmptyBucket(*player, context.getItemStackMut());
         }
         return ActionResultType::Success;
     }
@@ -82,8 +88,9 @@ ItemActionResult FishBucketItem::onItemRightClick(IWorld& world, Player& player,
 
         if (spawnFish(world, spawnPos)) {
             if (!player.isCreative()) {
-                // TODO: 返回空桶
                 player.getHeldItem(hand).shrink(1);
+                // 返回空桶
+                returnEmptyBucket(player, player.getHeldItem(hand));
             }
             return ItemActionResult::success(player.getHeldItem(hand));
         }
@@ -111,11 +118,38 @@ bool FishBucketItem::spawnFish(IWorld& world, const BlockPos& pos) const {
     f32 z = static_cast<f32>(pos.z) + 0.5f;
     fish->setPosition(x, y, z);
 
-    // TODO: 设置鱼的 FromBucket 标签，防止消失
+    // 设置 FromBucket 标签，防止消失
+    // 参考 MC 1.16.5 FishBucketItem.placeFish()
+    auto* abstractFish = dynamic_cast<AbstractFishEntity*>(fish.get());
+    if (abstractFish != nullptr) {
+        abstractFish->setFromBucket(true);
+    }
 
     // 生成实体
     world.spawnEntity(std::move(fish));
     return true;
+}
+
+void FishBucketItem::returnEmptyBucket(Player& player, ItemStack& stack) const {
+    // 参考 MC 1.16.5 BucketItem.emptyBucket()
+    // 如果物品堆已空，直接返回空桶
+    if (stack.isEmpty() && Items::BUCKET != nullptr) {
+        stack = ItemStack(Items::BUCKET, 1);
+        return;
+    }
+
+    // 否则尝试将空桶添加到背包
+    if (Items::BUCKET != nullptr) {
+        ItemStack bucketStack(Items::BUCKET, 1);
+        i32 remaining = player.inventory().add(bucketStack);
+
+        // 如果背包满了，掉落到地面
+        if (remaining > 0 && !bucketStack.isEmpty()) {
+            // 使用 ItemDropHelper 掉落物品
+            math::Random rng;
+            ItemDropHelper::spawnItemAtEntity(&player, bucketStack, 0.5f, rng);
+        }
+    }
 }
 
 } // namespace item

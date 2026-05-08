@@ -54,6 +54,18 @@ private:
      */
     bool spawnFish(IWorld& world, const BlockPos& pos) const;
 
+    /**
+     * @brief 返回空桶给玩家
+     *
+     * 参考 MC 1.16.5 BucketItem.emptyBucket()
+     * - 如果当前物品堆已空，直接替换为空桶
+     * - 否则尝试添加到背包，背包满则掉落
+     *
+     * @param player 玩家
+     * @param stack 当前物品堆（可能被修改）
+     */
+    void returnEmptyBucket(Player& player, ItemStack& stack) const;
+
     String m_fishTypeName;
 };
 

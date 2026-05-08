@@ -65,6 +65,54 @@ public:
      */
     void setFlopping(bool flopping) { m_flopping = flopping; }
 
+    // ========== 桶装鱼支持 ==========
+
+    /**
+     * @brief 检查是否来自桶
+     *
+     * 从桶放出的鱼不会消失。
+     * 参考 MC 1.16.5 AbstractFishEntity.isFromBucket()
+     *
+     * @return 如果是从桶放出的鱼返回 true
+     */
+    [[nodiscard]] bool isFromBucket() const { return m_fromBucket; }
+
+    /**
+     * @brief 设置是否来自桶
+     *
+     * 当从鱼桶放出鱼时调用此方法设置为 true。
+     * 参考 MC 1.16.5 AbstractFishEntity.setFromBucket()
+     *
+     * @param fromBucket 是否来自桶
+     */
+    void setFromBucket(bool fromBucket) { m_fromBucket = fromBucket; }
+
+    /**
+     * @brief 检查是否应阻止消失
+     *
+     * 从桶放出的鱼永远不会消失。
+     * 参考 MC 1.16.5 AbstractFishEntity.preventDespawn()
+     *
+     * @return 如果来自桶或正在被骑乘返回 true
+     */
+    [[nodiscard]] bool preventDespawn() const override {
+        return WaterMobEntity::preventDespawn() || m_fromBucket;
+    }
+
+    /**
+     * @brief 检查是否可以消失
+     *
+     * 从桶放出的鱼或有自定义名称的鱼不会消失。
+     * 参考 MC 1.16.5 AbstractFishEntity.canDespawn()
+     *
+     * @param distanceToClosestPlayer 到最近玩家的距离
+     * @return 如果可以消失返回 true
+     */
+    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override {
+        (void)distanceToClosestPlayer;
+        return !m_fromBucket && !hasCustomName();
+    }
+
     void tick() override;
 
 protected:
@@ -86,6 +134,7 @@ private:
     f32 m_swimAngle = 0.0f;
     bool m_flopping = false;
     i32 m_flopTimer = 0;
+    bool m_fromBucket = false;  // 是否来自桶（从桶放出的鱼不会消失）
 
     static constexpr i32 MAX_AIR_SUPPLY = 480;
 };

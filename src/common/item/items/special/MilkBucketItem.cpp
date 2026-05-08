@@ -1,11 +1,13 @@
 #include "MilkBucketItem.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
+#include "../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../core/ItemStack.hpp"
 #include "../../core/UseAction.hpp"
 #include "../../Items.hpp"
+#include "../../../util/math/random/Random.hpp"
 
 namespace mc {
 namespace item {
@@ -67,9 +69,10 @@ ItemStack MilkBucketItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entit
             // 尝试添加到背包
             i32 remaining = player->inventory().add(bucketStack);
             // 如果有剩余，掉落到地面
-            if (remaining > 0) {
-                // TODO: 掉落物品到地面
-                // player->spawnItem(new ItemStack(Items::BUCKET, remaining));
+            if (remaining > 0 && !bucketStack.isEmpty()) {
+                // 使用 ItemDropHelper 掉落物品
+                math::Random rng;
+                ItemDropHelper::spawnItemAtEntity(player, bucketStack, 0.5f, rng);
             }
         }
     } else {
