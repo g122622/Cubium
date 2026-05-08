@@ -7,7 +7,9 @@ import fs from 'fs/promises';
    * 清洗 JSONL 文件内容，转换为人类可读的对话文本。
    * - 保留用户直接输入的消息（role: user, type: text）
    * - 保留助手的直接回复（role: assistant, type: text）
-   * - 跳过所有工具调用（tool_use）和工具返回结果（tool_result）
+   * - 保留助手的思考内容（type: thinking）
+   * - 保留助手的工具调用（type: tool_use，不含工具返回结果）
+   * - 跳过工具返回结果（tool_result）
    * - 保留待办事项（type: attachment, todo_reminder）和最后提示（last-prompt）作为摘要
    *
    * @param filePath - JSONL 文件路径
@@ -15,10 +17,9 @@ import fs from 'fs/promises';
    */
   async function cleanJsonlFile(filePath: string): Promise<string> {
     /**
-     * 从消息的 content 数组中提取所有 type === 'text' 的文本内容。
-     * 跳过 tool_use 和 tool_result。
+     * 从用户消息的 content 数组中提取所有 type === 'text' 的文本内容。
      */
-    function extractTextFromContent(content: any[]): string {
+    function extractTextFromUserContent(content: any[]): string {
       if (!Array.isArray(content)) return '';
       const textParts: string[] = [];
       for (const item of content) {
@@ -27,6 +28,32 @@ import fs from 'fs/promises';
         }
       }
       return textParts.join(' ').trim();
+    }
+
+    /**
+     * 从助手消息的 content 数组中提取所有内容（text、thinking、tool_use）。
+     * 不包括工具返回结果。
+     */
+    function extractContentFromAssistantMessage(content: any[]): string {
+      if (!Array.isArray(content)) return '';
+      const parts: string[] = [];
+      for (const item of content) {
+        // 1. 文本内容
+        if (item.type === 'text' && typeof item.text === 'string') {
+          parts.push(item.text);
+        }
+        // 2. 思考内容
+        else if (item.type === 'thinking' && typeof item.thinking === 'string') {
+          parts.push(`<Thinking> ${item.thinking} </Thinking>`);
+        }
+        // 3. 工具调用（不含工具返回结果）
+        else if (item.type === 'tool_use' && item.name) {
+          const toolName = item.name;
+          const toolInput = item.input ? JSON.stringify(item.input) : '';
+          parts.push(`<ToolCall> ${toolName}(${toolInput}) </ToolCall>`);
+        }
+      }
+      return parts.join('\n').trim();
     }
 
     const content = await fs.readFile(filePath, 'utf-8');
@@ -44,17 +71,17 @@ import fs from 'fs/promises';
 
       // 1. 用户消息（直接提问或指令）
       if (obj.type === 'user' && obj.message?.role === 'user') {
-        const userText = extractTextFromContent(obj.message.content);
+        const userText = extractTextFromUserContent(obj.message.content);
         if (userText) {
           outputParts.push(`<User> ${userText} </User>\n`);
         }
       }
 
-      // 2. 助手消息（直接回复）
+      // 2. 助手消息（包括文本、思考、工具调用）
       else if (obj.type === 'assistant' && obj.message?.role === 'assistant') {
-        const assistantText = extractTextFromContent(obj.message.content);
-        if (assistantText) {
-          outputParts.push(`<Assistant> ${assistantText} </Assistant>\n`);
+        const assistantContent = extractContentFromAssistantMessage(obj.message.content);
+        if (assistantContent) {
+          outputParts.push(`<Assistant> ${assistantContent} </Assistant>\n`);
         }
       }
 
@@ -108,7 +135,9 @@ import fs from 'fs/promises';
 
     // 构建评估上下文
     const evaluationPrompt =
-      `${STOP_HOOK_PROMPT}
+`
+## 你的任务
+${STOP_HOOK_PROMPT}
 
 ## 当前会话上下文
 - 会话 ID: ${sessionId}
@@ -116,7 +145,12 @@ import fs from 'fs/promises';
 <Transcript>
 ${await cleanJsonlFile(transcriptPath)}
 </Transcript>
+- 最后助手消息: 
+<LastAssistantMessage>
+${lastAssistantMessage ? lastAssistantMessage : "无"}
+</LastAssistantMessage>
 
+## 你的任务
 ${STOP_HOOK_PROMPT}
 `;
 
@@ -178,9 +212,9 @@ ${STOP_HOOK_PROMPT}
     console.log(`📋 stop_hook_active: ${stopInput.stop_hook_active}`);
     console.log(`📁 transcript_path: ${stopInput.transcript_path}`);
 
-    if (stopInput.last_assistant_message) {
-      console.log(`📝 最后消息摘要: ${stopInput.last_assistant_message.slice(0, 200)}...`);
-    }
+    // if (stopInput.last_assistant_message) {
+    //   console.log(`📝 最后消息摘要: ${stopInput.last_assistant_message.slice(0, 200)}...`);
+    // }
 
     // 启动评估代理
     const evaluation = await evaluateShouldStop(
@@ -263,7 +297,7 @@ ${STOP_HOOK_PROMPT}
     // "/align 容器系统",
     // "/align 下界与主世界之间的传送",
 
-    "/fix-todo",
+    "执行ls命令，然后停下来",
     "/fix-todo",
     "/fix-todo",
     "/fix-todo",
