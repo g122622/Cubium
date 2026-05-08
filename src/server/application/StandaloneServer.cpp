@@ -17,6 +17,9 @@
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
 #include "common/entity/inventory/container/EnchantmentContainer.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "server/menu/CraftingMenu.hpp"
 #include "common/perfetto/PerfettoManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -212,6 +215,9 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
 
     // 初始化世界出生点
     m_world->initializeWorldSpawn();
+
+    // 设置 RaidManager 回调
+    setupRaidManagerCallbacks();
 
     // 初始化世界
     auto worldResult = initializeWorld();
@@ -967,6 +973,92 @@ void StandaloneServer::setupChunkSendCallback()
             // spdlog::debug("StandaloneServer: Sent unload chunk ({}, {}) to player {}", x, z, playerId);
         }
     });
+}
+
+void StandaloneServer::setupRaidManagerCallbacks()
+{
+    if (!m_world || !m_world->raidManager()) {
+        return;
+    }
+
+    auto* raidManager = m_world->raidManager();
+    world::village::raid::RaidCallbacks callbacks;
+
+    // 袭击开始回调：播放号角声
+    callbacks.onRaidStarted = [this](const world::village::raid::Raid& raid, BlockPos center) {
+        // 播放袭击号角声
+        broadcastSound(
+            SoundEvents::EVENT_RAID_HORN,
+            sound::SoundCategory::Neutral,
+            Vector3(static_cast<f32>(center.x) + 0.5f, static_cast<f32>(center.y), static_cast<f32>(center.z) + 0.5f),
+            64.0f,  // 广播范围
+            1.0f    // 音调
+        );
+
+        spdlog::info("Raid {} started at village center ({}, {}, {})",
+                     raid.id(), center.x, center.y, center.z);
+    };
+
+    // 袭击胜利回调：给予英雄效果
+    callbacks.onRaidVictory = [this](const world::village::raid::Raid& raid,
+                                      const std::vector<Uuid>& heroes,
+                                      i32 badOmenLevel) {
+        // 村庄英雄效果持续时间为 40 分钟 (48000 ticks)
+        // 等级 = 不祥之兆等级
+        constexpr i32 HERO_EFFECT_DURATION = 48000;
+
+        for (const auto& heroUuid : heroes) {
+            // 通过 UUID 字符串查找玩家
+            const std::string heroUuidStr = util::uuidToString(heroUuid);
+
+            // 遍历所有玩家查找匹配的 UUID
+            m_playerManager->forEachPlayer([this, &heroUuidStr, badOmenLevel, HERO_EFFECT_DURATION, &raid](ServerPlayerData& playerData) {
+                // 获取玩家实体
+                Player* player = m_playerEntityManager.getPlayerEntity(playerData.playerId, *m_world);
+                if (player == nullptr) {
+                    return;
+                }
+
+                // 检查 UUID 是否匹配
+                if (player->uuid() != heroUuidStr) {
+                    return;
+                }
+
+                // 给予村庄英雄效果
+                entity::effect::EffectInstance heroEffect = entity::effect::EffectInstance::heroOfTheVillage(badOmenLevel);
+                heroEffect = entity::effect::EffectInstance(
+                    entity::effect::EffectType::HeroOfTheVillage,
+                    HERO_EFFECT_DURATION,
+                    badOmenLevel - 1,  // amplifier = level - 1
+                    false,  // ambient
+                    true,   // visible
+                    true    // showIcon
+                );
+                player->addEffect(std::move(heroEffect));
+
+                spdlog::info("Player '{}' (UUID: {}) received Hero of the Village effect (level {}) for raid {} victory",
+                             playerData.username, heroUuidStr, badOmenLevel, raid.id());
+            });
+        }
+
+        BlockPos center = raid.center();
+        spdlog::info("Raid {} victory at ({}, {}, {}) - {} heroes rewarded",
+                     raid.id(), center.x, center.y, center.z, heroes.size());
+    };
+
+    // 袭击失败回调
+    callbacks.onRaidLoss = [this](const world::village::raid::Raid& raid) {
+        BlockPos center = raid.center();
+        spdlog::info("Raid {} failed at ({}, {}, {})", raid.id(), center.x, center.y, center.z);
+    };
+
+    // 波次开始回调
+    callbacks.onWaveStarted = [this](const world::village::raid::Raid& raid, i32 wave, BlockPos spawnPos) {
+        spdlog::info("Raid {} wave {} started at ({}, {}, {})",
+                     raid.id(), wave, spawnPos.x, spawnPos.y, spawnPos.z);
+    };
+
+    raidManager->setCallbacks(std::move(callbacks));
 }
 
 void StandaloneServer::broadcastLightUpdate(ChunkCoord x, ChunkCoord z, i32 sectionY,

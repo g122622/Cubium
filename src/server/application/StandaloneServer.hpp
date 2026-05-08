@@ -120,6 +120,7 @@ private:
 
     // 回调设置
     void setupChunkSendCallback();
+    void setupRaidManagerCallbacks();
 
     // 数据包发送
     void sendLoginResponse(TcpSession* session, bool success, PlayerId playerId, EntityId entityId,

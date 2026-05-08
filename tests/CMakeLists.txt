@@ -343,6 +343,8 @@ add_executable(mc_tests
     common/world/storage/WorldStorageServiceTest.cpp
     # 村庄交易系统测试
     common/world/village/trade/MerchantOfferTest.cpp
+    # 袭击系统测试
+    common/world/village/raid/RaidHeroTrackingTest.cpp
 )
 
 # 娣诲姞鏈嶅姟绔簮鏂囦欢

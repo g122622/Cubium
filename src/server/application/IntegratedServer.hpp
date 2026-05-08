@@ -121,6 +121,9 @@ private:
     // 设置区块发送回调
     void setupChunkSendCallback();
 
+    // 设置 RaidManager 回调
+    void setupRaidManagerCallbacks();
+
     // 发送数据包
     void sendLoginResponse(bool success, PlayerId playerId, EntityId entityId, const std::string& username, const std::string& message);
     void sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId);

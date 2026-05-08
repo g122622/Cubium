@@ -221,14 +221,14 @@ RaidManager
 - [x] 波次生成逻辑
 - [x] 掠夺者类型选择
 - [x] 英雄追踪系统
-- [x] 回调机制（onRaidStarted, onRaidVictory, onRaidLoss）
+- [x] 回调机制（onRaidStarted, onRaidVictory, onRaidLoss, onWaveStarted）
 - [x] 袭击开始时设置村庄状态
+- [x] 号角声播放（集成到 StandaloneServer 和 IntegratedServer）
+- [x] 英雄效果赋予（集成到服务器初始化）
 
 ## 待实现功能
 
 - [ ] Boss栏显示
-- [ ] 号角声播放（需要集成到 ServerWorld）
-- [ ] 英雄效果赋予（需要集成到 ServerWorld）
 - [ ] 掠夺者庆祝/失败行为
 - [ ] 袭击序列化/存档
 
