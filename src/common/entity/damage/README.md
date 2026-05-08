@@ -111,6 +111,7 @@ src/common/entity/damage/
 - `getCombatDuration()` - 获取战斗时长
 - `inCombat()` - 检查是否在战斗中
 - `combatStartTime()` / `combatEndTime()` - 战斗时间查询
+- `calculateFallSuffix()` - 计算摔落后缀（私有方法）
 
 **关键常量**:
 - `COMBAT_TIMEOUT = 100` - 战斗超时时间（100 tick = 5 秒）
@@ -126,6 +127,20 @@ src/common/entity/damage/
 - 根据伤害类型生成不同的死亡消息
 - 支持环境伤害消息（燃烧、溺水、摔落等）
 - 支持实体伤害消息（被击杀）
+
+**摔落后缀系统**（MC 1.16.5）:
+- `calculateFallSuffix()` - 根据攀爬方块类型确定摔落后缀
+- 后缀类型：
+  - `ladder` - 从梯子或打开的活板门摔落
+  - `vines` - 从藤蔓摔落
+  - `weeping_vines` - 从垂泪藤摔落
+  - `twisting_vines` - 从扭曲藤摔落
+  - `scaffolding` - 从脚手架摔落
+  - `other_climbable` - 从其他可攀爬方块摔落
+  - `water` - 在水中摔落
+  - 空 - 普通摔落
+- 攀爬位置由 `Entity::getLastClimbPos()` 提供
+- 落地时自动清空攀爬位置
 
 **清理机制**:
 - `cleanupOldEntries()` - 清理超过战斗超时时间的条目

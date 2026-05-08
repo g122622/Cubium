@@ -66,6 +66,8 @@ add_executable(mc_tests
     common/entity/experience/ExperienceOrbEntityTest.cpp
     # 难度系统测试
     common/entity/combat/DifficultyHelperTest.cpp
+    # 战斗追踪器测试
+    common/entity/combat/CombatTrackerTest.cpp
     common/world/blockentity/BlockEntityTest.cpp
     common/world/blockentity/ChestEntityTest.cpp
     common/world/blockentity/FurnaceEntityTest.cpp
@@ -73,6 +75,7 @@ add_executable(mc_tests
     common/world/blockentity/DoubleSidedInventoryTest.cpp
     common/world/blockentity/BlockEntityTodoTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
+    common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp
     common/world/block/blocks/CauldronBlockTest.cpp
     common/world/block/DispenseItemBehaviorTest.cpp

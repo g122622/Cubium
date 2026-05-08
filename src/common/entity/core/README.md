@@ -42,6 +42,13 @@
 - `Entity::waterHeight()` / `Entity::lavaHeight()` - 流体浸入高度（0.0-1.0）
 - `Entity::updateEnvironmentState()` - 更新流体状态，遍历碰撞箱内的方块
 
+### 攀爬追踪（MC 1.16.5 对齐）
+- `Entity::isOnLadder()` - 检测是否在攀爬方块上，并记录攀爬位置
+- `Entity::getLastClimbPos()` - 获取最后攀爬位置（用于摔落死亡消息）
+- `Entity::setLastClimbPos()` - 设置攀爬位置
+- `Entity::clearLastClimbPos()` - 清空攀爬位置（落地时自动调用）
+- 攀爬方块包括：梯子、藤蔓、脚手架、打开的活板门等
+
 ### 击退系统
 - `LivingEntity::applyKnockback(strength, ratioX, ratioZ)` - 应用击退效果
 - `LivingEntity::applyKnockbackFrom(attacker, strength)` - 从攻击者方向计算击退
