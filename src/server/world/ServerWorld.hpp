@@ -345,6 +345,24 @@ public:
         m_onBroadcastExplosion = std::move(callback);
     }
 
+    // ========== 袭击事件回调 ==========
+
+    /**
+     * @brief 袭击事件广播回调类型
+     *
+     * 当袭击发生特定事件时调用，用于通知玩家。
+     */
+    using RaidEventCallback = std::function<void(
+        i32 raidId,                ///< 袭击 ID
+        i32 eventType,             ///< 事件类型 (0=开始, 1=胜利, 2=失败, 3=波次开始)
+        const BlockPos& pos,       ///< 相关位置
+        i32 data                   ///< 额外数据
+    )>;
+
+    void setOnRaidEvent(RaidEventCallback callback) {
+        m_onRaidEvent = std::move(callback);
+    }
+
     // ========== IWorld 接口实现 ==========
 
     void addParticle(
@@ -614,6 +632,7 @@ private:
     EntityStatusCallback m_onBroadcastEntityStatus;
     WorldEventCallback m_onBroadcastWorldEvent;
     ExplosionBroadcastCallback m_onBroadcastExplosion;
+    RaidEventCallback m_onRaidEvent;  ///< 袭击事件回调
 
     // 随机刻系统
     math::Random m_random;            ///< 世界随机数生成器

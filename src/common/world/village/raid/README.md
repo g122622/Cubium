@@ -42,6 +42,10 @@ raid.tick(world);
 if (raid.status() == RaidStatus::Victory) {
     // 玩家胜利
 }
+
+// 英雄追踪
+raid.addHero(playerUuid, entityId);
+bool isHero = raid.isHero(playerUuid);
 ```
 
 ### RaidManager - 袭击管理器
@@ -50,7 +54,20 @@ if (raid.status() == RaidStatus::Victory) {
 
 ```cpp
 // 创建管理器
-RaidManager manager(world);
+RaidManager manager(world, villageManager);
+
+// 设置回调
+RaidCallbacks callbacks;
+callbacks.onRaidStarted = [](const Raid& raid, BlockPos center) {
+    // 播放号角声、发送消息
+};
+callbacks.onRaidVictory = [](const Raid& raid, const std::vector<Uuid>& heroes, i32 level) {
+    // 给予英雄效果
+};
+callbacks.onRaidLoss = [](const Raid& raid) {
+    // 处理村庄损失
+};
+manager.setCallbacks(std::move(callbacks));
 
 // 触发袭击
 Raid* raid = manager.tryStartRaid(pos, badOmenLevel);
@@ -104,12 +121,77 @@ manager.tick();
 | 5-6 | + 唤魔者 |
 | 7+ | + 劫掠兽 |
 
+## 英雄系统
+
+袭击期间击杀掠夺者的玩家会被记录为英雄：
+
+```cpp
+// 在 Raid 类中
+void addHero(Uuid playerUuid, EntityId entityId);  // 添加英雄
+bool isHero(Uuid playerUuid) const;                // 检查是否为英雄
+void addContribution(Uuid playerUuid, i32 amount); // 增加贡献值
+const std::unordered_set<Uuid, UuidHash>& heroes() const; // 获取所有英雄
+```
+
+袭击胜利时，所有英雄玩家将获得"村庄英雄"效果。
+
+## 回调机制
+
+`RaidManager` 提供回调机制来通知外部系统：
+
+### RaidCallbacks 结构体
+
+```cpp
+struct RaidCallbacks {
+    // 袭击开始时调用
+    std::function<void(const Raid& raid, BlockPos center)> onRaidStarted;
+    
+    // 袭击胜利时调用
+    std::function<void(const Raid& raid, const std::vector<Uuid>& heroes, i32 badOmenLevel)> onRaidVictory;
+    
+    // 袭击失败时调用
+    std::function<void(const Raid& raid)> onRaidLoss;
+    
+    // 波次开始时调用
+    std::function<void(const Raid& raid, i32 wave, BlockPos spawnPos)> onWaveStarted;
+};
+```
+
+### 使用示例
+
+```cpp
+// 在 ServerWorld 初始化后设置回调
+auto raidManager = world->raidManager();
+RaidCallbacks callbacks;
+
+callbacks.onRaidStarted = [this](const Raid& raid, BlockPos center) {
+    // 播放号角声
+    broadcastSound(SoundEvents::EVENT_RAID_HORN, SoundCategory::Neutral,
+                   Vector3(center.x + 0.5f, center.y, center.z + 0.5f),
+                   64.0f, 1.0f);
+    // 发送聊天消息
+    broadcastChatMessage("袭击开始了！");
+};
+
+callbacks.onRaidVictory = [this](const Raid& raid, const std::vector<Uuid>& heroes, i32 level) {
+    // 给予英雄效果
+    for (const auto& uuid : heroes) {
+        ServerPlayer* player = getPlayerByUuid(uuid);
+        if (player) {
+            player->addEffect(EffectInstance::heroOfTheVillage(level));
+        }
+    }
+};
+
+raidManager->setCallbacks(std::move(callbacks));
+```
+
 ## 依赖关系
 
 ```
 RaidManager
-    ├── ServerWorld (世界引用)
-    ├── Village (村庄关联)
+    ├── IWorld (世界引用)
+    ├── VillageManager (村庄关联)
     └── Raid (袭击事件)
          ├── RaiderType (掠夺者类型)
          └── EntityRegistry (实体生成)
@@ -130,14 +212,25 @@ RaidManager
 - 掠夺者实体生成
 - 劫掠兽骑乘系统
 
-## TODO
+### 声音系统
+- 号角声播放（`minecraft:event.raid_horn`）
 
-- [ ] 实现掠夺者实体生成
-- [ ] 集成村庄管理器
-- [ ] 集成效果系统（不祥之兆、英雄）
-- [ ] 实现Boss栏显示
-- [ ] 实现袭击音效
-- [ ] 实现掠夺者庆祝/失败行为
+## 已实现功能
+
+- [x] 袭击创建和管理
+- [x] 波次生成逻辑
+- [x] 掠夺者类型选择
+- [x] 英雄追踪系统
+- [x] 回调机制（onRaidStarted, onRaidVictory, onRaidLoss）
+- [x] 袭击开始时设置村庄状态
+
+## 待实现功能
+
+- [ ] Boss栏显示
+- [ ] 号角声播放（需要集成到 ServerWorld）
+- [ ] 英雄效果赋予（需要集成到 ServerWorld）
+- [ ] 掠夺者庆祝/失败行为
+- [ ] 袭击序列化/存档
 
 ## 参考
 

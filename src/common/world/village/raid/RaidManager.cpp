@@ -116,6 +116,14 @@ Raid* RaidManager::tryStartRaid(BlockPos pos, i32 badOmenLevel) {
     Raid* raidPtr = raid.get();
     m_raids.push_back(std::move(raid));
 
+    // 标记村庄处于袭击中
+    village->setUnderRaid(true);
+
+    // 触发袭击开始回调
+    if (m_callbacks.onRaidStarted) {
+        m_callbacks.onRaidStarted(*raidPtr, village->getCenter());
+    }
+
     return raidPtr;
 }
 
@@ -172,15 +180,31 @@ void RaidManager::tick() {
 void RaidManager::onRaidEnd(Raid* raid) {
     if (raid == nullptr) return;
 
+    // 清除村庄的袭击状态
+    village::Village* village = raid->village();
+    if (village != nullptr) {
+        village->setUnderRaid(false);
+        village->setLastRaidTime(static_cast<i64>(m_world.currentTick()));
+    }
+
     // 根据袭击结果执行不同逻辑
     switch (raid->status()) {
         case RaidStatus::Victory:
-            // 玩家胜利，给予奖励
-            // TODO: 给予英雄效果
+            // 玩家胜利，给予英雄效果
+            if (m_callbacks.onRaidVictory) {
+                // 收集英雄 UUID 列表
+                std::vector<Uuid> heroUuids;
+                for (const auto& uuid : raid->heroes()) {
+                    heroUuids.push_back(uuid);
+                }
+                m_callbacks.onRaidVictory(*raid, heroUuids, raid->badOmenLevel());
+            }
             break;
         case RaidStatus::Loss:
             // 掠夺者胜利，村庄可能被摧毁
-            // TODO: 处理村庄损失
+            if (m_callbacks.onRaidLoss) {
+                m_callbacks.onRaidLoss(*raid);
+            }
             break;
         case RaidStatus::Stopped:
             // 袭击被停止

@@ -3,9 +3,11 @@
 #include "RaiderType.hpp"
 #include "../../block/BlockPos.hpp"
 #include "../../../core/Types.hpp"
+#include "../../../command/ICommandSource.hpp"
 
 #include <optional>
 #include <vector>
+#include <unordered_set>
 
 namespace mc {
 class IWorld;
@@ -29,6 +31,21 @@ struct RaidWave {
     i32 totalToSpawn = 0;
     bool spawned = false;
     bool defeated = false;
+};
+
+/**
+ * @brief 袭击参与者信息。
+ *
+ * 记录参与袭击的玩家及其贡献，用于在袭击胜利时给予奖励。
+ */
+struct RaidParticipant {
+    Uuid uuid;              ///< 玩家 UUID
+    EntityId entityId;      ///< 玩家实体 ID（可能失效）
+    i32 contribution = 0;   ///< 贡献值（击杀袭击者数量）
+
+    RaidParticipant() = default;
+    RaidParticipant(Uuid playerUuid, EntityId id)
+        : uuid(playerUuid), entityId(id), contribution(0) {}
 };
 
 /**
@@ -248,6 +265,50 @@ public:
      */
     void setBadOmenLevel(i32 level) { m_badOmenLevel = level; }
 
+    // ========== 英雄追踪 ==========
+
+    /**
+     * @brief 添加英雄（参与袭击的玩家）。
+     *
+     * 在玩家击败袭击者时调用，记录玩家对袭击的贡献。
+     * 袭击胜利时会给予这些玩家"村庄英雄"效果。
+     *
+     * @param playerUuid 玩家 UUID。
+     * @param entityId 玩家实体 ID。
+     */
+    void addHero(Uuid playerUuid, EntityId entityId);
+
+    /**
+     * @brief 检查玩家是否为英雄。
+     *
+     * @param playerUuid 玩家 UUID。
+     * @return 是否为英雄。
+     */
+    [[nodiscard]] bool isHero(Uuid playerUuid) const;
+
+    /**
+     * @brief 获取所有英雄 UUID 列表。
+     *
+     * @return 英雄 UUID 集合。
+     */
+    [[nodiscard]] const std::unordered_set<Uuid, UuidHash>& heroes() const { return m_heroes; }
+
+    /**
+     * @brief 增加玩家贡献值。
+     *
+     * @param playerUuid 玩家 UUID。
+     * @param amount 增加的贡献值数量。
+     */
+    void addContribution(Uuid playerUuid, i32 amount = 1);
+
+    /**
+     * @brief 获取玩家贡献值。
+     *
+     * @param playerUuid 玩家 UUID。
+     * @return 贡献值，如果玩家不是英雄则返回 0。
+     */
+    [[nodiscard]] i32 getContribution(Uuid playerUuid) const;
+
 private:
     /**
      * @brief 更新 Boss 栏内部状态。
@@ -319,6 +380,10 @@ private:
     i32 m_groupsSpawned = 0;
     i32 m_postRaidTicks = 0;
     i32 m_celebrateTicks = 0;
+
+    // 英雄追踪（MC 1.16.5: heroes 字段）
+    std::unordered_set<Uuid, UuidHash> m_heroes;           ///< 参与袭击的玩家 UUID
+    std::vector<RaidParticipant> m_participants;           ///< 参与者详细信息
 };
 
 } // namespace world::village::raid

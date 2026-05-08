@@ -21,6 +21,19 @@ class ServerWorld;
 // Uuid 类型定义
 using Uuid = std::array<u8, 16>;
 
+/**
+ * @brief Uuid 哈希函数，用于 std::unordered_set/std::unordered_map。
+ */
+struct UuidHash {
+    std::size_t operator()(const Uuid& uuid) const noexcept {
+        std::size_t result = 0;
+        for (const auto& byte : uuid) {
+            result ^= std::hash<u8>{}(byte) + 0x9e3779b9 + (result << 6) + (result >> 2);
+        }
+        return result;
+    }
+};
+
 namespace command {
 
 /**

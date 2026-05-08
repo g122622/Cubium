@@ -3,6 +3,7 @@
 #include "Raid.hpp"
 #include "../../block/BlockPos.hpp"
 #include "../../../core/Types.hpp"
+#include "../../../command/ICommandSource.hpp"
 
 #include <functional>
 #include <memory>
@@ -18,6 +19,50 @@ class VillageManager;
 }
 
 namespace world::village::raid {
+
+/**
+ * @brief 袭击事件回调类型。
+ *
+ * 用于通知外部系统袭击状态变化。
+ */
+struct RaidCallbacks {
+    /**
+     * @brief 袭击开始回调。
+     *
+     * 当新袭击开始时调用，用于播放声音、发送消息等。
+     * @param raid 开始的袭击
+     * @param villageCenter 村庄中心位置
+     */
+    std::function<void(const Raid& raid, BlockPos villageCenter)> onRaidStarted;
+
+    /**
+     * @brief 袭击胜利回调。
+     *
+     * 当玩家成功防御袭击时调用。
+     * @param raid 胜利的袭击
+     * @param heroes 英雄玩家 UUID 列表
+     * @param badOmenLevel 不祥之兆等级（用于计算英雄效果等级）
+     */
+    std::function<void(const Raid& raid, const std::vector<Uuid>& heroes, i32 badOmenLevel)> onRaidVictory;
+
+    /**
+     * @brief 袭击失败回调。
+     *
+     * 当掠夺者获胜时调用。
+     * @param raid 失败的袭击
+     */
+    std::function<void(const Raid& raid)> onRaidLoss;
+
+    /**
+     * @brief 袭击波次开始回调。
+     *
+     * 当新波次开始时调用，用于播放号角声等。
+     * @param raid 袭击
+     * @param wave 波次编号
+     * @param spawnPos 生成位置
+     */
+    std::function<void(const Raid& raid, i32 wave, BlockPos spawnPos)> onWaveStarted;
+};
 
 /**
  * @brief 袭击管理器。
@@ -131,6 +176,23 @@ public:
     }
 
     /**
+     * @brief 设置袭击事件回调。
+     *
+     * @param callbacks 回调结构体。
+     */
+    void setCallbacks(RaidCallbacks callbacks) {
+        m_callbacks = std::move(callbacks);
+    }
+
+    /**
+     * @brief 获取袭击事件回调。
+     *
+     * @return 回调结构体引用。
+     */
+    [[nodiscard]] RaidCallbacks& callbacks() { return m_callbacks; }
+    [[nodiscard]] const RaidCallbacks& callbacks() const { return m_callbacks; }
+
+    /**
      * @brief 执行一次管理器 tick。
      *
      * @note 该方法应由世界主线程稳定调用。
@@ -186,6 +248,7 @@ private:
     std::vector<std::unique_ptr<Raid>> m_raids;
     RaidId m_nextRaidId = 1;
     BadOmenCheckCallback m_badOmenCheckCallback;
+    RaidCallbacks m_callbacks;  ///< 袭击事件回调
 };
 
 } // namespace world::village::raid

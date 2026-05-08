@@ -428,4 +428,50 @@ std::optional<BlockPos> Raid::findSpawnPosition(IWorld& world) const {
     return BlockPos(x, y, z);
 }
 
+// ========== 英雄追踪实现 ==========
+
+/**
+ * @brief 添加英雄（参与袭击的玩家）。
+ *
+ * 参考 MC 1.16.5 Raid.addHero()
+ */
+void Raid::addHero(Uuid playerUuid, EntityId entityId) {
+    if (m_heroes.find(playerUuid) == m_heroes.end()) {
+        m_heroes.insert(playerUuid);
+        m_participants.emplace_back(playerUuid, entityId);
+    }
+}
+
+/**
+ * @brief 检查玩家是否为英雄。
+ */
+bool Raid::isHero(Uuid playerUuid) const {
+    return m_heroes.find(playerUuid) != m_heroes.end();
+}
+
+/**
+ * @brief 增加玩家贡献值。
+ */
+void Raid::addContribution(Uuid playerUuid, i32 amount) {
+    for (auto& participant : m_participants) {
+        if (participant.uuid == playerUuid) {
+            participant.contribution += amount;
+            return;
+        }
+    }
+    // 如果玩家不在列表中，不自动添加（需要先调用 addHero）
+}
+
+/**
+ * @brief 获取玩家贡献值。
+ */
+i32 Raid::getContribution(Uuid playerUuid) const {
+    for (const auto& participant : m_participants) {
+        if (participant.uuid == playerUuid) {
+            return participant.contribution;
+        }
+    }
+    return 0;
+}
+
 } // namespace mc::world::village::raid
