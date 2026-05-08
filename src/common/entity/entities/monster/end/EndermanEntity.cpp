@@ -82,21 +82,21 @@ bool EndermanEntity::teleport() {
         return false;
     }
 
-    // TODO: 实现瞬移逻辑
-    // 1. 随机选择一个位置（32格范围内）
-    // 2. 检查目标位置是否有效
-    // 3. 瞬移到目标位置
-    // 4. 播放瞬移音效
+    // 末影人瞬移范围：64 格
+    // 参考 MC 1.16.5 EndermanEntity.teleportRandomly()
+    bool success = randomTeleport(TELEPORT_RANGE, true, true);
 
-    m_teleportCooldown = TELEPORT_COOLDOWN;
+    if (success) {
+        m_teleportCooldown = TELEPORT_COOLDOWN;
 
-    // 播放瞬移音效
-    auto teleportSound = getTeleportSound();
-    if (teleportSound) {
-        playSound(*teleportSound, 1.0f, 1.0f);
+        // 播放瞬移音效
+        auto teleportSound = getTeleportSound();
+        if (teleportSound) {
+            playSound(*teleportSound, 1.0f, 1.0f);
+        }
     }
 
-    return true;
+    return success;
 }
 
 bool EndermanEntity::teleportToTarget() {
@@ -105,17 +105,54 @@ bool EndermanEntity::teleportToTarget() {
         return false;
     }
 
-    // TODO: 实现瞬移到目标附近的逻辑
-    // 1. 选择目标附近的位置
-    // 2. 瞬移
+    // 计算远离目标的方向向量
+    Vector3 direction(
+        m_position.x - m_attackTarget->position().x,
+        0.0,
+        m_position.z - m_attackTarget->position().z
+    );
 
-    m_teleportCooldown = TELEPORT_COOLDOWN;
-    return true;
+    // 归一化方向向量
+    f32 length = direction.length();
+    if (length > 0.001f) {
+        direction.x /= length;
+        direction.z /= length;
+    } else {
+        // 如果长度太小，随机选择方向
+        math::Random rng(static_cast<u64>(m_id) ^ static_cast<u64>(m_ticksExisted));
+        f32 angle = rng.nextFloat() * 6.28318530718f;
+        direction.x = std::cos(angle);
+        direction.z = std::sin(angle);
+    }
+
+    // 目标位置：远离目标 16 格
+    math::Random rng(static_cast<u64>(m_id) ^ static_cast<u64>(m_ticksExisted));
+    f32 targetX = m_position.x + (rng.nextDouble() - 0.5) * 8.0 - direction.x * 16.0;
+    f32 targetY = m_position.y + static_cast<f32>(rng.nextInt(16) - 8);
+    f32 targetZ = m_position.z + (rng.nextDouble() - 0.5) * 8.0 - direction.z * 16.0;
+
+    // 尝试瞬移
+    bool success = attemptTeleport(targetX, targetY, targetZ, true);
+
+    if (success) {
+        m_teleportCooldown = TELEPORT_COOLDOWN;
+    }
+
+    return success;
 }
 
 bool EndermanEntity::teleportAwayFromWater() {
     // MC 1.16.5: 瞬移避开水
-    return teleport();
+    // 尝试多次瞬移，直到找到一个不在水中的位置
+    for (i32 i = 0; i < 10; ++i) {
+        if (teleport()) {
+            // 检查是否还在水中
+            if (!isInWater() && !isInLava()) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 void EndermanEntity::placeHeldBlock() {

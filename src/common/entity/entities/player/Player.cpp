@@ -324,6 +324,10 @@ void Player::tick() {
     // 更新攻击冷却
     m_ticksSinceLastAttack++;
 
+    // 更新物品冷却追踪器
+    // 参考 MC 1.16.5 PlayerEntity.tick() -> cooldownTracker.tick()
+    m_cooldownTracker.tick();
+
     // 睡眠计时器逻辑
     // 参考 MC 1.16.5 PlayerEntity.tick()
     // 睡眠时：每 tick 递增，上限 100

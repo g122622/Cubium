@@ -11,7 +11,9 @@
 #include "../../world/block/BlockPos.hpp"
 #include "../../world/block/BlockSoundType.hpp"
 #include "../../world/fluid/Fluid.hpp"
+#include "../../world/WorldConstants.hpp"
 #include "../../resource/ResourceLocation.hpp"
+#include "../../sound/SoundEvents.hpp"
 #include "../../util/text/StringTextComponent.hpp"
 #include "../damage/DamageSource.hpp"
 #include "spdlog/spdlog.h"
@@ -1373,6 +1375,227 @@ String Entity::toString() const {
        << ", pose=" << static_cast<u32>(m_pose)
        << "}";
     return ss.str();
+}
+
+// ============================================================================
+// 随机传送
+// ============================================================================
+
+bool Entity::attemptTeleport(f64 x, f64 y, f64 z, bool playEffects) {
+    // 参考 MC 1.16.5 LivingEntity.attemptTeleport()
+
+    // 保存当前位置作为备份
+    f64 originalX = m_position.x;
+    f64 originalY = m_position.y;
+    f64 originalZ = m_position.z;
+
+    // 如果正在骑乘，先下坐骑
+    if (isRiding()) {
+        stopRiding();
+    }
+
+    // 查找安全的传送位置
+    auto safePos = findSafeTeleportPosition(x, y, z, true);
+    if (!safePos.has_value()) {
+        return false;
+    }
+
+    // 传送到安全位置
+    setPosition(static_cast<f32>(safePos->x),
+                static_cast<f32>(safePos->y),
+                static_cast<f32>(safePos->z));
+
+    // 检查传送后位置是否有碰撞或液体
+    if (m_world != nullptr) {
+        AxisAlignedBB box = boundingBox();
+
+        // 检查碰撞
+        if (m_world->hasBlockCollision(box)) {
+            // 碰撞检测失败，恢复原位置
+            setPosition(static_cast<f32>(originalX),
+                        static_cast<f32>(originalY),
+                        static_cast<f32>(originalZ));
+            return false;
+        }
+
+        // 检查是否在液体中
+        if (m_world->hasFluid(static_cast<i32>(safePos->x),
+                              static_cast<i32>(safePos->y),
+                              static_cast<i32>(safePos->z))) {
+            // 在液体中，恢复原位置
+            setPosition(static_cast<f32>(originalX),
+                        static_cast<f32>(originalY),
+                        static_cast<f32>(originalZ));
+            return false;
+        }
+    }
+
+    // 传送成功
+    if (playEffects) {
+        // 播放传送粒子效果
+        // MC 1.16.5: world.setEntityState(this, (byte)46)
+        // 客户端收到后会播放末影人传送粒子
+        if (m_world != nullptr) {
+            m_world->broadcastEntityStatus(m_id, 46);
+        }
+
+        // 播放传送音效
+        playSound(SoundEvents::ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+    }
+
+    return true;
+}
+
+bool Entity::randomTeleport(f64 range, bool playEffects, bool avoidFluid) {
+    // 参考 MC 1.16.5 Entity.randomTeleport()
+
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    // 创建随机数生成器
+    math::Random rng(static_cast<u64>(m_id) ^
+                     static_cast<u64>(m_ticksExisted) ^
+                     static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+
+    // 记录原位置用于音效
+    f64 originalX = m_position.x;
+    f64 originalY = m_position.y;
+    f64 originalZ = m_position.z;
+
+    // 尝试最多 16 次传送
+    constexpr i32 MAX_ATTEMPTS = 16;
+
+    for (i32 i = 0; i < MAX_ATTEMPTS; ++i) {
+        // 计算目标位置
+        // X/Z: 原位置 ± range
+        // Y: 原位置 ± range，但限制在世界高度范围内
+        f64 targetX = originalX + (rng.nextDouble() - 0.5) * range * 2.0;
+        f64 targetY = originalY + static_cast<f64>(rng.nextInt(static_cast<i32>(range * 2)) - static_cast<i32>(range));
+        f64 targetZ = originalZ + (rng.nextDouble() - 0.5) * range * 2.0;
+
+        // 限制 Y 在世界范围内
+        constexpr f64 MIN_BUILD_HEIGHT = 0.0;
+        constexpr f64 MAX_BUILD_HEIGHT = 255.0;
+        targetY = math::clamp(targetY, MIN_BUILD_HEIGHT, MAX_BUILD_HEIGHT);
+
+        // 尝试传送
+        if (attemptTeleport(targetX, targetY, targetZ, false)) {
+            // 传送成功，播放音效
+            if (playEffects) {
+                playSound(SoundEvents::ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+
+                // 在原位置也播放音效
+                if (m_world != nullptr) {
+                    m_world->playSound(SoundEvents::ENTITY_ENDERMAN_TELEPORT,
+                                      sound::SoundCategory::Neutral,
+                                      Vector3(static_cast<f32>(originalX),
+                                             static_cast<f32>(originalY),
+                                             static_cast<f32>(originalZ)),
+                                      1.0f, 1.0f);
+                }
+            }
+            return true;
+        }
+    }
+
+    // 所有尝试都失败
+    return false;
+}
+
+std::optional<Vector3d> Entity::findSafeTeleportPosition(f64 x, f64 y, f64 z, bool avoidFluid) const {
+    // 参考 MC 1.16.5 LivingEntity.attemptTeleport()
+
+    if (m_world == nullptr) {
+        return std::nullopt;
+    }
+
+    BlockPos blockPos(static_cast<i32>(std::floor(x)),
+                      static_cast<i32>(std::floor(y)),
+                      static_cast<i32>(std::floor(z)));
+
+    // 检查区块是否加载（简化实现：检查目标区块是否可用）
+    ChunkCoord chunkX = world::toChunkCoord(blockPos.x);
+    ChunkCoord chunkZ = world::toChunkCoord(blockPos.z);
+    const ChunkData* chunk = m_world->getChunk(chunkX, chunkZ);
+    if (chunk == nullptr) {
+        return std::nullopt;
+    }
+
+    // 从目标位置向下寻找固体地面
+    f64 adjustedY = y;
+    bool foundGround = false;
+
+    while (blockPos.y > world::MIN_BUILD_HEIGHT && !foundGround) {
+        BlockPos belowPos = blockPos.down();
+        const BlockState* belowState = m_world->getBlockState(belowPos);
+
+        if (belowState != nullptr && belowState->blocksMovement()) {
+            // 找到固体地面
+            foundGround = true;
+            adjustedY = static_cast<f64>(belowPos.y + 1);
+        } else {
+            --blockPos.y;
+            adjustedY = static_cast<f64>(blockPos.y);
+        }
+    }
+
+    if (!foundGround) {
+        return std::nullopt;
+    }
+
+    // 检查找到的位置是否安全
+    if (isSafeTeleportPosition(x, adjustedY, z, avoidFluid)) {
+        return Vector3d(x, adjustedY, z);
+    }
+
+    return std::nullopt;
+}
+
+bool Entity::isSafeTeleportPosition(f64 x, f64 y, f64 z, bool avoidFluid) const {
+    // 参考 MC 1.16.5 LivingEntity.attemptTeleport()
+
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    // 创建实体的碰撞箱
+    f32 halfWidth = width() / 2.0f;
+    AxisAlignedBB box(
+        static_cast<f32>(x - halfWidth),
+        static_cast<f32>(y),
+        static_cast<f32>(z - halfWidth),
+        static_cast<f32>(x + halfWidth),
+        static_cast<f32>(y + height()),
+        static_cast<f32>(z + halfWidth)
+    );
+
+    // 检查碰撞
+    if (m_world->hasBlockCollision(box)) {
+        return false;
+    }
+
+    // 检查液体
+    if (avoidFluid) {
+        // 检查脚底和身体是否在液体中
+        BlockPos pos(static_cast<i32>(std::floor(x)),
+                     static_cast<i32>(std::floor(y)),
+                     static_cast<i32>(std::floor(z)));
+
+        if (m_world->isWaterAt(pos.x, pos.y, pos.z) ||
+            m_world->isLavaAt(pos.x, pos.y, pos.z)) {
+            return false;
+        }
+
+        // 检查上半身
+        BlockPos posUp = pos.up();
+        if (m_world->isWaterAt(posUp.x, posUp.y, posUp.z) ||
+            m_world->isLavaAt(posUp.x, posUp.y, posUp.z)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 

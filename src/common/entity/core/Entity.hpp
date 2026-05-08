@@ -761,6 +761,77 @@ public:
      */
     [[nodiscard]] virtual bool isNonBoss() const { return true; }
 
+    // ========== 随机传送 ==========
+
+    /**
+     * @brief 尝试传送到指定位置
+     *
+     * 参考 MC 1.16.5 LivingEntity.attemptTeleport()
+     *
+     * 安全传送流程：
+     * 1. 检查目标区块是否已加载
+     * 2. 从目标位置向下查找固体地面
+     * 3. 检查目标位置是否有碰撞
+     * 4. 检查目标位置是否在液体中
+     * 5. 如果检查失败，恢复原位置
+     *
+     * @param x 目标 X 坐标
+     * @param y 目标 Y 坐标
+     * @param z 目标 Z 坐标
+     * @param playEffects 是否播放传送效果（粒子、音效）
+     * @return 如果传送成功返回 true
+     */
+    bool attemptTeleport(f64 x, f64 y, f64 z, bool playEffects = true);
+
+    /**
+     * @brief 随机传送到附近位置
+     *
+     * 参考 MC 1.16.5 Entity.randomTeleport()
+     *
+     * 在指定范围内随机选择位置尝试传送：
+     * - 水平方向：以实体为中心，±range 格范围
+     * - 垂直方向：以实体为中心，±range 格范围
+     *
+     * 最多尝试 16 次，找到第一个有效位置后立即传送。
+     * 如果所有尝试都失败，保持原位置不变。
+     *
+     * @param range 随机范围（水平和垂直）
+     * @param playEffects 是否播放传送效果
+     * @param avoidFluid 是否避免液体（水、岩浆）
+     * @return 如果传送成功返回 true
+     */
+    bool randomTeleport(f64 range, bool playEffects = true, bool avoidFluid = true);
+
+    /**
+     * @brief 查找安全的传送位置
+     *
+     * 从目标位置向下查找第一个安全的站立位置。
+     * 安全位置定义：
+     * - 有固体方块作为脚底
+     * - 脚底上方两格无碰撞
+     * - 不在液体中
+     *
+     * @param x 目标 X 坐标
+     * @param y 目标 Y 坐标（起始搜索高度）
+     * @param z 目标 Z 坐标
+     * @param avoidFluid 是否避免液体
+     * @return 安全位置，如果找不到返回 nullopt
+     */
+    [[nodiscard]] std::optional<Vector3d> findSafeTeleportPosition(f64 x, f64 y, f64 z, bool avoidFluid = true) const;
+
+    /**
+     * @brief 检查位置是否可以安全站立
+     *
+     * 检查实体在该位置是否会有碰撞和液体问题。
+     *
+     * @param x 目标 X 坐标
+     * @param y 目标 Y 坐标（脚底高度）
+     * @param z 目标 Z 坐标
+     * @param avoidFluid 是否检查液体
+     * @return 如果位置安全返回 true
+     */
+    [[nodiscard]] bool isSafeTeleportPosition(f64 x, f64 y, f64 z, bool avoidFluid = true) const;
+
     // ========== 存活时间 ==========
 
     [[nodiscard]] u32 ticksExisted() const { return m_ticksExisted; }

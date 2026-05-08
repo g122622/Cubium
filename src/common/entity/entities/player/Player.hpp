@@ -6,6 +6,7 @@
 #include "../../experience/ExperienceManager.hpp"
 #include "../../effect/EffectInstance.hpp"
 #include "../../food/FoodStats.hpp"
+#include "../../player/CooldownTracker.hpp"
 #include "../../../network/packet/ProtocolPackets.hpp"
 #include "../../../world/GlobalPos.hpp"
 #include "../../../item/core/ActionResult.hpp"
@@ -925,6 +926,47 @@ public:
      */
     [[nodiscard]] bool isFishing() const { return m_fishingBobber != 0; }
 
+    // ========== 物品冷却系统 ==========
+
+    /**
+     * @brief 获取物品冷却追踪器
+     * @return 冷却追踪器的常量引用
+     */
+    [[nodiscard]] const CooldownTracker& cooldownTracker() const { return m_cooldownTracker; }
+    CooldownTracker& cooldownTracker() { return m_cooldownTracker; }
+
+    /**
+     * @brief 获取物品冷却进度
+     *
+     * 便捷方法，直接查询指定物品的冷却进度。
+     * 冷却进度 0 表示可用，1 表示刚开始冷却。
+     *
+     * @param item 物品指针
+     * @param partialTicks 部分帧时间
+     * @return 冷却进度（0-1）
+     */
+    [[nodiscard]] f32 getItemCooldown(const Item* item, f32 partialTicks = 0.0f) const {
+        return m_cooldownTracker.getCooldownProgress(item, partialTicks);
+    }
+
+    /**
+     * @brief 检查物品是否在冷却中
+     * @param item 物品指针
+     * @return 如果物品在冷却中返回 true
+     */
+    [[nodiscard]] bool hasItemCooldown(const Item* item) const {
+        return m_cooldownTracker.hasCooldown(item);
+    }
+
+    /**
+     * @brief 设置物品冷却
+     * @param item 物品指针
+     * @param ticks 冷却时间（tick）
+     */
+    void setItemCooldown(const Item* item, i32 ticks) {
+        m_cooldownTracker.setCooldown(item, ticks);
+    }
+
     /**
      * @brief 攻击目标实体
      *
@@ -1075,6 +1117,9 @@ private:
 
     // XP 冷却（拾取经验球的延迟）
     i32 m_xpCooldown = 0;
+
+    // 物品冷却追踪器（紫颂果、末影珍珠、盾牌等）
+    CooldownTracker m_cooldownTracker;
 
     bool m_isSprinting = false;
     bool m_isSneaking = false;

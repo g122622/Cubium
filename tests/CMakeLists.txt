@@ -116,6 +116,7 @@ add_executable(mc_tests
     entity/PlayerPoseCollisionTest.cpp
     common/entity/PlayerSwimTest.cpp
     common/entity/player/SpawnPointValidatorTest.cpp
+    common/entity/player/CooldownTrackerTest.cpp
     entity/ProjectileHelperTest.cpp
     entity/SkeletonSupportTypesTest.cpp
     entity/SpellcastingIllagerSupportTypesTest.cpp

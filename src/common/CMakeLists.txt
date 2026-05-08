@@ -81,6 +81,7 @@ add_library(mc_common STATIC
     entity/entities/player/GameModeUtils.cpp
     entity/player/SleepManager.cpp
     entity/player/SpawnPointValidator.cpp
+    entity/player/CooldownTracker.cpp
     # Entity - Item
     entity/entities/item/ItemEntity.cpp
     # Entity - Passive Animals (basic)
