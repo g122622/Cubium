@@ -160,7 +160,7 @@ std::optional<i8> tryGetByte(const nbt::tags::compound_tag& tag, const std::stri
  */
 std::optional<std::string> tryGetString(const nbt::tags::compound_tag& tag, const std::string& key) {
     auto it = tag.value.find(key);
-    if (it != tag.value.end() && it->second->id() == nbt::TagId::std::string) {
+    if (it != tag.value.end() && it->second->id() == nbt::TagId::String) {
         return dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
     }
     return std::nullopt;

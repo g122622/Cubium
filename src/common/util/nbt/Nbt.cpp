@@ -335,7 +335,7 @@ TagId deduce_tag(std::istream& input) {
     }
     if (a == '"' || is_valid_char(a)) {
         input.putback(a);
-        return TagId::std::string;
+        return TagId::String;
     }
     input.putback(a);
     return TagId::End;
@@ -817,7 +817,7 @@ void read_compound_text(std::istream& input, tags::compound_tag& compound, const
             if (cheof(input) != '}')
                 throw std::runtime_error("failed to close compound tag");
             return;
-        case TagId::std::string:
+        case TagId::String:
             break;
         default:
             throw std::runtime_error(
@@ -921,7 +921,7 @@ string to_string(mc::nbt::TagId tid) {
 		TAG_ID_CASE(Float);
 		TAG_ID_CASE(Double);
 		TAG_ID_CASE(ByteArray);
-		TAG_ID_CASE(std::string);
+		TAG_ID_CASE(String);
 		TAG_ID_CASE(List);
 		TAG_ID_CASE(Compound);
 		TAG_ID_CASE(IntArray);

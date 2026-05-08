@@ -16,7 +16,6 @@
 #include "client/ui/kagero/event/UIEvents.hpp"
 
 using namespace mc::client::ui::kagero::tpl;
-using mc::std::string;
 using mc::i32;
 using mc::i64;
 using mc::f32;

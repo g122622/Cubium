@@ -15,7 +15,7 @@ namespace {
         Byte = 0,
         VarInt = 1,
         Float = 2,
-        std::string = 3,
+        String = 3,
         TextComponent = 4,
         OptChat = 5,
         Slot = 6,
@@ -45,7 +45,7 @@ namespace {
             case 3:  // f32
                 return MetadataTypeId::Float;
             case 4:  // std::string
-                return MetadataTypeId::std::string;
+                return MetadataTypeId::String;
             case 5:  // bool
                 return MetadataTypeId::Boolean;
             case 6:  // Vector3i
@@ -209,7 +209,7 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                 manager.clearDirty(index);
                 break;
             }
-            case MetadataTypeId::std::string: {
+            case MetadataTypeId::String: {
                 std::string value = readString(data.data(), data.size(), offset);
                 (void)manager.setRaw(index, entity::DataValue(value));
                 manager.clearDirty(index);

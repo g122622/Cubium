@@ -14,7 +14,7 @@ using mc::i8;
 using mc::i32;
 using mc::i64;
 using mc::f32;
-using mc::std::string;
+
 using mc::Vector3i;
 using mc::Vector2f;
 using mc::Vector3f;
@@ -33,7 +33,7 @@ enum class DataSerializerType : u8 {
     Int = 1,        // i32
     Long = 2,       // i64
     Float = 3,      // f32
-    std::string = 4,     // std::string
+    String = 4,     // String
     Component = 5,  // 文本组件（暂用String）
     ItemStack = 6,  // 物品堆
     Boolean = 7,    // bool
@@ -105,7 +105,7 @@ template<> inline DataSerializerType DataParameter<i8>::type() const { return Da
 template<> inline DataSerializerType DataParameter<i32>::type() const { return DataSerializerType::Int; }
 template<> inline DataSerializerType DataParameter<i64>::type() const { return DataSerializerType::Long; }
 template<> inline DataSerializerType DataParameter<f32>::type() const { return DataSerializerType::Float; }
-template<> inline DataSerializerType DataParameter<std::string>::type() const { return DataSerializerType::std::string; }
+template<> inline DataSerializerType DataParameter<std::string>::type() const { return DataSerializerType::String; }
 template<> inline DataSerializerType DataParameter<bool>::type() const { return DataSerializerType::Boolean; }
 template<> inline DataSerializerType DataParameter<Vector3i>::type() const { return DataSerializerType::BlockPos; }
 template<> inline DataSerializerType DataParameter<Vector2f>::type() const { return DataSerializerType::Rotation; }

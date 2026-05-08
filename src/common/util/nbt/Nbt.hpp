@@ -76,7 +76,7 @@ enum class TagId : u8 {
     Float,      ///< 单精度浮点标签 (0x05)
     Double,     ///< 双精度浮点标签 (0x06)
     ByteArray,  ///< 字节数组标签 (0x07)
-    std::string,     ///< 字符串标签 (0x08) - UTF-8编码
+    String,     ///< 字符串标签 (0x08) - UTF-8编码
     List,       ///< 列表标签 (0x09) - 同类型元素列表
     Compound,   ///< 复合标签 (0x0A) - 键值对映射
     IntArray,   ///< 整型数组标签 (0x0B)
@@ -743,9 +743,9 @@ ARRAY_TAG(longarray_tag, TagId::LongArray, std::int64_t, 'L')
 struct string_tag final : public tag {
     typedef std::string value_type;
     value_type value;
-    static constexpr TagId tid = TagId::std::string;
+    static constexpr TagId tid = TagId::String;
     virtual TagId id() const noexcept override {
-        return TagId::std::string;
+        return TagId::String;
     }
     string_tag() = default;
     string_tag(const value_type& string);

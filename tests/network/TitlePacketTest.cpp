@@ -5,7 +5,6 @@
 
 using namespace mc::network;
 using namespace mc::text;
-using mc::std::string;
 using mc::i32;
 using mc::u8;
 using mc::u16;

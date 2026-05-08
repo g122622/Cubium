@@ -439,7 +439,7 @@ TEST(DataParameter, Type) {
     EXPECT_EQ(intParam.type(), DataSerializerType::Int);
     EXPECT_EQ(longParam.type(), DataSerializerType::Long);
     EXPECT_EQ(floatParam.type(), DataSerializerType::Float);
-    EXPECT_EQ(stringParam.type(), DataSerializerType::std::string);
+    EXPECT_EQ(stringParam.type(), DataSerializerType::String);
     EXPECT_EQ(boolParam.type(), DataSerializerType::Boolean);
     EXPECT_EQ(blockPosParam.type(), DataSerializerType::BlockPos);
     EXPECT_EQ(rotationParam.type(), DataSerializerType::Rotation);

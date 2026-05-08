@@ -10,7 +10,6 @@ namespace mc::client::ui::minecraft::widgets {
 
 namespace {
 
-using mc::std::string;
 using mc::f32;
 using mc::client::Font;
 using mc::client::renderer::trident::gui::GuiRenderer;

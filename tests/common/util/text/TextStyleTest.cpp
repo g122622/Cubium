@@ -5,7 +5,6 @@
 #include <nlohmann/json.hpp>
 
 using namespace mc::text;
-using mc::std::string;
 
 // ============================================================================
 // TextFormatting 测试

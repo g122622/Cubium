@@ -50,8 +50,8 @@ TEST_F(LocalServerConnectionTest, Disconnect) {
 
 TEST_F(LocalServerConnectionTest, Identifier) {
     LocalServerConnection serverConn(&m_connectionPair->serverEndpoint());
-    mc::std::string id = serverConn.identifier();
-    EXPECT_TRUE(id.find("Local:") != mc::std::string::npos);
+    std::string id = serverConn.identifier();
+    EXPECT_TRUE(id.find("Local:") != std::string::npos);
 }
 
 TEST_F(LocalServerConnectionTest, SendWhenDisconnected) {
@@ -67,8 +67,8 @@ TEST_F(LocalServerConnectionTest, NullEndpoint) {
     LocalServerConnection serverConn(nullptr);
     EXPECT_FALSE(serverConn.isConnected());
     // identifier 仍然会有一个 ID 号
-    mc::std::string id = serverConn.identifier();
-    EXPECT_TRUE(id.find("Local:") != mc::std::string::npos);
+    std::string id = serverConn.identifier();
+    EXPECT_TRUE(id.find("Local:") != std::string::npos);
 
     // 发送到 null endpoint 不应崩溃
     mc::u8 data[] = {1, 2, 3};

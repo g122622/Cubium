@@ -6,7 +6,6 @@
 #include "core/Types.hpp"
 
 using namespace mc::text;
-using mc::std::string;
 
 // ============================================================================
 // StringTextComponent 测试

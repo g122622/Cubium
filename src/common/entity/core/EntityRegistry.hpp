@@ -11,7 +11,7 @@ namespace mc {
 namespace entity {
 
 // 引入 mc 命名空间的类型
-using mc::std::string;
+
 using mc::Error;
 using mc::ErrorCode;
 using mc::Result;

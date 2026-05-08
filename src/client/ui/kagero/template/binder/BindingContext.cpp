@@ -48,7 +48,7 @@ bool Value::asBool() const {
         case ValueType::Bool: return m_boolValue;
         case ValueType::Integer: return m_intValue != 0;
         case ValueType::Float: return m_floatValue != 0.0f;
-        case ValueType::std::string: return !m_stringValue.empty() && m_stringValue != "false";
+        case ValueType::String: return !m_stringValue.empty() && m_stringValue != "false";
         default: return false;
     }
 }
@@ -58,7 +58,7 @@ i32 Value::asInteger() const {
         case ValueType::Bool: return m_boolValue ? 1 : 0;
         case ValueType::Integer: return m_intValue;
         case ValueType::Float: return static_cast<i32>(m_floatValue);
-        case ValueType::std::string: {
+        case ValueType::String: {
             try {
                 return std::stoi(m_stringValue);
             } catch (...) {
@@ -74,7 +74,7 @@ f32 Value::asFloat() const {
         case ValueType::Bool: return m_boolValue ? 1.0f : 0.0f;
         case ValueType::Integer: return static_cast<f32>(m_intValue);
         case ValueType::Float: return m_floatValue;
-        case ValueType::std::string: {
+        case ValueType::String: {
             try {
                 return std::stof(m_stringValue);
             } catch (...) {
@@ -87,7 +87,7 @@ f32 Value::asFloat() const {
 
 const std::string& Value::asString() const {
     static const std::string empty;
-    return m_type == ValueType::std::string ? m_stringValue : empty;
+    return m_type == ValueType::String ? m_stringValue : empty;
 }
 
 std::string Value::toString() const {
@@ -96,7 +96,7 @@ std::string Value::toString() const {
         case ValueType::Bool: return m_boolValue ? "true" : "false";
         case ValueType::Integer: return std::to_string(m_intValue);
         case ValueType::Float: return std::to_string(m_floatValue);
-        case ValueType::std::string: return m_stringValue;
+        case ValueType::String: return m_stringValue;
         case ValueType::Array: {
             std::ostringstream oss;
             oss << "[";
@@ -174,7 +174,7 @@ Value Value::getProperty(const std::string& name) const {
     }
 
     // 字符串类型支持特殊属性
-    if (m_type == ValueType::std::string) {
+    if (m_type == ValueType::String) {
         if (name == "length" || name == "size") {
             return Value(static_cast<i32>(m_stringValue.size()));
         }
@@ -225,7 +225,7 @@ bool Value::operator==(const Value& other) const {
         case ValueType::Bool: return m_boolValue == other.m_boolValue;
         case ValueType::Integer: return m_intValue == other.m_intValue;
         case ValueType::Float: return m_floatValue == other.m_floatValue;
-        case ValueType::std::string: return m_stringValue == other.m_stringValue;
+        case ValueType::String: return m_stringValue == other.m_stringValue;
         case ValueType::Array: return m_arrayValue == other.m_arrayValue;
         case ValueType::Object: return m_objectValue == other.m_objectValue;
         default: return false;

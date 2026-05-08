@@ -6,7 +6,7 @@
 
 namespace {
 
-mc::std::string trimWhitespace(mc::std::string_view input)
+std::string trimWhitespace(std::string_view input)
 {
     size_t begin = 0;
     size_t end = input.size();
@@ -18,7 +18,7 @@ mc::std::string trimWhitespace(mc::std::string_view input)
         --end;
     }
 
-    return mc::std::string(input.substr(begin, end - begin));
+    return std::string(input.substr(begin, end - begin));
 }
 
 } // namespace

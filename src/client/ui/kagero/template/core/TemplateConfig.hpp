@@ -5,7 +5,6 @@
 namespace mc::client::ui::kagero::tpl::core {
 
 // 引入基础类型
-using mc::std::string;
 using mc::i32;
 using mc::u8;
 using mc::u64;

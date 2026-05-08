@@ -39,7 +39,7 @@ TEST_F(GameProfileTest, UUIDToString) {
     };
 
     GameProfile profile(uuid, "Test");
-    mc::std::string uuidStr = profile.uuidToString();
+    std::string uuidStr = profile.uuidToString();
 
     EXPECT_EQ("550e8400-e29b-41d4-a716-446655440000", uuidStr);
 }
@@ -51,13 +51,13 @@ TEST_F(GameProfileTest, UUIDToStringNoDashes) {
     };
 
     GameProfile profile(uuid, "Test");
-    mc::std::string uuidStr = profile.uuidToStringNoDashes();
+    std::string uuidStr = profile.uuidToStringNoDashes();
 
     EXPECT_EQ("550e8400e29b41d4a716446655440000", uuidStr);
 }
 
 TEST_F(GameProfileTest, ParseUUID) {
-    mc::std::string uuidStr1 = "550e8400-e29b-41d4-a716-446655440000";
+    std::string uuidStr1 = "550e8400-e29b-41d4-a716-446655440000";
     auto uuid1 = GameProfile::parseUUID(uuidStr1);
 
     std::array<mc::u8, 16> expected = {
@@ -70,7 +70,7 @@ TEST_F(GameProfileTest, ParseUUID) {
     }
 
     // Test without dashes
-    mc::std::string uuidStr2 = "550e8400e29b41d4a716446655440000";
+    std::string uuidStr2 = "550e8400e29b41d4a716446655440000";
     auto uuid2 = GameProfile::parseUUID(uuidStr2);
 
     for (size_t i = 0; i < 16; ++i) {
@@ -79,7 +79,7 @@ TEST_F(GameProfileTest, ParseUUID) {
 }
 
 TEST_F(GameProfileTest, ParseInvalidUUID) {
-    mc::std::string invalidStr = "invalid-uuid";
+    std::string invalidStr = "invalid-uuid";
     auto uuid = GameProfile::parseUUID(invalidStr);
 
     // Should return all zeros

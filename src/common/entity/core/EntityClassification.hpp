@@ -7,7 +7,7 @@ namespace mc::entity {
 // 引入 mc 命名空间的类型
 using mc::u8;
 using mc::i32;
-using mc::std::string;
+
 
 /**
  * @brief 实体分类枚举

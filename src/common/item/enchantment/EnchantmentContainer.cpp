@@ -183,7 +183,7 @@ EnchantmentContainer EnchantmentContainer::fromNbt(const nbt::tags::list_tag& li
     for (const auto& enchTag : compoundList.value) {
         // 获取附魔ID
         auto it = enchTag.value.find("id");
-        if (it == enchTag.value.end() || it->second->id() != nbt::TagId::std::string) {
+        if (it == enchTag.value.end() || it->second->id() != nbt::TagId::String) {
             continue;
         }
         std::string id = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;

@@ -85,7 +85,7 @@ flowchart LR
 mc::client::command::ClientCommandManager manager;
 
 manager.setPlayerNameProvider([]() {
-    return std::vector<mc::std::string>{"Steve", "Alex"};
+    return std::vector<std::string>{"Steve", "Alex"};
 });
 
 auto applyResult = manager.applyCommandTreeJson(treeJson);

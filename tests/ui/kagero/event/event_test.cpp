@@ -14,7 +14,6 @@ using namespace mc::client::ui::kagero::event;
 using mc::i32;
 using mc::u32;
 using mc::u64;
-using mc::std::string;
 
 // ==================== Event Base Tests ====================
 

@@ -4,7 +4,6 @@
 #include <stdexcept>
 
 using namespace mc::assert;
-using mc::std::string;
 
 // ============================================================================
 // 测试夹具

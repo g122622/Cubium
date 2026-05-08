@@ -11,7 +11,7 @@ using namespace mc::client::ui::kagero::widget;
 
 class AnchorTestWidget : public Widget {
 public:
-    explicit AnchorTestWidget(const mc::std::string& id) : Widget(id) {
+    explicit AnchorTestWidget(const std::string& id) : Widget(id) {
         setSize(20, 10);
     }
     void paint(PaintContext& ctx) override {

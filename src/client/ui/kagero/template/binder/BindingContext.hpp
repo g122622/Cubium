@@ -28,9 +28,9 @@ public:
     explicit Value(bool v) : m_type(ValueType::Bool), m_boolValue(v) {}
     explicit Value(i32 v) : m_type(ValueType::Integer), m_intValue(v) {}
     explicit Value(f32 v) : m_type(ValueType::Float), m_floatValue(v) {}
-    explicit Value(const std::string& v) : m_type(ValueType::std::string), m_stringValue(v) {}
-    explicit Value(std::string&& v) : m_type(ValueType::std::string), m_stringValue(std::move(v)) {}
-    explicit Value(const char* v) : m_type(ValueType::std::string), m_stringValue(v ? v : "") {}  // 处理字符串字面量
+    explicit Value(const std::string& v) : m_type(ValueType::String), m_stringValue(v) {}
+    explicit Value(std::string&& v) : m_type(ValueType::String), m_stringValue(std::move(v)) {}
+    explicit Value(const char* v) : m_type(ValueType::String), m_stringValue(v ? v : "") {}  // 处理字符串字面量
 
     // 数组类型构造
     explicit Value(const std::vector<Value>& v) : m_type(ValueType::Array), m_arrayValue(v) {}
@@ -44,7 +44,7 @@ public:
     [[nodiscard]] bool isBool() const { return m_type == ValueType::Bool; }
     [[nodiscard]] bool isInteger() const { return m_type == ValueType::Integer; }
     [[nodiscard]] bool isFloat() const { return m_type == ValueType::Float; }
-    [[nodiscard]] bool isString() const { return m_type == ValueType::std::string; }
+    [[nodiscard]] bool isString() const { return m_type == ValueType::String; }
     [[nodiscard]] bool isArray() const { return m_type == ValueType::Array; }
     [[nodiscard]] bool isObject() const { return m_type == ValueType::Object; }
     [[nodiscard]] bool isNumber() const { return isInteger() || isFloat(); }
@@ -99,7 +99,7 @@ public:
         Bool,
         Integer,
         Float,
-        std::string,
+        String,
         Array,
         Object
     };

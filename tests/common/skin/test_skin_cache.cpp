@@ -29,7 +29,7 @@ protected:
         std::filesystem::remove_all(testDir_, ec);
     }
 
-    mc::std::string testDir_;
+    std::string testDir_;
     std::unique_ptr<SkinCache> cache_;
 };
 
@@ -42,7 +42,7 @@ TEST_F(SkinCacheTest, SaveAndReadSkin) {
     auto initResult = cache_->initialize();
     ASSERT_TRUE(initResult.success());
 
-    mc::std::string hash = "abc123def456";
+    std::string hash = "abc123def456";
     std::vector<mc::u8> testData(64 * 64 * 4, 0xAB);  // 64x64 RGBA
 
     // 保存
@@ -67,7 +67,7 @@ TEST_F(SkinCacheTest, GenerateSkinLocation) {
     auto initResult = cache_->initialize();
     ASSERT_TRUE(initResult.success());
 
-    mc::std::string hash = "abc123def456";
+    std::string hash = "abc123def456";
     mc::ResourceLocation location = cache_->generateSkinLocation(hash);
 
     EXPECT_EQ("minecraft:skins/ab/abc123def456", location.toString());
@@ -194,6 +194,6 @@ TEST_F(PlayerSkinInfoTest, ModelParts) {
 
 TEST_F(PlayerSkinInfoTest, DefaultSkinLocation) {
     mc::ResourceLocation defaultSkin = info_->getDefaultSkinLocation();
-    EXPECT_TRUE(defaultSkin.toString().find("steve") != mc::std::string::npos ||
-                defaultSkin.toString().find("alex") != mc::std::string::npos);
+    EXPECT_TRUE(defaultSkin.toString().find("steve") != std::string::npos ||
+                defaultSkin.toString().find("alex") != std::string::npos);
 }

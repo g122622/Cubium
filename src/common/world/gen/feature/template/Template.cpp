@@ -1107,7 +1107,7 @@ std::optional<ProcessedBlockInfo> JigsawReplacementStructureProcessor::process(
         return std::nullopt;
     }
 
-    if (it->second->id() != nbt::TagId::std::string) {
+    if (it->second->id() != nbt::TagId::String) {
         return std::nullopt;
     }
 

@@ -28,7 +28,7 @@ const BlockState* applyPropertiesToState(
     std::unordered_map<const IProperty*, size_t> wanted;
 
     for (const auto& [key, valueTag] : propsCompound.value) {
-        if (!valueTag || valueTag->id() != nbt::TagId::std::string) {
+        if (!valueTag || valueTag->id() != nbt::TagId::String) {
             continue;
         }
 

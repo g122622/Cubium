@@ -5,8 +5,8 @@
 
 namespace {
 
-std::vector<std::pair<mc::std::string, mc::std::string>> parseStateConditions(mc::std::string_view stateStr) {
-    std::vector<std::pair<mc::std::string, mc::std::string>> conditions;
+std::vector<std::pair<std::string, std::string>> parseStateConditions(std::string_view stateStr) {
+    std::vector<std::pair<std::string, std::string>> conditions;
 
     if (stateStr.empty() || stateStr == "normal") {
         return conditions;
@@ -15,15 +15,15 @@ std::vector<std::pair<mc::std::string, mc::std::string>> parseStateConditions(mc
     size_t start = 0;
     while (start < stateStr.size()) {
         size_t end = stateStr.find(',', start);
-        if (end == mc::std::string_view::npos) {
+        if (end == std::string_view::npos) {
             end = stateStr.size();
         }
 
-        mc::std::string_view token(stateStr.data() + start, end - start);
+        std::string_view token(stateStr.data() + start, end - start);
         size_t eq = token.find('=');
-        if (eq != mc::std::string_view::npos) {
-            mc::std::string key(token.substr(0, eq));
-            mc::std::string value(token.substr(eq + 1));
+        if (eq != std::string_view::npos) {
+            std::string key(token.substr(0, eq));
+            std::string value(token.substr(eq + 1));
             if (!key.empty()) {
                 conditions.emplace_back(std::move(key), std::move(value));
             }
@@ -36,8 +36,8 @@ std::vector<std::pair<mc::std::string, mc::std::string>> parseStateConditions(mc
 }
 
 bool matchesProperties(
-    const std::vector<std::pair<mc::std::string, mc::std::string>>& conditions,
-    const std::map<mc::std::string, mc::std::string>& properties)
+    const std::vector<std::pair<std::string, std::string>>& conditions,
+    const std::map<std::string, std::string>& properties)
 {
     for (const auto& [key, value] : conditions) {
         auto it = properties.find(key);

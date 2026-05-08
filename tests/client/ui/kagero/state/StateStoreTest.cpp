@@ -21,7 +21,7 @@
 
 using namespace mc::client::ui::kagero::state;
 using mc::i32;
-using mc::std::string;
+
 using mc::f32;
 using mc::u64;
 

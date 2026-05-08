@@ -750,7 +750,7 @@ void ItemStack::toNbt(nbt::tags::compound_tag& tag) const {
 Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag) {
     // 获取物品ID
     auto it = tag.value.find(nbt_keys::ID);
-    if (it == tag.value.end() || it->second->id() != nbt::TagId::std::string) {
+    if (it == tag.value.end() || it->second->id() != nbt::TagId::String) {
         return Error(ErrorCode::InvalidData, "ItemStack NBT missing 'id' field");
     }
 
@@ -810,7 +810,7 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag) {
 
         // 自定义名称
         auto nameIt = display.value.find(nbt_keys::NAME);
-        if (nameIt != display.value.end() && nameIt->second->id() == nbt::TagId::std::string) {
+        if (nameIt != display.value.end() && nameIt->second->id() == nbt::TagId::String) {
             std::string nameJson = dynamic_cast<const nbt::tags::string_tag&>(*nameIt->second).value;
             stack.m_customName = text::TextParser::parse(nameJson);
         }
@@ -819,7 +819,7 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag) {
         auto loreIt = display.value.find(nbt_keys::LORE);
         if (loreIt != display.value.end() && loreIt->second->id() == nbt::TagId::List) {
             auto& loreList = dynamic_cast<const nbt::tags::list_tag&>(*loreIt->second);
-            if (loreList.element_id() == nbt::TagId::std::string) {
+            if (loreList.element_id() == nbt::TagId::String) {
                 auto& stringList = dynamic_cast<const nbt::tags::string_list_tag&>(loreList);
                 for (const auto& lineJson : stringList.value) {
                     stack.m_lore.push_back(text::TextParser::parse(lineJson));
@@ -838,13 +838,13 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag) {
 
     // 药水ID
     it = tagCompound.value.find(nbt_keys::POTION);
-    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::std::string) {
+    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::String) {
         stack.m_potionId = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
     }
 
     // 自定义数据
     it = tagCompound.value.find("custom_data");
-    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::std::string) {
+    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::String) {
         std::string customDataStr = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
         auto parsed = nlohmann::json::parse(customDataStr, nullptr, false);
         if (!parsed.is_discarded() && parsed.is_object()) {

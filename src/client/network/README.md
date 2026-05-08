@@ -377,7 +377,7 @@ callbacks.onChunkData = [](mc::ChunkCoord x, mc::ChunkCoord z,
                            const std::vector<mc::u8>& data) {
     // 处理区块数据
 };
-callbacks.onPlayerSpawn = [](mc::PlayerId id, const mc::std::string& name,
+callbacks.onPlayerSpawn = [](mc::PlayerId id, const std::string& name,
                             mc::f64 x, mc::f64 y, mc::f64 z) {
     // 处理玩家生成
 };

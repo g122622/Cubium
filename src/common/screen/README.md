@@ -193,7 +193,7 @@ public:
 #include "screen/ScreenType.hpp"
 
 // 获取屏幕类型的资源ID
-mc::std::string id = mc::screenTypeToId(mc::ScreenType::CraftingTable);
+std::string id = mc::screenTypeToId(mc::ScreenType::CraftingTable);
 // 结果: "minecraft:crafting_table"
 
 // 从资源ID解析屏幕类型

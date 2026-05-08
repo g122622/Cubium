@@ -217,7 +217,7 @@ TEST_F(RichTextWidgetTest, NullText) {
 }
 
 TEST_F(RichTextWidgetTest, VeryLongText) {
-    mc::std::string longText(1000, 'A');
+    std::string longText(1000, 'A');
     widget->setText(longText);
     EXPECT_EQ(widget->getUnformattedText().length(), 1000u);
 }

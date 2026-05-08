@@ -260,7 +260,7 @@ WorldType LevelDatCodec::parseWorldType(const nbt::tags::compound_tag& data)
     if (rebornIt != data.value.end() && rebornIt->second->id() == nbt::TagId::Compound) {
         auto& reborn = dynamic_cast<const nbt::tags::compound_tag&>(*rebornIt->second);
         auto worldTypeIt = reborn.value.find("WorldType");
-        if (worldTypeIt != reborn.value.end() && worldTypeIt->second->id() == nbt::TagId::std::string) {
+        if (worldTypeIt != reborn.value.end() && worldTypeIt->second->id() == nbt::TagId::String) {
             std::string worldTypeStr = dynamic_cast<const nbt::tags::string_tag&>(*worldTypeIt->second).value;
             // 解析世界类型字符串
             if (worldTypeStr == "flat") return WorldType::Flat;
@@ -272,7 +272,7 @@ WorldType LevelDatCodec::parseWorldType(const nbt::tags::compound_tag& data)
 
     // 兼容原版 generatorName
     auto it = data.value.find("generatorName");
-    if (it != data.value.end() && it->second->id() == nbt::TagId::std::string) {
+    if (it != data.value.end() && it->second->id() == nbt::TagId::String) {
         std::string generatorName = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
         if (generatorName == "flat") return WorldType::Flat;
         if (generatorName == "largeBiomes") return WorldType::LargeBiomes;
@@ -335,7 +335,7 @@ Result<LevelSummaryData> LevelDatCodec::parseSummary(const nbt::tags::compound_t
     // 解析显示名称
     std::string displayName;
     auto levelNameIt = data.value.find("LevelName");
-    if (levelNameIt != data.value.end() && levelNameIt->second->id() == nbt::TagId::std::string) {
+    if (levelNameIt != data.value.end() && levelNameIt->second->id() == nbt::TagId::String) {
         displayName = dynamic_cast<const nbt::tags::string_tag&>(*levelNameIt->second).value;
     }
 
@@ -400,7 +400,7 @@ Result<LevelSummaryData> LevelDatCodec::parseSummary(const nbt::tags::compound_t
         const auto& versionCompound = dynamic_cast<const nbt::tags::compound_tag&>(*versionCompoundIt->second);
 
         auto nameIt = versionCompound.value.find("Name");
-        if (nameIt != versionCompound.value.end() && nameIt->second->id() == nbt::TagId::std::string) {
+        if (nameIt != versionCompound.value.end() && nameIt->second->id() == nbt::TagId::String) {
             versionName = dynamic_cast<const nbt::tags::string_tag&>(*nameIt->second).value;
         }
 

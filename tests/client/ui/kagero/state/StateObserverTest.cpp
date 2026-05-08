@@ -19,7 +19,6 @@
 
 using namespace mc::client::ui::kagero::state;
 using mc::i32;
-using mc::std::string;
 
 // ============================================================================
 // AutoObserver 测试

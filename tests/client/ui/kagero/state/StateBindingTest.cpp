@@ -23,7 +23,7 @@
 using namespace mc::client::ui::kagero::state;
 using namespace mc::client::ui::kagero::state::binding;
 using mc::i32;
-using mc::std::string;
+
 using mc::u64;
 
 // ============================================================================
