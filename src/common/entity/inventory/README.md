@@ -132,6 +132,12 @@ inventory/
   - 可放置性检查：`mayPlace()`, `isValid()`, `getMaxStackSize()`
   - 回调方法：`onTake()`, `onCrafting()`, `onSwapCraft()`, `onSlotChange()`
 - `ArmorSlot` 类：护甲槽位，只接受对应类型护甲
+  - `mayPlace()`: 检查护甲类型是否匹配槽位
+  - `mayPickup()`: 检查护甲是否可取下（MC 1.16.5 对齐）
+    - 空槽位总是可取
+    - 创造模式玩家可取下任何护甲
+    - 绑定诅咒附魔的护甲在非创造模式下无法取下
+    - 普通护甲可正常取下
 - `ResultSlot` 类：合成结果槽位，只能取出不能放入
 - `FurnaceFuelSlot` 类：熔炉燃料槽位，只接受燃料物品
   - `mayPlace()`: 检查物品是否为有效燃料
@@ -512,7 +518,15 @@ BlockItemRegistry::instance().initializeVanillaBlockItems();
   - `containsAny()`: 检查是否包含指定物品集合
   - `isUsableByPlayer()`: 玩家可用性检查
 - `SlotTest`: 槽位基础测试
-- `ArmorSlotTest`: 护甲槽位测试
+  - `BasicOperations`: 槽位基本操作
+  - `MaxStackSize`: 最大堆叠数
+  - `MayPlace`: 放置检查
+  - `ArmorSlotOnlyAcceptsMatchingArmorType`: 护甲槽位类型检查
+  - `ArmorSlotMayPickupReturnsTrueForEmptySlot`: 空槽位可拾取
+  - `ArmorSlotMayPickupReturnsTrueForCreativePlayer`: 创造模式可取下任何护甲
+  - `ArmorSlotMayPickupReturnsTrueForNormalArmor`: 普通护甲可取下
+  - `ArmorSlotMayPickupReturnsFalseForBindingCurseArmor`: 绑定诅咒护甲生存模式不可取下
+  - `ArmorSlotMayPickupWithMultipleEnchantments`: 多附魔护甲绑定诅咒检查
 - `IInventoryInterfaceTest`: IInventory 接口测试
   - `hasAny()`: 接口方法测试
 
