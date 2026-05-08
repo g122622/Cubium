@@ -53,13 +53,58 @@ src/common/entity/entities/player/
 
 ## 整体职责
 
-这个模块的职责是把“玩家”从通用实体里单独抽出来，统一管理和玩家强相关的行为：
+这个模块的职责是把”玩家”从通用实体里单独抽出来，统一管理和玩家强相关的行为：
 
 1. 处理输入到速度的映射
 2. 执行玩家专有的移动与跳跃逻辑
 3. 维护脚步声、游泳声和视野晃动所需的统计量
 4. 提供背包、经验、游戏模式和能力状态
 5. 支持网络同步和传送复位
+6. **管理物品冷却时间**
+
+## 物品冷却系统
+
+玩家通过 `CooldownTracker` 管理物品冷却，用于紫颂果、末影珍珠、盾牌等物品的冷却追踪。
+
+### 核心接口
+
+```cpp
+class Player : public LivingEntity {
+public:
+    // 冷却追踪器访问
+    CooldownTracker& cooldownTracker();
+    const CooldownTracker& cooldownTracker() const;
+    
+    // 便捷方法
+    bool hasItemCooldown(const Item* item) const;
+    void setItemCooldown(const Item* item, i32 ticks);
+    
+    // tick() 中自动调用 m_cooldownTracker.tick()
+};
+```
+
+### 使用示例
+
+```cpp
+// 检查物品是否可用
+if (!player.hasItemCooldown(chorusFruit)) {
+    useItem();
+    player.setItemCooldown(chorusFruit, 20);  // 20 ticks = 1秒
+}
+
+// 获取冷却进度（用于渲染）
+float progress = player.cooldownTracker().getCooldownProgress(item, partialTicks);
+```
+
+### 典型冷却时间
+
+| 物品 | 冷却时间 (ticks) | 冷却时间 (秒) |
+|------|------------------|---------------|
+| 紫颂果 | 20 | 1.0 |
+| 末影珍珠 | 20 | 1.0 |
+| 盾牌（被斧击中） | 100 | 5.0 |
+
+冷却系统参考 MC 1.16.5 `net.minecraft.util.CooldownTracker`。
 
 ## 输入 / 输出
 
@@ -84,6 +129,7 @@ src/common/entity/entities/player/
 ### 内部依赖
 
 - `entity/core/Entity.hpp`
+- `entity/player/CooldownTracker.hpp` - 物品冷却追踪
 - `physics/PhysicsEngine.hpp`
 - `physics/PhysicsConstants.hpp`
 - `world/IWorld.hpp`

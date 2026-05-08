@@ -1,20 +1,93 @@
 # 玩家系统模块
 
-本目录包含玩家睡眠系统和重生点验证的核心组件。
+本目录包含玩家睡眠系统、重生点验证和物品冷却追踪的核心组件。
 
 ## 目录结构
 
 ```
 src/common/entity/player/
-├── SleepResult.hpp          # 睡眠结果枚举定义
-├── SleepManager.hpp         # 睡眠管理器（静态工具类）
-├── SleepManager.cpp         # 睡眠管理器实现
-├── SpawnPointValidator.hpp  # 重生点验证器（静态工具类）
-├── SpawnPointValidator.cpp  # 重生点验证器实现
-└── README.md                # 本文档
+├── CooldownTracker.hpp     # 物品冷却追踪器
+├── CooldownTracker.cpp     # 冷却追踪器实现
+├── SleepResult.hpp         # 睡眠结果枚举定义
+├── SleepManager.hpp        # 睡眠管理器（静态工具类）
+├── SleepManager.cpp        # 睡眠管理器实现
+├── SpawnPointValidator.hpp # 重生点验证器（静态工具类）
+├── SpawnPointValidator.cpp # 重生点验证器实现
+└── README.md               # 本文档
 ```
 
 ## 文件说明
+
+### CooldownTracker.hpp/cpp
+
+物品冷却追踪器，用于追踪物品的冷却时间。参考 MC 1.16.5 `net.minecraft.util.CooldownTracker`。
+
+#### 冷却进度说明
+
+- 冷却进度值范围：`0.0` ~ `1.0`
+- `1.0` 表示冷却刚开始
+- `0.0` 表示冷却结束，物品可用
+- 客户端渲染时使用 `(1.0 - progress)` 显示冷却动画
+
+#### 核心方法
+
+```cpp
+class CooldownTracker {
+public:
+    // 每游戏 tick 调用，更新冷却状态
+    void tick();
+    
+    // 设置物品冷却（ticks）
+    void setCooldown(const Item* item, i32 ticks);
+    
+    // 移除物品冷却
+    void removeCooldown(const Item* item);
+    
+    // 获取冷却进度（0.0-1.0），支持 partialTicks 插值
+    f32 getCooldownProgress(const Item* item, f32 partialTicks = 0.0f) const;
+    
+    // 检查物品是否在冷却中
+    bool hasCooldown(const Item* item) const;
+    
+    // 获取冷却剩余 tick 数
+    i32 getCooldownTicks(const Item* item) const;
+    
+    // 辅助方法
+    i32 currentTick() const;
+    bool isEmpty() const;
+    size_t cooldownCount() const;
+
+protected:
+    // 子类可重写的回调
+    virtual void notifyOnSet(const Item* item, i32 ticks);
+    virtual void notifyOnRemove(const Item* item);
+};
+```
+
+#### 使用示例
+
+```cpp
+// 设置冷却（紫颂果 20 ticks = 1 秒）
+player.cooldownTracker().setCooldown(item, 20);
+
+// 检查冷却
+if (!player.cooldownTracker().hasCooldown(item)) {
+    // 物品可用
+    useItem();
+    player.cooldownTracker().setCooldown(item, 20);
+}
+
+// 获取冷却进度（用于渲染）
+float progress = player.cooldownTracker().getCooldownProgress(item, partialTicks);
+// progress = 0 表示冷却结束，1 表示刚开始
+```
+
+#### 典型应用场景
+
+- **紫颂果**：20 ticks（1秒）冷却
+- **末影珍珠**：20 ticks（1秒）冷却
+- **盾牌**：被斧击中后 100 ticks（5秒）冷却
+- **山羊角**：未实现，预期约 7 秒
 
 ### SleepResult.hpp
 
@@ -250,10 +323,12 @@ if (spawnPoint.has_value()) {
 ## 测试
 
 测试文件位于 `tests/common/entity/player/`：
+- `CooldownTrackerTest.cpp` - 物品冷却追踪器测试（20个测试用例）
 - `SleepManagerTest.cpp` - 睡眠管理器测试
 - `SpawnPointValidatorTest.cpp` - 重生点验证器测试
 
 覆盖：
+- 冷却追踪器：设置/移除冷却、tick更新、进度计算、多物品独立冷却、覆盖设置、典型场景（紫颂果、盾牌）
 - 时间检测逻辑
 - 距离检测逻辑
 - 睡眠结果消息映射

@@ -82,6 +82,92 @@
 - `Player` 也走同一条声音链路，受伤和死亡会通过 `makeSoundEventId(...)` 发出对应事件。
 - `ServerWorld` 可以挂接声音回调，把事件继续交给 `MinecraftServer` 的广播接口。
 
+## 传送系统
+
+实体传送功能，支持安全传送和随机传送。参考 MC 1.16.5 `Entity.attemptTeleport` 和 `Entity.randomTeleport`。
+
+### 核心方法
+
+```cpp
+class Entity {
+public:
+    // 安全传送到指定坐标
+    bool attemptTeleport(f64 x, f64 y, f64 z, bool playEffects = true);
+    
+    // 在范围内随机传送
+    bool randomTeleport(f64 range, bool playEffects = true, bool avoidFluid = true);
+    
+    // 查找安全传送位置
+    std::optional<Vector3d> findSafeTeleportPosition(f64 x, f64 y, f64 z, bool avoidFluid = true) const;
+    
+    // 检查位置是否安全可传送
+    bool isSafeTeleportPosition(f64 x, f64 y, f64 z, bool avoidFluid = true) const;
+};
+```
+
+### attemptTeleport - 安全传送
+
+传送到指定坐标，包含完整的安全检查：
+
+1. **碰撞检测**：目标位置必须有足够空间容纳实体碰撞箱
+2. **流体检查**：可选择避开水和岩浆（`avoidFluid` 参数）
+3. **地面查找**：从指定 Y 坐标向下查找第一个安全地面
+4. **音效播放**：可选择播放传送音效（`playEffects` 参数）
+
+```cpp
+// 末影人传送到目标附近
+bool success = entity.attemptTeleport(targetX, targetY, targetZ, true);
+
+// 玩家使用命令传送（不需要音效）
+player.attemptTeleport(x, y, z, false);
+```
+
+### randomTeleport - 随机传送
+
+在以实体为中心的立方体范围内随机寻找安全位置传送：
+
+1. **范围定义**：`range` 参数定义传送半径（紫颂果 16.0，末影人 32.0）
+2. **尝试次数**：最多 16 次尝试寻找安全位置
+3. **避开水/岩浆**：`avoidFluid` 为 true 时会拒绝流体位置
+4. **音效播放**：`playEffects` 控制是否播放传送音效
+
+```cpp
+// 紫颂果随机传送（16格范围）
+bool success = player.randomTeleport(16.0, false, true);
+
+// 末影人随机传送（32格范围）
+bool success = enderman.randomTeleport(32.0, true, true);
+```
+
+### 传送算法细节
+
+参考 MC 1.16.5 实现：
+
+- **位置采样**：在 `[x-range, x+range] × [y-8, y+8] × [z-range, z+range]` 范围内随机采样
+- **地面查找**：从采样点向下遍历，找到第一个非空气方块
+- **安全检查**：检查碰撞箱是否与方块碰撞、是否在流体中
+- **传送执行**：更新实体位置、重置运动向量、触发世界事件
+
+### 使用示例
+
+```cpp
+// 紫颂果使用（ChorusFruitItem）
+bool teleported = entity.randomTeleport(16.0, false, true);
+if (teleported) {
+    world.playSound(SoundEvents::ITEM_CHORUS_FRUIT_TELEPORT, ...);
+}
+
+// 末影人传送
+bool success = enderman.teleport();  // 使用内置冷却
+bool success = enderman.teleportToTarget();  // 传送到目标远离方向
+
+// 安全传送位置查找
+auto safePos = entity.findSafeTeleportPosition(x, y, z, true);
+if (safePos.has_value()) {
+    entity.setPosition(safePos.value());
+}
+```
+
 ## 继承层次
 
 ```

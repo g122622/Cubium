@@ -31,6 +31,13 @@ src/common/entity/
 │   ├── EntityUtils.hpp/cpp         # LegacyEntityType -> typeId 映射
 │   └── README.md                   # 工具模块说明
 │
+├── player/                     # 玩家相关模块
+│   ├── CooldownTracker.hpp/cpp # 物品冷却追踪器
+│   ├── SleepResult.hpp         # 睡眠结果枚举
+│   ├── SleepManager.hpp/cpp    # 睡眠管理器
+│   ├── SpawnPointValidator.hpp/cpp # 重生点验证器
+│   └── README.md               # 模块说明
+│
 ├── entities/                       # 具体实体实现
 │   ├── passive/                    # 被动/中立生物
 │   │   ├── basic/                  # 普通动物
@@ -304,6 +311,7 @@ src/common/entity/
 - **乘客/骑乘系统**：多乘客支持、下车机制
 - **数据同步**：EntityDataManager 数据参数
 - **传送门系统**：传送门计时、传送冷却、维度切换
+- **传送系统**：安全传送、随机传送、位置验证
 
 ```cpp
 // 创建实体
@@ -320,6 +328,44 @@ entity->setInPortal(true);           // 标记在传送门中
 entity->setPortalPos(blockPos);      // 记录传送门方块位置
 int timer = entity->getPortalTime(); // 获取传送计时
 entity->triggerPortalCooldown();     // 触发传送冷却
+
+// 传送系统
+entity->attemptTeleport(x, y, z, true);      // 安全传送到指定位置
+entity->randomTeleport(16.0, true, true);    // 16格范围内随机传送
+```
+
+#### 传送系统
+
+Entity 提供完整的传送功能实现，支持安全传送和随机传送：
+
+**核心方法**：
+- `attemptTeleport(x, y, z, playEffects)` - 安全传送到指定坐标
+- `randomTeleport(range, playEffects, avoidFluid)` - 在范围内随机传送
+- `findSafeTeleportPosition(x, y, z, avoidFluid)` - 查找安全传送位置
+- `isSafeTeleportPosition(x, y, z, avoidFluid)` - 检查位置是否安全可传送
+
+**传送算法**（参考 MC 1.16.5）：
+1. 位置采样：在 `[x-range, x+range] × [y-8, y+8] × [z-range, z+range]` 范围内随机采样
+2. 地面查找：从采样点向下遍历，找到第一个非空气方块
+3. 安全检查：检查碰撞箱是否与方块碰撞、是否在流体中
+4. 传送执行：更新实体位置、重置运动向量、触发世界事件
+
+**使用示例**：
+```cpp
+// 紫颂果随机传送
+bool success = player.randomTeleport(16.0, false, true);
+if (success) {
+    world.playSound(SoundEvents::ITEM_CHORUS_FRUIT_TELEPORT, ...);
+}
+
+// 末影人安全传送
+bool teleported = enderman.attemptTeleport(targetX, targetY, targetZ, true);
+
+// 避开水/岩浆传送
+auto safePos = entity.findSafeTeleportPosition(x, y, z, true);
+if (safePos.has_value()) {
+    entity.setPosition(safePos.value());
+}
 ```
 
 #### 骑乘系统 (Riding System)
