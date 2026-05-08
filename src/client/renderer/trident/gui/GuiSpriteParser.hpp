@@ -18,9 +18,9 @@ namespace mc::client::renderer::trident::gui {
  * 从JSON文件解析的精灵定义数据结构。
  */
 struct GuiSpriteDefinition {
-    String texture;                                  ///< 纹理路径（如 "minecraft:textures/gui/widgets.png"）
-    std::unordered_map<String, GuiSprite> sprites;   ///< 精灵ID -> 精灵数据
-    std::unordered_map<String, GuiNinePatch> ninePatches; ///< 精灵ID -> 九宫格数据
+    std::string texture;                                  ///< 纹理路径（如 "minecraft:textures/gui/widgets.png"）
+    std::unordered_map<std::string, GuiSprite> sprites;   ///< 精灵ID -> 精灵数据
+    std::unordered_map<std::string, GuiNinePatch> ninePatches; ///< 精灵ID -> 九宫格数据
 };
 
 /**
@@ -51,7 +51,7 @@ public:
      * @return 解析结果
      */
     [[nodiscard]] static Result<GuiSpriteDefinition> parse(
-        const String& jsonContent,
+        const std::string& jsonContent,
         i32 atlasWidth = 256,
         i32 atlasHeight = 256);
 
@@ -65,7 +65,7 @@ public:
      */
     [[nodiscard]] static Result<GuiSpriteDefinition> parseFromResourcePack(
         IResourcePack& resourcePack,
-        const String& spriteDefPath,
+        const std::string& spriteDefPath,
         i32 atlasWidth = 256,
         i32 atlasHeight = 256);
 
@@ -74,7 +74,7 @@ private:
      * @brief 解析精灵对象
      */
     [[nodiscard]] static Result<GuiSprite> parseSprite(
-        const String& id,
+        const std::string& id,
         const void* jsonObj,
         i32 atlasWidth,
         i32 atlasHeight);

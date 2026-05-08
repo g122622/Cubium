@@ -65,10 +65,10 @@ TEST_F(RichTextWidgetTest, SetTextFromComponent) {
 }
 
 TEST_F(RichTextWidgetTest, SetTextFromString) {
-    widget->setText("Plain String");
+    widget->setText("Plain std::string");
 
     EXPECT_NE(widget->getText(), nullptr);
-    EXPECT_EQ(widget->getUnformattedText(), "Plain String");
+    EXPECT_EQ(widget->getUnformattedText(), "Plain std::string");
 }
 
 TEST_F(RichTextWidgetTest, SetTextFromLegacyFormat) {
@@ -217,7 +217,7 @@ TEST_F(RichTextWidgetTest, NullText) {
 }
 
 TEST_F(RichTextWidgetTest, VeryLongText) {
-    mc::String longText(1000, 'A');
+    mc::std::string longText(1000, 'A');
     widget->setText(longText);
     EXPECT_EQ(widget->getUnformattedText().length(), 1000u);
 }

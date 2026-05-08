@@ -76,7 +76,7 @@ CommandRegistry::CommandRegistry()
     registerDefaults();
 }
 
-Result<i32> CommandRegistry::execute(const String& input, ServerCommandSource& source) {
+Result<i32> CommandRegistry::execute(const std::string& input, ServerCommandSource& source) {
     auto result = m_dispatcher.execute(input, source);
     if (result.success()) {
         return result.value().result();
@@ -84,7 +84,7 @@ Result<i32> CommandRegistry::execute(const String& input, ServerCommandSource& s
     return result.error();
 }
 
-std::future<Suggestions> CommandRegistry::getSuggestions(const String& input, ServerCommandSource& source) {
+std::future<Suggestions> CommandRegistry::getSuggestions(const std::string& input, ServerCommandSource& source) {
     return m_dispatcher.getSuggestions(input, source);
 }
 
@@ -92,7 +92,7 @@ CommandTreeSnapshot CommandRegistry::getCommandTreeSnapshot() const {
     return buildCommandTreeSnapshot(m_dispatcher);
 }
 
-String CommandRegistry::getCommandTreeJson() const {
+std::string CommandRegistry::getCommandTreeJson() const {
     return getCommandTreeSnapshot().toJsonString();
 }
 
@@ -171,8 +171,8 @@ void CommandRegistry::registerDefaults() {
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());
 }
 
-std::vector<String> CommandRegistry::getCommandNames() const {
-    std::vector<String> names;
+std::vector<std::string> CommandRegistry::getCommandNames() const {
+    std::vector<std::string> names;
     const auto& children = m_dispatcher.getRoot()->getChildren();
     names.reserve(children.size());
 
@@ -185,7 +185,7 @@ std::vector<String> CommandRegistry::getCommandNames() const {
     return names;
 }
 
-bool CommandRegistry::hasCommand(const String& name) const {
+bool CommandRegistry::hasCommand(const std::string& name) const {
     return m_dispatcher.getRoot()->getChild(name) != nullptr;
 }
 

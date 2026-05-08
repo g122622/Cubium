@@ -244,7 +244,7 @@ MerchantOffer MerchantOffer::deserialize(const nbt::tags::compound_tag& tag) {
     }
 
     // 反序列化数值字段（MC 1.16.5 NBT 键名，小写）
-    auto getOptionalInt = [&tag](const String& key, i32 defaultValue) -> i32 {
+    auto getOptionalInt = [&tag](const std::string& key, i32 defaultValue) -> i32 {
         auto it = tag.value.find(key);
         if (it != tag.value.end()) {
             if (it->second->id() == nbt::TagId::Int) {
@@ -254,7 +254,7 @@ MerchantOffer MerchantOffer::deserialize(const nbt::tags::compound_tag& tag) {
         return defaultValue;
     };
 
-    auto getOptionalFloat = [&tag](const String& key, f32 defaultValue) -> f32 {
+    auto getOptionalFloat = [&tag](const std::string& key, f32 defaultValue) -> f32 {
         auto it = tag.value.find(key);
         if (it != tag.value.end()) {
             if (it->second->id() == nbt::TagId::Float) {
@@ -266,7 +266,7 @@ MerchantOffer MerchantOffer::deserialize(const nbt::tags::compound_tag& tag) {
         return defaultValue;
     };
 
-    auto getOptionalLong = [&tag](const String& key, i64 defaultValue) -> i64 {
+    auto getOptionalLong = [&tag](const std::string& key, i64 defaultValue) -> i64 {
         auto it = tag.value.find(key);
         if (it != tag.value.end()) {
             if (it->second->id() == nbt::TagId::Long) {

@@ -117,7 +117,7 @@ i32 WhitelistCommand::whitelistAdd(CommandContext<ServerCommandSource>& context)
     EntitySelector selector = context.getArgument<EntitySelector>("player");
 
     // 获取玩家名
-    String playerName;
+    std::string playerName;
     if (selector.hasUsername()) {
         playerName = selector.username();
     } else {
@@ -151,7 +151,7 @@ i32 WhitelistCommand::whitelistRemove(CommandContext<ServerCommandSource>& conte
     EntitySelector selector = context.getArgument<EntitySelector>("player");
 
     // 获取玩家名
-    String playerName;
+    std::string playerName;
     if (selector.hasUsername()) {
         playerName = selector.username();
     } else {

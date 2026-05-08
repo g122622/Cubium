@@ -37,7 +37,7 @@ void ClientApplication::setupStateMachineCallbacks()
         onStateChanged(from, to);
     });
 
-    m_stateMachine.setLoadingProgressCallback([this](const String& stage, f32 progress) {
+    m_stateMachine.setLoadingProgressCallback([this](const std::string& stage, f32 progress) {
         spdlog::info("[Loading] {} - {:.0f}%", stage, progress * 100.0f);
         updateLoadingProgress(stage, progress);
     });
@@ -106,7 +106,7 @@ Result<void> ClientApplication::startIntegratedWorld(const WorldLaunchConfig& co
     if (!m_stateMachine.canStartWorld()) {
         return Error(ErrorCode::InvalidState,
                      "Cannot start world in current state: " +
-                     String(ClientAppStateMachine::stateToString(m_stateMachine.state())));
+                     std::string(ClientAppStateMachine::stateToString(m_stateMachine.state())));
     }
 
     spdlog::info("[Session] Starting integrated world: {} (seed={})",
@@ -651,7 +651,7 @@ void ClientApplication::hideLoadingScreen()
     }
 }
 
-void ClientApplication::updateLoadingProgress(const String& stage, f32 progress)
+void ClientApplication::updateLoadingProgress(const std::string& stage, f32 progress)
 {
     if (m_loadingScreen) {
         m_loadingScreen->setStage(stage);

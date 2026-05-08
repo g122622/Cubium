@@ -25,7 +25,7 @@ public:
     explicit JigsawStructure(const JigsawConfig& config, i32 startY = 0,
                             bool nearTerrain = false, bool adjustForTerrain = false);
 
-    const String& name() const override { return m_name; }
+    const std::string& name() const override { return m_name; }
     StructureSeparationSettings separationSettings() const override { return m_settings; }
     const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
@@ -42,7 +42,7 @@ private:
     bool m_adjustForTerrain;
 
     static constexpr StructureSeparationSettings m_settings{8, 4, 12345};
-    static const String m_name;
+    static const std::string m_name;
     static const std::vector<BiomeId> m_validBiomes;
 };
 

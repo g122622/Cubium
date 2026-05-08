@@ -24,11 +24,11 @@
 
 namespace mc {
 
-ServerPlayer::ServerPlayer(EntityId id, const String& name)
+ServerPlayer::ServerPlayer(EntityId id, const std::string& name)
     : Player(id, name) {
 }
 
-void ServerPlayer::sendChatMessage(const String& message) {
+void ServerPlayer::sendChatMessage(const std::string& message) {
     network::ChatMessagePacket chatPacket(message, static_cast<PlayerId>(id()));
     network::PacketSerializer payload;
     chatPacket.serialize(payload);
@@ -42,7 +42,7 @@ void ServerPlayer::sendChatMessage(const String& message) {
     }
 }
 
-void ServerPlayer::sendSystemMessage(const String& message) {
+void ServerPlayer::sendSystemMessage(const std::string& message) {
     network::ChatMessagePacket chatPacket(message, 0);
     network::PacketSerializer payload;
     chatPacket.serialize(payload);

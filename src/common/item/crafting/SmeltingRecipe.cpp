@@ -6,7 +6,7 @@ namespace crafting {
 
 SmeltingRecipe::SmeltingRecipe(
     const ResourceLocation& id,
-    const String& group,
+    const std::string& group,
     const Ingredient& ingredient,
     const ItemStack& result,
     f32 experience,

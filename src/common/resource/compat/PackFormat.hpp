@@ -83,7 +83,7 @@ class PackMetadata;
  * @param format 包格式版本
  * @return 字符串表示 (例如: "1.12.2", "1.16.5")
  */
-[[nodiscard]] StringView packFormatToString(PackFormat format);
+[[nodiscard]] std::string_view packFormatToString(PackFormat format);
 
 /**
  * @brief 检查格式是否需要纹理名称映射

@@ -20,11 +20,11 @@ class FireAspectEnchantment : public Enchantment {
 public:
     FireAspectEnchantment() = default;
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:fire_aspect";
     }
 
-    [[nodiscard]] String getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override {
         (void)level;
         return "enchantment.minecraft.fire_aspect";
     }

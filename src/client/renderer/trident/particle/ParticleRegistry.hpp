@@ -23,7 +23,7 @@ namespace mc::client::renderer::trident::particle {
  */
 struct ParticleTypeInfo {
     ParticleTypeId id;                  ///< 类型 ID
-    String name;                         ///< 类型名称（如 "minecraft:flame"）
+    std::string name;                         ///< 类型名称（如 "minecraft:flame"）
     ParticleFactory factory;             ///< 工厂函数
     ParticleRenderType defaultRenderType;///< 默认渲染类型
     bool ignoreDistance;                 ///< 是否忽略距离限制
@@ -87,7 +87,7 @@ public:
      */
     void registerType(
         ParticleTypeId id,
-        const String& name,
+        const std::string& name,
         ParticleFactory factory,
         ParticleRenderType defaultRenderType = ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         f64 defaultLifetime = 1.0f,
@@ -106,7 +106,7 @@ public:
      */
     void registerSimpleType(
         ParticleTypeId id,
-        const String& name,
+        const std::string& name,
         ParticleFactory factory,
         ParticleRenderType defaultRenderType = ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
 
@@ -139,7 +139,7 @@ public:
      * @return 粒子实例，如果名称无效返回 nullptr
      */
     [[nodiscard]] std::unique_ptr<Particle> createParticle(
-        const String& name,
+        const std::string& name,
         const glm::vec3& pos,
         const glm::vec3& velocity,
         mc::client::ClientWorld* world = nullptr) const;
@@ -154,7 +154,7 @@ public:
      * @param name 粒子类型名称
      * @return 粒子类型 ID，如果不存在返回 nullopt
      */
-    [[nodiscard]] std::optional<ParticleTypeId> getTypeId(const String& name) const;
+    [[nodiscard]] std::optional<ParticleTypeId> getTypeId(const std::string& name) const;
 
     /**
      * @brief 通过资源位置获取粒子类型 ID
@@ -170,7 +170,7 @@ public:
      * @param id 粒子类型 ID
      * @return 类型名称，如果无效返回 "minecraft:invalid"
      */
-    [[nodiscard]] const String& getTypeName(ParticleTypeId id) const;
+    [[nodiscard]] const std::string& getTypeName(ParticleTypeId id) const;
 
     /**
      * @brief 获取粒子类型信息
@@ -194,7 +194,7 @@ public:
      * @param name 粒子类型名称
      * @return 是否已注册
      */
-    [[nodiscard]] bool isRegistered(const String& name) const;
+    [[nodiscard]] bool isRegistered(const std::string& name) const;
 
     /**
      * @brief 获取所有已注册的粒子类型 ID
@@ -221,10 +221,10 @@ private:
 
     // 类型存储
     std::unordered_map<ParticleTypeId, ParticleTypeInfo> m_types;
-    std::unordered_map<String, ParticleTypeId> m_nameToId;
+    std::unordered_map<std::string, ParticleTypeId> m_nameToId;
 
     // 默认名称（用于无效类型）
-    String m_invalidTypeName = "minecraft:invalid";
+    std::string m_invalidTypeName = "minecraft:invalid";
 };
 
 } // namespace mc::client::renderer::trident::particle

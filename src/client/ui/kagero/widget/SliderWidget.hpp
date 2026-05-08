@@ -36,7 +36,7 @@ public:
     /**
      * @brief 格式化回调类型
      */
-    using FormatCallback = std::function<String(f64)>;
+    using FormatCallback = std::function<std::string(f64)>;
 
     /**
      * @brief 默认构造函数
@@ -54,7 +54,7 @@ public:
      * @param maxVal 最大值
      * @param value 当前值
      */
-    SliderWidget(String id, i32 x, i32 y, i32 width, i32 height,
+    SliderWidget(std::string id, i32 x, i32 y, i32 width, i32 height,
                  f64 minVal, f64 maxVal, f64 value)
         : Widget(std::move(id))
         , m_minValue(minVal)
@@ -247,14 +247,14 @@ public:
     /**
      * @brief 设置显示文本
      */
-    void setDisplayText(const String& text) {
+    void setDisplayText(const std::string& text) {
         m_displayText = text;
     }
 
     /**
      * @brief 获取显示文本
      */
-    [[nodiscard]] String displayText() const {
+    [[nodiscard]] std::string displayText() const {
         if (m_formatCallback) {
             return m_formatCallback(m_value);
         }
@@ -337,14 +337,14 @@ protected:
     /**
      * @brief 格式化值显示
      */
-    [[nodiscard]] virtual String formatValue(f64 val) const {
+    [[nodiscard]] virtual std::string formatValue(f64 val) const {
         // 默认显示整数或两位小数
         if (m_stepSize >= 1.0) {
             return std::to_string(static_cast<i32>(val));
         } else {
             char buf[32];
             std::snprintf(buf, sizeof(buf), "%.2f", val);
-            return String(buf);
+            return std::string(buf);
         }
     }
 
@@ -355,7 +355,7 @@ protected:
     f64 m_stepSize = 0.0;
 
     // 显示
-    String m_displayText;
+    std::string m_displayText;
     bool m_showValue = true;
     FormatCallback m_formatCallback;
 
@@ -386,7 +386,7 @@ public:
     }
 
 protected:
-    [[nodiscard]] String formatValue(f64 val) const override {
+    [[nodiscard]] std::string formatValue(f64 val) const override {
         return std::to_string(static_cast<i32>(val));
     }
 };

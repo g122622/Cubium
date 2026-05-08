@@ -22,7 +22,7 @@ public:
     [[nodiscard]] virtual i32 width() const = 0;
     [[nodiscard]] virtual i32 height() const = 0;
     [[nodiscard]] virtual ImageFormat format() const = 0;
-    [[nodiscard]] virtual const String& debugName() const = 0;
+    [[nodiscard]] virtual const std::string& debugName() const = 0;
 };
 
 } // namespace mc::client::ui::kagero::paint

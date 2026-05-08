@@ -33,7 +33,7 @@ public:
      *
      * 注意: 属性名称应该遵循MC命名约定，使用小写字母和下划线
      */
-    [[nodiscard]] static std::unique_ptr<BooleanProperty> create(const String& name) {
+    [[nodiscard]] static std::unique_ptr<BooleanProperty> create(const std::string& name) {
         return std::unique_ptr<BooleanProperty>(new BooleanProperty(name));
     }
 
@@ -47,14 +47,14 @@ public:
     /**
      * @brief 将布尔值转换为字符串
      */
-    [[nodiscard]] String valueToString(const bool& value) const override {
+    [[nodiscard]] std::string valueToString(const bool& value) const override {
         return value ? "true" : "false";
     }
 
     /**
      * @brief 解析字符串为布尔值
      */
-    [[nodiscard]] std::optional<bool> parse(StringView str) const override {
+    [[nodiscard]] std::optional<bool> parse(std::string_view str) const override {
         if (str == "true") return true;
         if (str == "false") return false;
         return std::nullopt;
@@ -64,7 +64,7 @@ public:
      * @brief 计算哈希值
      */
     [[nodiscard]] size_t hashCode() const override {
-        return std::hash<String>{}(m_name) ^ (std::hash<String>{}("BooleanProperty") << 1);
+        return std::hash<std::string>{}(m_name) ^ (std::hash<std::string>{}("BooleanProperty") << 1);
     }
 
     /**
@@ -75,7 +75,7 @@ public:
     }
 
 private:
-    explicit BooleanProperty(const String& name)
+    explicit BooleanProperty(const std::string& name)
         : Property<bool>(name, {false, true}) {
     }
 };

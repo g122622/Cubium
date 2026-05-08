@@ -5,7 +5,7 @@ namespace mc::client::renderer::blockentity::model {
 BlockEntityModel::BlockEntityModel() = default;
 
 std::shared_ptr<entity::model::ModelRenderer> BlockEntityModel::createPart(
-    const String& name,
+    const std::string& name,
     i32 textureWidth,
     i32 textureHeight)
 {

@@ -45,7 +45,7 @@ public:
      * @param modernName 现代纹理名称（例如 "jungle_log"）
      * @return 旧版名称（例如 "log_jungle"），如果未找到则返回空
      */
-    [[nodiscard]] String getLegacyName(StringView modernName) const;
+    [[nodiscard]] std::string getLegacyName(std::string_view modernName) const;
 
     /**
      * @brief 获取 1.12（旧版）纹理名称对应的 1.13+（现代）名称
@@ -53,7 +53,7 @@ public:
      * @param legacyName 旧版纹理名称（例如 "log_jungle"）
      * @return 现代名称（例如 "jungle_log"），如果未找到则返回空
      */
-    [[nodiscard]] String getModernName(StringView legacyName) const;
+    [[nodiscard]] std::string getModernName(std::string_view legacyName) const;
 
     /**
      * @brief 获取纹理的所有名称变体
@@ -64,7 +64,7 @@ public:
      * @param name 纹理名称（现代或旧版）
      * @return 可能的名称向量（先现代，后旧版）
      */
-    [[nodiscard]] std::vector<String> getNameVariants(StringView name) const;
+    [[nodiscard]] std::vector<std::string> getNameVariants(std::string_view name) const;
 
     /**
      * @brief 检查名称是否存在映射
@@ -72,7 +72,7 @@ public:
      * @param name 要检查的纹理名称
      * @return 如果此名称存在映射则返回 true
      */
-    [[nodiscard]] bool hasMapping(StringView name) const;
+    [[nodiscard]] bool hasMapping(std::string_view name) const;
 
     // -------------------------------------------------------------------------
     // 路径转换
@@ -88,7 +88,7 @@ public:
      * @param legacyPath 旧版路径（MC 1.12 格式）
      * @return 现代路径（MC 1.13+ 格式）
      */
-    [[nodiscard]] String toModernPath(StringView legacyPath) const;
+    [[nodiscard]] std::string toModernPath(std::string_view legacyPath) const;
 
     /**
      * @brief 将纹理路径从现代格式转换为旧版格式
@@ -96,7 +96,7 @@ public:
      * @param modernPath 现代路径（MC 1.13+ 格式）
      * @return 旧版路径（MC 1.12 格式）
      */
-    [[nodiscard]] String toLegacyPath(StringView modernPath) const;
+    [[nodiscard]] std::string toLegacyPath(std::string_view modernPath) const;
 
     /**
      * @brief 获取纹理路径的所有路径变体
@@ -110,7 +110,7 @@ public:
      * @param path 纹理路径（现代或旧版）
      * @return 可能的路径向量
      */
-    [[nodiscard]] std::vector<String> getPathVariants(StringView path) const;
+    [[nodiscard]] std::vector<std::string> getPathVariants(std::string_view path) const;
 
     // -------------------------------------------------------------------------
     // 统计信息
@@ -130,8 +130,8 @@ private:
     void initializeMappings();
 
     // 双向映射: 现代 <-> 旧版
-    std::unordered_map<String, String> m_modernToLegacy;
-    std::unordered_map<String, String> m_legacyToModern;
+    std::unordered_map<std::string, std::string> m_modernToLegacy;
+    std::unordered_map<std::string, std::string> m_legacyToModern;
 
     // 线程安全初始化的互斥锁
     static std::mutex s_mutex;

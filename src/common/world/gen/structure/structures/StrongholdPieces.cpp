@@ -108,7 +108,7 @@ bool StrongholdPiece::canStrongholdGoDeeper(const StructureBoundingBox& box) {
 
 void StrongholdPiece::generateChest(IWorldWriter& world, const StructureBoundingBox& bounds,
                                       math::Random& rng, i32 x, i32 y, i32 z,
-                                      const String& lootTable) {
+                                      const std::string& lootTable) {
     // 检查边界
     i32 worldX = getXWithOffset(x, z);
     i32 worldY = getYWithOffset(y);

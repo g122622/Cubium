@@ -35,7 +35,7 @@ struct FaceRectangle {
     return std::fabs(lhs - rhs) <= FACE_EPSILON;
 }
 
-[[nodiscard]] bool hasSuffix(const String& value, const char* suffix) {
+[[nodiscard]] bool hasSuffix(const std::string& value, const char* suffix) {
     const size_t suffixLength = std::strlen(suffix);
     return value.size() >= suffixLength &&
            value.compare(value.size() - suffixLength, suffixLength, suffix) == 0;
@@ -579,7 +579,7 @@ bool FlowingFluid::isBlocked(IWorld& world, const BlockPos& pos,
         return !container->canContainFluid(world, pos, *block, fluid);
     }
 
-    const String& path = blockRef.blockLocation().path();
+    const std::string& path = blockRef.blockLocation().path();
     if (hasSuffix(path, "_door") || hasSuffix(path, "_sign") ||
         path == "ladder" || path == "sugar_cane" || path == "bubble_column") {
         return false;

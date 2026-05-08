@@ -36,7 +36,7 @@ public:
      */
     StonecuttingRecipe(
         const ResourceLocation& id,
-        const String& group,
+        const std::string& group,
         const Ingredient& ingredient,
         const ItemStack& result,
         i32 count = 1
@@ -50,7 +50,7 @@ public:
     [[nodiscard]] ItemStack assemble(const IInventory& inventory) const override;
     [[nodiscard]] ItemStack getResultItem() const override { return m_result; }
     [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override;
-    [[nodiscard]] const String& getGroup() const override { return m_group; }
+    [[nodiscard]] const std::string& getGroup() const override { return m_group; }
     [[nodiscard]] ResourceLocation getId() const override { return m_id; }
     [[nodiscard]] RecipeType getType() const override { return RecipeType::Stonecutting; }
 
@@ -86,7 +86,7 @@ public:
 
 private:
     ResourceLocation m_id;
-    String m_group;
+    std::string m_group;
     Ingredient m_ingredient;
     ItemStack m_result;
     i32 m_count;

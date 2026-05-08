@@ -52,7 +52,7 @@ public:
      * @param type 物品组类型
      * @param id 物品组ID（如"building_blocks"）
      */
-    ItemGroup(Type type, String id);
+    ItemGroup(Type type, std::string id);
 
     /**
      * @brief 获取物品组类型
@@ -62,7 +62,7 @@ public:
     /**
      * @brief 获取物品组ID
      */
-    [[nodiscard]] const String& getId() const { return m_id; }
+    [[nodiscard]] const std::string& getId() const { return m_id; }
 
     /**
      * @brief 获取物品组图标
@@ -113,7 +113,7 @@ public:
 
 private:
     Type m_type;
-    String m_id;
+    std::string m_id;
     const Item* m_iconItem = nullptr;
     std::function<void(std::vector<ItemStack>&)> m_fillFunc;
 };

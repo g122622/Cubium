@@ -310,7 +310,7 @@ CharInputEvent event(0x4E);  // Unicode 码点
 
 event.codePoint();  // Unicode 码点
 
-String utf8 = event.toUtf8();  // 转换为 UTF-8 字符串
+std::string utf8 = event.toUtf8();  // 转换为 UTF-8 字符串
 ```
 
 ## UI 事件
@@ -448,18 +448,18 @@ dragEnd.wasDropped();  // true
 // 定义自定义事件
 class PlayerDeathEvent : public Event {
 public:
-    explicit PlayerDeathEvent(i32 playerId, const String& cause)
+    explicit PlayerDeathEvent(i32 playerId, const std::string& cause)
         : m_playerId(playerId), m_cause(cause) {}
     
     EventType getType() const override { return EventType::Custom; }
     const char* getName() const override { return "PlayerDeath"; }
     
     i32 playerId() const { return m_playerId; }
-    const String& cause() const { return m_cause; }
+    const std::string& cause() const { return m_cause; }
     
 private:
     i32 m_playerId;
-    String m_cause;
+    std::string m_cause;
 };
 
 // 使用自定义事件

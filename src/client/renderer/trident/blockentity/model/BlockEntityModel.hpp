@@ -42,7 +42,7 @@ public:
      * @return 创建的部件
      */
     std::shared_ptr<entity::model::ModelRenderer> createPart(
-        const String& name,
+        const std::string& name,
         i32 textureWidth = 64,
         i32 textureHeight = 64);
 

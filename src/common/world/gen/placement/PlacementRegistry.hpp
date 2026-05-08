@@ -33,14 +33,14 @@ public:
      * @param name 放置器名称
      * @param placement 放置器实例
      */
-    void registerPlacement(const String& name, std::unique_ptr<Placement> placement);
+    void registerPlacement(const std::string& name, std::unique_ptr<Placement> placement);
 
     /**
      * @brief 获取放置器
      * @param name 放置器名称
      * @return 放置器指针，如果不存在则返回 nullptr
      */
-    [[nodiscard]] const Placement* get(const String& name) const;
+    [[nodiscard]] const Placement* get(const std::string& name) const;
 
     /**
      * @brief 检查是否已初始化
@@ -50,7 +50,7 @@ public:
     /**
      * @brief 获取所有已注册的放置器名称
      */
-    [[nodiscard]] std::vector<String> getNames() const;
+    [[nodiscard]] std::vector<std::string> getNames() const;
 
 private:
     PlacementRegistry() = default;
@@ -59,7 +59,7 @@ private:
     PlacementRegistry(const PlacementRegistry&) = delete;
     PlacementRegistry& operator=(const PlacementRegistry&) = delete;
 
-    std::unordered_map<String, std::unique_ptr<Placement>> m_placements;
+    std::unordered_map<std::string, std::unique_ptr<Placement>> m_placements;
     bool m_initialized = false;
 };
 

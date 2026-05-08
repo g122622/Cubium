@@ -65,7 +65,7 @@ public:
      * @param state 渲染状态
      * @param sortIndex 排序索引 (小值先渲染)
      */
-    explicit RenderType(const String& name, const RenderState& state, i32 sortIndex = 0)
+    explicit RenderType(const std::string& name, const RenderState& state, i32 sortIndex = 0)
         : m_name(name)
         , m_state(state)
         , m_sortIndex(sortIndex)
@@ -181,7 +181,7 @@ public:
     /**
      * @brief 获取名称
      */
-    [[nodiscard]] const String& name() const { return m_name; }
+    [[nodiscard]] const std::string& name() const { return m_name; }
 
     /**
      * @brief 获取渲染状态
@@ -231,7 +231,7 @@ public:
     }
 
 private:
-    String m_name;
+    std::string m_name;
     RenderState m_state;
     ResourceLocation m_texture;
     i32 m_sortIndex = 0;
@@ -243,7 +243,7 @@ private:
  */
 struct RenderTypeHash {
     size_t operator()(const RenderType& rt) const {
-        return std::hash<String>{}(rt.name());
+        return std::hash<std::string>{}(rt.name());
     }
 };
 

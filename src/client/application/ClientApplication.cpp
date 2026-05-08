@@ -96,7 +96,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
     setupStateMachineCallbacks();
 
     // 加载设置
-    String settingsPath = params.settingsPath.value_or(
+    std::string settingsPath = params.settingsPath.value_or(
         ClientSettings::getSettingsPath("minecraft-reborn").string());
     auto settingsResult = loadSettings(settingsPath);
     if (settingsResult.failed()) {

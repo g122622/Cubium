@@ -38,7 +38,7 @@ public:
     StrongholdStructure();
     explicit StrongholdStructure(const Config& config);
 
-    [[nodiscard]] const String& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
@@ -86,7 +86,7 @@ private:
     // 但 Structure 基类需要这些参数，所以设置为 {1, 0, 0}
     // 实际位置由 calculateStrongholdPos() 计算
     static constexpr StructureSeparationSettings m_settings{1, 0, 0};
-    static const String m_name;
+    static const std::string m_name;
     std::vector<BiomeId> m_validBiomes;
 };
 

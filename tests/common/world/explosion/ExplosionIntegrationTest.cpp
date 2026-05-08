@@ -272,7 +272,7 @@ TEST(ExplosionLootTableTest, NullLootTableManager) {
 TEST(ExplosionLootTableTest, EmptyLootTableId) {
     // 当方块没有掉落表 ID 时，不应生成掉落物
     // Block::getLootTableId() 返回空字符串
-    String emptyLootTableId;
+    std::string emptyLootTableId;
     EXPECT_TRUE(emptyLootTableId.empty());
 }
 

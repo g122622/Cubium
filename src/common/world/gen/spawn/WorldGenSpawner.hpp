@@ -30,7 +30,7 @@ namespace entity {
  */
 struct SpawnedEntityData {
     /// 实体类型ID（如 "minecraft:pig"）
-    String entityTypeId;
+    std::string entityTypeId;
 
     /// 生成位置 X
     f32 x = 0.0f;
@@ -50,7 +50,7 @@ struct SpawnedEntityData {
 
     SpawnedEntityData() = default;
 
-    SpawnedEntityData(String typeId, f32 px, f32 py, f32 pz)
+    SpawnedEntityData(std::string typeId, f32 px, f32 py, f32 pz)
         : entityTypeId(std::move(typeId)), x(px), y(py), z(pz) {}
 };
 

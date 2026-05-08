@@ -160,7 +160,7 @@ public:
     /**
      * @brief 获取死亡消息键
      */
-    [[nodiscard]] virtual String deathMessageKey() const = 0;
+    [[nodiscard]] virtual std::string deathMessageKey() const = 0;
 
     /**
      * @brief 是否来自实体
@@ -309,7 +309,7 @@ public:
 
     [[nodiscard]] bool isDamageAbsolute() const override { return m_isDamageAbsolute; }
 
-    [[nodiscard]] String deathMessageKey() const override {
+    [[nodiscard]] std::string deathMessageKey() const override {
         switch (m_type) {
             case DamageType::InFire: return "death.attack.inFire";
             case DamageType::OnFire: return "death.attack.onFire";
@@ -440,7 +440,7 @@ public:
         return *this;
     }
 
-    [[nodiscard]] String deathMessageKey() const override {
+    [[nodiscard]] std::string deathMessageKey() const override {
         switch (m_type) {
             case DamageType::MobAttack: return "death.attack.mob";
             case DamageType::PlayerAttack: return "death.attack.player";
@@ -575,7 +575,7 @@ public:
         return *this;
     }
 
-    [[nodiscard]] String deathMessageKey() const override {
+    [[nodiscard]] std::string deathMessageKey() const override {
         switch (m_type) {
             case DamageType::Arrow: return "death.attack.arrow.item";
             case DamageType::Trident: return "death.attack.trident.item";

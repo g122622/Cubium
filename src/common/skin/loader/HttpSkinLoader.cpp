@@ -42,13 +42,13 @@ void HttpSkinLoader::shutdown() {
     spdlog::info("HttpSkinLoader shutdown");
 }
 
-bool HttpSkinLoader::supportsUrl(const String& url) const {
+bool HttpSkinLoader::supportsUrl(const std::string& url) const {
     // 支持 Mojang 皮肤服务器
-    return url.find("textures.minecraft.net") != String::npos ||
-           url.find("://") == String::npos;  // 相对路径
+    return url.find("textures.minecraft.net") != std::string::npos ||
+           url.find("://") == std::string::npos;  // 相对路径
 }
 
-Result<SkinLoadResult> HttpSkinLoader::load(const String& url) {
+Result<SkinLoadResult> HttpSkinLoader::load(const std::string& url) {
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "HttpSkinLoader not initialized");
     }
@@ -56,7 +56,7 @@ Result<SkinLoadResult> HttpSkinLoader::load(const String& url) {
     SkinLoadResult result;
 
     // 提取哈希
-    String hash = extractHashFromUrl(url);
+    std::string hash = extractHashFromUrl(url);
     if (hash.empty()) {
         std::vector<u8> urlData(url.begin(), url.end());
         hash = calculateHash(urlData);
@@ -82,7 +82,7 @@ Result<SkinLoadResult> HttpSkinLoader::load(const String& url) {
     return result;
 }
 
-void HttpSkinLoader::loadAsync(const String& url,
+void HttpSkinLoader::loadAsync(const std::string& url,
                                std::function<void(Result<SkinLoadResult>)> callback) {
     if (!m_initialized) {
         callback(Error(ErrorCode::NotInitialized, "HttpSkinLoader not initialized"));
@@ -96,7 +96,7 @@ void HttpSkinLoader::loadAsync(const String& url,
     callback(std::move(result));
 }
 
-void HttpSkinLoader::cancel(const String& url) {
+void HttpSkinLoader::cancel(const std::string& url) {
     std::lock_guard<std::mutex> lock(m_pendingMutex);
     m_pendingLoads.erase(url);
 }
@@ -106,7 +106,7 @@ void HttpSkinLoader::cancelAll() {
     m_pendingLoads.clear();
 }
 
-Result<std::vector<u8>> HttpSkinLoader::httpGet(const String& url) {
+Result<std::vector<u8>> HttpSkinLoader::httpGet(const std::string& url) {
     // TODO: 实现真正的 HTTP GET
     // 这里需要使用 curl 或 asio 实现
 
@@ -115,15 +115,15 @@ Result<std::vector<u8>> HttpSkinLoader::httpGet(const String& url) {
     return Error(ErrorCode::Unsupported, "HTTP GET not implemented");
 }
 
-String HttpSkinLoader::extractHashFromUrl(const String& url) const {
+std::string HttpSkinLoader::extractHashFromUrl(const std::string& url) const {
     // URL 格式: http://textures.minecraft.net/texture/<hash>
     size_t lastSlash = url.rfind('/');
-    if (lastSlash != String::npos && lastSlash + 1 < url.length()) {
-        String hash = url.substr(lastSlash + 1);
+    if (lastSlash != std::string::npos && lastSlash + 1 < url.length()) {
+        std::string hash = url.substr(lastSlash + 1);
 
         // 移除查询参数
         size_t queryPos = hash.find('?');
-        if (queryPos != String::npos) {
+        if (queryPos != std::string::npos) {
             hash = hash.substr(0, queryPos);
         }
 
@@ -143,7 +143,7 @@ Result<std::vector<u8>> HttpSkinLoader::validateAndConvertSkin(const std::vector
     return pngData;
 }
 
-String HttpSkinLoader::calculateHash(const std::vector<u8>& data) {
+std::string HttpSkinLoader::calculateHash(const std::vector<u8>& data) {
     // 简化的哈希计算
     u64 hash = 0xcbf29ce484222325ULL;
     constexpr u64 prime = 0x100000001b3ULL;

@@ -110,7 +110,7 @@ public:
      * @param width 绘制宽度
      * @param height 绘制高度
      */
-    void drawTexture(GuiRenderer& gui, const String& textureId,
+    void drawTexture(GuiRenderer& gui, const std::string& textureId,
                      f64 x, f64 y, f64 width, f64 height);
 
     /**
@@ -123,7 +123,7 @@ public:
      * @param width 绘制宽度
      * @param height 绘制高度
      */
-    void drawTextureRegion(GuiRenderer& gui, const String& textureId,
+    void drawTextureRegion(GuiRenderer& gui, const std::string& textureId,
                            f64 x, f64 y,
                            i32 regionX, i32 regionY, i32 regionWidth, i32 regionHeight,
                            f64 width, f64 height);
@@ -131,14 +131,14 @@ public:
     /**
      * @brief 检查纹理是否已加载
      */
-    [[nodiscard]] bool hasTexture(const String& textureId) const;
+    [[nodiscard]] bool hasTexture(const std::string& textureId) const;
 
     /**
      * @brief 获取纹理区域
      * @param textureId 纹理ID
      * @return 纹理区域，如果不存在返回nullptr
      */
-    [[nodiscard]] const GuiTextureRegion* getRegion(const String& textureId) const;
+    [[nodiscard]] const GuiTextureRegion* getRegion(const std::string& textureId) const;
 
     /**
      * @brief 获取纹理图集图像视图
@@ -175,7 +175,7 @@ public:
      * @param atlasWidth 图集总宽度（像素）
      * @param atlasHeight 图集总高度（像素）
      */
-    void registerSprite(const String& id, i32 x, i32 y, i32 width, i32 height,
+    void registerSprite(const std::string& id, i32 x, i32 y, i32 width, i32 height,
                         i32 atlasWidth, i32 atlasHeight);
 
     /**
@@ -189,14 +189,14 @@ public:
      * @param id 精灵ID
      * @return 精灵指针，如果不存在返回nullptr
      */
-    [[nodiscard]] const GuiSprite* getSprite(const String& id) const;
+    [[nodiscard]] const GuiSprite* getSprite(const std::string& id) const;
 
     /**
      * @brief 检查精灵是否存在
      * @param id 精灵ID
      * @return 如果精灵存在返回true
      */
-    [[nodiscard]] bool hasSprite(const String& id) const;
+    [[nodiscard]] bool hasSprite(const std::string& id) const;
 
     /**
      * @brief 清除所有精灵
@@ -295,10 +295,10 @@ private:
     i32 m_atlasHeight = 256;  ///< 用于精灵UV计算的图集高度
 
     // 纹理区域映射（向后兼容）
-    std::unordered_map<String, GuiTextureRegion> m_regions;
+    std::unordered_map<std::string, GuiTextureRegion> m_regions;
 
     // 精灵映射
-    std::unordered_map<String, GuiSprite> m_sprites;
+    std::unordered_map<std::string, GuiSprite> m_sprites;
 
     // 默认纹理尺寸
     static constexpr i32 DEFAULT_SLOT_SIZE = 18;

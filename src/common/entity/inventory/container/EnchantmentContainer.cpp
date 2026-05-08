@@ -167,14 +167,14 @@ i32 EnchantmentContainer::getEnchantmentLevel(i32 index) const {
     return 0;
 }
 
-String EnchantmentContainer::getEnchantmentClue(i32 index) const {
+std::string EnchantmentContainer::getEnchantmentClue(i32 index) const {
     if (index >= 0 && index < ENCHANTMENT_OPTIONS) {
         return m_enchantmentClues[index];
     }
     return "";
 }
 
-String EnchantmentContainer::getEnchantmentClueId(i32 index) const {
+std::string EnchantmentContainer::getEnchantmentClueId(i32 index) const {
     return getEnchantmentClue(index);
 }
 

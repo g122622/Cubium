@@ -16,10 +16,10 @@ namespace mc::command::support {
  * @return 适用于命令节点的元数据对象
  */
 [[nodiscard]] inline CommandNode<ServerCommandSource>::Metadata makeMetadata(
-    String description,
-    String usage,
+    std::string description,
+    std::string usage,
     i32 permissionLevel,
-    std::vector<String> aliases = {},
+    std::vector<std::string> aliases = {},
     bool implemented = true
 ) {
     CommandNode<ServerCommandSource>::Metadata metadata;

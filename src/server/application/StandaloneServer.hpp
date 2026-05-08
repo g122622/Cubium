@@ -18,11 +18,11 @@ namespace mc::server {
  */
 struct StandaloneServerParams {
     std::optional<u16> port;
-    std::optional<String> bindAddress;
+    std::optional<std::string> bindAddress;
     std::optional<u32> maxPlayers;
-    std::optional<String> worldName;
+    std::optional<std::string> worldName;
     std::optional<i64> seed;
-    std::optional<String> settingsPath;
+    std::optional<std::string> settingsPath;
 };
 
 /**
@@ -111,19 +111,19 @@ private:
     void mainLoop();
 
     // 加载设置
-    [[nodiscard]] Result<void> loadSettings(const String& path);
+    [[nodiscard]] Result<void> loadSettings(const std::string& path);
     void applySettings();
 
     // 网络事件处理
     void onClientConnect(TcpSession* session);
-    void onClientDisconnect(TcpSession* session, const String& reason);
+    void onClientDisconnect(TcpSession* session, const std::string& reason);
 
     // 回调设置
     void setupChunkSendCallback();
 
     // 数据包发送
     void sendLoginResponse(TcpSession* session, bool success, PlayerId playerId, EntityId entityId,
-                          const String& username, const String& message);
+                          const std::string& username, const std::string& message);
 
     ServerSettings m_settings;
     // 当前会话生效的设置文件路径（加载/自动保存/退出保存统一使用）

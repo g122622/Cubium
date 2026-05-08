@@ -11,7 +11,7 @@
 namespace mc {
 
 // EnumProperty Traits 实现 - 必须在 mc 命名空间
-String EnumProperty<blocks::RedstoneSide>::Traits::toString(const blocks::RedstoneSide& value) {
+std::string EnumProperty<blocks::RedstoneSide>::Traits::toString(const blocks::RedstoneSide& value) {
     switch (value) {
         case blocks::RedstoneSide::None: return "none";
         case blocks::RedstoneSide::Side: return "side";
@@ -20,7 +20,7 @@ String EnumProperty<blocks::RedstoneSide>::Traits::toString(const blocks::Redsto
     }
 }
 
-std::optional<blocks::RedstoneSide> EnumProperty<blocks::RedstoneSide>::Traits::fromName(StringView name) {
+std::optional<blocks::RedstoneSide> EnumProperty<blocks::RedstoneSide>::Traits::fromName(std::string_view name) {
     if (name == "none") return blocks::RedstoneSide::None;
     if (name == "side") return blocks::RedstoneSide::Side;
     if (name == "up") return blocks::RedstoneSide::Up;

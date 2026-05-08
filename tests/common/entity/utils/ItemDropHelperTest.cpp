@@ -268,7 +268,7 @@ TEST_F(ItemDropHelperTest, SpawnWithThrowerUuid) {
     ASSERT_NE(apple, nullptr);
 
     const BlockPos pos(0, 0, 0);
-    const String throwerUuid = "test-player-uuid-123";
+    const std::string throwerUuid = "test-player-uuid-123";
     const std::vector<ItemStack> drops{ItemStack(*apple, 1)};
 
     auto spawned = BlockDropHandler::spawnDrops(

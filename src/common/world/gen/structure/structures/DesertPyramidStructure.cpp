@@ -13,7 +13,7 @@ namespace structure {
 
 using namespace mc::Biomes;
 
-const String DesertPyramidStructure::m_name = "desert_pyramid";
+const std::string DesertPyramidStructure::m_name = "desert_pyramid";
 
 DesertPyramidStructure::DesertPyramidStructure()
     : Structure(StructureType::Temple)

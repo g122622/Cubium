@@ -45,7 +45,7 @@ public:
      * @param source 命令源
      * @return 执行结果
      */
-    [[nodiscard]] Result<i32> execute(const String& input, ServerCommandSource& source);
+    [[nodiscard]] Result<i32> execute(const std::string& input, ServerCommandSource& source);
 
     /**
      * @brief 获取命令建议
@@ -53,7 +53,7 @@ public:
      * @param source 命令源
      * @return 异步建议结果
      */
-    [[nodiscard]] std::future<Suggestions> getSuggestions(const String& input, ServerCommandSource& source);
+    [[nodiscard]] std::future<Suggestions> getSuggestions(const std::string& input, ServerCommandSource& source);
 
     /**
      * @brief 获取命令树快照
@@ -63,7 +63,7 @@ public:
     /**
      * @brief 获取命令树 JSON
      */
-    [[nodiscard]] String getCommandTreeJson() const;
+    [[nodiscard]] std::string getCommandTreeJson() const;
 
     // ========== 命令注册 ==========
 
@@ -88,12 +88,12 @@ public:
     /**
      * @brief 获取所有命令名称
      */
-    [[nodiscard]] std::vector<String> getCommandNames() const;
+    [[nodiscard]] std::vector<std::string> getCommandNames() const;
 
     /**
      * @brief 检查命令是否存在
      */
-    [[nodiscard]] bool hasCommand(const String& name) const;
+    [[nodiscard]] bool hasCommand(const std::string& name) const;
 
     /**
      * @brief 获取全局命令注册表实例

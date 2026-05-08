@@ -18,7 +18,7 @@ using namespace mc;
 class TestWidget : public Widget {
 public:
     TestWidget() = default;
-    explicit TestWidget(String id) : Widget(std::move(id)) {}
+    explicit TestWidget(std::string id) : Widget(std::move(id)) {}
 
     void paint(PaintContext& ctx) override {
         (void)ctx;

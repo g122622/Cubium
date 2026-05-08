@@ -56,7 +56,7 @@ struct SpawnCosts {
  */
 struct SpawnEntry {
     /// 实体类型ID（字符串标识符）
-    String entityTypeId;
+    std::string entityTypeId;
 
     /// 生成权重（越高越容易被选中）
     i32 weight = 0;
@@ -72,14 +72,14 @@ struct SpawnEntry {
 
     SpawnEntry() = default;
 
-    SpawnEntry(String typeId, i32 w, i32 minC, i32 maxC)
+    SpawnEntry(std::string typeId, i32 w, i32 minC, i32 maxC)
         : entityTypeId(std::move(typeId))
         , weight(w)
         , minCount(minC)
         , maxCount(maxC)
     {}
 
-    SpawnEntry(String typeId, i32 w, i32 minC, i32 maxC, SpawnCosts c)
+    SpawnEntry(std::string typeId, i32 w, i32 minC, i32 maxC, SpawnCosts c)
         : entityTypeId(std::move(typeId))
         , weight(w)
         , minCount(minC)
@@ -184,7 +184,7 @@ public:
          * @param costs 生成成本
          * @return Builder引用
          */
-        Builder& setSpawnCost(const String& entityTypeId, const SpawnCosts& costs) {
+        Builder& setSpawnCost(const std::string& entityTypeId, const SpawnCosts& costs) {
             m_spawnCosts[entityTypeId] = costs;
             return *this;
         }
@@ -232,7 +232,7 @@ public:
         SpawnCategory m_waterCreatures;
         SpawnCategory m_waterAmbient;
         SpawnCategory m_misc;
-        std::unordered_map<String, SpawnCosts> m_spawnCosts;
+        std::unordered_map<std::string, SpawnCosts> m_spawnCosts;
         f32 m_creatureSpawnProbability = 0.1f;
         bool m_playerSpawnFriendly = false;
     };
@@ -288,7 +288,7 @@ public:
      * @param entityTypeId 实体类型ID
      * @param costs 生成成本
      */
-    void setSpawnCost(const String& entityTypeId, const SpawnCosts& costs) {
+    void setSpawnCost(const std::string& entityTypeId, const SpawnCosts& costs) {
         m_spawnCosts[entityTypeId] = costs;
     }
 
@@ -351,7 +351,7 @@ public:
      *
      * 参考 MC 1.16.5 MobSpawnInfo.func_242558_a
      */
-    [[nodiscard]] const SpawnCosts* getSpawnCost(const String& entityTypeId) const {
+    [[nodiscard]] const SpawnCosts* getSpawnCost(const std::string& entityTypeId) const {
         auto it = m_spawnCosts.find(entityTypeId);
         return it != m_spawnCosts.end() ? &it->second : nullptr;
     }
@@ -551,7 +551,7 @@ private:
 
     /// 实体类型到生成成本的映射
     /// 参考 MC 1.16.5 MobSpawnInfo.field_242555_f
-    std::unordered_map<String, SpawnCosts> m_spawnCosts;
+    std::unordered_map<std::string, SpawnCosts> m_spawnCosts;
 
     /// 动物生成概率
     /// 参考 MC 1.16.5 MobSpawnInfo.field_242553_d

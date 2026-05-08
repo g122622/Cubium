@@ -34,7 +34,7 @@ std::vector<EnchantedBookItem::EnchantmentData> EnchantedBookItem::getEnchantmen
             continue;
         }
 
-        String id = enchantTag.value(TAG_ENCHANTMENT_ID, "");
+        std::string id = enchantTag.value(TAG_ENCHANTMENT_ID, "");
         i32 level = enchantTag.value(TAG_ENCHANTMENT_LEVEL, 0);
 
         if (id.empty() || level <= 0) {
@@ -63,7 +63,7 @@ void EnchantedBookItem::addEnchantment(ItemStack& stack,
     nlohmann::json& storedEnchantments = tag[TAG_STORED_ENCHANTMENTS];
 
     // 获取附魔ID
-    String idStr = enchantment.id();
+    std::string idStr = enchantment.id();
 
     // 检查是否已有相同附魔
     for (auto& enchantTag : storedEnchantments) {
@@ -71,7 +71,7 @@ void EnchantedBookItem::addEnchantment(ItemStack& stack,
             continue;
         }
 
-        String existingId = enchantTag.value(TAG_ENCHANTMENT_ID, "");
+        std::string existingId = enchantTag.value(TAG_ENCHANTMENT_ID, "");
         if (existingId == idStr) {
             // 已有相同附魔，升级到更高等级
             i32 existingLevel = enchantTag.value(TAG_ENCHANTMENT_LEVEL, 0);

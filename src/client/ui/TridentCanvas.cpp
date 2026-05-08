@@ -301,11 +301,11 @@ void TridentCanvas::drawImageNine(const kagero::paint::IImage& image, const kage
     drawRegion(x2, y2, dstRightW, dstBottomH, u2, v2, u3, v3);                // 右下
 }
 
-void TridentCanvas::drawText(const String& text, f32 x, f32 y, const kagero::paint::IPaint& paint) {
+void TridentCanvas::drawText(const std::string& text, f32 x, f32 y, const kagero::paint::IPaint& paint) {
     const u32 color = extractColor(paint);
     transformPoint(x, y);
 
-    // 转换 String (std::u32string) 到 UTF-8
+    // 转换 std::string (std::u32string) 到 UTF-8
     std::string utf8Text;
     utf8Text.reserve(text.size());
     for (char32_t c : text) {
@@ -334,7 +334,7 @@ void TridentCanvas::drawTextBlob(const kagero::paint::ITextBlob& blob, f32 x, f3
     transformPoint(x, y);
 
     // 将 TextBlob 的文本转换为 UTF-8 并绘制
-    const String& text = blob.text();
+    const std::string& text = blob.text();
     std::string utf8Text;
     utf8Text.reserve(text.size());
     for (char32_t c : text) {
@@ -467,7 +467,7 @@ i32 TridentCanvas::height() const {
     return m_height;
 }
 
-f32 TridentCanvas::getTextWidth(const String& text) const {
+f32 TridentCanvas::getTextWidth(const std::string& text) const {
     return m_font.getStringWidth(text);
 }
 

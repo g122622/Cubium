@@ -398,7 +398,7 @@ const WorldGlyphMesh* WorldTextRenderer::getGlyphMesh(u32 codepoint) {
 
 void WorldTextRenderer::renderText(
     VkCommandBuffer cmd,
-    const String& text,
+    const std::string& text,
     const Vector3f& position,
     f32 scale,
     const Vector4f& color,
@@ -533,7 +533,7 @@ void WorldTextRenderer::renderText(
 
 void WorldTextRenderer::renderNameTag(
     VkCommandBuffer cmd,
-    const String& name,
+    const std::string& name,
     const Vector3f& entityPosition,
     f32 entityHeight,
     pipeline::EntityPipeline& pipeline)
@@ -622,7 +622,7 @@ void WorldTextRenderer::computeBillboardMatrix(
     outMatrix[15] = 1.0;
 }
 
-f32 WorldTextRenderer::calculateTextWidth(const String& text, f32 scale) {
+f32 WorldTextRenderer::calculateTextWidth(const std::string& text, f32 scale) {
     if (s_font == nullptr) {
         return static_cast<f32>(text.size()) * CHAR_WIDTH * scale;
     }
@@ -660,7 +660,7 @@ bool WorldTextRenderer::shouldRenderText(
     return true;
 }
 
-u32 WorldTextRenderer::decodeCodepoint(const String& text, size_t& pos) {
+u32 WorldTextRenderer::decodeCodepoint(const std::string& text, size_t& pos) {
     if (pos >= text.size()) {
         return 0;
     }

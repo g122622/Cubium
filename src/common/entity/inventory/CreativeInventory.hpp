@@ -15,7 +15,7 @@ class PlayerInventory;
  */
 struct CreativeInventoryEntry {
     ItemStack stack;
-    String searchKey;
+    std::string searchKey;
 };
 
 /**

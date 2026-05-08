@@ -17,19 +17,19 @@ namespace mc::client::ui::kagero::tpl::runtime {
  * @brief Widget工厂函数类型
  */
 using WidgetFactory = std::function<std::unique_ptr<widget::Widget>(
-    const String& tagName, const String& id, const std::map<String, String>& attrs)>;
+    const std::string& tagName, const std::string& id, const std::map<std::string, std::string>& attrs)>;
 
 /**
  * @brief 属性设置器函数类型
  */
 using AttributeSetter = std::function<void(widget::Widget* widget,
-    const String& attrName, const binder::Value& value)>;
+    const std::string& attrName, const binder::Value& value)>;
 
 /**
  * @brief 事件绑定器函数类型
  */
 using EventBinder = std::function<void(widget::Widget* widget,
-    const String& eventName, const String& callbackName, binder::BindingContext& ctx)>;
+    const std::string& eventName, const std::string& callbackName, binder::BindingContext& ctx)>;
 
 /**
  * @brief 模板实例
@@ -100,7 +100,7 @@ public:
      * @param tagName 标签名
      * @param factory 工厂函数
      */
-    void registerWidgetFactory(const String& tagName, WidgetFactory factory);
+    void registerWidgetFactory(const std::string& tagName, WidgetFactory factory);
 
     /**
      * @brief 注册默认Widget工厂
@@ -124,7 +124,7 @@ public:
      * @param attrName 属性名
      * @param setter 设置函数
      */
-    void registerAttributeSetter(const String& attrName, AttributeSetter setter);
+    void registerAttributeSetter(const std::string& attrName, AttributeSetter setter);
 
     /**
      * @brief 注册默认属性设置器
@@ -139,7 +139,7 @@ public:
      * @param eventName 事件名
      * @param binder 绑定函数
      */
-    void registerEventBinder(const String& eventName, EventBinder binder);
+    void registerEventBinder(const std::string& eventName, EventBinder binder);
 
     /**
      * @brief 注册默认事件绑定器
@@ -194,7 +194,7 @@ public:
      *
      * @param path 状态路径
      */
-    void updateBinding(const String& path);
+    void updateBinding(const std::string& path);
 
     /**
      * @brief 设置绑定上下文
@@ -214,7 +214,7 @@ public:
      *
      * @param path 变更的状态路径
      */
-    void notifyStateChange(const String& path);
+    void notifyStateChange(const std::string& path);
 
     /**
      * @brief 刷新所有绑定
@@ -226,19 +226,19 @@ public:
     /**
      * @brief 通过ID查找Widget
      */
-    [[nodiscard]] widget::Widget* findWidgetById(const String& id);
+    [[nodiscard]] widget::Widget* findWidgetById(const std::string& id);
 
     /**
      * @brief 通过路径查找Widget
      */
-    [[nodiscard]] widget::Widget* findWidgetByPath(const String& path);
+    [[nodiscard]] widget::Widget* findWidgetByPath(const std::string& path);
 
     // ========== 调试 ==========
 
     /**
      * @brief 获取实例统计信息
      */
-    [[nodiscard]] String debugInfo() const;
+    [[nodiscard]] std::string debugInfo() const;
 
 private:
     // ========== 实例化辅助方法 ==========
@@ -265,8 +265,8 @@ private:
      * @brief 创建Widget
      */
     [[nodiscard]] std::unique_ptr<widget::Widget> createWidget(
-        const String& tagName, const String& id,
-        const std::map<String, String>& attrs);
+        const std::string& tagName, const std::string& id,
+        const std::map<std::string, std::string>& attrs);
 
     /**
      * @brief 应用静态属性
@@ -279,14 +279,14 @@ private:
      */
     void applyBindingAttributes(widget::Widget* widget,
         const std::vector<ast::Attribute>& attrs,
-        const String& widgetPath);
+        const std::string& widgetPath);
 
     /**
      * @brief 应用事件绑定
      */
     void applyEventBindings(widget::Widget* widget,
         const std::vector<ast::Attribute>& attrs,
-        const String& widgetPath);
+        const std::string& widgetPath);
 
     /**
      * @brief 解析静态属性值
@@ -296,18 +296,18 @@ private:
     /**
      * @brief 从属性创建Widget路径
      */
-    [[nodiscard]] String buildWidgetPath(const ast::ElementNode* element,
-        const String& parentPath = "") const;
+    [[nodiscard]] std::string buildWidgetPath(const ast::ElementNode* element,
+        const std::string& parentPath = "") const;
 
     /**
      * @brief 注册Widget到路径映射
      */
-    void registerWidgetPath(const String& path, widget::Widget* widget);
+    void registerWidgetPath(const std::string& path, widget::Widget* widget);
 
     /**
      * * @brief 注册Widget ID映射
      */
-    void registerWidgetId(const String& id, widget::Widget* widget);
+    void registerWidgetId(const std::string& id, widget::Widget* widget);
 
     // ========== 循环渲染辅助方法 ==========
 
@@ -324,9 +324,9 @@ private:
      */
     void instantiateLoopChildren(const ast::ElementNode* element,
                                   widget::Widget* parent,
-                                  const String& collectionPath,
-                                  const String& itemVarName,
-                                  const String& indexVarName = "");
+                                  const std::string& collectionPath,
+                                  const std::string& itemVarName,
+                                  const std::string& indexVarName = "");
 
     /**
      * @brief 解析集合
@@ -334,7 +334,7 @@ private:
      * @param path 集合路径
      * @return 值数组
      */
-    [[nodiscard]] std::vector<binder::Value> resolveCollection(const String& path) const;
+    [[nodiscard]] std::vector<binder::Value> resolveCollection(const std::string& path) const;
 
     /**
      * @brief 检查条件是否满足
@@ -355,13 +355,13 @@ private:
     std::unique_ptr<widget::Widget> m_rootWidget;
 
     // Widget映射
-    std::unordered_map<String, widget::Widget*> m_widgetById;
-    std::unordered_map<String, widget::Widget*> m_widgetByPath;
+    std::unordered_map<std::string, widget::Widget*> m_widgetById;
+    std::unordered_map<std::string, widget::Widget*> m_widgetByPath;
 
     // 工厂和设置器
-    std::unordered_map<String, WidgetFactory> m_widgetFactories;
-    std::unordered_map<String, AttributeSetter> m_attributeSetters;
-    std::unordered_map<String, EventBinder> m_eventBinders;
+    std::unordered_map<std::string, WidgetFactory> m_widgetFactories;
+    std::unordered_map<std::string, AttributeSetter> m_attributeSetters;
+    std::unordered_map<std::string, EventBinder> m_eventBinders;
     WidgetFactory m_defaultFactory;
 
     // 订阅ID

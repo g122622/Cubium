@@ -59,7 +59,7 @@ public:
     /**
      * @brief 获取维度名称
      */
-    [[nodiscard]] const String& name() const { return m_name; }
+    [[nodiscard]] const std::string& name() const { return m_name; }
 
     // ========== 环境属性 ==========
 
@@ -206,7 +206,7 @@ public:
      * 下界: minecraft:infiniburn_nether
      * 末地: minecraft:infiniburn_end
      */
-    [[nodiscard]] const String& infiniburn() const { return m_infiniburn; }
+    [[nodiscard]] const std::string& infiniburn() const { return m_infiniburn; }
 
     // ========== 比较 ==========
 
@@ -231,14 +231,14 @@ public:
     [[nodiscard]] bool isTheEnd() const { return m_id == 1; }
 
 private:
-    DimensionType(DimensionId id, String name)
+    DimensionType(DimensionId id, std::string name)
         : m_id(id)
         , m_name(std::move(name))
     {}
 
     // 标识
     DimensionId m_id = 0;
-    String m_name;
+    std::string m_name;
 
     // 环境属性
     bool m_hasCeiling = false;
@@ -266,7 +266,7 @@ private:
     std::optional<i64> m_fixedTime;
 
     // 方块标签
-    String m_infiniburn;
+    std::string m_infiniburn;
 };
 
 } // namespace mc

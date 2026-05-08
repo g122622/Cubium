@@ -54,7 +54,7 @@ public:
      * @param x X坐标
      * @param y Y坐标
      */
-    SlotWidget(String id, i32 x, i32 y)
+    SlotWidget(std::string id, i32 x, i32 y)
         : Widget(std::move(id)) {
         setBounds(Rect(x, y, 16, 16)); // 默认槽位大小16x16
     }
@@ -66,7 +66,7 @@ public:
      * @param y Y坐标
      * @param size 尺寸（宽高相等）
      */
-    SlotWidget(String id, i32 x, i32 y, i32 size)
+    SlotWidget(std::string id, i32 x, i32 y, i32 size)
         : Widget(std::move(id)) {
         setBounds(Rect(x, y, size, size));
     }
@@ -168,14 +168,14 @@ public:
     /**
      * @brief 设置背景纹理路径
      */
-    void setBackgroundTexture(const String& path) {
+    void setBackgroundTexture(const std::string& path) {
         m_backgroundTexture = path;
     }
 
     /**
      * @brief 获取背景纹理路径
      */
-    [[nodiscard]] const String& backgroundTexture() const { return m_backgroundTexture; }
+    [[nodiscard]] const std::string& backgroundTexture() const { return m_backgroundTexture; }
 
     /**
      * @brief 设置是否显示背景
@@ -239,7 +239,7 @@ protected:
     i32 m_slotIndex = -1;               ///< 槽位索引
 
     // 显示属性
-    String m_backgroundTexture;         ///< 背景纹理路径
+    std::string m_backgroundTexture;         ///< 背景纹理路径
     bool m_showBackground = true;       ///< 是否显示背景
     bool m_interactive = true;          ///< 是否可交互
     bool m_showCount = true;            ///< 是否显示数量

@@ -76,10 +76,10 @@ struct VariantList {
 struct MultipartCondition {
     // 属性条件（属性 -> 值）
     // 空表示"始终应用"
-    std::map<String, String> properties;
+    std::map<std::string, std::string> properties;
 
     // OR 条件
-    std::vector<std::map<String, String>> orConditions;
+    std::vector<std::map<std::string, std::string>> orConditions;
 
     /**
      * @brief 检查条件是否匹配给定的属性值
@@ -87,7 +87,7 @@ struct MultipartCondition {
      * @param properties 方块状态属性
      * @return 如果匹配则返回 true
      */
-    bool matches(const std::map<String, String>& props) const {
+    bool matches(const std::map<std::string, std::string>& props) const {
         // 如果有 OR 条件，检查是否有任何一个匹配
         if (!orConditions.empty()) {
             for (const auto& orCond : orConditions) {
@@ -104,8 +104,8 @@ struct MultipartCondition {
 
 private:
     static bool matchesProperties(
-        const std::map<String, String>& conditions,
-        const std::map<String, String>& properties)
+        const std::map<std::string, std::string>& conditions,
+        const std::map<std::string, std::string>& properties)
     {
         for (const auto& [key, value] : conditions) {
             auto it = properties.find(key);
@@ -129,7 +129,7 @@ struct MultipartSelector {
     /**
      * @brief 检查此选择器是否适用于给定属性
      */
-    bool appliesTo(const std::map<String, String>& properties) const {
+    bool appliesTo(const std::map<std::string, std::string>& properties) const {
         return condition.matches(properties);
     }
 };
@@ -146,7 +146,7 @@ struct MultipartSelector {
 struct UnifiedBlockState : public UnifiedResource {
     /// 变体格式: 属性字符串 -> 变体列表
     /// 属性字符串格式: "property1=value1,property2=value2"
-    std::map<String, VariantList> variants;
+    std::map<std::string, VariantList> variants;
 
     /// 多部分格式: 条件模型部件
     std::optional<std::vector<MultipartSelector>> multipart;
@@ -175,7 +175,7 @@ struct UnifiedBlockState : public UnifiedResource {
      * @param propString 属性字符串（例如 "facing=north,half=top"）
      * @return 变体列表，如果未找到则返回 nullptr
      */
-    const VariantList* getVariants(const String& propString) const {
+    const VariantList* getVariants(const std::string& propString) const {
         auto it = variants.find(propString);
         return it != variants.end() ? &it->second : nullptr;
     }
@@ -187,7 +187,7 @@ struct UnifiedBlockState : public UnifiedResource {
      * @return 适用的变体列表向量
      */
     std::vector<const VariantList*> getApplicableMultipart(
-        const std::map<String, String>& properties) const
+        const std::map<std::string, std::string>& properties) const
     {
         std::vector<const VariantList*> result;
 

@@ -16,7 +16,7 @@ namespace structure {
 
 using namespace mc::Biomes;
 
-const String VillageStructure::m_name = "village";
+const std::string VillageStructure::m_name = "village";
 
 VillageStructure::VillageStructure(VillageType type)
     : Structure(StructureType::Village)

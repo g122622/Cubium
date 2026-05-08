@@ -322,7 +322,7 @@ public:
 ```cpp
 class JigsawPiece {
 public:
-    virtual const String& getTypeName() const = 0;
+    virtual const std::string& getTypeName() const = 0;
     virtual std::unique_ptr<JigsawPiece> clone() const = 0;
     
     // 连接点
@@ -333,9 +333,9 @@ public:
 // 连接点信息
 struct JigsawJoint {
     BlockPos sourcePos;      // 源位置
-    String sourceName;       // 源连接点名称
-    String targetPool;       // 目标模板池
-    String targetName;       // 目标连接点名称
+    std::string sourceName;       // 源连接点名称
+    std::string targetPool;       // 目标模板池
+    std::string targetName;       // 目标连接点名称
     JigsawPlacementBehaviour projection;
 };
 ```
@@ -440,7 +440,7 @@ auto placement = std::make_unique<ConfiguredPlacement>(
 ```cpp
 class Structure {
 public:
-    virtual const String& name() const = 0;
+    virtual const std::string& name() const = 0;
     virtual StructureSeparationSettings separationSettings() const = 0;
     virtual const std::vector<BiomeId>& validBiomes() const = 0;
     

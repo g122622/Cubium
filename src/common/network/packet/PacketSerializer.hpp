@@ -89,8 +89,8 @@ public:
     void writeF32(f32 value);
     void writeF64(f64 value);
     void writeBool(bool value);
-    void writeString(const String& value);
-    void writeStringView(StringView value);
+    void writeString(const std::string& value);
+    void writeStringView(std::string_view value);
     void writeBytes(const u8* data, size_t size);
     void writeBytes(const std::vector<u8>& data);
 
@@ -112,7 +112,7 @@ public:
     [[nodiscard]] Result<f32> readF32();
     [[nodiscard]] Result<f64> readF64();
     [[nodiscard]] Result<bool> readBool();
-    [[nodiscard]] Result<String> readString();
+    [[nodiscard]] Result<std::string> readString();
     [[nodiscard]] Result<std::vector<u8>> readBytes(size_t size);
 
     // VarInt/VarLong 读取
@@ -156,7 +156,7 @@ public:
     [[nodiscard]] Result<f32> readF32();
     [[nodiscard]] Result<f64> readF64();
     [[nodiscard]] Result<bool> readBool();
-    [[nodiscard]] Result<String> readString();
+    [[nodiscard]] Result<std::string> readString();
     [[nodiscard]] Result<std::vector<u8>> readBytes(size_t size);
 
     /**

@@ -31,27 +31,27 @@ public:
     /**
      * @brief 创建带错误消息的失败结果
      */
-    static CommandResult failure(const String& error) {
+    static CommandResult failure(const std::string& error) {
         return CommandResult(false, 0, error);
     }
 
     [[nodiscard]] bool isSuccess() const noexcept { return m_success; }
     [[nodiscard]] bool isFailure() const noexcept { return !m_success; }
     [[nodiscard]] i32 result() const noexcept { return m_result; }
-    [[nodiscard]] const std::optional<String>& error() const noexcept { return m_error; }
+    [[nodiscard]] const std::optional<std::string>& error() const noexcept { return m_error; }
 
     // 转换为 bool（成功为 true）
     explicit operator bool() const noexcept { return m_success; }
 
 private:
-    CommandResult(bool success, i32 result, std::optional<String> error)
+    CommandResult(bool success, i32 result, std::optional<std::string> error)
         : m_success(success)
         , m_result(result)
         , m_error(std::move(error)) {}
 
     bool m_success;
     i32 m_result;
-    std::optional<String> m_error;
+    std::optional<std::string> m_error;
 };
 
 /**

@@ -109,7 +109,7 @@ classDiagram
         -SessionId m_id
         -SessionState m_state
         -TcpServer* m_server
-        -String m_address
+        -std::string m_address
         -u16 m_port
         -SessionStats m_stats
         -vector~u8~ m_receiveBuffer
@@ -122,7 +122,7 @@ classDiagram
         +id() SessionId
         +state() SessionState
         +stats() SessionStats&
-        +address() String&
+        +address() std::string&
         +port() u16
         +send(data, size)
         +sendPacket(packet)
@@ -185,7 +185,7 @@ classDiagram
         +send(data, size)*
         +disconnect(reason)*
         +isConnected()* bool
-        +identifier()* String
+        +identifier()* std::string
         +type()* ConnectionType
     }
 
@@ -195,7 +195,7 @@ classDiagram
         +send(data, size)
         +disconnect(reason)
         +isConnected() bool
-        +identifier() String
+        +identifier() std::string
         +type() ConnectionType
         +session() shared_ptr~TcpSession~
         +sessionId() SessionId
@@ -333,7 +333,7 @@ flowchart LR
 
 | 依赖项 | 用途 |
 |--------|------|
-| `core/Types.hpp` | 基础类型定义（u8, u16, u32, u64, String 等） |
+| `core/Types.hpp` | 基础类型定义（u8, u16, u32, u64, std::string 等） |
 | `core/Result.hpp` | 错误处理（Result<T>, Error, ErrorCode） |
 | `network/packet/Packet.hpp` | 数据包基类、PacketType 枚举 |
 | `network/packet/PacketSerializer.hpp` | 数据包序列化 |
@@ -362,7 +362,7 @@ server->setOnConnect([](TcpSession* session) {
     spdlog::info("新连接: {}:{}", session->address(), session->port());
 });
 
-server->setOnDisconnect([](TcpSession* session, const String& reason) {
+server->setOnDisconnect([](TcpSession* session, const std::string& reason) {
     spdlog::info("断开连接: {} - {}", session->address(), reason);
 });
 

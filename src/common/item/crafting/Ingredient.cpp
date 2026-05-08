@@ -37,7 +37,7 @@ Ingredient Ingredient::fromItems(std::vector<const Item*> items) {
     return ing;
 }
 
-Ingredient Ingredient::fromTag(const String& tag) {
+Ingredient Ingredient::fromTag(const std::string& tag) {
     Ingredient ing;
     ing.m_tag = tag;
     ing.m_hasTag = true;
@@ -232,7 +232,7 @@ size_t Ingredient::hash() const {
     size_t h = 0;
 
     if (m_hasTag) {
-        return std::hash<String>{}(m_tag);
+        return std::hash<std::string>{}(m_tag);
     }
 
     std::set<ItemId> ids;

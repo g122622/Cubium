@@ -105,7 +105,7 @@ protected:
      * @brief 生成宝箱
      */
     void generateChest(IWorldWriter& world, const StructureBoundingBox& bounds,
-                       math::Random& rng, i32 x, i32 y, i32 z, const String& lootTable);
+                       math::Random& rng, i32 x, i32 y, i32 z, const std::string& lootTable);
 
     Door m_entryDoor = Door::Opening;
 };

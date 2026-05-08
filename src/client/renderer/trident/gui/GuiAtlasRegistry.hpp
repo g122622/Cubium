@@ -20,7 +20,7 @@ struct AtlasSlot {
     u32 id;                ///< 槽位ID（0-MAX_ATLAS_SLOTS-1）
     VkImageView imageView; ///< Vulkan 图像视图
     VkSampler sampler;     ///< Vulkan 采样器
-    String name;           ///< 图集名称（调试用）
+    std::string name;           ///< 图集名称（调试用）
 
     [[nodiscard]] bool isValid() const {
         return imageView != VK_NULL_HANDLE && sampler != VK_NULL_HANDLE;
@@ -116,7 +116,7 @@ public:
      * @return 分配的槽位ID，失败返回错误
      */
     [[nodiscard]] Result<u32> registerAtlas(
-        const String& name,
+        const std::string& name,
         VkImageView imageView,
         VkSampler sampler);
 
@@ -129,14 +129,14 @@ public:
      * @param name 图集名称
      * @return 成功或错误
      */
-    Result<void> unregisterAtlas(const String& name);
+    Result<void> unregisterAtlas(const std::string& name);
 
     /**
      * @brief 获取图集槽位ID
      * @param name 图集名称
      * @return 槽位ID，不存在返回nullopt
      */
-    [[nodiscard]] std::optional<u32> getSlotId(const String& name) const;
+    [[nodiscard]] std::optional<u32> getSlotId(const std::string& name) const;
 
     /**
      * @brief 获取图集信息
@@ -217,7 +217,7 @@ private:
     std::array<AtlasSlot, FONT_SLOT + MAX_GUI_ATLAS_SLOTS + 1> m_slots{};
 
     /// 名称到槽位ID的映射
-    std::unordered_map<String, u32> m_nameToSlot;
+    std::unordered_map<std::string, u32> m_nameToSlot;
 
     /// 已使用的GUI槽位计数
     u32 m_nextGuiSlot = FIRST_GUI_SLOT;

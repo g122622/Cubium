@@ -68,17 +68,17 @@ std::vector<WorldListEntry> filterWorldEntries(
     }
 
     // 不区分大小写的搜索
-    String lowerQuery = util::toLowerAscii(searchQuery);
+    std::string lowerQuery = util::toLowerAscii(searchQuery);
 
     std::vector<WorldListEntry> result;
     result.reserve(entries.size());
 
     for (const auto& entry : entries) {
-        String lowerDisplayName = util::toLowerAscii(entry.displayName);
-        String lowerLevelId = util::toLowerAscii(entry.levelId);
+        std::string lowerDisplayName = util::toLowerAscii(entry.displayName);
+        std::string lowerLevelId = util::toLowerAscii(entry.levelId);
 
-        if (lowerDisplayName.find(lowerQuery) != String::npos ||
-            lowerLevelId.find(lowerQuery) != String::npos) {
+        if (lowerDisplayName.find(lowerQuery) != std::string::npos ||
+            lowerLevelId.find(lowerQuery) != std::string::npos) {
             result.push_back(entry);
         }
     }

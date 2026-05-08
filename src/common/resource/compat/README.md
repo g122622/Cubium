@@ -110,17 +110,17 @@ public:
     virtual ~BaseResourceMapper() = default;
     
     // 纹理路径转换
-    virtual String toUnifiedTexturePath(StringView path) const = 0;
-    virtual std::vector<String> getTexturePathVariants(StringView unifiedPath) const = 0;
-    virtual String toModernTextureName(StringView name) const = 0;
-    virtual String toLegacyTextureName(StringView name) const = 0;
+    virtual std::string toUnifiedTexturePath(std::string_view path) const = 0;
+    virtual std::vector<std::string> getTexturePathVariants(std::string_view unifiedPath) const = 0;
+    virtual std::string toModernTextureName(std::string_view name) const = 0;
+    virtual std::string toLegacyTextureName(std::string_view name) const = 0;
     
     // 模型路径转换
-    virtual String toUnifiedModelPath(StringView path) const = 0;
-    virtual std::vector<String> getModelPathVariants(StringView unifiedPath) const = 0;
+    virtual std::string toUnifiedModelPath(std::string_view path) const = 0;
+    virtual std::vector<std::string> getModelPathVariants(std::string_view unifiedPath) const = 0;
     
     // 方块状态路径转换
-    virtual String toUnifiedBlockStatePath(StringView path) const = 0;
+    virtual std::string toUnifiedBlockStatePath(std::string_view path) const = 0;
     
     // 包格式
     virtual PackFormat getTargetFormat() const = 0;
@@ -233,7 +233,7 @@ model.textures = {{"all", "block/stone"}};
 model.ambientOcclusion = true;
 
 // 解析纹理引用
-String texture = model.resolveTexture("#all");  // -> "block/stone"
+std::string texture = model.resolveTexture("#all");  // -> "block/stone"
 ```
 
 ---
@@ -333,20 +333,20 @@ classDiagram
         -m_legacyToModern: map
         -m_modernToLegacy: map
         +instance() TextureMapper&
-        +getLegacyName(modern) String
-        +getModernName(legacy) String
-        +toLegacyPath(modern) String
-        +toModernPath(legacy) String
+        +getLegacyName(modern) std::string
+        +getModernName(legacy) std::string
+        +toLegacyPath(modern) std::string
+        +toModernPath(legacy) std::string
     }
     
     class BaseResourceMapper {
         <<interface>>
-        +toUnifiedTexturePath(path) String
-        +getTexturePathVariants(path) vector~String~
-        +toModernTextureName(name) String
-        +toLegacyTextureName(name) String
-        +toUnifiedModelPath(path) String
-        +toUnifiedBlockStatePath(path) String
+        +toUnifiedTexturePath(path) std::string
+        +getTexturePathVariants(path) vector~std::string~
+        +toModernTextureName(name) std::string
+        +toLegacyTextureName(name) std::string
+        +toUnifiedModelPath(path) std::string
+        +toUnifiedBlockStatePath(path) std::string
         +getTargetFormat() PackFormat
     }
     
@@ -365,7 +365,7 @@ classDiagram
     
     class UnifiedResource {
         +location: ResourceLocation
-        +originalPath: String
+        +originalPath: std::string
         +sourceFormat: PackFormat
         +type: ResourceType
     }
@@ -375,13 +375,13 @@ classDiagram
     }
     
     class UnifiedBlockState {
-        +variants: map~String,VariantList~
+        +variants: map~std::string,VariantList~
         +multipart: vector~MultipartSelector~
     }
     
     class UnifiedModel {
-        +parent: String
-        +textures: map~String,String~
+        +parent: std::string
+        +textures: map~std::string,std::string~
         +elements: vector~ModelElement~
     }
     
@@ -446,7 +446,7 @@ if (usesOldTexturePaths(format)) {
 auto mapper = ResourceMapper::create(packFormat);
 
 // 转换纹理路径
-String unifiedPath = mapper->toUnifiedTexturePath("textures/blocks/log_jungle.png");
+std::string unifiedPath = mapper->toUnifiedTexturePath("textures/blocks/log_jungle.png");
 // 结果: "textures/block/jungle_log.png"
 
 // 获取所有可能的路径变体（用于回退搜索）
@@ -462,13 +462,13 @@ auto variants = mapper->getTexturePathVariants("textures/block/jungle_log.png");
 auto& mapper = TextureMapper::instance();
 
 // 现代名称 -> 旧版名称
-String legacy = mapper.getLegacyName("jungle_log");  // "log_jungle"
+std::string legacy = mapper.getLegacyName("jungle_log");  // "log_jungle"
 
 // 旧版名称 -> 现代名称
-String modern = mapper.getModernName("log_jungle");  // "jungle_log"
+std::string modern = mapper.getModernName("log_jungle");  // "jungle_log"
 
 // 路径转换
-String legacyPath = mapper.toLegacyPath("textures/block/jungle_log.png");
+std::string legacyPath = mapper.toLegacyPath("textures/block/jungle_log.png");
 // "textures/blocks/log_jungle.png"
 ```
 
@@ -486,7 +486,7 @@ PackFormat format = detectPackFormat(packFormatValue);
 auto mapper = ResourceMapper::create(format);
 
 // 3. 获取统一路径
-String unifiedPath = mapper->toUnifiedTexturePath(originalPath);
+std::string unifiedPath = mapper->toUnifiedTexturePath(originalPath);
 
 // 4. 尝试加载，带回退
 auto variants = mapper->getTexturePathVariants(unifiedPath);
@@ -509,10 +509,10 @@ for (const auto& path : variants) {
 
 ```cpp
 // 错误
-String path = "textures/block/";  // 末尾有斜杠
+std::string path = "textures/block/";  // 末尾有斜杠
 
 // 正确
-String path = "textures/block";   // 无末尾斜杠
+std::string path = "textures/block";   // 无末尾斜杠
 ```
 
 ### 2. 名称映射不完整

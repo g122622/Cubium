@@ -36,7 +36,7 @@ private:
  */
 class TextChangeEvent : public Event {
 public:
-    TextChangeEvent(const String& oldText, const String& newText, void* source = nullptr)
+    TextChangeEvent(const std::string& oldText, const std::string& newText, void* source = nullptr)
         : m_oldText(oldText), m_newText(newText) {
         setTarget(source);
     }
@@ -44,12 +44,12 @@ public:
     [[nodiscard]] EventType getType() const override { return EventType::TextChange; }
     [[nodiscard]] const char* getName() const override { return "TextChange"; }
 
-    [[nodiscard]] const String& oldText() const { return m_oldText; }
-    [[nodiscard]] const String& newText() const { return m_newText; }
+    [[nodiscard]] const std::string& oldText() const { return m_oldText; }
+    [[nodiscard]] const std::string& newText() const { return m_newText; }
 
 private:
-    String m_oldText;
-    String m_newText;
+    std::string m_oldText;
+    std::string m_newText;
 };
 
 /**
@@ -182,16 +182,16 @@ public:
  */
 class FormSubmitEvent : public Event {
 public:
-    explicit FormSubmitEvent(const String& formId = "")
+    explicit FormSubmitEvent(const std::string& formId = "")
         : m_formId(formId) {}
 
     [[nodiscard]] EventType getType() const override { return EventType::Custom; }
     [[nodiscard]] const char* getName() const override { return "FormSubmit"; }
 
-    [[nodiscard]] const String& formId() const { return m_formId; }
+    [[nodiscard]] const std::string& formId() const { return m_formId; }
 
 private:
-    String m_formId;
+    std::string m_formId;
 };
 
 /**

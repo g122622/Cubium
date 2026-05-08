@@ -29,7 +29,7 @@
  * BindingContext ctx(store, eventBus);
  *
  * // 暴露状态
- * String playerName = "Steve";
+ * std::string playerName = "Steve";
  * ctx.expose("player.name", &playerName);
  *
  * // 暴露回调
@@ -97,7 +97,7 @@ struct TemplateVersion {
     static constexpr u32 Major = 1;
     static constexpr u32 Minor = 0;
     static constexpr u32 Patch = 0;
-    static constexpr const char* String = "1.0.0";
+    static constexpr const char* std::string = "1.0.0";
 };
 
 } // namespace mc::client::ui::kagero::tpl

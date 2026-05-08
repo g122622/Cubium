@@ -216,7 +216,7 @@ public:
      * @param pos 区块段位置
      * @return 调试字符串
      */
-    [[nodiscard]] String getDebugInfo(LightType type, const SectionPos& pos) const;
+    [[nodiscard]] std::string getDebugInfo(LightType type, const SectionPos& pos) const;
 
 private:
     mutable std::recursive_mutex m_mutex;

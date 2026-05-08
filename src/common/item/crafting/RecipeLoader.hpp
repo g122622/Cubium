@@ -46,7 +46,7 @@ public:
     struct LoadResult {
         size_t successCount = 0;    ///< 成功加载的配方数
         size_t failedCount = 0;     ///< 加载失败的配方数
-        std::vector<String> errors; ///< 错误信息列表
+        std::vector<std::string> errors; ///< 错误信息列表
     };
 
     /**
@@ -55,7 +55,7 @@ public:
      * @param total 总文件数
      * @param filename 当前文件名
      */
-    using ProgressCallback = std::function<void(size_t current, size_t total, const String& filename)>;
+    using ProgressCallback = std::function<void(size_t current, size_t total, const std::string& filename)>;
 
     /**
      * @brief 从目录加载所有配方
@@ -68,7 +68,7 @@ public:
      * - "data/minecraft/recipes/crafting_table.json" -> "minecraft:crafting_table"
      * - "data/mod_id/recipes/subdir/item.json" -> "mod_id:subdir/item"
      */
-    Result<LoadResult> loadFromDirectory(const String& directoryPath,
+    Result<LoadResult> loadFromDirectory(const std::string& directoryPath,
                                           ProgressCallback callback = nullptr);
 
     /**
@@ -76,7 +76,7 @@ public:
      * @param filePath 配方文件路径
      * @return 配方ID（如果成功）
      */
-    Result<ResourceLocation> loadRecipeFile(const String& filePath);
+    Result<ResourceLocation> loadRecipeFile(const std::string& filePath);
 
     /**
      * @brief 从JSON字符串加载配方
@@ -85,7 +85,7 @@ public:
      * @return 配方ID（如果成功）
      */
     Result<ResourceLocation> loadRecipeJson(const ResourceLocation& id,
-                                             const String& jsonString);
+                                             const std::string& jsonString);
 
     /**
      * @brief 加载内置原版配方
@@ -118,7 +118,7 @@ public:
      * @param filePath 文件路径
      * @return 配方ID
      */
-    [[nodiscard]] ResourceLocation pathToRecipeId(const String& filePath) const;
+    [[nodiscard]] ResourceLocation pathToRecipeId(const std::string& filePath) const;
 
 private:
 

@@ -44,7 +44,7 @@ void TcpSession::sendPacket(const network::Packet& packet) {
     }
 }
 
-void TcpSession::disconnect(const String& reason) {
+void TcpSession::disconnect(const std::string& reason) {
     if (m_state == SessionState::Disconnected) {
         return;
     }

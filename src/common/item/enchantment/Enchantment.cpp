@@ -9,7 +9,7 @@ namespace enchant {
 // Enchantment 实现
 // ============================================================================
 
-String Enchantment::getNameKey(i32 level) const {
+std::string Enchantment::getNameKey(i32 level) const {
     (void)level;  // 大多数附魔不使用等级前缀
     // 返回本地化键
     return "enchantment." + id();

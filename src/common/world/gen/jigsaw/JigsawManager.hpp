@@ -61,16 +61,16 @@ struct PlacedPiece {
  */
 struct PendingJoint {
     BlockPos position;              ///< 连接点在世界中的位置
-    String sourceName;              ///< 源连接点名称（Jigsaw方块的name字段）
-    String targetPool;              ///< 目标模板池
-    String targetType;              ///< 目标连接点名称（Jigsaw方块的target字段）
+    std::string sourceName;              ///< 源连接点名称（Jigsaw方块的name字段）
+    std::string targetPool;              ///< 目标模板池
+    std::string targetType;              ///< 目标连接点名称（Jigsaw方块的target字段）
     i32 depth = 0;                  ///< 当前深度
     JigsawPlacementBehaviour projection = JigsawPlacementBehaviour::Rigid;
     JigsawOrientation orientation = JigsawOrientation::NorthUp;  ///< Jigsaw 方块朝向
     JigsawJointType jointType = JigsawJointType::Rollable;       ///< 连接类型
 
     PendingJoint() = default;
-    PendingJoint(const BlockPos& pos, const String& srcName, const String& pool, const String& tgtType, i32 d,
+    PendingJoint(const BlockPos& pos, const std::string& srcName, const std::string& pool, const std::string& tgtType, i32 d,
                  JigsawPlacementBehaviour proj = JigsawPlacementBehaviour::Rigid,
                  JigsawOrientation orient = JigsawOrientation::NorthUp,
                  JigsawJointType jt = JigsawJointType::Rollable)

@@ -47,7 +47,7 @@ public:
     pipeline::EntityMesh* getOrUpdateMesh(
         EntityId entityId,
         model::EntityModel& model,
-        const String& typeId,
+        const std::string& typeId,
         const AnimationContext& state,
         pipeline::EntityPipeline& pipeline
     );
@@ -72,7 +72,7 @@ public:
      *
      * 用于将模型局部 UV 映射到纹理图集区域。
      */
-    using UvRemapFunc = std::function<void(const String&, std::vector<model::ModelVertex>&)>;
+    using UvRemapFunc = std::function<void(const std::string&, std::vector<model::ModelVertex>&)>;
     void setUvRemapFunc(UvRemapFunc func) { m_uvRemapFunc = std::move(func); }
 
 private:

@@ -17,27 +17,27 @@ enum class TargetInfoKind : u8 {
 
 class TargetInfoSnapshot {
 public:
-    TargetInfoSnapshot(TargetInfoKind kind, String title, std::vector<String> details, u32 accentColor);
+    TargetInfoSnapshot(TargetInfoKind kind, std::string title, std::vector<std::string> details, u32 accentColor);
 
     [[nodiscard]] static TargetInfoSnapshot none();
 
     [[nodiscard]] bool hasTarget() const noexcept { return m_kind != TargetInfoKind::None; }
     [[nodiscard]] TargetInfoKind kind() const noexcept { return m_kind; }
-    [[nodiscard]] const String& title() const noexcept { return m_title; }
-    [[nodiscard]] const std::vector<String>& details() const noexcept { return m_details; }
+    [[nodiscard]] const std::string& title() const noexcept { return m_title; }
+    [[nodiscard]] const std::vector<std::string>& details() const noexcept { return m_details; }
     [[nodiscard]] u32 accentColor() const noexcept { return m_accentColor; }
 
 private:
     TargetInfoKind m_kind;
-    String m_title;
-    std::vector<String> m_details;
+    std::string m_title;
+    std::vector<std::string> m_details;
     u32 m_accentColor;
 };
 
-[[nodiscard]] String humanizeIdentifier(StringView identifier);
-[[nodiscard]] String humanizeResourceLocation(const ResourceLocation& location);
-[[nodiscard]] String formatDistance(f32 distance);
-[[nodiscard]] String formatBlockPos(const BlockPos& pos);
-[[nodiscard]] String formatDirection(Direction direction);
+[[nodiscard]] std::string humanizeIdentifier(std::string_view identifier);
+[[nodiscard]] std::string humanizeResourceLocation(const ResourceLocation& location);
+[[nodiscard]] std::string formatDistance(f32 distance);
+[[nodiscard]] std::string formatBlockPos(const BlockPos& pos);
+[[nodiscard]] std::string formatDirection(Direction direction);
 
 } // namespace mc::client::ui::minecraft::targetinfo

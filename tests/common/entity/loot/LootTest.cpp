@@ -290,7 +290,7 @@ TEST_F(LootTest, CopyBlockStateFunction_Creation) {
 }
 
 TEST_F(LootTest, CopyBlockStateFunction_Properties) {
-    std::vector<String> props = {"facing", "waterlogged"};
+    std::vector<std::string> props = {"facing", "waterlogged"};
     CopyBlockStateFunction func("minecraft:chest", props);
     EXPECT_EQ(2, func.getProperties().size());
     EXPECT_EQ("facing", func.getProperties()[0]);
@@ -298,7 +298,7 @@ TEST_F(LootTest, CopyBlockStateFunction_Properties) {
 }
 
 TEST_F(LootTest, CopyBlockStateFunction_Clone) {
-    std::vector<String> props = {"facing"};
+    std::vector<std::string> props = {"facing"};
     CopyBlockStateFunction func("minecraft:furnace", props);
 
     auto cloned = func.clone();

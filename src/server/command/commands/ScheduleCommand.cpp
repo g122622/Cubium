@@ -26,7 +26,7 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // /schedule function <function> <time> [append|replace]
     auto functionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("function");
-    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "function",
         StringArgumentType::string());
     auto timeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
@@ -58,7 +58,7 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // /schedule clear <function>
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
-    auto clearNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto clearNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "function",
         StringArgumentType::string());
     clearNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -73,7 +73,7 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 i32 ScheduleCommand::scheduleFunction(CommandContext<ServerCommandSource>& context, bool append)
 {
     auto& source = context.getSource();
-    const String functionName = context.getArgument<String>("function");
+    const std::string functionName = context.getArgument<std::string>("function");
     const i32 time = context.getArgument<i32>("time");
 
     std::ostringstream ss;
@@ -96,7 +96,7 @@ i32 ScheduleCommand::scheduleFunction(CommandContext<ServerCommandSource>& conte
 i32 ScheduleCommand::clearSchedule(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String functionName = context.getArgument<String>("function");
+    const std::string functionName = context.getArgument<std::string>("function");
 
     std::ostringstream ss;
     ss << "Cleared scheduled function '" << functionName << "'";

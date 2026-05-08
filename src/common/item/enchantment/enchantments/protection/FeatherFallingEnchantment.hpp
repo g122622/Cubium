@@ -21,11 +21,11 @@ class FeatherFallingEnchantment : public ProtectionEnchantment {
 public:
     FeatherFallingEnchantment() : ProtectionEnchantment(Type::Fall) {}
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:feather_falling";
     }
 
-    [[nodiscard]] String getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override {
         (void)level;
         return "enchantment.minecraft.feather_falling";
     }

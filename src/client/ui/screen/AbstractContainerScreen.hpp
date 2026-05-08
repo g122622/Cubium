@@ -378,7 +378,7 @@ protected:
             return;
         }
 
-        String countText = std::to_string(count);
+        std::string countText = std::to_string(count);
         m_gui->drawText(countText,
                         static_cast<f32>(screenX),
                         static_cast<f32>(screenY),
@@ -451,7 +451,7 @@ protected:
             return;
         }
 
-        std::vector<String> lines;
+        std::vector<std::string> lines;
         auto displayName = stack.getDisplayName();
         lines.emplace_back(displayName ? displayName->getUnformattedText() : "");
 

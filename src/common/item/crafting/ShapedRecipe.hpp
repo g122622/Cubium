@@ -50,7 +50,7 @@ public:
                  i32 height,
                  std::vector<Ingredient> ingredients,
                  ItemStack result,
-                 const String& group = "");
+                 const std::string& group = "");
 
     /**
      * @brief 检查配方是否匹配给定容器
@@ -84,7 +84,7 @@ public:
      * @brief 获取配方分组
      * @return 分组名，如果无分组返回空字符串
      */
-    [[nodiscard]] const String& getGroup() const override { return m_group; }
+    [[nodiscard]] const std::string& getGroup() const override { return m_group; }
 
     /**
      * @brief 获取配方宽度
@@ -149,7 +149,7 @@ private:
     i32 m_height;
     std::vector<Ingredient> m_ingredients;
     ItemStack m_result;
-    String m_group;
+    std::string m_group;
 };
 
 } // namespace crafting

@@ -94,7 +94,7 @@ public:
      */
     static void renderText(
         VkCommandBuffer cmd,
-        const String& text,
+        const std::string& text,
         const Vector3f& position,
         f32 scale,
         const Vector4f& color,
@@ -113,7 +113,7 @@ public:
      */
     static void renderNameTag(
         VkCommandBuffer cmd,
-        const String& name,
+        const std::string& name,
         const Vector3f& entityPosition,
         f32 entityHeight,
         pipeline::EntityPipeline& pipeline
@@ -186,7 +186,7 @@ private:
     /**
      * @brief 计算文本宽度
      */
-    [[nodiscard]] static f32 calculateTextWidth(const String& text, f32 scale);
+    [[nodiscard]] static f32 calculateTextWidth(const std::string& text, f32 scale);
 
     /**
      * @brief 检查是否应该渲染文本
@@ -199,7 +199,7 @@ private:
     /**
      * @brief 从UTF-8字符串解码码点
      */
-    [[nodiscard]] static u32 decodeCodepoint(const String& text, size_t& pos);
+    [[nodiscard]] static u32 decodeCodepoint(const std::string& text, size_t& pos);
 
     // 静态成员
     static bool s_initialized;

@@ -24,7 +24,7 @@ src/client/window/
 |------|------|--------|------|
 | `width` | `i32` | 1280 | 窗口宽度（像素） |
 | `height` | `i32` | 720 | 窗口高度（像素） |
-| `title` | `String` | "Minecraft Reborn" | 窗口标题 |
+| `title` | `std::string` | "Minecraft Reborn" | 窗口标题 |
 | `fullscreen` | `bool` | false | 是否全屏模式 |
 | `vsync` | `bool` | true | 是否启用垂直同步 |
 | `resizable` | `bool` | true | 窗口是否可调整大小 |
@@ -60,7 +60,7 @@ classDiagram
         +framebufferWidth() i32
         +framebufferHeight() i32
         +aspectRatio() f32
-        +setTitle(title: String)
+        +setTitle(title: std::string)
         +setSize(width: i32, height: i32)
         +setVSync(enabled: bool)
         +setFullscreen(fullscreen: bool)
@@ -219,7 +219,7 @@ Window 模块作为客户端最底层的平台抽象层，负责：
 
 | 依赖 | 用途 |
 |------|------|
-| `common/core/Types.hpp` | 基础类型定义 (i32, f32, String 等) |
+| `common/core/Types.hpp` | 基础类型定义 (i32, f32, std::string 等) |
 | `common/core/Result.hpp` | 错误处理 |
 
 ## 使用方法

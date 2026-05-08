@@ -44,18 +44,18 @@ public:
     void setHandler(AssertHandler handler);        // 设置处理器
     [[noreturn]] void handleFailure(...);          // 处理断言失败
     bool handleRecoverableFailure(...);            // 处理可恢复失败
-    String captureStackTrace() const;              // 捕获堆栈跟踪
+    std::string captureStackTrace() const;              // 捕获堆栈跟踪
 };
 
 // AssertFailure 断言失败信息
 struct AssertFailure {
-    String expression;      // 断言表达式
-    String message;         // 自定义消息
-    String file;            // 文件名
+    std::string expression;      // 断言表达式
+    std::string message;         // 自定义消息
+    std::string file;            // 文件名
     i32 line;               // 行号
-    String function;        // 函数名
+    std::string function;        // 函数名
     AssertLevel level;      // 断言级别
-    String stackTrace;      // 堆栈跟踪（可选）
+    std::string stackTrace;      // 堆栈跟踪（可选）
 };
 
 // AssertConfig 配置选项
@@ -212,7 +212,7 @@ Assert 库提供运行时断言功能，用于：
 
 | 依赖 | 说明 |
 |------|------|
-| `common/core/Types.hpp` | 基础类型定义（`i32`, `u8`, `String` 等） |
+| `common/core/Types.hpp` | 基础类型定义（`i32`, `u8`, `std::string` 等） |
 
 ### 外部依赖
 
@@ -508,7 +508,7 @@ for (int i = 0; i < millions; ++i) {
 | `FormatValueFloat` | 浮点格式化 |
 | `FormatValueBool` | 布尔格式化 |
 | `FormatValueCString` | C 字符串格式化 |
-| `FormatValueString` | String 格式化 |
+| `FormatValueString` | std::string 格式化 |
 | `FormatValuePointer` | 指针格式化 |
 | `FormatComparisonMessage` | 比较消息格式化 |
 | `CaptureStackTrace` | 堆栈跟踪捕获 |

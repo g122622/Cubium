@@ -39,7 +39,7 @@ public:
      * @param typeId 实体类型标识符
      * @return 创建的实体指针，如果ID已存在则返回nullptr
      */
-    [[nodiscard]] ClientEntity* spawnEntity(EntityId id, const String& typeId);
+    [[nodiscard]] ClientEntity* spawnEntity(EntityId id, const std::string& typeId);
 
     /**
      * @brief 创建本地玩家实体
@@ -52,7 +52,7 @@ public:
      * @param username 用户名
      * @return 创建的实体指针
      */
-    [[nodiscard]] ClientEntity* spawnLocalPlayer(EntityId entityId, PlayerId playerId, const String& username);
+    [[nodiscard]] ClientEntity* spawnLocalPlayer(EntityId entityId, PlayerId playerId, const std::string& username);
 
     /**
      * @brief 移除实体
@@ -154,7 +154,7 @@ public:
      * @param typeId 实体类型标识符
      * @return 实体ID列表
      */
-    [[nodiscard]] std::vector<EntityId> getEntitiesByType(const String& typeId) const;
+    [[nodiscard]] std::vector<EntityId> getEntitiesByType(const std::string& typeId) const;
 
     /**
      * @brief 获取指定范围内的实体

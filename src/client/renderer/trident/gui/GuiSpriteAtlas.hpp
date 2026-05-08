@@ -102,7 +102,7 @@ public:
      * @param atlasHeight 图集高度
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> loadTextureAtlas(const String& filePath,
+    [[nodiscard]] Result<void> loadTextureAtlas(const std::string& filePath,
                                                  i32 atlasWidth = 256,
                                                  i32 atlasHeight = 256);
 
@@ -147,7 +147,7 @@ public:
      * @param atlasWidth 图集总宽度（像素），默认使用当前图集宽度
      * @param atlasHeight 图集总高度（像素），默认使用当前图集高度
      */
-    void registerSprite(const String& id, i32 x, i32 y, i32 width, i32 height,
+    void registerSprite(const std::string& id, i32 x, i32 y, i32 width, i32 height,
                         i32 atlasWidth = 0, i32 atlasHeight = 0);
 
     /**
@@ -161,14 +161,14 @@ public:
      * @param id 精灵ID
      * @return 精灵指针，如果不存在返回nullptr
      */
-    [[nodiscard]] const GuiSprite* getSprite(const String& id) const;
+    [[nodiscard]] const GuiSprite* getSprite(const std::string& id) const;
 
     /**
      * @brief 检查精灵是否存在
      * @param id 精灵ID
      * @return 如果精灵存在返回true
      */
-    [[nodiscard]] bool hasSprite(const String& id) const;
+    [[nodiscard]] bool hasSprite(const std::string& id) const;
 
     /**
      * @brief 清除所有精灵
@@ -239,7 +239,7 @@ public:
      * @param spriteId 精灵ID
      * @return TextureImage对象，如果精灵不存在则返回无效对象
      */
-    [[nodiscard]] ui::kagero::paint::TextureImage createTextureImage(const String& spriteId) const;
+    [[nodiscard]] ui::kagero::paint::TextureImage createTextureImage(const std::string& spriteId) const;
 
     /**
      * @brief 创建TextureImage（带自定义尺寸）
@@ -249,7 +249,7 @@ public:
      * @param customHeight 自定义绘制高度
      * @return TextureImage对象
      */
-    [[nodiscard]] ui::kagero::paint::TextureImage createTextureImage(const String& spriteId,
+    [[nodiscard]] ui::kagero::paint::TextureImage createTextureImage(const std::string& spriteId,
                                                                       i32 customWidth,
                                                                       i32 customHeight) const;
 

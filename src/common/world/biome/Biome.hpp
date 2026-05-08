@@ -81,11 +81,11 @@ public:
      * @param id 生物群系ID
      * @param name 生物群系名称
      */
-    Biome(BiomeId id, const String& name);
+    Biome(BiomeId id, const std::string& name);
 
     // === 基本信息 ===
     [[nodiscard]] BiomeId id() const { return m_id; }
-    [[nodiscard]] const String& name() const { return m_name; }
+    [[nodiscard]] const std::string& name() const { return m_name; }
     [[nodiscard]] Category category() const { return m_category; }
 
     // === 地形参数 ===
@@ -267,7 +267,7 @@ public:
 
 private:
     BiomeId m_id = 0;
-    String m_name;
+    std::string m_name;
     Category m_category = Category::None;
 
     // 地形参数

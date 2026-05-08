@@ -25,7 +25,7 @@ namespace mc::client::ui::kagero::tpl::bindings {
  * @brief Widget创建函数类型
  */
 using WidgetCreator = std::function<std::unique_ptr<widget::Widget>(
-    const String& id, const std::map<String, String>& attrs)>;
+    const std::string& id, const std::map<std::string, std::string>& attrs)>;
 
 /**
  * @brief 内置Widget注册表
@@ -51,7 +51,7 @@ public:
      * @param tagName 标签名
      * @param creator 创建函数
      */
-    void registerCreator(const String& tagName, WidgetCreator creator);
+    void registerCreator(const std::string& tagName, WidgetCreator creator);
 
     /**
      * @brief 创建Widget
@@ -62,24 +62,24 @@ public:
      * @return 创建的Widget，如果标签未知返回nullptr
      */
     [[nodiscard]] std::unique_ptr<widget::Widget> create(
-        const String& tagName,
-        const String& id,
-        const std::map<String, String>& attrs) const;
+        const std::string& tagName,
+        const std::string& id,
+        const std::map<std::string, std::string>& attrs) const;
 
     /**
      * @brief 检查标签名是否注册
      */
-    [[nodiscard]] bool hasTag(const String& tagName) const;
+    [[nodiscard]] bool hasTag(const std::string& tagName) const;
 
     /**
      * @brief 获取所有注册的标签名
      */
-    [[nodiscard]] std::vector<String> registeredTags() const;
+    [[nodiscard]] std::vector<std::string> registeredTags() const;
 
     /**
      * @brief 获取标签的默认属性
      */
-    [[nodiscard]] std::map<String, String> getDefaultAttributes(const String& tagName) const;
+    [[nodiscard]] std::map<std::string, std::string> getDefaultAttributes(const std::string& tagName) const;
 
 private:
     BuiltinWidgets();
@@ -103,8 +103,8 @@ private:
     void registerListWidget();
     void registerViewport3DWidget();
 
-    std::unordered_map<String, WidgetCreator> m_creators;
-    std::unordered_map<String, std::map<String, String>> m_defaultAttributes;
+    std::unordered_map<std::string, WidgetCreator> m_creators;
+    std::unordered_map<std::string, std::map<std::string, std::string>> m_defaultAttributes;
     bool m_initialized = false;
 };
 
@@ -122,24 +122,24 @@ namespace widget_attrs {
  * @param value "x,y" 格式的字符串
  * @return pair<x, y>，解析失败返回 {0, 0}
  */
-[[nodiscard]] std::pair<i32, i32> parsePosition(const String& value);
+[[nodiscard]] std::pair<i32, i32> parsePosition(const std::string& value);
 
 /**
  * @brief 解析尺寸属性
  * @param value "width,height" 格式的字符串
  * @return pair<width, height>，解析失败返回 {0, 0}
  */
-[[nodiscard]] std::pair<i32, i32> parseSize(const String& value);
+[[nodiscard]] std::pair<i32, i32> parseSize(const std::string& value);
 
 /**
  * @brief 应用位置属性
  */
-void applyPosition(widget::Widget* widget, const String& value);
+void applyPosition(widget::Widget* widget, const std::string& value);
 
 /**
  * @brief 应用尺寸属性
  */
-void applySize(widget::Widget* widget, const String& value);
+void applySize(widget::Widget* widget, const std::string& value);
 
 // ========== 颜色 ==========
 
@@ -156,24 +156,24 @@ void applySize(widget::Widget* widget, const String& value);
  * @param value 颜色字符串
  * @return ARGB颜色值，解析失败返回白色
  */
-[[nodiscard]] u32 parseColor(const String& value);
+[[nodiscard]] u32 parseColor(const std::string& value);
 
 /**
  * @brief 颜色转字符串
  */
-[[nodiscard]] String colorToString(u32 color);
+[[nodiscard]] std::string colorToString(u32 color);
 
 // ========== 锚点 ==========
 
 /**
  * @brief 解析锚点值
  */
-[[nodiscard]] Anchor parseAnchor(const String& value);
+[[nodiscard]] Anchor parseAnchor(const std::string& value);
 
 /**
  * @brief 锚点转字符串
  */
-[[nodiscard]] String anchorToString(Anchor anchor);
+[[nodiscard]] std::string anchorToString(Anchor anchor);
 
 // ========== 布尔值 ==========
 
@@ -182,19 +182,19 @@ void applySize(widget::Widget* widget, const String& value);
  *
  * 支持值: "true", "false", "1", "0", "yes", "no"
  */
-[[nodiscard]] bool parseBool(const String& value);
+[[nodiscard]] bool parseBool(const std::string& value);
 
 // ========== 数值 ==========
 
 /**
  * @brief 解析整数
  */
-[[nodiscard]] i32 parseInt(const String& value, i32 defaultValue = 0);
+[[nodiscard]] i32 parseInt(const std::string& value, i32 defaultValue = 0);
 
 /**
  * @brief 解析浮点数
  */
-[[nodiscard]] f32 parseFloat(const String& value, f32 defaultValue = 0.0f);
+[[nodiscard]] f32 parseFloat(const std::string& value, f32 defaultValue = 0.0f);
 
 // ========== 范围 ==========
 
@@ -202,7 +202,7 @@ void applySize(widget::Widget* widget, const String& value);
  * @brief 解析范围值
  * @param value "min,max" 格式
  */
-[[nodiscard]] std::pair<f32, f32> parseRange(const String& value);
+[[nodiscard]] std::pair<f32, f32> parseRange(const std::string& value);
 
 } // namespace widget_attrs
 

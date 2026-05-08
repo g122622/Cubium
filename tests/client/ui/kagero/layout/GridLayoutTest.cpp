@@ -11,7 +11,7 @@ using namespace mc::client::ui::kagero::widget;
 
 class GridTestWidget : public Widget {
 public:
-    explicit GridTestWidget(const mc::String& id) : Widget(id) {}
+    explicit GridTestWidget(const mc::std::string& id) : Widget(id) {}
     void paint(PaintContext& ctx) override {
         (void)ctx;
     }

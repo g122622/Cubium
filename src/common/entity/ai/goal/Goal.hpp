@@ -98,7 +98,7 @@ public:
     /**
      * @brief 获取类型名称（用于调试）
      */
-    [[nodiscard]] virtual String getTypeName() const {
+    [[nodiscard]] virtual std::string getTypeName() const {
         return "Goal";
     }
 

@@ -55,7 +55,7 @@ public:
     [[nodiscard]] ItemStack assemble(const IInventory& inventory) const override;
     [[nodiscard]] ItemStack getResultItem() const override { return m_result; }
     [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override;
-    [[nodiscard]] const String& getGroup() const override { return EMPTY_GROUP; }
+    [[nodiscard]] const std::string& getGroup() const override { return EMPTY_GROUP; }
     [[nodiscard]] ResourceLocation getId() const override { return m_id; }
     [[nodiscard]] RecipeType getType() const override { return RecipeType::Smithing; }
 
@@ -88,7 +88,7 @@ public:
     [[nodiscard]] const Ingredient& getAddition() const { return m_addition; }
 
 private:
-    static const String EMPTY_GROUP;
+    static const std::string EMPTY_GROUP;
 
     ResourceLocation m_id;
     Ingredient m_base;

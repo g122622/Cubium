@@ -35,7 +35,7 @@ public:
     virtual void drawImageRect(const IImage& image, const Rect& src, const Rect& dst) = 0;
     virtual void drawImageNine(const IImage& image, const Rect& center, const Rect& dst, const IPaint* paint = nullptr) = 0;
 
-    virtual void drawText(const String& text, f32 x, f32 y, const IPaint& paint) = 0;
+    virtual void drawText(const std::string& text, f32 x, f32 y, const IPaint& paint) = 0;
     virtual void drawTextBlob(const ITextBlob& blob, f32 x, f32 y, const IPaint& paint) = 0;
 
     virtual void clipRect(const Rect& rect) = 0;
@@ -69,7 +69,7 @@ public:
      * @param text 文本内容
      * @return 文本宽度（像素）
      */
-    [[nodiscard]] virtual f32 getTextWidth(const String& text) const = 0;
+    [[nodiscard]] virtual f32 getTextWidth(const std::string& text) const = 0;
 
     /**
      * @brief 获取字体高度

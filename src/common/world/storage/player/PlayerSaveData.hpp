@@ -36,10 +36,10 @@ struct PlayerSaveData {
     // ========== 基本信息 ==========
 
     /// 玩家唯一标识符（UUID字符串）
-    String uuid;
+    std::string uuid;
 
     /// 用户名
-    String username;
+    std::string username;
 
     // ========== 位置和旋转 ==========
 
@@ -188,7 +188,7 @@ struct PlayerSaveData {
      * @param playerUuid 玩家UUID
      * @param name 用户名
      */
-    explicit PlayerSaveData(const String& playerUuid, const String& name)
+    explicit PlayerSaveData(const std::string& playerUuid, const std::string& name)
         : uuid(playerUuid), username(name) {}
 
     // ========== 序列化 ==========

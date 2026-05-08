@@ -120,7 +120,7 @@ public:
      */
     [[nodiscard]] const BlockAppearance* getBlockAppearance(
         u32 blockId,
-        const String& properties) const;
+        const std::string& properties) const;
 
     /**
      * @brief 获取缺失模型外观

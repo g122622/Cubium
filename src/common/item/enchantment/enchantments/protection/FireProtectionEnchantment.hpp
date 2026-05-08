@@ -21,11 +21,11 @@ class FireProtectionEnchantment : public ProtectionEnchantment {
 public:
     FireProtectionEnchantment() : ProtectionEnchantment(Type::Fire) {}
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:fire_protection";
     }
 
-    [[nodiscard]] String getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override {
         (void)level;
         return "enchantment.minecraft.fire_protection";
     }

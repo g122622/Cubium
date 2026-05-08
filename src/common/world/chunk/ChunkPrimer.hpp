@@ -219,7 +219,7 @@ public:
      * @param structureName 结构名称
      * @param start 结构起点实例
      */
-    void addStructureStart(const String& structureName, std::unique_ptr<world::gen::structure::StructureStart> start) {
+    void addStructureStart(const std::string& structureName, std::unique_ptr<world::gen::structure::StructureStart> start) {
         m_structureStarts[structureName] = std::move(start);
     }
 
@@ -228,7 +228,7 @@ public:
      * @param structureName 结构名称
      * @return 结构起点指针，如果不存在则返回 nullptr
      */
-    [[nodiscard]] world::gen::structure::StructureStart* getStructureStart(const String& structureName) {
+    [[nodiscard]] world::gen::structure::StructureStart* getStructureStart(const std::string& structureName) {
         auto it = m_structureStarts.find(structureName);
         return it != m_structureStarts.end() ? it->second.get() : nullptr;
     }
@@ -236,7 +236,7 @@ public:
     /**
      * @brief 获取所有结构起点
      */
-    [[nodiscard]] const std::unordered_map<String, std::unique_ptr<world::gen::structure::StructureStart>>& structureStarts() const {
+    [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<world::gen::structure::StructureStart>>& structureStarts() const {
         return m_structureStarts;
     }
 
@@ -305,7 +305,7 @@ private:
     std::vector<SpawnedEntityData> m_spawnedEntities;
 
     // 结构起点（用于结构生成）
-    std::unordered_map<String, std::unique_ptr<world::gen::structure::StructureStart>> m_structureStarts;
+    std::unordered_map<std::string, std::unique_ptr<world::gen::structure::StructureStart>> m_structureStarts;
 
     // 辅助方法
     [[nodiscard]] static bool isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z);

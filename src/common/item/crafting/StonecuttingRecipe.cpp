@@ -5,7 +5,7 @@ namespace crafting {
 
 StonecuttingRecipe::StonecuttingRecipe(
     const ResourceLocation& id,
-    const String& group,
+    const std::string& group,
     const Ingredient& ingredient,
     const ItemStack& result,
     i32 count

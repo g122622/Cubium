@@ -49,7 +49,7 @@ public:
      * @param templatePath 模板文件路径
      * @return 模板实例，失败返回 nullptr
      */
-    [[nodiscard]] std::unique_ptr<kagero::tpl::runtime::TemplateInstance> createScreen(const String& templatePath);
+    [[nodiscard]] std::unique_ptr<kagero::tpl::runtime::TemplateInstance> createScreen(const std::string& templatePath);
 
     [[nodiscard]] kagero::tpl::binder::BindingContext& bindingContext();
     [[nodiscard]] const kagero::tpl::binder::BindingContext& bindingContext() const;
@@ -80,7 +80,7 @@ private:
     i32 m_playerHealth = 20;
     i32 m_playerHunger = 20;
     i32 m_playerXP = 0;
-    String m_playerName = "Steve";
+    std::string m_playerName = "Steve";
 };
 
 } // namespace mc::client::ui::minecraft

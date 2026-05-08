@@ -100,13 +100,13 @@ public:
      * @brief 设置重命名名称
      * @param name 新名称（空字符串表示清除）
      */
-    void setItemName(const String& name);
+    void setItemName(const std::string& name);
 
     /**
      * @brief 获取重命名名称
      * @return 重命名名称
      */
-    [[nodiscard]] const String& getItemName() const { return m_itemName; }
+    [[nodiscard]] const std::string& getItemName() const { return m_itemName; }
 
     /**
      * @brief 检查是否只有重命名操作
@@ -179,7 +179,7 @@ private:
      * @param ench2 附魔ID2
      * @return 如果兼容返回true
      */
-    [[nodiscard]] bool areEnchantmentsCompatible(const String& ench1, const String& ench2) const;
+    [[nodiscard]] bool areEnchantmentsCompatible(const std::string& ench1, const std::string& ench2) const;
 
 private:
     std::unique_ptr<IInventory> m_anvilInventory;  ///< 铁砧背包
@@ -187,7 +187,7 @@ private:
     IWorld* m_world;                               ///< 世界指针
     i32 m_repairCost = 0;                          ///< 修复成本（经验等级）
     i32 m_materialCost = 0;                        ///< 材料消耗数量
-    String m_itemName;                             ///< 重命名名称
+    std::string m_itemName;                             ///< 重命名名称
 };
 
 } // namespace mc

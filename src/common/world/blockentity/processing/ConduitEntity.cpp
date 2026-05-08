@@ -370,7 +370,7 @@ bool ConduitEntity::load(const nlohmann::json& data) {
 
     // 加载目标UUID
     if (data.contains("target_uuid") && data["target_uuid"].is_string()) {
-        m_targetUuid = data["target_uuid"].get<String>();
+        m_targetUuid = data["target_uuid"].get<std::string>();
     }
 
     return true;

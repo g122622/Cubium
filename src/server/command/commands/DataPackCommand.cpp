@@ -26,7 +26,7 @@ void DataPackCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // /datapack enable <name>
     auto enableNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("enable");
-    auto enableNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto enableNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "name",
         StringArgumentType::string());
     enableNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -37,7 +37,7 @@ void DataPackCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // /datapack disable <name>
     auto disableNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("disable");
-    auto disableNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto disableNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "name",
         StringArgumentType::string());
     disableNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -59,7 +59,7 @@ void DataPackCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 i32 DataPackCommand::enableDataPack(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String name = context.getArgument<String>("name");
+    const std::string name = context.getArgument<std::string>("name");
 
     std::ostringstream ss;
     ss << "Enabled data pack '" << name << "'";
@@ -77,7 +77,7 @@ i32 DataPackCommand::enableDataPack(CommandContext<ServerCommandSource>& context
 i32 DataPackCommand::disableDataPack(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String name = context.getArgument<String>("name");
+    const std::string name = context.getArgument<std::string>("name");
 
     std::ostringstream ss;
     ss << "Disabled data pack '" << name << "'";

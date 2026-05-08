@@ -13,7 +13,7 @@ namespace trade {
 namespace {
 
 // 辅助函数：注册或获取测试物品
-const Item* getOrRegisterTestItem(const String& name) {
+const Item* getOrRegisterTestItem(const std::string& name) {
     ResourceLocation id(name);
     const Item* existing = ItemRegistry::instance().getItem(id);
     if (existing != nullptr) {

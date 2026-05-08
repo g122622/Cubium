@@ -23,7 +23,7 @@ void MeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
             {},
             true));
 
-    auto actionArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto actionArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "action",
         StringArgumentType::greedyString());
     actionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -43,8 +43,8 @@ i32 MeCommand::performAction(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    const String action = context.getArgument<String>("action");
-    const String& name = source.name();
+    const std::string action = context.getArgument<std::string>("action");
+    const std::string& name = source.name();
 
     // 广播 "* playername action" 格式的消息
     server->broadcastServerMessage("* " + name + " " + action);

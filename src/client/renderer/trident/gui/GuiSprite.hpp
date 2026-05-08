@@ -69,7 +69,7 @@ struct GuiNinePatch {
  * buttonNormal.height = 20;
  */
 struct GuiSprite {
-    String id;           ///< 精灵ID，如 "button_normal"
+    std::string id;           ///< 精灵ID，如 "button_normal"
 
     // UV坐标（归一化）
     f64 u0 = 0.0f;       ///< 左边缘U坐标 [0, 1]
@@ -85,8 +85,8 @@ struct GuiSprite {
     GuiNinePatch ninePatch; ///< 九宫格拉伸定义
 
     // 状态变体精灵ID（可选，用于按钮等）
-    String hoverSprite;      ///< 悬停状态精灵ID
-    String disabledSprite;   ///< 禁用状态精灵ID
+    std::string hoverSprite;      ///< 悬停状态精灵ID
+    std::string disabledSprite;   ///< 禁用状态精灵ID
 
     /**
      * @brief 默认构造函数
@@ -103,7 +103,7 @@ struct GuiSprite {
      * @param atlasWidth 图集总宽度（像素）
      * @param atlasHeight 图集总高度（像素）
      */
-    GuiSprite(const String& spriteId,
+    GuiSprite(const std::string& spriteId,
               i32 x, i32 y, i32 w, i32 h,
               i32 atlasWidth, i32 atlasHeight)
         : id(spriteId)
@@ -141,7 +141,7 @@ struct GuiSprite {
      * @param disabled 禁用状态精灵ID
      * @return 自身引用，用于链式调用
      */
-    GuiSprite& setStateSprites(const String& hover, const String& disabled) {
+    GuiSprite& setStateSprites(const std::string& hover, const std::string& disabled) {
         hoverSprite = hover;
         disabledSprite = disabled;
         return *this;

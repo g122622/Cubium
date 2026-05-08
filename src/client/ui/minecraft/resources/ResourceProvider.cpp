@@ -9,7 +9,7 @@ ResourceProvider::ResourceProvider(Font& font, renderer::trident::gui::GuiRender
     , m_renderer(renderer) {
 }
 
-void ResourceProvider::loadGuiTextureAtlas(const String& path) {
+void ResourceProvider::loadGuiTextureAtlas(const std::string& path) {
     // TODO: 从资源路径加载纹理图集
     // 需要通过GuiTextureLoader加载
     (void)path;

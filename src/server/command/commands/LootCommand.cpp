@@ -33,7 +33,7 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto giveTargetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets",
         EntityArgumentType::players());
-    auto giveLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto giveLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "loot_table",
         StringArgumentType::string());
     giveLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -48,7 +48,7 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto spawnPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
         "pos",
         Vec3ArgumentType::vec3());
-    auto spawnLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto spawnLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "loot_table",
         StringArgumentType::string());
     spawnLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -63,7 +63,7 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto insertPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
         "pos",
         Vec3ArgumentType::vec3());
-    auto insertLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto insertLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "loot_table",
         StringArgumentType::string());
     insertLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -80,10 +80,10 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto entityTargetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets",
         EntityArgumentType::entities());
-    auto entitySlotArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto entitySlotArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "slot",
         StringArgumentType::string());
-    auto entityLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto entityLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "loot_table",
         StringArgumentType::string());
     entityLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -98,10 +98,10 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto blockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
         "pos",
         Vec3ArgumentType::vec3());
-    auto blockSlotArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto blockSlotArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "slot",
         StringArgumentType::string());
-    auto blockLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto blockLootArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "loot_table",
         StringArgumentType::string());
     blockLootArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -121,7 +121,7 @@ i32 LootCommand::giveLoot(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
-    const String lootTable = context.getArgument<String>("loot_table");
+    const std::string lootTable = context.getArgument<std::string>("loot_table");
 
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
@@ -145,7 +145,7 @@ i32 LootCommand::insertLoot(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const Vector3d& pos = context.getArgument<Vector3d>("pos");
-    const String lootTable = context.getArgument<String>("loot_table");
+    const std::string lootTable = context.getArgument<std::string>("loot_table");
 
     std::ostringstream ss;
     ss << "Inserted loot from '" << lootTable << "' at (" << pos.x << ", " << pos.y << ", " << pos.z << ")";
@@ -159,7 +159,7 @@ i32 LootCommand::insertLoot(CommandContext<ServerCommandSource>& context)
 i32 LootCommand::replaceLoot(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String lootTable = context.getArgument<String>("loot_table");
+    const std::string lootTable = context.getArgument<std::string>("loot_table");
 
     std::ostringstream ss;
     ss << "Replaced slot with loot from '" << lootTable << "'";
@@ -174,7 +174,7 @@ i32 LootCommand::spawnLoot(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const Vector3d& pos = context.getArgument<Vector3d>("pos");
-    const String lootTable = context.getArgument<String>("loot_table");
+    const std::string lootTable = context.getArgument<std::string>("loot_table");
 
     std::ostringstream ss;
     ss << "Spawned loot from '" << lootTable << "' at (" << pos.x << ", " << pos.y << ", " << pos.z << ")";

@@ -24,11 +24,11 @@ class KnockbackEnchantment : public Enchantment {
 public:
     KnockbackEnchantment() = default;
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:knockback";
     }
 
-    [[nodiscard]] String getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override {
         (void)level;
         return "enchantment.minecraft.knockback";
     }

@@ -33,7 +33,7 @@ constexpr u32 TRIDENT_VERSION_PATCH = 0;
 /**
  * @brief 获取 Trident 版本字符串
  */
-inline String getTridentVersion() {
+inline std::string getTridentVersion() {
     return std::to_string(TRIDENT_VERSION_MAJOR) + "." +
            std::to_string(TRIDENT_VERSION_MINOR) + "." +
            std::to_string(TRIDENT_VERSION_PATCH);

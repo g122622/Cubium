@@ -28,14 +28,14 @@ src/server/interaction/
 // 方块交互结果
 struct BlockInteractionResult {
     bool success = false;
-    String message;
+    std::string message;
 };
 
 // 方块破坏结果
 struct BlockBreakResult {
     bool blockBroken = false;
     u32 newBlockStateId = 0;
-    String message;
+    std::string message;
 };
 
 // 方块放置结果
@@ -45,7 +45,7 @@ struct BlockPlacementResult {
     bool itemConsumed = false;
     BlockPos position;
     u32 newBlockStateId = 0;
-    String message;
+    std::string message;
 };
 ```
 
@@ -197,7 +197,7 @@ MiningManager 实现了完整的 MC 1.16.5 挖掘速度算法：
 struct ContainerClickResult {
     bool success = false;
     ItemStack cursorItem;
-    String message;
+    std::string message;
 };
 
 // 打开的容器

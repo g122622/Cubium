@@ -197,7 +197,7 @@ MultiplyTotal 0.5:   10 * 1.5 = 15
 
 ### 依赖项
 
-- `common/core/Types.hpp`：基础类型定义（String, f64, u8 等）
+- `common/core/Types.hpp`：基础类型定义（std::string, f64, u8 等）
 - `<mutex>`：线程同步
 - `<memory>`：智能指针
 - `<unordered_map>`：哈希映射

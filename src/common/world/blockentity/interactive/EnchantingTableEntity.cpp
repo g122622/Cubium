@@ -69,7 +69,7 @@ bool EnchantingTableEntity::load(const nlohmann::json& data) {
 
     // 加载自定义名称
     if (data.contains("CustomName")) {
-        m_customName = data["CustomName"].get<String>();
+        m_customName = data["CustomName"].get<std::string>();
     }
 
     // 附魔力量在加载后重新计算
@@ -166,7 +166,7 @@ bool EnchantingTableEntity::isValidBookshelf(IWorld& world,
 
 // ========== 自定义名称 ==========
 
-void EnchantingTableEntity::setCustomName(const String& name) {
+void EnchantingTableEntity::setCustomName(const std::string& name) {
     m_customName = name;
     setChanged();
 }

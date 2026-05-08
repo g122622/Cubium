@@ -3,7 +3,7 @@
 namespace mc {
 namespace crafting {
 
-const String SmithingRecipe::EMPTY_GROUP = "";
+const std::string SmithingRecipe::EMPTY_GROUP = "";
 
 SmithingRecipe::SmithingRecipe(
     const ResourceLocation& id,

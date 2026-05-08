@@ -28,9 +28,9 @@ struct BlockAppearance {
     };
 
     std::vector<ModelElement> elements;
-    std::map<String, TextureRegion> faceTextures; // 方向 -> 纹理区域
-    std::map<String, i32> faceTintIndices;         // 方向 -> tintindex（仅存储 >= 0）
-    std::map<String, std::vector<FaceTextureLayer>> faceTextureLayers; // 方向 -> 多层纹理（按模型顺序）
+    std::map<std::string, TextureRegion> faceTextures; // 方向 -> 纹理区域
+    std::map<std::string, i32> faceTintIndices;         // 方向 -> tintindex（仅存储 >= 0）
+    std::map<std::string, std::vector<FaceTextureLayer>> faceTextureLayers; // 方向 -> 多层纹理（按模型顺序）
     i32 xRotation = 0;  // X轴旋转
     i32 yRotation = 0;  // Y轴旋转
     bool uvLock = false;
@@ -119,7 +119,7 @@ public:
      */
     [[nodiscard]] const BlockAppearance* getBlockAppearance(
         const ResourceLocation& blockId,
-        const std::map<String, String>& properties = {}) const;
+        const std::map<std::string, std::string>& properties = {}) const;
 
     /**
      * @brief 获取纹理区域
@@ -221,7 +221,7 @@ private:
     std::map<ResourceLocation, BakedBlockModel> m_bakedModels;
 
     // 方块外观缓存
-    std::map<String, BlockAppearance> m_blockAppearances;
+    std::map<std::string, BlockAppearance> m_blockAppearances;
 
     // 纹理图集区域映射
     std::map<ResourceLocation, TextureRegion> m_textureRegions;
@@ -242,7 +242,7 @@ private:
     [[nodiscard]] std::set<ResourceLocation> collectRequiredTextures() const;
 
     // 将纹理路径转换为资源位置
-    [[nodiscard]] static ResourceLocation texturePathToLocation(StringView path);
+    [[nodiscard]] static ResourceLocation texturePathToLocation(std::string_view path);
 
     // 使用 compat 层查找纹理区域（支持 MC 1.12/1.13+ 路径变体）
     [[nodiscard]] const TextureRegion* findTextureRegion(const ResourceLocation& texLoc) const;

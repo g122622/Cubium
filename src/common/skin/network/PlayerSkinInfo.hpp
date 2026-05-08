@@ -57,7 +57,7 @@ public:
     /**
      * @brief 获取玩家名称
      */
-    [[nodiscard]] const String& name() const { return m_profile.name(); }
+    [[nodiscard]] const std::string& name() const { return m_profile.name(); }
 
     // ========== 皮肤纹理 ==========
 

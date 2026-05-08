@@ -7,7 +7,7 @@
 namespace mc::test {
 namespace {
 
-nlohmann::json loadJsonFromPack(const InMemoryResourcePack& pack, StringView path) {
+nlohmann::json loadJsonFromPack(const InMemoryResourcePack& pack, std::string_view path) {
     const auto readResult = pack.readResource(path);
     EXPECT_TRUE(readResult.success()) << "missing resource: " << path;
     if (readResult.failed()) {
@@ -15,7 +15,7 @@ nlohmann::json loadJsonFromPack(const InMemoryResourcePack& pack, StringView pat
     }
 
     const auto& bytes = readResult.value();
-    const String content(bytes.begin(), bytes.end());
+    const std::string content(bytes.begin(), bytes.end());
     return nlohmann::json::parse(content);
 }
 
@@ -49,7 +49,7 @@ TEST(VanillaResourcesTintModelTest, GrassBlockBottomUsesDirtTexture) {
 
     ASSERT_TRUE(model.contains("textures"));
     ASSERT_TRUE(model["textures"].contains("bottom"));
-    EXPECT_EQ(model["textures"]["bottom"].get<String>(), "block/dirt");
+    EXPECT_EQ(model["textures"]["bottom"].get<std::string>(), "block/dirt");
 
     ASSERT_TRUE(model.contains("elements"));
     ASSERT_TRUE(model["elements"].is_array());
@@ -58,7 +58,7 @@ TEST(VanillaResourcesTintModelTest, GrassBlockBottomUsesDirtTexture) {
     const auto& faces = model["elements"][0]["faces"];
     ASSERT_TRUE(faces.contains("down"));
     ASSERT_TRUE(faces["down"].contains("texture"));
-    EXPECT_EQ(faces["down"]["texture"].get<String>(), "#bottom");
+    EXPECT_EQ(faces["down"]["texture"].get<std::string>(), "#bottom");
 }
 
 TEST(VanillaResourcesTintModelTest, GrassBlockSideOverlayHasTintIndex) {
@@ -71,7 +71,7 @@ TEST(VanillaResourcesTintModelTest, GrassBlockSideOverlayHasTintIndex) {
 
     ASSERT_TRUE(model.contains("textures"));
     ASSERT_TRUE(model["textures"].contains("overlay"));
-    EXPECT_EQ(model["textures"]["overlay"].get<String>(), "block/grass_block_side_overlay");
+    EXPECT_EQ(model["textures"]["overlay"].get<std::string>(), "block/grass_block_side_overlay");
 
     ASSERT_TRUE(model.contains("elements"));
     ASSERT_TRUE(model["elements"].is_array());
@@ -82,7 +82,7 @@ TEST(VanillaResourcesTintModelTest, GrassBlockSideOverlayHasTintIndex) {
         ASSERT_TRUE(overlayFaces.contains(face));
         ASSERT_TRUE(overlayFaces[face].contains("texture"));
         ASSERT_TRUE(overlayFaces[face].contains("tintindex"));
-        EXPECT_EQ(overlayFaces[face]["texture"].get<String>(), "#overlay");
+        EXPECT_EQ(overlayFaces[face]["texture"].get<std::string>(), "#overlay");
         EXPECT_EQ(overlayFaces[face]["tintindex"].get<i32>(), 0);
     }
 }
@@ -112,11 +112,11 @@ TEST(VanillaResourcesTintModelTest, ShortGrassAndFernUseTintedCrossParent) {
     ASSERT_NE(pack, nullptr);
 
     for (const char* block : {"short_grass", "fern"}) {
-        const String path = "assets/minecraft/models/block/" + String(block) + ".json";
+        const std::string path = "assets/minecraft/models/block/" + std::string(block) + ".json";
         const nlohmann::json model = loadJsonFromPack(*pack, path);
 
         ASSERT_TRUE(model.contains("parent"));
-        EXPECT_EQ(model["parent"].get<String>(), "block/tinted_cross");
+        EXPECT_EQ(model["parent"].get<std::string>(), "block/tinted_cross");
     }
 }
 
@@ -129,7 +129,7 @@ TEST(VanillaResourcesTintModelTest, TallGrassUsesTintedCrossParent) {
         "assets/minecraft/models/block/tall_grass.json");
 
     ASSERT_TRUE(model.contains("parent"));
-    EXPECT_EQ(model["parent"].get<String>(), "block/tinted_cross");
+    EXPECT_EQ(model["parent"].get<std::string>(), "block/tinted_cross");
 }
 
 } // namespace mc::test

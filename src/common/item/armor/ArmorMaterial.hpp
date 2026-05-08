@@ -47,7 +47,7 @@ public:
      * @brief 获取材质名称
      * @return 材质ID（如"leather", "diamond"）
      */
-    [[nodiscard]] virtual String getName() const = 0;
+    [[nodiscard]] virtual std::string getName() const = 0;
 
     /**
      * @brief 获取指定槽位的耐久度
@@ -142,7 +142,7 @@ public:
  */
 class LeatherArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] String getName() const override { return "leather"; }
+    [[nodiscard]] std::string getName() const override { return "leather"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 15; }
@@ -158,7 +158,7 @@ public:
  */
 class ChainArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] String getName() const override { return "chain"; }
+    [[nodiscard]] std::string getName() const override { return "chain"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 12; }
@@ -174,7 +174,7 @@ public:
  */
 class IronArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] String getName() const override { return "iron"; }
+    [[nodiscard]] std::string getName() const override { return "iron"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 9; }
@@ -191,7 +191,7 @@ public:
  */
 class GoldArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] String getName() const override { return "gold"; }
+    [[nodiscard]] std::string getName() const override { return "gold"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 25; }
@@ -208,7 +208,7 @@ public:
  */
 class DiamondArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] String getName() const override { return "diamond"; }
+    [[nodiscard]] std::string getName() const override { return "diamond"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 10; }
@@ -225,7 +225,7 @@ public:
  */
 class TurtleArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] String getName() const override { return "turtle"; }
+    [[nodiscard]] std::string getName() const override { return "turtle"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 9; }
@@ -244,7 +244,7 @@ public:
  */
 class NetheriteArmorMaterial : public ArmorMaterial {
 public:
-    [[nodiscard]] String getName() const override { return "netherite"; }
+    [[nodiscard]] std::string getName() const override { return "netherite"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 15; }

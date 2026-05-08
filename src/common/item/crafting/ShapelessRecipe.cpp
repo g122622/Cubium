@@ -7,7 +7,7 @@ namespace crafting {
 ShapelessRecipe::ShapelessRecipe(const ResourceLocation& id,
                                  std::vector<Ingredient> ingredients,
                                  ItemStack result,
-                                 const String& group)
+                                 const std::string& group)
     : m_id(id)
     , m_ingredients(std::move(ingredients))
     , m_result(std::move(result))

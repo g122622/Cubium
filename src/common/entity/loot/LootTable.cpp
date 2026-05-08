@@ -19,7 +19,7 @@ void LootTable::addPool(std::unique_ptr<LootPool> pool) {
     }
 }
 
-LootPool* LootTable::getPool(const String& name) {
+LootPool* LootTable::getPool(const std::string& name) {
     for (auto& pool : m_pools) {
         if (pool->getName() == name) {
             return pool.get();
@@ -28,7 +28,7 @@ LootPool* LootTable::getPool(const String& name) {
     return nullptr;
 }
 
-std::unique_ptr<LootPool> LootTable::removePool(const String& name) {
+std::unique_ptr<LootPool> LootTable::removePool(const std::string& name) {
     for (auto it = m_pools.begin(); it != m_pools.end(); ++it) {
         if ((*it)->getName() == name) {
             auto pool = std::move(*it);
@@ -91,11 +91,11 @@ void LootTable::recursiveGenerate(std::function<void(const ItemStack&)> consumer
     context.popLootTable(this);
 }
 
-Result<std::unique_ptr<LootTable>> LootTable::fromJson(const String& json) {
+Result<std::unique_ptr<LootTable>> LootTable::fromJson(const std::string& json) {
     return LootSerializers::parseLootTable(json);
 }
 
-String LootTable::toJson() const {
+std::string LootTable::toJson() const {
     return LootSerializers::toJsonString(*this, 2);
 }
 
@@ -119,14 +119,14 @@ std::unique_ptr<LootTable> LootTableBuilder::build() const {
 // LootTableManager
 // ============================================================================
 
-void LootTableManager::registerTable(const String& id, std::unique_ptr<LootTable> table) {
+void LootTableManager::registerTable(const std::string& id, std::unique_ptr<LootTable> table) {
     if (table) {
         table->setId(id);
         m_tables[id] = std::move(table);
     }
 }
 
-const LootTable* LootTableManager::getTable(const String& id) const {
+const LootTable* LootTableManager::getTable(const std::string& id) const {
     auto it = m_tables.find(id);
     if (it != m_tables.end()) {
         return it->second.get();
@@ -134,12 +134,12 @@ const LootTable* LootTableManager::getTable(const String& id) const {
     return nullptr;
 }
 
-bool LootTableManager::hasTable(const String& id) const {
+bool LootTableManager::hasTable(const std::string& id) const {
     return m_tables.find(id) != m_tables.end();
 }
 
-std::vector<String> LootTableManager::getAllTableIds() const {
-    std::vector<String> ids;
+std::vector<std::string> LootTableManager::getAllTableIds() const {
+    std::vector<std::string> ids;
     ids.reserve(m_tables.size());
     for (const auto& [id, table] : m_tables) {
         ids.push_back(id);

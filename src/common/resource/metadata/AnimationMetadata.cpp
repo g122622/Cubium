@@ -78,7 +78,7 @@ AnimationMetadata AnimationMetadata::fromMcmeta(
     }
 
     try {
-        const String jsonText(mcmetaData.begin(), mcmetaData.end());
+        const std::string jsonText(mcmetaData.begin(), mcmetaData.end());
         const auto json = nlohmann::json::parse(jsonText);
 
         if (!json.is_object() || !json.contains("animation")) {

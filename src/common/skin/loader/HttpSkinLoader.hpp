@@ -26,13 +26,13 @@ public:
     Result<void> initialize() override;
     void shutdown() override;
 
-    [[nodiscard]] bool supportsUrl(const String& url) const override;
-    Result<SkinLoadResult> load(const String& url) override;
-    void loadAsync(const String& url, std::function<void(Result<SkinLoadResult>)> callback) override;
-    void cancel(const String& url) override;
+    [[nodiscard]] bool supportsUrl(const std::string& url) const override;
+    Result<SkinLoadResult> load(const std::string& url) override;
+    void loadAsync(const std::string& url, std::function<void(Result<SkinLoadResult>)> callback) override;
+    void cancel(const std::string& url) override;
     void cancelAll() override;
 
-    [[nodiscard]] String name() const override { return "HttpSkinLoader"; }
+    [[nodiscard]] std::string name() const override { return "HttpSkinLoader"; }
 
     /**
      * @brief 设置连接超时
@@ -50,12 +50,12 @@ private:
     /**
      * @brief 执行 HTTP GET 请求
      */
-    Result<std::vector<u8>> httpGet(const String& url);
+    Result<std::vector<u8>> httpGet(const std::string& url);
 
     /**
      * @brief 从 URL 提取哈希
      */
-    [[nodiscard]] String extractHashFromUrl(const String& url) const;
+    [[nodiscard]] std::string extractHashFromUrl(const std::string& url) const;
 
     /**
      * @brief 验证皮肤 PNG 数据
@@ -65,10 +65,10 @@ private:
     /**
      * @brief 计算数据哈希
      */
-    String calculateHash(const std::vector<u8>& data);
+    std::string calculateHash(const std::vector<u8>& data);
 
     std::mutex m_pendingMutex;
-    std::unordered_map<String, std::future<Result<SkinLoadResult>>> m_pendingLoads;
+    std::unordered_map<std::string, std::future<Result<SkinLoadResult>>> m_pendingLoads;
 
     u32 m_connectTimeout = 5000;   // 5 秒
     u32 m_readTimeout = 30000;     // 30 秒

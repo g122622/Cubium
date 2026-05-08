@@ -232,7 +232,7 @@ protected:
     /**
      * @brief 获取默认显示名称（子类重写）
      */
-    [[nodiscard]] String getDefaultName() const override = 0;
+    [[nodiscard]] std::string getDefaultName() const override = 0;
 
     /**
      * @brief 获取默认熔炼时间（子类重写）

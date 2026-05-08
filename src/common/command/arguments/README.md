@@ -32,10 +32,10 @@ public:
     [[nodiscard]] virtual T parse(StringReader& reader) = 0;
 
     // 获取参数类型名称（用于帮助信息）
-    [[nodiscard]] virtual String getTypeName() const = 0;
+    [[nodiscard]] virtual std::string getTypeName() const = 0;
 
     // 获取示例值列表（用于命令提示）
-    [[nodiscard]] virtual std::vector<String> getExamples() const;
+    [[nodiscard]] virtual std::vector<std::string> getExamples() const;
 };
 ```
 
@@ -43,7 +43,7 @@ public:
 
 | 类名 | 解析类型 | 说明 | 示例 |
 |------|---------|------|------|
-| `StringArgumentType` | `String` | 三种模式：SingleWord、QuotablePhrase、GreedyPhrase | `"hello"`, `"\"hello world\""` |
+| `StringArgumentType` | `std::string` | 三种模式：SingleWord、QuotablePhrase、GreedyPhrase | `"hello"`, `"\"hello world\""` |
 | `IntegerArgumentType` | `i32` | 支持范围检查 | `123`, `-456` |
 | `FloatArgumentType` | `f32` | 支持范围检查 | `3.14`, `-2.5` |
 | `BoolArgumentType` | `bool` | 布尔值解析 | `true`, `false` |
@@ -102,7 +102,7 @@ colorArg->add("blue", Color::Blue);
 | `isSelf` | `bool` | 是否选择自己 |
 | `includesNonPlayers` | `bool` | 是否包含非玩家实体 |
 | `single` | `bool` | 是否选择单个实体 |
-| `username` | `String` | 玩家名称（直接指定时） |
+| `username` | `std::string` | 玩家名称（直接指定时） |
 
 **选择器类型**：
 
@@ -375,7 +375,7 @@ class ColorArgumentType : public ArgumentType<Color> {
 public:
     [[nodiscard]] Color parse(StringReader& reader) override {
         i32 start = reader.getCursor();
-        String name = reader.readUnquotedString();
+        std::string name = reader.readUnquotedString();
 
         if (name == "red") return Color::Red;
         if (name == "green") return Color::Green;
@@ -389,11 +389,11 @@ public:
         );
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         return "color";
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
         return {"red", "green", "blue"};
     }
 };

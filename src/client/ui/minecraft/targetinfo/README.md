@@ -109,7 +109,7 @@ auto snapshot = mc::client::ui::minecraft::targetinfo::TargetInfoResolver::resol
     5.0f,
     [this](mc::EntityId entityId) {
         const auto it = m_knownPlayerNames.find(static_cast<mc::PlayerId>(entityId));
-        return it == m_knownPlayerNames.end() ? mc::String{} : it->second;
+        return it == m_knownPlayerNames.end() ? mc::std::string{} : it->second;
     });
 
 targetInfoWidget.setTargetInfo(std::move(snapshot));

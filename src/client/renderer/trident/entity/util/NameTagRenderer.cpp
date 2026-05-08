@@ -58,7 +58,7 @@ void NameTagRenderer::setViewMatrix(const std::array<f64, 16>& viewMatrix) {
 
 void NameTagRenderer::renderNameTag(
     Entity& entity,
-    const String& displayName,
+    const std::string& displayName,
     f64 partialTicks)
 {
     // CPU 路径 - 已废弃
@@ -85,7 +85,7 @@ void NameTagRenderer::renderNameTag(
 void NameTagRenderer::renderNameTag(
     VkCommandBuffer cmd,
     Entity& entity,
-    const String& displayName,
+    const std::string& displayName,
     f64 partialTicks,
     pipeline::EntityPipeline& pipeline)
 {
@@ -152,7 +152,7 @@ bool NameTagRenderer::shouldRenderNameTag(
     }
 
     // 检查实体是否有自定义名称或是否被命名
-    const String customName = entity.customNameText();
+    const std::string customName = entity.customNameText();
     bool hasCustomName = !customName.empty();
     bool isCustomNameVisible = entity.isCustomNameVisible();
 

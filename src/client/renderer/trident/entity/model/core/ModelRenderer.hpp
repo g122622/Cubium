@@ -105,7 +105,7 @@ public:
      * @brief 构造函数
      * @param name 部件名称（用于调试）
      */
-    explicit ModelRenderer(const String& name = "");
+    explicit ModelRenderer(const std::string& name = "");
     ~ModelRenderer() = default;
 
     // ========== 纹理尺寸 ==========
@@ -226,7 +226,7 @@ public:
      * @param name 子部件名称
      * @return 创建的子部件
      */
-    std::shared_ptr<ModelRenderer> createChild(const String& name = "");
+    std::shared_ptr<ModelRenderer> createChild(const std::string& name = "");
 
     // ========== 网格生成 ==========
 
@@ -280,7 +280,7 @@ public:
     /**
      * @brief 获取部件名称
      */
-    [[nodiscard]] const String& name() const { return m_name; }
+    [[nodiscard]] const std::string& name() const { return m_name; }
 
     /**
      * @brief 是否可见
@@ -337,7 +337,7 @@ public:
     void copyModelAngles(const ModelRenderer& other);
 
 private:
-    String m_name;
+    std::string m_name;
 
     // 变换
     f64 m_offsetX = 0.0f;

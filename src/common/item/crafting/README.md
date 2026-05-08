@@ -44,7 +44,7 @@ class Ingredient {
 public:
     static Ingredient fromItem(const Item& item);
     static Ingredient fromItems(std::vector<const Item*> items);
-    static Ingredient fromTag(const String& tag);
+    static Ingredient fromTag(const std::string& tag);
     static Ingredient fromStacks(std::vector<ItemStack> stacks);
     
     [[nodiscard]] bool test(const ItemStack& stack) const;

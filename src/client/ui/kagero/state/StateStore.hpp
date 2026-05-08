@@ -45,7 +45,7 @@ public:
     using Subscriber = std::function<void()>;
     using SubscriberId = u64;
     using Action = std::function<void(StateStore&)>;
-    using Middleware = std::function<void(const String&, const std::any&, StateStore&)>;
+    using Middleware = std::function<void(const std::string&, const std::any&, StateStore&)>;
 
     /**
      * @brief 获取单例实例
@@ -70,7 +70,7 @@ public:
      * @return 状态值
      */
     template<typename T>
-    [[nodiscard]] T get(const String& key, const T& defaultValue = T{}) const {
+    [[nodiscard]] T get(const std::string& key, const T& defaultValue = T{}) const {
         std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_state.find(key);
         if (it != m_state.end()) {
@@ -86,7 +86,7 @@ public:
     /**
      * @brief 检查键是否存在
      */
-    [[nodiscard]] bool has(const String& key) const {
+    [[nodiscard]] bool has(const std::string& key) const {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_state.find(key) != m_state.end();
     }
@@ -99,9 +99,9 @@ public:
      * @param value 新值
      */
     template<typename T>
-    void set(const String& key, T value) {
+    void set(const std::string& key, T value) {
         std::vector<Subscriber> subscribersToNotify;
-        std::vector<String> pendingKeysCopy;
+        std::vector<std::string> pendingKeysCopy;
 
         {
             std::lock_guard<std::mutex> lock(m_mutex);
@@ -141,7 +141,7 @@ public:
     /**
      * @brief 删除状态值
      */
-    void remove(const String& key) {
+    void remove(const std::string& key) {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_state.erase(key);
     }
@@ -157,9 +157,9 @@ public:
     /**
      * @brief 获取所有键
      */
-    [[nodiscard]] std::vector<String> keys() const {
+    [[nodiscard]] std::vector<std::string> keys() const {
         std::lock_guard<std::mutex> lock(m_mutex);
-        std::vector<String> result;
+        std::vector<std::string> result;
         result.reserve(m_state.size());
         for (const auto& pair : m_state) {
             result.push_back(pair.first);
@@ -176,7 +176,7 @@ public:
      * @param subscriber 订阅者函数
      * @return 订阅者ID，用于取消订阅
      */
-    SubscriberId subscribe(const String& key, Subscriber subscriber) {
+    SubscriberId subscribe(const std::string& key, Subscriber subscriber) {
         std::lock_guard<std::mutex> lock(m_mutex);
         SubscriberId id = m_nextSubscriberId++;
         m_subscribers[key].emplace_back(id, std::move(subscriber));
@@ -198,7 +198,7 @@ public:
             return false;
         }
 
-        const String& key = keyIt->second;
+        const std::string& key = keyIt->second;
         auto& subscribers = m_subscribers[key];
         auto it = std::find_if(subscribers.begin(), subscribers.end(),
             [id](const auto& pair) { return pair.first == id; });
@@ -215,7 +215,7 @@ public:
     /**
      * @brief 取消某键的所有订阅
      */
-    void unsubscribeAll(const String& key) {
+    void unsubscribeAll(const std::string& key) {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         auto it = m_subscribers.find(key);
@@ -290,7 +290,7 @@ public:
             m_batchDepth--;
             if (m_batchDepth == 0) {
                 // 交换出待通知的键，避免在通知期间持有锁
-                std::vector<String> keysToNotify = std::move(m_pendingKeys);
+                std::vector<std::string> keysToNotify = std::move(m_pendingKeys);
                 m_pendingKeys.clear();
 
                 // 收集所有订阅者
@@ -316,11 +316,11 @@ public:
 private:
     StateStore() = default;
 
-    std::unordered_map<String, std::any> m_state;
-    std::unordered_map<String, std::vector<std::pair<SubscriberId, Subscriber>>> m_subscribers;
-    std::unordered_map<SubscriberId, String> m_subscriberToKey;
+    std::unordered_map<std::string, std::any> m_state;
+    std::unordered_map<std::string, std::vector<std::pair<SubscriberId, Subscriber>>> m_subscribers;
+    std::unordered_map<SubscriberId, std::string> m_subscriberToKey;
     std::vector<Middleware> m_middlewares;
-    std::vector<String> m_pendingKeys;
+    std::vector<std::string> m_pendingKeys;
     std::atomic<SubscriberId> m_nextSubscriberId{1};
     i32 m_batchDepth = 0;
     mutable std::mutex m_mutex;
@@ -350,7 +350,7 @@ public:
      * @param select 选择函数
      * @param key 用于订阅的键
      */
-    Selector(SelectFunc select, String key)
+    Selector(SelectFunc select, std::string key)
         : m_select(std::move(select))
         , m_key(std::move(key)) {}
 
@@ -364,7 +364,7 @@ public:
     /**
      * @brief 设置订阅键
      */
-    void setKey(const String& key) {
+    void setKey(const std::string& key) {
         m_key = key;
     }
 
@@ -388,7 +388,7 @@ public:
 
 private:
     SelectFunc m_select;
-    String m_key; // 用于订阅的键
+    std::string m_key; // 用于订阅的键
 };
 
 /**
@@ -404,7 +404,7 @@ public:
      * @brief 创建绑定点
      * @param storeKey 状态存储键
      */
-    explicit StateBindingPoint(String storeKey)
+    explicit StateBindingPoint(std::string storeKey)
         : m_storeKey(std::move(storeKey)) {}
 
     /**
@@ -448,10 +448,10 @@ public:
     /**
      * @brief 获取存储键
      */
-    [[nodiscard]] const String& key() const { return m_storeKey; }
+    [[nodiscard]] const std::string& key() const { return m_storeKey; }
 
 private:
-    String m_storeKey;
+    std::string m_storeKey;
 };
 
 } // namespace mc::client::ui::kagero::state

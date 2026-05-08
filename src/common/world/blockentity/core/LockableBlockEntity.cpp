@@ -27,14 +27,14 @@ bool LockableBlockEntity::canOpen(const Player* player, const ItemStack& heldIte
     return false;
 }
 
-void LockableBlockEntity::setCustomName(const String& name) {
+void LockableBlockEntity::setCustomName(const std::string& name) {
     if (m_customName != name) {
         m_customName = name;
         setChanged();
     }
 }
 
-String LockableBlockEntity::getDisplayName() const {
+std::string LockableBlockEntity::getDisplayName() const {
     if (!m_customName.empty()) {
         return m_customName;
     }
@@ -48,13 +48,13 @@ bool LockableBlockEntity::load(const nlohmann::json& data) {
 
     // 加载锁定状态
     if (data.contains("Lock") && data["Lock"].is_string()) {
-        m_lockKey = data["Lock"].get<String>();
+        m_lockKey = data["Lock"].get<std::string>();
         m_locked = !m_lockKey.empty();
     }
 
     // 加载自定义名称
     if (data.contains("CustomName") && data["CustomName"].is_string()) {
-        m_customName = data["CustomName"].get<String>();
+        m_customName = data["CustomName"].get<std::string>();
     }
 
     return true;

@@ -29,7 +29,7 @@ public:
 
     // ========== Enchantment 接口实现 ==========
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:silk_touch";
     }
 

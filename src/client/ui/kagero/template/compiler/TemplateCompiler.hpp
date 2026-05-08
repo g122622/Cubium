@@ -41,15 +41,15 @@ class CompiledTemplate;
  * 存储编译时确定的绑定信息，用于运行时快速执行绑定
  */
 struct BindingPlan {
-    String widgetPath;      ///< Widget路径 (如 "screen.grid.slot")
-    String statePath;       ///< 状态路径 (如 "player.inventory.main[0].item")
-    String attributeName;   ///< 属性名 (如 "text", "visible")
+    std::string widgetPath;      ///< Widget路径 (如 "screen.grid.slot")
+    std::string statePath;       ///< 状态路径 (如 "player.inventory.main[0].item")
+    std::string attributeName;   ///< 属性名 (如 "text", "visible")
     bool isLoopBinding = false; ///< 是否是循环内绑定
-    String loopVarName;     ///< 循环变量名
+    std::string loopVarName;     ///< 循环变量名
 
     BindingPlan() = default;
-    BindingPlan(String widget, String state, String attr,
-                bool loop = false, String loopVar = "")
+    BindingPlan(std::string widget, std::string state, std::string attr,
+                bool loop = false, std::string loopVar = "")
         : widgetPath(std::move(widget))
         , statePath(std::move(state))
         , attributeName(std::move(attr))
@@ -63,12 +63,12 @@ struct BindingPlan {
  * 存储编译时确定的事件处理器信息
  */
 struct EventPlan {
-    String widgetPath;      ///< Widget路径
-    String eventName;       ///< 事件名 (如 "click", "hover")
-    String callbackName;    ///< 回调名 (如 "onStartGame")
+    std::string widgetPath;      ///< Widget路径
+    std::string eventName;       ///< 事件名 (如 "click", "hover")
+    std::string callbackName;    ///< 回调名 (如 "onStartGame")
 
     EventPlan() = default;
-    EventPlan(String widget, String event, String callback)
+    EventPlan(std::string widget, std::string event, std::string callback)
         : widgetPath(std::move(widget))
         , eventName(std::move(event))
         , callbackName(std::move(callback)) {}
@@ -80,13 +80,13 @@ struct EventPlan {
  * 存储循环渲染的信息
  */
 struct LoopPlan {
-    String parentPath;      ///< 父Widget路径
-    String collectionPath;  ///< 集合路径
-    String itemVarName;     ///< 循环变量名
+    std::string parentPath;      ///< 父Widget路径
+    std::string collectionPath;  ///< 集合路径
+    std::string itemVarName;     ///< 循环变量名
     std::vector<BindingPlan> itemBindings; ///< 子项绑定
 
     LoopPlan() = default;
-    LoopPlan(String parent, String collection, String item)
+    LoopPlan(std::string parent, std::string collection, std::string item)
         : parentPath(std::move(parent))
         , collectionPath(std::move(collection))
         , itemVarName(std::move(item)) {}
@@ -173,36 +173,36 @@ public:
     /**
      * @brief 添加需要监听的状态路径
      */
-    void addWatchedPath(const String& path);
+    void addWatchedPath(const std::string& path);
 
     /**
      * @brief 获取所有需要监听的状态路径
      */
-    [[nodiscard]] const std::set<String>& watchedPaths() const { return m_watchedPaths; }
+    [[nodiscard]] const std::set<std::string>& watchedPaths() const { return m_watchedPaths; }
 
     // ========== 回调注册 ==========
 
     /**
      * @brief 添加注册的回调名
      */
-    void addRegisteredCallback(const String& name);
+    void addRegisteredCallback(const std::string& name);
 
     /**
      * @brief 获取所有注册的回调名
      */
-    [[nodiscard]] const std::set<String>& registeredCallbacks() const { return m_registeredCallbacks; }
+    [[nodiscard]] const std::set<std::string>& registeredCallbacks() const { return m_registeredCallbacks; }
 
     // ========== 元数据 ==========
 
     /**
      * @brief 设置模板源路径
      */
-    void setSourcePath(const String& path) { m_sourcePath = path; }
+    void setSourcePath(const std::string& path) { m_sourcePath = path; }
 
     /**
      * @brief 获取模板源路径
      */
-    [[nodiscard]] const String& sourcePath() const { return m_sourcePath; }
+    [[nodiscard]] const std::string& sourcePath() const { return m_sourcePath; }
 
     /**
      * @brief 设置编译时间
@@ -240,17 +240,17 @@ public:
     /**
      * @brief 导出编译结果为字符串（调试用）
      */
-    [[nodiscard]] String debugDump() const;
+    [[nodiscard]] std::string debugDump() const;
 
 private:
     std::unique_ptr<ast::DocumentNode> m_astRoot;
     std::vector<BindingPlan> m_bindingPlans;
     std::vector<EventPlan> m_eventPlans;
     std::vector<LoopPlan> m_loopPlans;
-    std::set<String> m_watchedPaths;
-    std::set<String> m_registeredCallbacks;
+    std::set<std::string> m_watchedPaths;
+    std::set<std::string> m_registeredCallbacks;
     std::vector<TemplateErrorInfo> m_errors;
-    String m_sourcePath;
+    std::string m_sourcePath;
     u64 m_compileTime = 0;
 };
 
@@ -294,8 +294,8 @@ public:
      * @return 编译结果
      */
     [[nodiscard]] std::unique_ptr<CompiledTemplate> compile(
-        const String& source,
-        const String& sourcePath = "");
+        const std::string& source,
+        const std::string& sourcePath = "");
 
     /**
      * @brief 从文件编译
@@ -303,7 +303,7 @@ public:
      * @param filePath 文件路径
      * @return 编译结果
      */
-    [[nodiscard]] std::unique_ptr<CompiledTemplate> compileFile(const String& filePath);
+    [[nodiscard]] std::unique_ptr<CompiledTemplate> compileFile(const std::string& filePath);
 
     /**
      * @brief 编译已解析的AST
@@ -314,7 +314,7 @@ public:
      */
     [[nodiscard]] std::unique_ptr<CompiledTemplate> compileAst(
         std::unique_ptr<ast::DocumentNode> document,
-        const String& sourcePath = "");
+        const std::string& sourcePath = "");
 
     // ========== 配置 ==========
 
@@ -358,12 +358,12 @@ private:
     /**
      * @brief 词法分析
      */
-    bool tokenize(const String& source, const String& sourcePath);
+    bool tokenize(const std::string& source, const std::string& sourcePath);
 
     /**
      * @brief 语法分析
      */
-    bool parse(const String& sourcePath);
+    bool parse(const std::string& sourcePath);
 
     /**
      * @brief 语义分析和验证
@@ -378,7 +378,7 @@ private:
     /**
      * @brief 递归生成绑定计划
      */
-    void generateBindingPlansRecursive(const ast::Node* node, const String& parentPath,
+    void generateBindingPlansRecursive(const ast::Node* node, const std::string& parentPath,
                                         CompiledTemplate* result);
 
     /**
@@ -389,7 +389,7 @@ private:
     /**
      * @brief 递归生成事件计划
      */
-    void generateEventPlansRecursive(const ast::Node* node, const String& parentPath,
+    void generateEventPlansRecursive(const ast::Node* node, const std::string& parentPath,
                                       CompiledTemplate* result);
 
     /**
@@ -423,26 +423,26 @@ private:
     /**
      * @brief 检查是否包含内联脚本/表达式
      */
-    bool containsInlineScript(const String& value) const;
+    bool containsInlineScript(const std::string& value) const;
 
     /**
      * @brief 检查是否包含禁止的模式
      */
-    bool containsForbiddenPattern(const String& value) const;
+    bool containsForbiddenPattern(const std::string& value) const;
 
     // ========== 工具方法 ==========
 
     /**
      * @brief 生成Widget路径
      */
-    static String generateWidgetPath(const ast::ElementNode* element,
-                                     const String& parentPath = "");
+    static std::string generateWidgetPath(const ast::ElementNode* element,
+                                     const std::string& parentPath = "");
 
     /**
      * @brief 从AST节点提取绑定信息
      */
     static void extractBindings(const ast::ElementNode* element,
-                                const String& widgetPath,
+                                const std::string& widgetPath,
                                 std::vector<BindingPlan>& plans,
                                 std::vector<LoopPlan>& loopPlans);
 

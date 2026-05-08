@@ -44,7 +44,7 @@ public:
      * @brief 断开连接
      * @param reason 断开原因
      */
-    virtual void disconnect(const String& reason = "") = 0;
+    virtual void disconnect(const std::string& reason = "") = 0;
 
     /**
      * @brief 检查是否已连接
@@ -56,7 +56,7 @@ public:
      * @brief 获取连接标识符（用于日志和调试）
      * @return 标识符字符串
      */
-    [[nodiscard]] virtual String identifier() const = 0;
+    [[nodiscard]] virtual std::string identifier() const = 0;
 
     /**
      * @brief 获取连接类型

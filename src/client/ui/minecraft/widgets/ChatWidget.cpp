@@ -10,14 +10,14 @@ namespace mc::client::ui::minecraft::widgets {
 
 namespace {
 
-using mc::String;
+using mc::std::string;
 using mc::f32;
 using mc::client::Font;
 using mc::client::renderer::trident::gui::GuiRenderer;
 
 [[nodiscard]] f32 measureTextWidth(Font* font,
                                    GuiRenderer* gui,
-                                   const String& text)
+                                   const std::string& text)
 {
     if (font != nullptr) {
         return font->getStringWidthUTF8(text);
@@ -30,7 +30,7 @@ using mc::client::renderer::trident::gui::GuiRenderer;
     return static_cast<f32>(text.size() * 6);
 }
 
-[[nodiscard]] size_t nextUtf8CodepointEnd(const String& text, size_t index)
+[[nodiscard]] size_t nextUtf8CodepointEnd(const std::string& text, size_t index)
 {
     if (index >= text.size()) {
         return text.size();
@@ -51,7 +51,7 @@ using mc::client::renderer::trident::gui::GuiRenderer;
     return std::min(index + length, text.size());
 }
 
-[[nodiscard]] size_t findCursorIndexFromClick(const String& text,
+[[nodiscard]] size_t findCursorIndexFromClick(const std::string& text,
                                               Font* font,
                                               GuiRenderer* gui,
                                               f32 clickX)
@@ -85,7 +85,7 @@ using mc::client::renderer::trident::gui::GuiRenderer;
     return text.size();
 }
 
-[[nodiscard]] String sanitizeClipboardText(String text)
+[[nodiscard]] std::string sanitizeClipboardText(std::string text)
 {
     for (char& ch : text) {
         const unsigned char value = static_cast<unsigned char>(ch);
@@ -240,7 +240,7 @@ bool ChatWidget::onKey(i32 key, i32 scanCode, i32 action, i32 mods) {
                 if (window != nullptr) {
                     const size_t start = std::min(m_selectionStart, m_selectionEnd);
                     const size_t end = std::max(m_selectionStart, m_selectionEnd);
-                    const String selectedText = m_input.substr(start, end - start);
+                    const std::string selectedText = m_input.substr(start, end - start);
                     glfwSetClipboardString(window, selectedText.c_str());
                 }
                 return true;
@@ -253,7 +253,7 @@ bool ChatWidget::onKey(i32 key, i32 scanCode, i32 action, i32 mods) {
                 if (window != nullptr) {
                     const char* clipboardText = glfwGetClipboardString(window);
                     if (clipboardText != nullptr && clipboardText[0] != '\0') {
-                        String pastedText = sanitizeClipboardText(String(clipboardText));
+                        std::string pastedText = sanitizeClipboardText(std::string(clipboardText));
                         if (!pastedText.empty()) {
                             if (m_hasSelection) {
                                 deleteSelection();
@@ -339,7 +339,7 @@ bool ChatWidget::onClick(i32 mouseX, i32 mouseY, i32 button) {
     return true;
 }
 
-void ChatWidget::addMessage(const String& message, u32 color) {
+void ChatWidget::addMessage(const std::string& message, u32 color) {
     // 将颜色转换为消息类型
     ChatMessageType type = ChatMessageType::Chat;
     // 特殊颜色处理
@@ -353,11 +353,11 @@ void ChatWidget::addMessage(std::unique_ptr<text::ITextComponent> message, ChatM
     m_history.addMessage(std::move(message), type);
 }
 
-void ChatWidget::addSystemMessage(const String& message) {
+void ChatWidget::addSystemMessage(const std::string& message) {
     m_history.addSystemMessage(message);
 }
 
-void ChatWidget::setInput(const String& text) {
+void ChatWidget::setInput(const std::string& text) {
     m_input = text;
     m_cursorPos = m_input.size();
     m_hasSelection = false;
@@ -373,7 +373,7 @@ void ChatWidget::clearInput() {
     updateCommandSuggestions();
 }
 
-void ChatWidget::insertText(const String& text) {
+void ChatWidget::insertText(const std::string& text) {
     m_input.insert(m_cursorPos, text);
     m_cursorPos += text.size();
     m_hasSelection = false;
@@ -513,7 +513,7 @@ void ChatWidget::acceptCommandSuggestion() {
     const size_t insertStart = static_cast<size_t>(std::clamp(suggestion.getStart(), 0, static_cast<i32>(m_input.size())));
     const size_t cursor = std::min(m_cursorPos, m_input.size());
 
-    String completed = m_input.substr(0, insertStart);
+    std::string completed = m_input.substr(0, insertStart);
     completed += suggestion.getText();
     if (cursor < m_input.size()) {
         completed += m_input.substr(cursor);
@@ -630,7 +630,7 @@ void ChatWidget::renderMessages(kagero::widget::PaintContext& ctx) {
 
         if (alpha > 0.01f) {
             // 获取消息文本
-            String plainText = it->getPlainText();
+            std::string plainText = it->getPlainText();
 
             // 渲染消息背景
             f32 textWidth = static_cast<f32>(m_gui->getTextWidth(plainText));

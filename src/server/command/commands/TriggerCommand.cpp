@@ -26,7 +26,7 @@ void TriggerCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
             true));
 
     // /trigger <objective>
-    auto objectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto objectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective",
         StringArgumentType::string());
     objectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -62,7 +62,7 @@ void TriggerCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 i32 TriggerCommand::triggerAdd(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String objective = context.getArgument<String>("objective");
+    const std::string objective = context.getArgument<std::string>("objective");
     const i32 value = context.getArgument<i32>("value");
 
     if (!source.isPlayer()) {
@@ -86,7 +86,7 @@ i32 TriggerCommand::triggerAdd(CommandContext<ServerCommandSource>& context)
 i32 TriggerCommand::triggerSet(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String objective = context.getArgument<String>("objective");
+    const std::string objective = context.getArgument<std::string>("objective");
     const i32 value = context.getArgument<i32>("value");
 
     if (!source.isPlayer()) {
@@ -110,7 +110,7 @@ i32 TriggerCommand::triggerSet(CommandContext<ServerCommandSource>& context)
 i32 TriggerCommand::trigger(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String objective = context.getArgument<String>("objective");
+    const std::string objective = context.getArgument<std::string>("objective");
 
     if (!source.isPlayer()) {
         source.sendError("Only players can use this command");

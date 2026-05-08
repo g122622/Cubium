@@ -19,7 +19,7 @@ namespace mc::client::ui::minecraft::targetinfo {
 
 class TargetInfoResolver {
 public:
-    using PlayerNameLookup = std::function<String(EntityId)>;
+    using PlayerNameLookup = std::function<std::string(EntityId)>;
 
     [[nodiscard]] static TargetInfoSnapshot resolve(
         const Vector3& eyePosition,

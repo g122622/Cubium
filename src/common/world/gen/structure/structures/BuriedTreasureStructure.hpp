@@ -37,7 +37,7 @@ class BuriedTreasureStructure : public Structure {
 public:
     BuriedTreasureStructure() : Structure(StructureType::BuriedTreasure) {}
 
-    [[nodiscard]] const String& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
@@ -69,7 +69,7 @@ private:
     // 注意：canGenerate中使用单独的salt(10387320)来计算概率种子
     // 参考: DimensionStructuresSettings.java 第21行
     static constexpr StructureSeparationSettings m_settings{1, 0, 0};
-    static const String m_name;
+    static const std::string m_name;
     static const std::vector<BiomeId> m_validBiomes;
 };
 

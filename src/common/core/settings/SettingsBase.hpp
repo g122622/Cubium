@@ -100,7 +100,7 @@ public:
      * @param group 选项所属分组（如 "video", "audio", "control"）
      * @param option 选项指针
      */
-    void registerOption(const String& group, IOption* option);
+    void registerOption(const std::string& group, IOption* option);
 
     /**
      * @brief 重置所有选项为默认值
@@ -111,7 +111,7 @@ public:
      * @brief 重置指定分组的选项为默认值
      * @param group 分组名称
      */
-    void resetGroupToDefaults(const String& group);
+    void resetGroupToDefaults(const std::string& group);
 
     // ========================================================================
     // 自动保存
@@ -156,14 +156,14 @@ public:
      * @param appName 应用名称
      * @return 设置文件路径
      */
-    [[nodiscard]] static std::filesystem::path getSettingsPath(const String& appName);
+    [[nodiscard]] static std::filesystem::path getSettingsPath(const std::string& appName);
 
     /**
      * @brief 确保设置目录存在
      * @param appName 应用名称
      * @return 设置目录路径
      */
-    [[nodiscard]] static std::filesystem::path ensureSettingsDir(const String& appName);
+    [[nodiscard]] static std::filesystem::path ensureSettingsDir(const std::string& appName);
 
 protected:
     /**
@@ -175,7 +175,7 @@ protected:
 
 private:
     // 选项存储：分组 -> 选项列表
-    std::map<String, std::vector<IOption*>> m_options;
+    std::map<std::string, std::vector<IOption*>> m_options;
 
     // 设置版本号（用于迁移）
     i32 m_version = 1;

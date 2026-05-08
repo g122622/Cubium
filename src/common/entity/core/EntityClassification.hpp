@@ -7,7 +7,7 @@ namespace mc::entity {
 // 引入 mc 命名空间的类型
 using mc::u8;
 using mc::i32;
-using mc::String;
+using mc::std::string;
 
 /**
  * @brief 实体分类枚举
@@ -33,7 +33,7 @@ enum class EntityClassification : u8 {
  */
 struct EntityClassificationInfo {
     EntityClassification classification;
-    String name;
+    std::string name;
     i32 maxCount;           // 每区块最大数量
     bool isPeaceful;        // 是否为和平生物
     bool isAnimal;          // 是否为动物

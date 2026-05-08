@@ -24,7 +24,7 @@ namespace {
         return false;
     }
 
-    const String& path = item->itemLocation().path();
+    const std::string& path = item->itemLocation().path();
     return path == "book" ||
            path == "written_book" ||
            path == "writable_book" ||

@@ -70,10 +70,10 @@ text->setStyle(style);
 text->append(std::make_unique<mc::text::StringTextComponent>(" World!"));
 
 // 获取纯文本
-String plain = text->getUnformattedText();  // "Hello World!"
+std::string plain = text->getUnformattedText();  // "Hello World!"
 
 // 获取带格式文本
-String formatted = text->getFormattedText(); // "§c§lHello World!"
+std::string formatted = text->getFormattedText(); // "§c§lHello World!"
 ```
 
 ### TextParser
@@ -82,7 +82,7 @@ String formatted = text->getFormattedText(); // "§c§lHello World!"
 
 ```cpp
 auto text = mc::text::TextParser::parse("§cHello §lWorld!");
-String legacy = mc::text::TextParser::toLegacyFormat(*text);
+std::string legacy = mc::text::TextParser::toLegacyFormat(*text);
 ```
 
 ## JSON 序列化

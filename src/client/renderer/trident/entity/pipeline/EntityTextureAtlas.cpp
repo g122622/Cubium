@@ -458,7 +458,7 @@ const TextureRegion* EntityTextureAtlas::getRegion(const ResourceLocation& locat
     return it != m_regions.end() ? &it->second : nullptr;
 }
 
-const TextureRegion* EntityTextureAtlas::getRegion(const String& location) const {
+const TextureRegion* EntityTextureAtlas::getRegion(const std::string& location) const {
     ResourceLocation loc(location);
     return getRegion(loc);
 }
@@ -469,7 +469,7 @@ Result<void> EntityTextureAtlas::loadTextureWithFallback(mc::IResourcePack& pack
                                                           u32& outWidth,
                                                           u32& outHeight) {
     // 尝试直接加载（使用文件路径格式）
-    String filePath = location.toFilePath();
+    std::string filePath = location.toFilePath();
 
     auto result = pack.readResource(filePath);
     if (result.success()) {
@@ -490,15 +490,15 @@ Result<void> EntityTextureAtlas::loadTextureWithFallback(mc::IResourcePack& pack
 
     // 尝试路径变体 - MC 1.12格式
     // 例如: textures/entity/pig/pig.png -> textures/entity/pig.png
-    String path = location.path();
+    std::string path = location.path();
 
     // 如果路径包含目录但加载失败，尝试无目录版本
-    if (path.find('/') != String::npos) {
+    if (path.find('/') != std::string::npos) {
         size_t lastSlash = path.rfind('/');
-        if (lastSlash != String::npos) {
-            String fileName = path.substr(lastSlash + 1);
+        if (lastSlash != std::string::npos) {
+            std::string fileName = path.substr(lastSlash + 1);
             ResourceLocation altLoc(location.namespace_(), "textures/entity/" + fileName);
-            String altPath = altLoc.toFilePath();
+            std::string altPath = altLoc.toFilePath();
 
             result = pack.readResource(altPath);
             if (result.success()) {
@@ -520,9 +520,9 @@ Result<void> EntityTextureAtlas::loadTextureWithFallback(mc::IResourcePack& pack
     }
 
     // 尝试不带 textures/ 前缀的路径（某些资源包格式）
-    String texturePath = location.path();
+    std::string texturePath = location.path();
     if (texturePath.find("textures/") == 0) {
-        String directPath = "assets/" + location.namespace_() + "/" + texturePath;
+        std::string directPath = "assets/" + location.namespace_() + "/" + texturePath;
         result = pack.readResource(directPath);
         if (result.success()) {
             auto& data = result.value();

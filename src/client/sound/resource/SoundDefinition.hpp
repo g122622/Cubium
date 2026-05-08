@@ -82,7 +82,7 @@ struct SoundDefinition {
      *
      * @param path 声音文件路径（相对于 assets/<namespace>/sounds/）
      */
-    explicit SoundDefinition(StringView path);
+    explicit SoundDefinition(std::string_view path);
 
     /**
      * @brief 从资源位置构造
@@ -114,7 +114,7 @@ struct SoundDefinition {
      */
     [[nodiscard]] static Result<SoundDefinition> parse(
         const nlohmann::json& json,
-        StringView namespace_
+        std::string_view namespace_
     );
 };
 
@@ -152,7 +152,7 @@ struct SoundEventDefinition {
     bool replace = false;
 
     /// 字幕键（可选，用于显示声音字幕）
-    std::optional<String> subtitle;
+    std::optional<std::string> subtitle;
 
     /**
      * @brief 默认构造函数
@@ -171,7 +171,7 @@ struct SoundEventDefinition {
      *
      * @param eventId 声音事件ID字符串（如 "minecraft:block.stone.break"）
      */
-    explicit SoundEventDefinition(StringView eventId);
+    explicit SoundEventDefinition(std::string_view eventId);
 
     /**
      * @brief 从JSON解析声音事件定义
@@ -182,9 +182,9 @@ struct SoundEventDefinition {
      * @return 解析结果
      */
     [[nodiscard]] static Result<SoundEventDefinition> parse(
-        StringView eventId,
+        std::string_view eventId,
         const nlohmann::json& json,
-        StringView namespace_
+        std::string_view namespace_
     );
 
     /**

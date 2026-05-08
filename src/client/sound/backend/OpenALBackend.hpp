@@ -294,8 +294,8 @@ public:
     // 调试信息
     // ========================================================================
 
-    [[nodiscard]] String getDeviceName() const override;
-    [[nodiscard]] String getDebugString() const override;
+    [[nodiscard]] std::string getDeviceName() const override;
+    [[nodiscard]] std::string getDebugString() const override;
 
 private:
     /**
@@ -304,7 +304,7 @@ private:
      * @param operation 操作名称
      * @return 错误信息，无错误返回空
      */
-    [[nodiscard]] String checkALError(const char* operation) const;
+    [[nodiscard]] std::string checkALError(const char* operation) const;
 
     /**
      * @brief 获取 OpenAL 格式

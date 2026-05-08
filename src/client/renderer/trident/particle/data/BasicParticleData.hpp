@@ -30,7 +30,7 @@ public:
      *
      * @param typeName 粒子类型名称（如 "minecraft:flame"）
      */
-    explicit BasicParticleData(const String& typeName);
+    explicit BasicParticleData(const std::string& typeName);
 
     ~BasicParticleData() override = default;
 
@@ -47,8 +47,8 @@ public:
     // ========================================================================
 
     [[nodiscard]] ParticleTypeId getType() const override { return m_type; }
-    [[nodiscard]] String getTypeName() const override;
-    [[nodiscard]] String getParameters() const override { return ""; }
+    [[nodiscard]] std::string getTypeName() const override;
+    [[nodiscard]] std::string getParameters() const override { return ""; }
     [[nodiscard]] std::unique_ptr<ParticleData> clone() const override;
 
 private:

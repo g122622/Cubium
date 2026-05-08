@@ -219,10 +219,10 @@ const BlockState* BlockItem::applyBlockStateFromNBT(const BlockPos& pos, IWorld&
     // CompoundNBT tag = stack.getChildTag("BlockStateTag");
     // if (tag != null) {
     //     StateContainer<Block, BlockState> stateContainer = state.getBlock().getStateContainer();
-    //     for (String key : tag.keySet()) {
+    //     for (std::string key : tag.keySet()) {
     //         Property<?> property = stateContainer.getProperty(key);
     //         if (property != null) {
-    //             String value = tag.get(key).getString();
+    //             std::string value = tag.get(key).getString();
     //             state = applyProperty(state, property, value);
     //         }
     //     }

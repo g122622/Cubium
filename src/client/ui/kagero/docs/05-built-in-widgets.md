@@ -15,7 +15,7 @@ class Widget {
 public:
     // 构造函数
     Widget() = default;
-    explicit Widget(String id);
+    explicit Widget(std::string id);
 
     // 生命周期
     virtual void init();
@@ -59,7 +59,7 @@ public:
     void setHovered(bool hovered);
 
     // 属性访问
-    const String& id() const;
+    const std::string& id() const;
     const Rect& bounds() const;
     i32 x() const;
     i32 y() const;
@@ -283,7 +283,7 @@ slider->setStepSize(5.0);  // 步进 5
 
 // 设置显示文本
 slider->setDisplayText("Volume: {}");
-slider->setFormatCallback([](f64 value) -> String {
+slider->setFormatCallback([](f64 value) -> std::string {
     return "Volume: " + std::to_string(static_cast<i32>(value)) + "%";
 });
 
@@ -326,18 +326,18 @@ textField->setText("Hello");
 textField->setPlaceholder("Enter your name...");
 
 // 获取文本
-const String& text = textField->text();
+const std::string& text = textField->text();
 
 // 设置最大长度
 textField->setMaxLength(32);
 
 // 设置文本变化回调
-textField->setTextChangedCallback([](const String& text) {
+textField->setTextChangedCallback([](const std::string& text) {
     std::cout << "Text changed: " << text << std::endl;
 });
 
 // 设置验证器
-textField->setValidator([](const String& text) {
+textField->setValidator([](const std::string& text) {
     // 只允许字母和数字
     for (char c : text) {
         if (!std::isalnum(c)) return false;
@@ -355,7 +355,7 @@ i32 pos = textField->cursorPosition();
 textField->selectAll();
 textField->clearSelection();
 bool hasSel = textField->hasSelection();
-String sel = textField->getSelectedText();
+std::string sel = textField->getSelectedText();
 
 // 状态
 textField->setEnabled(true);
@@ -623,7 +623,7 @@ btn->setStyle(styles::primaryButton());
 ```cpp
 class HealthBarWidget : public Widget {
 public:
-    HealthBarWidget(String id, Reactive<i32>& health, Reactive<i32>& maxHealth)
+    HealthBarWidget(std::string id, Reactive<i32>& health, Reactive<i32>& maxHealth)
         : Widget(std::move(id))
         , m_health(health)
         , m_maxHealth(maxHealth)

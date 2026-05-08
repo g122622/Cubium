@@ -30,7 +30,7 @@ public:
      * @param partName 部件名称
      * @param func 渲染函数
      */
-    void setSegmentRenderer(const String& partName, SegmentFunc func);
+    void setSegmentRenderer(const std::string& partName, SegmentFunc func);
 
     /**
      * @brief 渲染指定分段
@@ -38,15 +38,15 @@ public:
      * @param partName 部件名称
      * @param scale 缩放因子
      */
-    void renderSegment(const String& partName, f64 scale);
+    void renderSegment(const std::string& partName, f64 scale);
 
     /**
      * @brief 检查分段是否存在
      */
-    [[nodiscard]] bool hasSegment(const String& partName) const;
+    [[nodiscard]] bool hasSegment(const std::string& partName) const;
 
 protected:
-    std::unordered_map<String, SegmentFunc> m_segmentRenderers;
+    std::unordered_map<std::string, SegmentFunc> m_segmentRenderers;
 };
 
 } // namespace mc::client::renderer::entity::model

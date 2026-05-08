@@ -73,7 +73,7 @@ public:
      * @param height 高度
      * @param text 按钮文本
      */
-    ButtonWidget(String id, i32 x, i32 y, i32 width, i32 height, String text)
+    ButtonWidget(std::string id, i32 x, i32 y, i32 width, i32 height, std::string text)
         : Widget(std::move(id))
         , m_text(std::move(text)) {
         setBounds(Rect(x, y, width, height));
@@ -89,8 +89,8 @@ public:
      * @param text 按钮文本
      * @param onPress 点击回调
      */
-    ButtonWidget(String id, i32 x, i32 y, i32 width, i32 height,
-                 String text, OnPressCallback onPress)
+    ButtonWidget(std::string id, i32 x, i32 y, i32 width, i32 height,
+                 std::string text, OnPressCallback onPress)
         : Widget(std::move(id))
         , m_text(std::move(text))
         , m_onPress(std::move(onPress)) {
@@ -145,14 +145,14 @@ public:
     /**
      * @brief 设置按钮文本
      */
-    void setText(const String& text) {
+    void setText(const std::string& text) {
         m_text = text;
     }
 
     /**
      * @brief 获取按钮文本
      */
-    [[nodiscard]] const String& text() const { return m_text; }
+    [[nodiscard]] const std::string& text() const { return m_text; }
 
     /**
      * @brief 设置点击回调
@@ -223,7 +223,7 @@ protected:
         // SoundManager::instance().play(SoundEvents::UI_BUTTON_CLICK);
     }
 
-    String m_text;                      ///< 按钮文本
+    std::string m_text;                      ///< 按钮文本
     OnPressCallback m_onPress;          ///< 点击回调
     OnTooltipCallback m_onTooltip;      ///< 提示回调
     Style m_style;                      ///< 按钮样式
@@ -248,8 +248,8 @@ public:
      * @param hoveredVU 悬停时的U偏移
      * @param texturePath 纹理路径
      */
-    ImageButtonWidget(String id, i32 x, i32 y, i32 width, i32 height,
-                      i32 u, i32 v, i32 hoveredVU, String texturePath)
+    ImageButtonWidget(std::string id, i32 x, i32 y, i32 width, i32 height,
+                      i32 u, i32 v, i32 hoveredVU, std::string texturePath)
         : ButtonWidget(std::move(id), x, y, width, height, "")
         , m_u(u)
         , m_v(v)
@@ -275,7 +275,7 @@ public:
     /**
      * @brief 设置纹理路径
      */
-    void setTexturePath(String path) {
+    void setTexturePath(std::string path) {
         m_texturePath = std::move(path);
     }
 
@@ -283,7 +283,7 @@ private:
     i32 m_u = 0;            ///< 纹理U坐标
     i32 m_v = 0;            ///< 纹理V坐标
     i32 m_hoveredU = 0;     ///< 悬停时的U偏移
-    String m_texturePath;   ///< 纹理路径
+    std::string m_texturePath;   ///< 纹理路径
 };
 
 } // namespace mc::client::ui::kagero::widget

@@ -38,7 +38,7 @@ protected:
     /**
      * @brief 获取默认显示名称
      */
-    [[nodiscard]] String getDefaultName() const override { return "container.smoker"; }
+    [[nodiscard]] std::string getDefaultName() const override { return "container.smoker"; }
 
     /**
      * @brief 获取默认熔炼时间

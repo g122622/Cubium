@@ -25,7 +25,7 @@ enum class Direction : u8 {
 /**
  * @brief 将朝向转换为字符串
  */
-[[nodiscard]] inline String directionToString(Direction dir) {
+[[nodiscard]] inline std::string directionToString(Direction dir) {
     switch (dir) {
         case Direction::Down:  return "down";
         case Direction::Up:    return "up";
@@ -40,7 +40,7 @@ enum class Direction : u8 {
 /**
  * @brief 将字符串转换为朝向
  */
-[[nodiscard]] inline Direction stringToDirection(const String& str) {
+[[nodiscard]] inline Direction stringToDirection(const std::string& str) {
     if (str == "up") return Direction::Up;
     if (str == "down") return Direction::Down;
     if (str == "north") return Direction::North;
@@ -65,7 +65,7 @@ struct ModelFaceUV {
  */
 struct ModelFace {
     Direction direction = Direction::Down;
-    String texture;             ///< 纹理变量引用（例如 "#all"）
+    std::string texture;             ///< 纹理变量引用（例如 "#all"）
     ModelFaceUV uv;
     i32 rotation = 0;           ///< 面旋转角度（0、90、180、270 度）
     i32 tintIndex = -1;         ///< 生物群系着色索引（-1 = 无着色）
@@ -80,7 +80,7 @@ struct ModelElement {
     f32 toX = 16, toY = 16, toZ = 16;       ///< 结束位置 (0-16)
     std::vector<ModelFace> faces;           ///< 元素面
     i32 rotationAngle = 0;                  ///< 旋转角度
-    String rotationAxis = "y";              ///< 旋转轴 (x, y, z)
+    std::string rotationAxis = "y";              ///< 旋转轴 (x, y, z)
     f32 rotationOriginX = 8, rotationOriginY = 8, rotationOriginZ = 8;  ///< 旋转原点
     bool shade = true;                      ///< 应用阴影
 };
@@ -100,8 +100,8 @@ enum class GuiLight : u8 {
  * 可供渲染后端使用。
  */
 struct UnifiedModel : public UnifiedResource {
-    String parent;                              ///< 父模型引用
-    std::map<String, String> textures;          ///< 纹理变量
+    std::string parent;                              ///< 父模型引用
+    std::map<std::string, std::string> textures;          ///< 纹理变量
     std::vector<ModelElement> elements;         ///< 几何元素
     std::optional<GuiLight> guiLight;           ///< GUI 光照模式
     bool ambientOcclusion = true;               ///< 环境光遮蔽
@@ -116,7 +116,7 @@ struct UnifiedModel : public UnifiedResource {
      * @param textureRef 纹理引用（例如 "#all", "block/stone"）
      * @return 解析后的纹理路径
      */
-    String resolveTexture(const String& textureRef) const {
+    std::string resolveTexture(const std::string& textureRef) const {
         if (textureRef.empty()) {
             return "";
         }
@@ -127,7 +127,7 @@ struct UnifiedModel : public UnifiedResource {
         }
 
         // 解析引用
-        String varName = textureRef.substr(1);
+        std::string varName = textureRef.substr(1);
         auto it = textures.find(varName);
         if (it != textures.end()) {
             // 如果结果也是引用，递归解析

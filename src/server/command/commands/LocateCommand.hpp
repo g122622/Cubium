@@ -19,7 +19,7 @@ public:
 
 private:
     static i32 locateStructure(CommandContext<ServerCommandSource>& context);
-    static String normalizeStructureName(const String& name);
+    static std::string normalizeStructureName(const std::string& name);
 };
 
 } // namespace command

@@ -6,7 +6,7 @@ namespace mc::client::ui::minecraft {
 
 class Screen : public kagero::widget::ContainerWidget {
 public:
-    explicit Screen(String id);
+    explicit Screen(std::string id);
 
     virtual void onOpen();
     virtual void onClose();

@@ -125,7 +125,7 @@ public:
      *
      * @param callback 回调函数
      */
-    void setTextureCallback(std::function<void(const String&, bool)> callback) {
+    void setTextureCallback(std::function<void(const std::string&, bool)> callback) {
         m_textureCallback = std::move(callback);
     }
 
@@ -206,7 +206,7 @@ private:
 
     std::vector<PackContext> m_packs;
     ResourceLoadStats m_stats;
-    std::function<void(const String&, bool)> m_textureCallback;
+    std::function<void(const std::string&, bool)> m_textureCallback;
 
     /**
      * @brief 读取纹理文件并解码为像素
@@ -217,7 +217,7 @@ private:
      */
     Result<compat::unified::PixelData> readTexturePixels(
         const IResourcePack& pack,
-        const String& path);
+        const std::string& path);
 
     /**
      * @brief 在包中查找纹理（带路径变体）
@@ -225,7 +225,7 @@ private:
      * @param unifiedPath 统一纹理路径
      * @return (包, 实际路径) 对，如果未找到则为空
      */
-    std::pair<const IResourcePack*, String> findTexture(const String& unifiedPath);
+    std::pair<const IResourcePack*, std::string> findTexture(const std::string& unifiedPath);
 };
 
 } // namespace loader

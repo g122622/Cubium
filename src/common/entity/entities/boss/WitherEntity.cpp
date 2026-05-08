@@ -69,7 +69,7 @@ bool WitherEntity::canRangedAttack() const {
     return m_invulTime <= 0;
 }
 
-String WitherEntity::getBossName() const {
+std::string WitherEntity::getBossName() const {
     // TODO: 返回自定义名称或默认名称
     return "Wither";
 }

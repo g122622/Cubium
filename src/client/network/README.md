@@ -32,9 +32,9 @@ src/client/network/
 
 | 字段 | 类型 | 默认值 | 说明 |
 | ------ | ------ | ------ | ------ |
-| `serverAddress` | String | "127.0.0.1" | 服务器地址 |
+| `serverAddress` | std::string | "127.0.0.1" | 服务器地址 |
 | `serverPort` | u16 | 25565 | 服务器端口 |
-| `username` | String | "Player" | 用户名 |
+| `username` | std::string | "Player" | 用户名 |
 | `connectTimeoutMs` | u32 | 5000 | 连接超时（毫秒） |
 | `keepAliveIntervalMs` | u32 | 15000 | 心跳间隔（毫秒） |
 | `reconnectDelayMs` | u32 | 1000 | 重连延迟（毫秒） |
@@ -111,7 +111,7 @@ Result<void> connectLocal(network::LocalEndpoint* endpoint,
                           const NetworkClientConfig& config = {});
 
 // 断开连接
-void disconnect(const String& reason = "Client disconnect");
+void disconnect(const std::string& reason = "Client disconnect");
 
 // 查询状态
 bool isConnected() const;
@@ -377,7 +377,7 @@ callbacks.onChunkData = [](mc::ChunkCoord x, mc::ChunkCoord z,
                            const std::vector<mc::u8>& data) {
     // 处理区块数据
 };
-callbacks.onPlayerSpawn = [](mc::PlayerId id, const mc::String& name,
+callbacks.onPlayerSpawn = [](mc::PlayerId id, const mc::std::string& name,
                             mc::f64 x, mc::f64 y, mc::f64 z) {
     // 处理玩家生成
 };
@@ -520,7 +520,7 @@ callbacks.onChunkData = [&](ChunkCoord x, ChunkCoord z, const std::vector<u8>& d
 // 使用原子变量或互斥锁保护共享状态
 std::atomic<bool> loggedIn{false};
 
-callbacks.onLoginSuccess = [&](PlayerId id, const String& name) {
+callbacks.onLoginSuccess = [&](PlayerId id, const std::string& name) {
     loggedIn = true;  // 原子操作，安全
 };
 ```

@@ -52,7 +52,7 @@ public:
      * @brief 获取票据类型名称
      * @return 类型名称字符串
      */
-    [[nodiscard]] const String& name() const noexcept { return m_name; }
+    [[nodiscard]] const std::string& name() const noexcept { return m_name; }
 
     /**
      * @brief 获取生命周期（tick 数）
@@ -74,7 +74,7 @@ public:
      *
      * @note 不带生命周期的票据会一直存在直到被显式移除
      */
-    static ChunkLoadTicketType<T> create(const String& name, Comparator comp = defaultCompare) {
+    static ChunkLoadTicketType<T> create(const std::string& name, Comparator comp = defaultCompare) {
         return ChunkLoadTicketType<T>(name, comp, 0);
     }
 
@@ -87,7 +87,7 @@ public:
      *
      * @note 生命周期票据常用于临时加载（如传送门）
      */
-    static ChunkLoadTicketType<T> create(const String& name, u32 lifespan, Comparator comp = defaultCompare) {
+    static ChunkLoadTicketType<T> create(const std::string& name, u32 lifespan, Comparator comp = defaultCompare) {
         return ChunkLoadTicketType<T>(name, comp, lifespan);
     }
 
@@ -100,11 +100,11 @@ public:
     }
 
 private:
-    String m_name;
+    std::string m_name;
     Comparator m_comparator;
     u32 m_lifespan;
 
-    ChunkLoadTicketType(const String& name, Comparator comp, u32 lifespan)
+    ChunkLoadTicketType(const std::string& name, Comparator comp, u32 lifespan)
         : m_name(name), m_comparator(std::move(comp)), m_lifespan(lifespan) {}
 
     static bool defaultCompare(const T& a, const T& b) {
@@ -271,7 +271,7 @@ public:
     [[nodiscard]] i32 level() const noexcept { return m_level; }
 
     /** @brief 获取票据类型名称 */
-    [[nodiscard]] const String& typeName() const noexcept { return m_typeName; }
+    [[nodiscard]] const std::string& typeName() const noexcept { return m_typeName; }
 
     /** @brief 获取区块值 */
     [[nodiscard]] ChunkPos chunkValue() const noexcept { return m_chunkValue; }
@@ -301,7 +301,7 @@ public:
     void setForceTicks(bool force) { m_forceTicks = force; }
 
 private:
-    String m_typeName;
+    std::string m_typeName;
     i32 m_level = 34;  // 默认为未加载级别
     u64 m_timestamp = 0;
     u32 m_lifespan = 0;

@@ -22,11 +22,11 @@ class QuickChargeEnchantment : public Enchantment {
 public:
     QuickChargeEnchantment() = default;
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:quick_charge";
     }
 
-    [[nodiscard]] String getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override {
         (void)level;
         return "enchantment.minecraft.quick_charge";
     }

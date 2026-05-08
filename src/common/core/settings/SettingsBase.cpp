@@ -43,12 +43,12 @@ Result<void> SettingsBase::load(const std::filesystem::path& path)
     catch (const nlohmann::json::parse_error& e) {
         file.close();
         return Error(ErrorCode::FileCorrupted,
-                     "Failed to parse settings file: " + String(e.what()));
+                     "Failed to parse settings file: " + std::string(e.what()));
     }
     catch (const std::exception& e) {
         file.close();
         return Error(ErrorCode::FileReadFailed,
-                     "Failed to read settings file: " + String(e.what()));
+                     "Failed to read settings file: " + std::string(e.what()));
     }
 }
 
@@ -87,7 +87,7 @@ Result<void> SettingsBase::save(const std::filesystem::path& path) const
     }
     catch (const std::exception& e) {
         return Error(ErrorCode::FileWriteFailed,
-                     "Failed to write settings file: " + String(e.what()));
+                     "Failed to write settings file: " + std::string(e.what()));
     }
 }
 
@@ -124,7 +124,7 @@ void SettingsBase::saveToJson(nlohmann::json& j) const
     }
 }
 
-void SettingsBase::registerOption(const String& group, IOption* option)
+void SettingsBase::registerOption(const std::string& group, IOption* option)
 {
     if (option == nullptr) {
         spdlog::warn("Attempted to register null option in group: {}", group);
@@ -145,7 +145,7 @@ void SettingsBase::resetToDefaults()
     spdlog::debug("All settings reset to defaults");
 }
 
-void SettingsBase::resetGroupToDefaults(const String& group)
+void SettingsBase::resetGroupToDefaults(const std::string& group)
 {
     auto it = m_options.find(group);
     if (it != m_options.end()) {
@@ -186,7 +186,7 @@ void SettingsBase::onSettingChanged()
     triggerAutoSave();
 }
 
-std::filesystem::path SettingsBase::getSettingsPath(const String& appName)
+std::filesystem::path SettingsBase::getSettingsPath(const std::string& appName)
 {
     std::filesystem::path basePath;
 
@@ -225,7 +225,7 @@ std::filesystem::path SettingsBase::getSettingsPath(const String& appName)
     return basePath / appName / "options.json";
 }
 
-std::filesystem::path SettingsBase::ensureSettingsDir(const String& appName)
+std::filesystem::path SettingsBase::ensureSettingsDir(const std::string& appName)
 {
     auto path = getSettingsPath(appName);
     auto dir = path.parent_path();

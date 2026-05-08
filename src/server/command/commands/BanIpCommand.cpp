@@ -28,7 +28,7 @@ void BanIpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
             false));
 
     // /ban-ip <target>
-    auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "target",
         StringArgumentType::string()
     );
@@ -37,7 +37,7 @@ void BanIpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     });
 
     // /ban-ip <target> <reason>
-    auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "reason",
         StringArgumentType::greedyString()
     );
@@ -52,12 +52,12 @@ void BanIpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 
 i32 BanIpCommand::banIp(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
-    String target = context.getArgument<String>("target");
+    std::string target = context.getArgument<std::string>("target");
 
     // 获取可选原因
-    String reason = "Banned by an operator";
+    std::string reason = "Banned by an operator";
     if (context.hasArgument("reason")) {
-        reason = context.getArgument<String>("reason");
+        reason = context.getArgument<std::string>("reason");
     }
 
     // 检查是否是 IP 地址格式

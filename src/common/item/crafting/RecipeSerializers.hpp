@@ -200,7 +200,7 @@ private:
      * - 移除左边的空列
      * - 移除右边的空列
      */
-    static std::vector<String> shrinkPattern(const std::vector<String>& pattern);
+    static std::vector<std::string> shrinkPattern(const std::vector<std::string>& pattern);
 
     /**
      * @brief 验证pattern数组
@@ -212,7 +212,7 @@ private:
      * - 每行长度不超过 MAX_RECIPE_WIDTH
      * - 所有行长度相同
      */
-    static String validatePattern(const std::vector<String>& pattern);
+    static std::string validatePattern(const std::vector<std::string>& pattern);
 
     /**
      * @brief 从pattern和key解析原料列表
@@ -221,7 +221,7 @@ private:
      * @return 解析的原料列表，或错误
      */
     static Result<std::vector<Ingredient>> parsePatternIngredients(
-        const std::vector<String>& pattern,
+        const std::vector<std::string>& pattern,
         const nlohmann::json& key);
 };
 

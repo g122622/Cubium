@@ -33,7 +33,7 @@ src/common/world/spawn/
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `entityTypeId` | `String` | 实体类型ID（如 "minecraft:pig"） |
+| `entityTypeId` | `std::string` | 实体类型ID（如 "minecraft:pig"） |
 | `weight` | `i32` | 生成权重，越高越容易被选中 |
 | `minCount` | `i32` | 最小生成数量（默认 1） |
 | `maxCount` | `i32` | 最大生成数量（默认 4） |
@@ -79,7 +79,7 @@ void addWaterCreatureSpawn(const SpawnEntry& entry);
 const std::vector<SpawnEntry>& getSpawns(EntityClassification classification) const;
 
 // 获取生成成本
-const SpawnCosts* getSpawnCost(const String& entityTypeId) const;
+const SpawnCosts* getSpawnCost(const std::string& entityTypeId) const;
 
 // 生物群系特性
 f32 getCreatureSpawnProbability() const;  // 动物生成概率
@@ -183,7 +183,7 @@ MobSpawnInfo info = MobSpawnInfo::Builder()
 
 | 依赖 | 用途 |
 |------|------|
-| `common/core/Types.hpp` | 基础类型（i32, f32, f64, String 等） |
+| `common/core/Types.hpp` | 基础类型（i32, f32, f64, std::string 等） |
 | `common/entity/EntityClassification.hpp` | 实体分类枚举 |
 
 ### 使用方法

@@ -92,7 +92,7 @@ public:
      * @param attributeId 属性ID
      * @return UUID
      */
-    [[nodiscard]] static u64 generateModifierUUID(u32 itemId, const String& attributeId);
+    [[nodiscard]] static u64 generateModifierUUID(u32 itemId, const std::string& attributeId);
 
 private:
     std::vector<Entry> m_entries;

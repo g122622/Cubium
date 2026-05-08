@@ -62,7 +62,7 @@ protected:
 ```cpp
 class ModelRenderer {
 public:
-    explicit ModelRenderer(const String& name = "");
+    explicit ModelRenderer(const std::string& name = "");
     
     // 纹理
     void setTextureSize(i32 width, i32 height);
@@ -84,7 +84,7 @@ public:
     
     // 子部件
     void addChild(std::shared_ptr<ModelRenderer> child);
-    std::shared_ptr<ModelRenderer> createChild(const String& name = "");
+    std::shared_ptr<ModelRenderer> createChild(const std::string& name = "");
     
     // 网格生成
     void generateMesh(std::vector<ModelVertex>& vertices,

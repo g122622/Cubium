@@ -54,7 +54,7 @@ public:
      * @brief 构造翻译组件
      * @param key 翻译键
      */
-    explicit TranslationTextComponent(String key)
+    explicit TranslationTextComponent(std::string key)
         : m_key(std::move(key)) {}
 
     /**
@@ -62,15 +62,15 @@ public:
      * @param key 翻译键
      * @param params 参数列表
      */
-    TranslationTextComponent(String key, std::vector<std::unique_ptr<ITextComponent>> params)
+    TranslationTextComponent(std::string key, std::vector<std::unique_ptr<ITextComponent>> params)
         : m_key(std::move(key))
         , m_params(std::move(params)) {}
 
     // ========== ITextComponent 接口 ==========
 
-    [[nodiscard]] String getUnformattedText() const override;
+    [[nodiscard]] std::string getUnformattedText() const override;
 
-    [[nodiscard]] String getFormattedText() const override;
+    [[nodiscard]] std::string getFormattedText() const override;
 
     [[nodiscard]] std::unique_ptr<ITextComponent> deepCopy() const override {
         auto copy = std::make_unique<TranslationTextComponent>(m_key);
@@ -116,13 +116,13 @@ public:
      * @brief 获取翻译键
      * @return 翻译键
      */
-    [[nodiscard]] const String& getKey() const noexcept { return m_key; }
+    [[nodiscard]] const std::string& getKey() const noexcept { return m_key; }
 
     /**
      * @brief 设置翻译键
      * @param key 翻译键
      */
-    void setKey(String key) { m_key = std::move(key); }
+    void setKey(std::string key) { m_key = std::move(key); }
 
     /**
      * @brief 获取参数列表
@@ -148,16 +148,16 @@ public:
     void clearParams() { m_params.clear(); }
 
 private:
-    String m_key;
+    std::string m_key;
     std::vector<std::unique_ptr<ITextComponent>> m_params;
 };
 
 // ========== 内联实现 ==========
 
-inline String TranslationTextComponent::getUnformattedText() const {
+inline std::string TranslationTextComponent::getUnformattedText() const {
     // 在翻译系统实现前，返回翻译键作为占位符
     // TODO: 集成翻译系统后，从翻译表获取翻译文本
-    String result = "[" + m_key + "]";
+    std::string result = "[" + m_key + "]";
 
     // 添加参数信息
     for (size_t i = 0; i < m_params.size(); ++i) {
@@ -180,9 +180,9 @@ inline String TranslationTextComponent::getUnformattedText() const {
     return result;
 }
 
-inline String TranslationTextComponent::getFormattedText() const {
+inline std::string TranslationTextComponent::getFormattedText() const {
     // 在翻译系统实现前，返回翻译键作为占位符
-    String result = getStyleCodes(m_style);
+    std::string result = getStyleCodes(m_style);
     result += "[" + m_key + "]";
 
     // 添加参数信息

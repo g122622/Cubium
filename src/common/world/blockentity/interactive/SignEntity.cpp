@@ -44,18 +44,18 @@ bool SignEntity::setLine(i32 line, std::unique_ptr<text::ITextComponent> text) {
     return true;
 }
 
-bool SignEntity::setLineFromLegacy(i32 line, const String& text) {
+bool SignEntity::setLineFromLegacy(i32 line, const std::string& text) {
     // 解析 § 代码格式的文本
     auto component = text::TextParser::parse(text);
     return setLine(line, std::move(component));
 }
 
-String SignEntity::getLineText(i32 line) const {
+std::string SignEntity::getLineText(i32 line) const {
     const auto* component = getLine(line);
     return component ? component->getUnformattedText() : "";
 }
 
-String SignEntity::getLineFormatted(i32 line) const {
+std::string SignEntity::getLineFormatted(i32 line) const {
     const auto* component = getLine(line);
     return component ? component->getFormattedText() : "";
 }
@@ -109,7 +109,7 @@ void SignEntity::tick(IWorld& world) {
 
 bool SignEntity::validateText(const text::ITextComponent& text) {
     // 验证纯文本内容中的控制字符
-    String plainText = text.getUnformattedText();
+    std::string plainText = text.getUnformattedText();
     for (char c : plainText) {
         const unsigned char uc = static_cast<unsigned char>(c);
         // 只允许可打印字符和常见空白符
@@ -122,13 +122,13 @@ bool SignEntity::validateText(const text::ITextComponent& text) {
 
 std::unique_ptr<text::ITextComponent> SignEntity::truncateText(
     std::unique_ptr<text::ITextComponent> text) {
-    String plainText = text->getUnformattedText();
+    std::string plainText = text->getUnformattedText();
     if (plainText.length() <= static_cast<size_t>(MAX_LINE_LENGTH)) {
         return text;
     }
 
     // 截断纯文本并创建新组件
-    String truncated = plainText.substr(0, MAX_LINE_LENGTH);
+    std::string truncated = plainText.substr(0, MAX_LINE_LENGTH);
     return std::make_unique<text::StringTextComponent>(std::move(truncated));
 }
 
@@ -145,7 +145,7 @@ bool SignEntity::load(const nlohmann::json& data) {
                 const auto& lineJson = linesJson[i];
                 if (lineJson.is_string()) {
                     // 旧格式：纯字符串
-                    m_lines[i] = text::TextParser::parse(lineJson.get<String>());
+                    m_lines[i] = text::TextParser::parse(lineJson.get<std::string>());
                 } else if (lineJson.is_object()) {
                     // 新格式：JSON 文本组件
                     m_lines[i] = text::ITextComponent::fromJson(lineJson);

@@ -80,7 +80,7 @@ public:
      */
     [[nodiscard]] Result<void> loadGuiTexture(
         GuiSpriteAtlas& atlas,
-        const String& location);
+        const std::string& location);
 
     /**
      * @brief 从资源包加载GUI纹理到GuiSpriteAtlas（带尺寸指定）
@@ -93,7 +93,7 @@ public:
      */
     [[nodiscard]] Result<void> loadGuiTexture(
         GuiSpriteAtlas& atlas,
-        const String& location,
+        const std::string& location,
         i32 atlasWidth,
         i32 atlasHeight);
 
@@ -108,7 +108,7 @@ public:
      */
     [[nodiscard]] Result<void> loadAllToSpriteAtlas(
         GuiSpriteAtlas& atlas,
-        const String& textureLocation);
+        const std::string& textureLocation);
 
     // ==================== GuiTextureAtlas 重载（传统）====================
 
@@ -124,7 +124,7 @@ public:
      */
     [[nodiscard]] Result<void> loadGuiTexture(
         GuiTextureAtlas& atlas,
-        const String& location);
+        const std::string& location);
 
     /**
      * @brief 从JSON加载精灵定义
@@ -137,7 +137,7 @@ public:
      */
     [[nodiscard]] Result<void> loadSpritesFromJson(
         GuiTextureAtlas& atlas,
-        const String& jsonPath);
+        const std::string& jsonPath);
 
     /**
      * @brief 加载默认GUI纹理
@@ -191,7 +191,7 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] static Result<void> loadPngFromFile(
-        const String& filePath,
+        const std::string& filePath,
         i32& outWidth,
         i32& outHeight,
         std::vector<u8>& outPixels);
@@ -204,7 +204,7 @@ private:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> findTexture(
-        const String& location,
+        const std::string& location,
         std::vector<u8>& outData);
 
     /**
@@ -212,7 +212,7 @@ private:
      * @param location 资源位置
      * @return 文件路径
      */
-    [[nodiscard]] static String buildResourcePath(const String& location);
+    [[nodiscard]] static std::string buildResourcePath(const std::string& location);
 
     std::vector<std::shared_ptr<IResourcePack>> m_resourcePacks;
 };

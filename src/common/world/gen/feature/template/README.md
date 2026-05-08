@@ -36,7 +36,7 @@ struct BlockInfo {
 
 ```cpp
 struct TemplateEntityInfo {
-    String typeId;             // 实体类型ID
+    std::string typeId;             // 实体类型ID
     f64 posx, posy, posz;      // 精确位置（Double列表）
     BlockPos blockPos;         // 方块坐标（Int列表）
     std::unique_ptr<nbt::CompoundTag> nbt;  // 实体NBT数据

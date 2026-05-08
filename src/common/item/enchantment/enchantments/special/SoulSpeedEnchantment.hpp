@@ -22,11 +22,11 @@ class SoulSpeedEnchantment : public Enchantment {
 public:
     SoulSpeedEnchantment() = default;
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:soul_speed";
     }
 
-    [[nodiscard]] String getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override {
         (void)level;
         return "enchantment.minecraft.soul_speed";
     }

@@ -27,7 +27,7 @@ class SettingsBase;
  *
  * 支持的设置值类型，使用 std::variant 存储。
  */
-using SettingsValue = std::variant<bool, i32, f32, String>;
+using SettingsValue = std::variant<bool, i32, f32, std::string>;
 
 /**
  * @brief 设置变更回调模板
@@ -56,7 +56,7 @@ public:
      * @brief 获取选项的唯一键名
      * @return 键名字符串，如 "renderDistance"
      */
-    [[nodiscard]] virtual String getKey() const = 0;
+    [[nodiscard]] virtual std::string getKey() const = 0;
 
     /**
      * @brief 获取当前值
@@ -120,14 +120,14 @@ public:
      * @param key 选项键名
      * @param defaultValue 默认值
      */
-    BooleanOption(String key, bool defaultValue = false)
+    BooleanOption(std::string key, bool defaultValue = false)
         : m_key(std::move(key))
         , m_value(defaultValue)
         , m_default(defaultValue)
     {
     }
 
-    [[nodiscard]] String getKey() const override { return m_key; }
+    [[nodiscard]] std::string getKey() const override { return m_key; }
 
     [[nodiscard]] SettingsValue getValue() const override { return m_value; }
 
@@ -191,7 +191,7 @@ public:
     }
 
 private:
-    String m_key;
+    std::string m_key;
     bool m_value;
     bool m_default;
     SettingsCallback<bool> m_callback;
@@ -226,7 +226,7 @@ public:
      * @param max 最大值
      * @param defaultValue 默认值
      */
-    RangeOption(String key, i32 min, i32 max, i32 defaultValue)
+    RangeOption(std::string key, i32 min, i32 max, i32 defaultValue)
         : m_key(std::move(key))
         , m_min(min)
         , m_max(max)
@@ -235,7 +235,7 @@ public:
     {
     }
 
-    [[nodiscard]] String getKey() const override { return m_key; }
+    [[nodiscard]] std::string getKey() const override { return m_key; }
 
     [[nodiscard]] SettingsValue getValue() const override { return m_value; }
 
@@ -323,7 +323,7 @@ public:
     }
 
 private:
-    String m_key;
+    std::string m_key;
     i32 m_min;
     i32 m_max;
     i32 m_value;
@@ -363,7 +363,7 @@ public:
      * @param max 最大值
      * @param defaultValue 默认值
      */
-    FloatOption(String key, f32 min, f32 max, f32 defaultValue)
+    FloatOption(std::string key, f32 min, f32 max, f32 defaultValue)
         : m_key(std::move(key))
         , m_min(min)
         , m_max(max)
@@ -372,7 +372,7 @@ public:
     {
     }
 
-    [[nodiscard]] String getKey() const override { return m_key; }
+    [[nodiscard]] std::string getKey() const override { return m_key; }
 
     [[nodiscard]] SettingsValue getValue() const override { return m_value; }
 
@@ -460,7 +460,7 @@ public:
     }
 
 private:
-    String m_key;
+    std::string m_key;
     f32 m_min;
     f32 m_max;
     f32 m_value;
@@ -506,7 +506,7 @@ public:
      * @param defaultValue 默认值
      * @param names 值对应的名称列表（必须与 values 一一对应）
      */
-    EnumOption(String key, std::vector<T> values, T defaultValue, std::vector<String> names)
+    EnumOption(std::string key, std::vector<T> values, T defaultValue, std::vector<std::string> names)
         : m_key(std::move(key))
         , m_values(std::move(values))
         , m_names(std::move(names))
@@ -519,7 +519,7 @@ public:
         }
     }
 
-    [[nodiscard]] String getKey() const override { return m_key; }
+    [[nodiscard]] std::string getKey() const override { return m_key; }
 
     [[nodiscard]] SettingsValue getValue() const override {
         return static_cast<i32>(m_value);
@@ -540,7 +540,7 @@ public:
     void deserialize(const nlohmann::json& j) override {
         if (j.contains(m_key)) {
             if (j[m_key].is_string()) {
-                setByName(j[m_key].template get<String>());
+                setByName(j[m_key].template get<std::string>());
             } else if (j[m_key].is_number()) {
                 set(static_cast<T>(j[m_key].template get<i32>()));
             }
@@ -590,7 +590,7 @@ public:
      * @param name 值名称
      * @return 是否设置成功
      */
-    bool setByName(const String& name) {
+    bool setByName(const std::string& name) {
         auto it = m_nameToValue.find(name);
         if (it != m_nameToValue.end()) {
             set(it->second);
@@ -603,7 +603,7 @@ public:
      * @brief 获取当前值的名称
      * @return 值名称，如果找不到则返回空字符串
      */
-    [[nodiscard]] String getName() const {
+    [[nodiscard]] std::string getName() const {
         for (size_t i = 0; i < m_values.size() && i < m_names.size(); ++i) {
             if (m_values[i] == m_value) {
                 return m_names[i];
@@ -625,7 +625,7 @@ public:
     /**
      * @brief 获取所有值名称
      */
-    [[nodiscard]] const std::vector<String>& names() const { return m_names; }
+    [[nodiscard]] const std::vector<std::string>& names() const { return m_names; }
 
     /**
      * @brief 设置变更回调
@@ -635,10 +635,10 @@ public:
     }
 
 private:
-    String m_key;
+    std::string m_key;
     std::vector<T> m_values;
-    std::vector<String> m_names;
-    std::map<String, T> m_nameToValue;
+    std::vector<std::string> m_names;
+    std::map<std::string, T> m_nameToValue;
     T m_value;
     T m_default;
     SettingsCallback<T> m_callback;
@@ -660,20 +660,20 @@ public:
      * @param key 选项键名
      * @param defaultValue 默认值
      */
-    StringOption(String key, String defaultValue = "")
+    StringOption(std::string key, std::string defaultValue = "")
         : m_key(std::move(key))
         , m_value(std::move(defaultValue))
         , m_default(m_value)
     {
     }
 
-    [[nodiscard]] String getKey() const override { return m_key; }
+    [[nodiscard]] std::string getKey() const override { return m_key; }
 
     [[nodiscard]] SettingsValue getValue() const override { return m_value; }
 
     bool setValue(const SettingsValue& value) override {
-        if (std::holds_alternative<String>(value)) {
-            set(std::get<String>(value));
+        if (std::holds_alternative<std::string>(value)) {
+            set(std::get<std::string>(value));
             return true;
         }
         return false;
@@ -685,7 +685,7 @@ public:
 
     void deserialize(const nlohmann::json& j) override {
         if (j.contains(m_key) && j[m_key].is_string()) {
-            set(j[m_key].get<String>());
+            set(j[m_key].get<std::string>());
         }
     }
 
@@ -702,12 +702,12 @@ public:
     /**
      * @brief 获取当前字符串值
      */
-    [[nodiscard]] const String& get() const { return m_value; }
+    [[nodiscard]] const std::string& get() const { return m_value; }
 
     /**
      * @brief 设置字符串值
      */
-    void set(String value) {
+    void set(std::string value) {
         if (m_value != value) {
             m_value = std::move(value);
             if (m_callback) {
@@ -719,25 +719,25 @@ public:
     /**
      * @brief 隐式转换为字符串视图
      */
-    [[nodiscard]] operator StringView() const { return m_value; }
+    [[nodiscard]] operator std::string_view() const { return m_value; }
 
     /**
      * @brief 获取默认值
      */
-    [[nodiscard]] const String& defaultValue() const { return m_default; }
+    [[nodiscard]] const std::string& defaultValue() const { return m_default; }
 
     /**
      * @brief 设置变更回调
      */
-    void onChange(SettingsCallback<String> callback) {
+    void onChange(SettingsCallback<std::string> callback) {
         m_callback = std::move(callback);
     }
 
 private:
-    String m_key;
-    String m_value;
-    String m_default;
-    SettingsCallback<String> m_callback;
+    std::string m_key;
+    std::string m_value;
+    std::string m_default;
+    SettingsCallback<std::string> m_callback;
 };
 
 } // namespace mc

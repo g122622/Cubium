@@ -78,9 +78,9 @@ TEST(BooleanPropertyTest, ParseValue) {
 TEST(BooleanPropertyTest, ParseValueIndex) {
     auto prop = BooleanProperty::create("snowy");
 
-    auto trueIdx = prop->parseValue(StringView("true"));
-    auto falseIdx = prop->parseValue(StringView("false"));
-    auto invalid = prop->parseValue(StringView("yes"));
+    auto trueIdx = prop->parseValue(std::string_view("true"));
+    auto falseIdx = prop->parseValue(std::string_view("false"));
+    auto invalid = prop->parseValue(std::string_view("yes"));
 
     ASSERT_TRUE(trueIdx.has_value());
     EXPECT_EQ(trueIdx.value(), 1);

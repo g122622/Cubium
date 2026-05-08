@@ -258,7 +258,7 @@ classDiagram
 
     class RedstoneDiodeBlock {
         <<abstract>>
-        #m_id: String
+        #m_id: std::string
         +FACING() DirectionProperty
         +POWERED() BooleanProperty
         +getDelay() i32

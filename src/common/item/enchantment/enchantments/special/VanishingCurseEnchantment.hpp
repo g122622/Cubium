@@ -21,11 +21,11 @@ class VanishingCurseEnchantment : public Enchantment {
 public:
     VanishingCurseEnchantment() = default;
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:vanishing_curse";
     }
 
-    [[nodiscard]] String getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override {
         (void)level;
         return "enchantment.minecraft.vanishing_curse";
     }

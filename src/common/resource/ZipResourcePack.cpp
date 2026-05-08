@@ -68,7 +68,7 @@ Result<void> ZipResourcePack::initialize()
         archive_read_free(a);
         return Error(ErrorCode::FileOpenFailed,
                      "Failed to open ZIP file: " + m_zipPath.string() +
-                         " - " + String(archive_error_string(a)));
+                         " - " + std::string(archive_error_string(a)));
     }
 
     // 读取所有条目，构建索引
@@ -78,7 +78,7 @@ Result<void> ZipResourcePack::initialize()
     while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
         const char* pathname = archive_entry_pathname(entry);
         if (pathname && *pathname) {
-            String normalizedPath = normalizePath(pathname);
+            std::string normalizedPath = normalizePath(pathname);
             // 跳过目录条目
             if (!normalizedPath.empty() && normalizedPath.back() != '/') {
                 m_entries.insert(std::move(normalizedPath));
@@ -91,12 +91,12 @@ Result<void> ZipResourcePack::initialize()
     archive_read_free(a);
 
     // 读取 pack.mcmeta
-    const String mcmetaPath = "pack.mcmeta";
+    const std::string mcmetaPath = "pack.mcmeta";
     if (hasResource(mcmetaPath)) {
         auto dataResult = readResource(mcmetaPath);
         if (dataResult.success()) {
             const auto& data = dataResult.value();
-            String jsonStr(data.begin(), data.end());
+            std::string jsonStr(data.begin(), data.end());
             auto metadataResult = PackMetadata::parse(jsonStr);
             if (metadataResult.success()) {
                 m_metadata = std::move(metadataResult.value());
@@ -118,15 +118,15 @@ Result<void> ZipResourcePack::initialize()
     return Result<void>::ok();
 }
 
-bool ZipResourcePack::hasResource(StringView resourcePath) const
+bool ZipResourcePack::hasResource(std::string_view resourcePath) const
 {
-    String normalized = normalizePath(resourcePath);
+    std::string normalized = normalizePath(resourcePath);
     return m_entries.find(normalized) != m_entries.end();
 }
 
-Result<std::vector<u8>> ZipResourcePack::readResource(StringView resourcePath) const
+Result<std::vector<u8>> ZipResourcePack::readResource(std::string_view resourcePath) const
 {
-    String normalized = normalizePath(resourcePath);
+    std::string normalized = normalizePath(resourcePath);
 
     // 先查缓存，避免并发读取时重复解压同一个条目
     {
@@ -195,10 +195,10 @@ Result<std::vector<u8>> ZipResourcePack::readResource(StringView resourcePath) c
     return data;
 }
 
-Result<std::vector<String>> ZipResourcePack::listResources(StringView directory, StringView extension) const
+Result<std::vector<std::string>> ZipResourcePack::listResources(std::string_view directory, std::string_view extension) const
 {
-    std::vector<String> resources;
-    String normalizedDir = normalizePath(directory);
+    std::vector<std::string> resources;
+    std::string normalizedDir = normalizePath(directory);
 
     // 确保目录以斜杠结尾
     if (!normalizedDir.empty() && normalizedDir.back() != '/') {
@@ -242,9 +242,9 @@ void ZipResourcePack::clearCache()
 // 私有方法
 // ============================================================================
 
-String ZipResourcePack::normalizePath(StringView path)
+std::string ZipResourcePack::normalizePath(std::string_view path)
 {
-    String result(path);
+    std::string result(path);
 
     // 统一使用正斜杠
     std::replace(result.begin(), result.end(), '\\', '/');

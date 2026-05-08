@@ -15,26 +15,26 @@ namespace mc {
 class ResourceLocation {
 public:
     ResourceLocation();
-    explicit ResourceLocation(StringView fullPath);
-    ResourceLocation(String namespace_, String path);
+    explicit ResourceLocation(std::string_view fullPath);
+    ResourceLocation(std::string namespace_, std::string path);
 
     // 解析资源路径
-    [[nodiscard]] static ResourceLocation parse(StringView fullPath);
+    [[nodiscard]] static ResourceLocation parse(std::string_view fullPath);
 
     // 获取命名空间
-    [[nodiscard]] const String& namespace_() const noexcept { return m_namespace; }
+    [[nodiscard]] const std::string& namespace_() const noexcept { return m_namespace; }
 
     // 获取路径
-    [[nodiscard]] const String& path() const noexcept { return m_path; }
+    [[nodiscard]] const std::string& path() const noexcept { return m_path; }
 
     // 转换为完整字符串 "namespace:path"
-    [[nodiscard]] String toString() const;
+    [[nodiscard]] std::string toString() const;
 
     // 转换为文件路径 "assets/namespace/path"
-    [[nodiscard]] String toFilePath() const;
+    [[nodiscard]] std::string toFilePath() const;
 
     // 转换为文件路径（带扩展名）"assets/namespace/path.ext"
-    [[nodiscard]] String toFilePath(StringView extension) const;
+    [[nodiscard]] std::string toFilePath(std::string_view extension) const;
 
     // 比较
     [[nodiscard]] bool operator==(const ResourceLocation& other) const;
@@ -45,8 +45,8 @@ public:
     [[nodiscard]] size_t hash() const;
 
 private:
-    String m_namespace;
-    String m_path;
+    std::string m_namespace;
+    std::string m_path;
 };
 
 } // namespace mc

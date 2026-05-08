@@ -66,16 +66,16 @@ struct ClientLaunchParams {
     std::optional<bool> fullscreen;
 
     // 服务器配置覆盖（可选）
-    std::optional<String> serverAddress;
+    std::optional<std::string> serverAddress;
     std::optional<u16> serverPort;
-    std::optional<String> username;
+    std::optional<std::string> username;
 
     // 其他启动参数
-    std::optional<String> settingsPath;  // 自定义设置文件路径
+    std::optional<std::string> settingsPath;  // 自定义设置文件路径
     bool skipIntegratedServer = false;  // 跳过内置服务器
 
     // Quick-play 选项（跳过主菜单直接进入世界）
-    std::optional<String> quickPlayLevelId;  // 直接加载指定世界
+    std::optional<std::string> quickPlayLevelId;  // 直接加载指定世界
     bool quickPlayNew = false;               // 直接创建新世界
 };
 
@@ -241,7 +241,7 @@ public:
      * @param stage 当前加载阶段描述
      * @param progress 进度（0.0 - 1.0）
      */
-    void updateLoadingProgress(const String& stage, f32 progress);
+    void updateLoadingProgress(const std::string& stage, f32 progress);
 
     // 友元声明，用于回调
     friend void onWindowResize(i32 width, i32 height, void* userData);
@@ -298,10 +298,10 @@ private:
     void sendPlayerPosition();
 
     // 聊天命令处理
-    void handleChatCommand(const String& input);
+    void handleChatCommand(const std::string& input);
 
     // 加载设置
-    [[nodiscard]] Result<void> loadSettings(const String& path);
+    [[nodiscard]] Result<void> loadSettings(const std::string& path);
 
     // 应用设置到系统
     void applySettings();
@@ -309,12 +309,12 @@ private:
     /**
      * @brief 收集玩家补全候选项
      */
-    [[nodiscard]] std::vector<String> collectPlayerCompletionCandidates() const;
+    [[nodiscard]] std::vector<std::string> collectPlayerCompletionCandidates() const;
 
     /**
      * @brief 收集实体补全候选项
      */
-    [[nodiscard]] std::vector<String> collectEntityCompletionCandidates() const;
+    [[nodiscard]] std::vector<std::string> collectEntityCompletionCandidates() const;
 
     // 初始化资源系统
     [[nodiscard]] Result<void> initializeResources();
@@ -452,7 +452,7 @@ private:
     std::unique_ptr<skin::ClientSkinManager> m_skinManager;
     bool m_useIntegratedServer = true;
 
-    std::unordered_map<PlayerId, String> m_knownPlayerNames;
+    std::unordered_map<PlayerId, std::string> m_knownPlayerNames;
 
     std::atomic<bool> m_running{false};
     std::atomic<bool> m_initialized{false};

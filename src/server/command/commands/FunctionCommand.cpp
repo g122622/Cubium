@@ -24,7 +24,7 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
             {},
             true));
 
-    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "name",
         StringArgumentType::string());
     nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -38,12 +38,12 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 i32 FunctionCommand::runFunction(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String name = context.getArgument<String>("name");
+    const std::string name = context.getArgument<std::string>("name");
 
     // 解析函数命名空间
     size_t colonPos = name.find(':');
-    String namespaceName = colonPos != String::npos ? name.substr(0, colonPos) : "minecraft";
-    String functionName = colonPos != String::npos ? name.substr(colonPos + 1) : name;
+    std::string namespaceName = colonPos != std::string::npos ? name.substr(0, colonPos) : "minecraft";
+    std::string functionName = colonPos != std::string::npos ? name.substr(colonPos + 1) : name;
 
     std::ostringstream ss;
     ss << "Running function " << namespaceName << ":" << functionName;

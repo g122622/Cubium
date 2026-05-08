@@ -21,8 +21,8 @@ namespace crafting {
  *
  * 序列化格式：
  * - 配方类型（VarInt）
- * - 配方ID（String）
- * - 配方组（String）
+ * - 配方ID（std::string）
+ * - 配方组（std::string）
  * - 配方特定数据
  *
  * 使用示例：
@@ -131,12 +131,12 @@ private:
     // 有序合成配方序列化
     static void serializeShaped(const ShapedRecipe& recipe, network::PacketSerializer& ser);
     [[nodiscard]] static Result<std::unique_ptr<ShapedRecipe>> deserializeShaped(
-        network::PacketDeserializer& deser, const ResourceLocation& id, const String& group);
+        network::PacketDeserializer& deser, const ResourceLocation& id, const std::string& group);
 
     // 无序合成配方序列化
     static void serializeShapeless(const ShapelessRecipe& recipe, network::PacketSerializer& ser);
     [[nodiscard]] static Result<std::unique_ptr<ShapelessRecipe>> deserializeShapeless(
-        network::PacketDeserializer& deser, const ResourceLocation& id, const String& group);
+        network::PacketDeserializer& deser, const ResourceLocation& id, const std::string& group);
 };
 
 } // namespace crafting

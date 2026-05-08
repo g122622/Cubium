@@ -43,7 +43,7 @@ public:
      * @param enchantmentId 附魔ID
      * @return 附魔等级（0表示无此附魔）
      */
-    [[nodiscard]] static i32 getEnchantmentLevel(const ItemStack& stack, const String& enchantmentId);
+    [[nodiscard]] static i32 getEnchantmentLevel(const ItemStack& stack, const std::string& enchantmentId);
 
     /**
      * @brief 获取物品上指定附魔的等级
@@ -61,7 +61,7 @@ public:
      * @param enchantmentId 附魔ID
      * @return 如果有此附魔返回true
      */
-    [[nodiscard]] static bool hasEnchantment(const ItemStack& stack, const String& enchantmentId);
+    [[nodiscard]] static bool hasEnchantment(const ItemStack& stack, const std::string& enchantmentId);
 
     /**
      * @brief 检查物品是否有指定类型的附魔

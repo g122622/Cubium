@@ -20,7 +20,7 @@ namespace mc::network {
  * 0: Byte (i8)
  * 1: VarInt (i32)
  * 2: Float (f32)
- * 3: String (UTF-8)
+ * 3: std::string (UTF-8)
  * 4: TextComponent (JSON)
  * 5: OptChat (Optional JSON)
  * 6: Slot (ItemStack)
@@ -73,8 +73,8 @@ private:
     static i64 readVarLong(const u8* data, size_t size, size_t& offset);
 
     // 写入字符串
-    static void writeString(const String& str, std::vector<u8>& output);
-    static String readString(const u8* data, size_t size, size_t& offset);
+    static void writeString(const std::string& str, std::vector<u8>& output);
+    static std::string readString(const u8* data, size_t size, size_t& offset);
 };
 
 } // namespace mc::network

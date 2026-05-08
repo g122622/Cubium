@@ -47,7 +47,7 @@ class TcpSession;
 // 回调类型
 using PacketCallback = std::function<void(TcpSession*, const u8*, size_t)>;
 using ConnectCallback = std::function<void(TcpSession*)>;
-using DisconnectCallback = std::function<void(TcpSession*, const String&)>;
+using DisconnectCallback = std::function<void(TcpSession*, const std::string&)>;
 
 // TCP会话类
 class TcpSession : public std::enable_shared_from_this<TcpSession> {
@@ -58,7 +58,7 @@ public:
     SessionId id() const { return m_id; }
     SessionState state() const { return m_state; }
     const SessionStats& stats() const { return m_stats; }
-    const String& address() const { return m_address; }
+    const std::string& address() const { return m_address; }
     u16 port() const { return m_port; }
 
     // 发送数据
@@ -66,10 +66,10 @@ public:
     void sendPacket(const network::Packet& packet);
 
     // 断开连接
-    void disconnect(const String& reason = "");
+    void disconnect(const std::string& reason = "");
 
     // 内部使用 (由TcpServer调用)
-    void setAddress(const String& address, u16 port) {
+    void setAddress(const std::string& address, u16 port) {
         m_address = address;
         m_port = port;
     }
@@ -89,7 +89,7 @@ private:
     SessionId m_id;
     SessionState m_state = SessionState::Connecting;
     TcpServer* m_server;
-    String m_address;
+    std::string m_address;
     u16 m_port = 0;
     NativeSocket m_socket = static_cast<NativeSocket>(-1);
 

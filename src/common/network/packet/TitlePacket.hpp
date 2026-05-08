@@ -34,7 +34,7 @@ enum class TitleAction : u8 {
  * | 字段        | 类型            | 说明                        |
  * |-------------|-----------------|----------------------------|
  * | action      | VarInt          | 动作类型 (TitleAction)      |
- * | text        | String (opt)    | 文本组件JSON（仅TITLE/SUBTITLE/ACTIONBAR）|
+ * | text        | std::string (opt)    | 文本组件JSON（仅TITLE/SUBTITLE/ACTIONBAR）|
  * | fadeIn      | i32 (opt)       | 淡入时间（仅TIMES，tick）    |
  * | stay        | i32 (opt)       | 停留时间（仅TIMES，tick）    |
  * | fadeOut     | i32 (opt)       | 淡出时间（仅TIMES，tick）    |
@@ -63,7 +63,7 @@ public:
      * @brief 创建主标题包
      * @param text 标题文本（JSON格式）
      */
-    static TitlePacket createTitle(const String& text);
+    static TitlePacket createTitle(const std::string& text);
 
     /**
      * @brief 创建主标题包（从ITextComponent）
@@ -75,7 +75,7 @@ public:
      * @brief 创建副标题包
      * @param text 副标题文本（JSON格式）
      */
-    static TitlePacket createSubtitle(const String& text);
+    static TitlePacket createSubtitle(const std::string& text);
 
     /**
      * @brief 创建副标题包（从ITextComponent）
@@ -87,7 +87,7 @@ public:
      * @brief 创建动作栏包
      * @param text 动作栏文本（JSON格式）
      */
-    static TitlePacket createActionbar(const String& text);
+    static TitlePacket createActionbar(const std::string& text);
 
     /**
      * @brief 创建动作栏包（从ITextComponent）
@@ -120,7 +120,7 @@ public:
     // ========== Getters ==========
 
     [[nodiscard]] TitleAction action() const { return m_action; }
-    [[nodiscard]] const std::optional<String>& text() const { return m_text; }
+    [[nodiscard]] const std::optional<std::string>& text() const { return m_text; }
     [[nodiscard]] i32 fadeIn() const { return m_fadeIn; }
     [[nodiscard]] i32 stay() const { return m_stay; }
     [[nodiscard]] i32 fadeOut() const { return m_fadeOut; }
@@ -128,8 +128,8 @@ public:
     // ========== Setters ==========
 
     void setAction(TitleAction action) { m_action = action; }
-    void setText(const String& text) { m_text = text; }
-    void setText(std::optional<String>&& text) { m_text = std::move(text); }
+    void setText(const std::string& text) { m_text = text; }
+    void setText(std::optional<std::string>&& text) { m_text = std::move(text); }
     void setTimes(i32 fadeIn, i32 stay, i32 fadeOut);
 
 private:
@@ -144,10 +144,10 @@ private:
      * @param text 文本组件
      * @return JSON字符串
      */
-    static String serializeText(const text::ITextComponent& text);
+    static std::string serializeText(const text::ITextComponent& text);
 
     TitleAction m_action = TitleAction::Clear;
-    std::optional<String> m_text;  // 文本组件JSON（仅TITLE/SUBTITLE/ACTIONBAR）
+    std::optional<std::string> m_text;  // 文本组件JSON（仅TITLE/SUBTITLE/ACTIONBAR）
     i32 m_fadeIn = -1;   // 淡入时间（tick），-1表示未设置
     i32 m_stay = -1;     // 停留时间（tick），-1表示未设置
     i32 m_fadeOut = -1;  // 淡出时间（tick），-1表示未设置

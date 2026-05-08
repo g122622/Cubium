@@ -56,7 +56,7 @@ public:
      */
     void tick() override;
 
-    [[nodiscard]] String getTypeName() const override { return "SleepAtNightGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "SleepAtNightGoal"; }
 
 private:
     /**
@@ -110,7 +110,7 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] String getTypeName() const override { return "WorkAtJobSiteGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "WorkAtJobSiteGoal"; }
 
 protected:
     /**
@@ -171,7 +171,7 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] String getTypeName() const override { return "LookForJobSiteGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "LookForJobSiteGoal"; }
 
 private:
     /**
@@ -204,7 +204,7 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] String getTypeName() const override { return "GatherItemsGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "GatherItemsGoal"; }
 
 private:
     /**
@@ -242,7 +242,7 @@ public:
 
     void tick() override;
 
-    [[nodiscard]] String getTypeName() const override { return "FarmerWorkGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "FarmerWorkGoal"; }
 
 private:
     /**
@@ -299,7 +299,7 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] String getTypeName() const override { return "AvoidHostileGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "AvoidHostileGoal"; }
 
 private:
     /**
@@ -338,7 +338,7 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] String getTypeName() const override { return "GoToBedGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "GoToBedGoal"; }
 
 private:
     VillagerEntity* m_villager;
@@ -364,7 +364,7 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] String getTypeName() const override { return "VillagerBreedGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "VillagerBreedGoal"; }
 
 private:
     /**

@@ -34,7 +34,7 @@ public:
      * @param isBeached 是否为搁浅沉船
      */
     ShipwreckPiece(
-        const String& templateName,
+        const std::string& templateName,
         const BlockPos& position,
         Rotation rotation,
         bool isBeached);
@@ -52,7 +52,7 @@ public:
      */
     void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
 
-    [[nodiscard]] const String& templateName() const { return m_templateName; }
+    [[nodiscard]] const std::string& templateName() const { return m_templateName; }
     [[nodiscard]] bool isBeached() const { return m_isBeached; }
 
     // 结构偏移（MC 1.16.5: BlockPos(4, 0, 15)）
@@ -61,7 +61,7 @@ public:
 private:
     void loadTemplate();
 
-    String m_templateName;
+    std::string m_templateName;
     Rotation m_rotation;
     bool m_isBeached;
     feature::template_::TemplateManager* m_templateManager = nullptr;
@@ -79,7 +79,7 @@ class ShipwreckStructure : public Structure {
 public:
     ShipwreckStructure();
 
-    [[nodiscard]] const String& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
@@ -111,9 +111,9 @@ public:
 
     // 模板名称常量（公开供测试访问）
     // 搁浅沉船变体（只有部分变体）
-    static const std::vector<String> s_beachedTemplates;
+    static const std::vector<std::string> s_beachedTemplates;
     // 所有沉船变体（包括水下）
-    static const std::vector<String> s_allTemplates;
+    static const std::vector<std::string> s_allTemplates;
 
 private:
     void initializeBiomes();
@@ -124,10 +124,10 @@ private:
      * @param isBeached 是否为搁浅沉船
      * @return 模板名称
      */
-    [[nodiscard]] String getRandomTemplateName(math::Random& rng, bool isBeached) const;
+    [[nodiscard]] std::string getRandomTemplateName(math::Random& rng, bool isBeached) const;
 
     static constexpr StructureSeparationSettings m_settings{24, 4, 165745295};  // MC 1.16.5: 165745295
-    static const String m_name;
+    static const std::string m_name;
     std::vector<BiomeId> m_validBiomes;
     ShipwreckConfig m_config;
     feature::template_::TemplateManager* m_templateManager = nullptr;

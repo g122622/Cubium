@@ -54,7 +54,7 @@ Result<void> GuiAtlasRegistry::initialize(
 }
 
 Result<u32> GuiAtlasRegistry::registerAtlas(
-    const String& name,
+    const std::string& name,
     VkImageView imageView,
     VkSampler sampler) {
 
@@ -104,7 +104,7 @@ Result<u32> GuiAtlasRegistry::registerAtlas(
     return slotId;
 }
 
-Result<void> GuiAtlasRegistry::unregisterAtlas(const String& name) {
+Result<void> GuiAtlasRegistry::unregisterAtlas(const std::string& name) {
     auto it = m_nameToSlot.find(name);
     if (it == m_nameToSlot.end()) {
         return Error(ErrorCode::NotFound, "Atlas not found: " + name);
@@ -121,7 +121,7 @@ Result<void> GuiAtlasRegistry::unregisterAtlas(const String& name) {
     return {};
 }
 
-std::optional<u32> GuiAtlasRegistry::getSlotId(const String& name) const {
+std::optional<u32> GuiAtlasRegistry::getSlotId(const std::string& name) const {
     auto it = m_nameToSlot.find(name);
     if (it != m_nameToSlot.end()) {
         return it->second;

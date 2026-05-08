@@ -140,8 +140,8 @@ public:
     // 按键绑定
     using ActionCallback = std::function<void()>;
 
-    void bindKeyAction(i32 key, const String& action);
-    void bindActionCallback(const String& action, ActionCallback callback);
+    void bindKeyAction(i32 key, const std::string& action);
+    void bindActionCallback(const std::string& action, ActionCallback callback);
 
 private:
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -186,8 +186,8 @@ private:
     bool m_initialized = false;
 
     // 按键绑定
-    std::unordered_map<i32, String> m_keyBindings;
-    std::unordered_map<String, ActionCallback> m_actionCallbacks;
+    std::unordered_map<i32, std::string> m_keyBindings;
+    std::unordered_map<std::string, ActionCallback> m_actionCallbacks;
 
     // 字符输入回调
     CharCallback m_charCallback;

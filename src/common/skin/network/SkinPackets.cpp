@@ -47,7 +47,7 @@ void PlayerListEntry::serialize(network::PacketSerializer& ser, PlayerListAction
 
     switch (action) {
         case PlayerListAction::AddPlayer: {
-            // Name: String (max 16)
+            // Name: std::string (max 16)
             ser.writeString(name);
 
             // Properties count: VarInt
@@ -121,7 +121,7 @@ Result<PlayerListEntry> PlayerListEntry::deserialize(network::PacketDeserializer
 
     switch (action) {
         case PlayerListAction::AddPlayer: {
-            // Name: String (max 16)
+            // Name: std::string (max 16)
             auto nameResult = deser.readString();
             if (nameResult.failed()) {
                 return nameResult.error();

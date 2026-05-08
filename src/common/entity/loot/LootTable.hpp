@@ -70,12 +70,12 @@ public:
     /**
      * @brief 根据名称获取池
      */
-    [[nodiscard]] LootPool* getPool(const String& name);
+    [[nodiscard]] LootPool* getPool(const std::string& name);
 
     /**
      * @brief 移除池
      */
-    std::unique_ptr<LootPool> removePool(const String& name);
+    std::unique_ptr<LootPool> removePool(const std::string& name);
 
     /**
      * @brief 获取池数量
@@ -99,12 +99,12 @@ public:
     /**
      * @brief 获取掉落表ID
      */
-    [[nodiscard]] const String& getId() const { return m_id; }
+    [[nodiscard]] const std::string& getId() const { return m_id; }
 
     /**
      * @brief 设置掉落表ID
      */
-    void setId(const String& id) { m_id = id; }
+    void setId(const std::string& id) { m_id = id; }
 
     // ========== 生成 ==========
 
@@ -137,15 +137,15 @@ public:
     /**
      * @brief 从JSON加载掉落表
      */
-    [[nodiscard]] static Result<std::unique_ptr<LootTable>> fromJson(const String& json);
+    [[nodiscard]] static Result<std::unique_ptr<LootTable>> fromJson(const std::string& json);
 
     /**
      * @brief 序列化为JSON
      */
-    [[nodiscard]] String toJson() const;
+    [[nodiscard]] std::string toJson() const;
 
 private:
-    String m_id;
+    std::string m_id;
     LootParameterSet m_paramSet;
     std::vector<std::unique_ptr<LootPool>> m_pools;
 };
@@ -162,7 +162,7 @@ public:
     /**
      * @brief 设置掉落表ID
      */
-    LootTableBuilder& id(const String& id) {
+    LootTableBuilder& id(const std::string& id) {
         m_id = id;
         return *this;
     }
@@ -189,7 +189,7 @@ public:
     [[nodiscard]] std::unique_ptr<LootTable> build() const;
 
 private:
-    String m_id;
+    std::string m_id;
     LootParameterSet m_paramSet;
     std::vector<std::unique_ptr<LootPool>> m_pools;
 };
@@ -216,24 +216,24 @@ public:
      * @param id 掉落表ID（如 "minecraft:entities/pig"）
      * @param table 掉落表
      */
-    void registerTable(const String& id, std::unique_ptr<LootTable> table);
+    void registerTable(const std::string& id, std::unique_ptr<LootTable> table);
 
     /**
      * @brief 获取掉落表
      * @param id 掉落表ID
      * @return 掉落表指针，不存在返回nullptr
      */
-    [[nodiscard]] const LootTable* getTable(const String& id) const;
+    [[nodiscard]] const LootTable* getTable(const std::string& id) const;
 
     /**
      * @brief 检查是否有掉落表
      */
-    [[nodiscard]] bool hasTable(const String& id) const;
+    [[nodiscard]] bool hasTable(const std::string& id) const;
 
     /**
      * @brief 获取所有已注册的掉落表ID
      */
-    [[nodiscard]] std::vector<String> getAllTableIds() const;
+    [[nodiscard]] std::vector<std::string> getAllTableIds() const;
 
     // ========== 默认表 ==========
 
@@ -250,7 +250,7 @@ public:
     void initializeDefaultTables();
 
 private:
-    std::unordered_map<String, std::unique_ptr<LootTable>> m_tables;
+    std::unordered_map<std::string, std::unique_ptr<LootTable>> m_tables;
 };
 
 } // namespace loot

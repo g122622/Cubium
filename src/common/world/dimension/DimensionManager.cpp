@@ -55,7 +55,7 @@ bool DimensionManager::unregisterDimension(DimensionId id) {
     }
 
     // 移除名称映射
-    const String& name = it->second->type().name();
+    const std::string& name = it->second->type().name();
     m_nameToId.erase(name);
 
     // 移除维度
@@ -115,7 +115,7 @@ const DimensionType* DimensionManager::getDimensionType(DimensionId id) const {
     return dim ? &dim->type() : nullptr;
 }
 
-DimensionId DimensionManager::getDimensionIdByName(const String& name) const {
+DimensionId DimensionManager::getDimensionIdByName(const std::string& name) const {
     auto it = m_nameToId.find(name);
     return it != m_nameToId.end() ? it->second : static_cast<DimensionId>(-1);
 }

@@ -38,7 +38,7 @@ public:
      * @param fallDistance 摔落距离
      */
     CombatEntry(std::unique_ptr<DamageSource> source, f32 damage, i32 timestamp,
-                f32 health = 0.0f, const String& fallSuffix = "", f32 fallDistance = 0.0f);
+                f32 health = 0.0f, const std::string& fallSuffix = "", f32 fallDistance = 0.0f);
 
     /**
      * @brief 获取伤害来源
@@ -63,7 +63,7 @@ public:
     /**
      * @brief 获取摔落后缀
      */
-    [[nodiscard]] const String& fallSuffix() const { return m_fallSuffix; }
+    [[nodiscard]] const std::string& fallSuffix() const { return m_fallSuffix; }
 
     /**
      * @brief 获取摔落距离
@@ -92,7 +92,7 @@ private:
     f32 m_damage;
     i32 m_timestamp;
     f32 m_health;           // 受伤前生命值
-    String m_fallSuffix;    // 摔落后缀（如 "fall", "ladder"）
+    std::string m_fallSuffix;    // 摔落后缀（如 "fall", "ladder"）
     f32 m_fallDistance;     // 摔落距离
 };
 

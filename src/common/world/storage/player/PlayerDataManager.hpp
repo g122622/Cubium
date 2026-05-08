@@ -53,7 +53,7 @@ public:
     /**
      * @brief 玩家数据变更回调
      */
-    using PlayerDataCallback = std::function<void(const String& uuid)>;
+    using PlayerDataCallback = std::function<void(const std::string& uuid)>;
 
     /**
      * @brief 构造函数
@@ -86,7 +86,7 @@ public:
      * @param uuid 玩家 UUID
      * @return 玩家数据指针，如果不存在返回 nullptr
      */
-    [[nodiscard]] Result<PlayerSaveData*> loadPlayer(const String& uuid);
+    [[nodiscard]] Result<PlayerSaveData*> loadPlayer(const std::string& uuid);
 
     /**
      * @brief 保存玩家数据
@@ -116,7 +116,7 @@ public:
      * @param uuid 玩家 UUID
      * @return 成功或错误
      */
-    Result<void> deletePlayer(const String& uuid);
+    Result<void> deletePlayer(const std::string& uuid);
 
     /**
      * @brief 检查玩家数据是否存在
@@ -124,7 +124,7 @@ public:
      * @param uuid 玩家 UUID
      * @return true 如果存在
      */
-    [[nodiscard]] bool hasPlayer(const String& uuid) const;
+    [[nodiscard]] bool hasPlayer(const std::string& uuid) const;
 
     /**
      * @brief 获取缓存的玩家数据
@@ -134,8 +134,8 @@ public:
      * @param uuid 玩家 UUID
      * @return 玩家数据指针，如果未缓存返回 nullptr
      */
-    [[nodiscard]] PlayerSaveData* getCachedPlayer(const String& uuid);
-    [[nodiscard]] const PlayerSaveData* getCachedPlayer(const String& uuid) const;
+    [[nodiscard]] PlayerSaveData* getCachedPlayer(const std::string& uuid);
+    [[nodiscard]] const PlayerSaveData* getCachedPlayer(const std::string& uuid) const;
 
     /**
      * @brief 从服务器玩家数据创建保存数据
@@ -183,7 +183,7 @@ public:
      *
      * @param uuid 玩家 UUID
      */
-    void markDirty(const String& uuid);
+    void markDirty(const std::string& uuid);
 
     /**
      * @brief 获取脏玩家数量
@@ -193,7 +193,7 @@ public:
     /**
      * @brief 获取脏玩家 UUID 列表
      */
-    [[nodiscard]] std::vector<String> getDirtyUuids() const;
+    [[nodiscard]] std::vector<std::string> getDirtyUuids() const;
 
     /**
      * @brief 清空缓存
@@ -228,20 +228,20 @@ private:
      * @param uuid 玩家 UUID
      * @return 数据库键
      */
-    [[nodiscard]] static std::vector<u8> makeKey(const String& uuid);
+    [[nodiscard]] static std::vector<u8> makeKey(const std::string& uuid);
 
     /**
      * @brief 从缓存中移除玩家
      * @param uuid 玩家 UUID
      */
-    void removeFromCache(const String& uuid);
+    void removeFromCache(const std::string& uuid);
 
 private:
     RocksDBDatabase& m_db;
 
     mutable std::mutex m_cacheMutex;
-    std::unordered_map<String, std::unique_ptr<PlayerSaveData>> m_cache;
-    std::unordered_set<String> m_dirtyUuids;
+    std::unordered_map<std::string, std::unique_ptr<PlayerSaveData>> m_cache;
+    std::unordered_set<std::string> m_dirtyUuids;
 
     PlayerDataCallback m_onPlayerSaved;
 };

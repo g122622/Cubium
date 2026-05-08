@@ -25,7 +25,7 @@ struct LayoutResult {
     bool needsRelayout = false; ///< 是否需要重新布局（子元素变化时）
 
 #ifdef KAGERO_LAYOUT_DEBUG
-    String algorithmUsed;     ///< 使用的布局算法（调试）
+    std::string algorithmUsed;     ///< 使用的布局算法（调试）
     f64 computeTimeMs = 0.0;  ///< 计算耗时（调试）
     i32 depth = 0;            ///< 布局深度（调试）
 #endif

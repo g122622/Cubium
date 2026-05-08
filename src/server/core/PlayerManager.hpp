@@ -52,7 +52,7 @@ public:
      * @note 线程安全
      */
     ServerPlayerData* addPlayer(PlayerId playerId,
-                                 const String& username,
+                                 const std::string& username,
                                  network::ConnectionPtr connection);
 
     /**

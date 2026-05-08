@@ -17,9 +17,9 @@ using feature::template_::TemplateJigsawBlockInfo;
 // 静态模板管理器实例（用于加载 Jigsaw 模板）
 static TemplateManager s_jigsawTemplateManager;
 
-String EmptyJigsawPiece::s_typeName = "empty_pool_element";
-String SingleJigsawPiece::s_typeName = "single_pool_element";
-String ListJigsawPiece::s_typeName = "list_pool_element";
+std::string EmptyJigsawPiece::s_typeName = "empty_pool_element";
+std::string SingleJigsawPiece::s_typeName = "single_pool_element";
+std::string ListJigsawPiece::s_typeName = "list_pool_element";
 
 EmptyJigsawPiece& EmptyJigsawPiece::instance() {
     static EmptyJigsawPiece instance;
@@ -32,7 +32,7 @@ std::unique_ptr<JigsawPiece> EmptyJigsawPiece::clone() const {
     return std::make_unique<EmptyJigsawPiece>();
 }
 
-bool JigsawPiece::loadJointsFromTemplate(const String& templateName,
+bool JigsawPiece::loadJointsFromTemplate(const std::string& templateName,
                                           std::vector<JigsawJoint>& joints,
                                           BlockPos& size) {
     ResourceLocation loc(templateName);
@@ -86,7 +86,7 @@ bool JigsawPiece::loadJointsFromTemplate(const String& templateName,
     return true;
 }
 
-SingleJigsawPiece::SingleJigsawPiece(const String& templateName, JigsawPlacementBehaviour behaviour)
+SingleJigsawPiece::SingleJigsawPiece(const std::string& templateName, JigsawPlacementBehaviour behaviour)
     : JigsawPiece(behaviour)
     , m_templateName(templateName)
 {

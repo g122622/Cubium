@@ -428,7 +428,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     }
 
     auto& packet = result.value();
-    String username = packet.username();
+    std::string username = packet.username();
 
     spdlog::info("Player '{}' attempting to join", username);
 
@@ -675,7 +675,7 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
 // ============================================================================
 
 void IntegratedServer::sendLoginResponse(bool success, PlayerId playerId, EntityId entityId,
-                                          const String& username, const String& message)
+                                          const std::string& username, const std::string& message)
 {
     bool isDebugWorld = m_world && m_world->isDebugWorld();
     network::LoginResponsePacket response(success, playerId, entityId, username, message, isDebugWorld);
@@ -759,7 +759,7 @@ void IntegratedServer::sendContainerContent(const AbstractContainerMenu& menu)
                    ContainerPacketHandler::createContentPacket(menu));
 }
 
-void IntegratedServer::sendOpenContainer(ContainerId containerId, mc::ContainerType type, const String& title, i32 slotCount)
+void IntegratedServer::sendOpenContainer(ContainerId containerId, mc::ContainerType type, const std::string& title, i32 slotCount)
 {
     (void)slotCount;  // slotCount is no longer sent in the packet (MC 1.16.5 protocol)
     sendGamePacket(m_serverEndpoint,
@@ -891,7 +891,7 @@ bool IntegratedServer::openContainerMenu(ContainerType type, const BlockPos& pos
 
     sendOpenContainer(containerId,
                       type,
-                      String(ContainerTypes::getDefaultTitle(type)),
+                      std::string(ContainerTypes::getDefaultTitle(type)),
                       menu->getSlotCount());
     sendContainerContent(*menu);
 

@@ -26,8 +26,8 @@ public:
     virtual ~ParticleData() = default;
 
     [[nodiscard]] virtual ParticleTypeId getType() const = 0;
-    [[nodiscard]] virtual String getTypeName() const = 0;
-    [[nodiscard]] virtual String getParameters() const { return ""; }
+    [[nodiscard]] virtual std::string getTypeName() const = 0;
+    [[nodiscard]] virtual std::string getParameters() const { return ""; }
     [[nodiscard]] virtual std::unique_ptr<ParticleData> clone() const = 0;
 };
 ```

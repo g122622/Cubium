@@ -24,7 +24,7 @@ public:
 private:
     static i32 spawnParticle(CommandContext<ServerCommandSource>& context);
     static std::optional<client::renderer::trident::particle::ParticleTypeId>
-    parseParticleType(const String& name) noexcept;
+    parseParticleType(const std::string& name) noexcept;
 };
 
 } // namespace command

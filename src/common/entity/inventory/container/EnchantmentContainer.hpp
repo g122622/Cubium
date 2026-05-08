@@ -99,14 +99,14 @@ public:
      * @param index 选项索引（0-2）
      * @return 附魔ID，无效返回空字符串
      */
-    [[nodiscard]] String getEnchantmentClue(i32 index) const;
+    [[nodiscard]] std::string getEnchantmentClue(i32 index) const;
 
     /**
      * @brief 获取附魔预览ID（字符串形式）
      * @param index 选项索引（0-2）
      * @return 附魔ID字符串，无效返回空字符串
      */
-    [[nodiscard]] String getEnchantmentClueId(i32 index) const;
+    [[nodiscard]] std::string getEnchantmentClueId(i32 index) const;
 
     /**
      * @brief 获取附魔预览等级
@@ -201,7 +201,7 @@ private:
     /// 附魔选项等级（3个）
     std::array<i32, ENCHANTMENT_OPTIONS> m_enchantmentLevels = {0, 0, 0};
     /// 附魔选项ID（3个）
-    std::array<String, ENCHANTMENT_OPTIONS> m_enchantmentClues;
+    std::array<std::string, ENCHANTMENT_OPTIONS> m_enchantmentClues;
     /// 附魔选项预览等级（3个）
     std::array<i32, ENCHANTMENT_OPTIONS> m_enchantmentWorldClues = {0, 0, 0};
 };

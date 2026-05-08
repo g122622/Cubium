@@ -151,7 +151,7 @@ i32 WeatherCommand::query(CommandContext<ServerCommandSource>& context) {
     f32 rainStrength = weatherMgr.rainStrength();
     f32 thunderStrength = weatherMgr.thunderStrength();
 
-    String typeStr;
+    std::string typeStr;
     switch (type) {
         case 1:
             typeStr = "rain";

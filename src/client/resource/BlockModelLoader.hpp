@@ -18,12 +18,12 @@ namespace mc {
 /**
  * @brief 从字符串解析方向
  */
-[[nodiscard]] Direction parseDirection(StringView str);
+[[nodiscard]] Direction parseDirection(std::string_view str);
 
 /**
  * @brief 方向转字符串
  */
-[[nodiscard]] String directionToString(Direction dir);
+[[nodiscard]] std::string directionToString(Direction dir);
 
 /**
  * @brief 模型面UV数据
@@ -41,7 +41,7 @@ struct ModelFaceUV {
  * @brief 模型面数据
  */
 struct ModelFace {
-    String texture;           // "#all" 或 "blocks/stone" 或纹理变量名
+    std::string texture;           // "#all" 或 "blocks/stone" 或纹理变量名
     Direction cullFace = Direction::None;  // 剔除面方向
     i32 tintIndex = -1;       // 着色索引，-1表示不着色
     ModelFaceUV uv;           // UV坐标
@@ -52,7 +52,7 @@ struct ModelFace {
  */
 struct ModelRotation {
     glm::vec3 origin{8.0f, 8.0f, 8.0f};  // 旋转中心
-    String axis = "y";                    // x, y, z
+    std::string axis = "y";                    // x, y, z
     f32 angle = 0.0f;                     // -45, -22.5, 0, 22.5, 45
     bool rescale = false;
 };
@@ -74,9 +74,9 @@ struct ModelElement {
 struct UnbakedBlockModel {
     ResourceLocation parentLocation;              // 父模型位置
     std::vector<ModelElement> elements;           // 模型元素
-    std::map<String, String> textures;            // 纹理变量 -> 路径
+    std::map<std::string, std::string> textures;            // 纹理变量 -> 路径
     bool ambientOcclusion = true;                 // 环境光遮蔽
-    String name;                                  // 模型名称(调试用)
+    std::string name;                                  // 模型名称(调试用)
 
     // 检查是否有父模型
     [[nodiscard]] bool hasParent() const {
@@ -89,12 +89,12 @@ struct UnbakedBlockModel {
  */
 struct BakedBlockModel {
     std::vector<ModelElement> elements;
-    std::map<String, ResourceLocation> textures; // 纹理变量 -> 资源位置
+    std::map<std::string, ResourceLocation> textures; // 纹理变量 -> 资源位置
     bool ambientOcclusion = true;
 
     // 解析纹理变量引用
     // 例如: "#all" -> "minecraft:textures/blocks/stone"
-    [[nodiscard]] ResourceLocation resolveTexture(StringView textureRef) const;
+    [[nodiscard]] ResourceLocation resolveTexture(std::string_view textureRef) const;
 };
 
 /**
@@ -131,23 +131,23 @@ public:
     BlockStateDefinition() = default;
 
     // 从JSON解析
-    [[nodiscard]] static Result<BlockStateDefinition> parse(StringView jsonContent);
+    [[nodiscard]] static Result<BlockStateDefinition> parse(std::string_view jsonContent);
 
     // 获取指定状态的变体
     // stateStr格式: "axis=y,facing=north" 或 "normal"
-    [[nodiscard]] const VariantList* getVariants(StringView stateStr) const;
+    [[nodiscard]] const VariantList* getVariants(std::string_view stateStr) const;
 
     // 获取所有变体映射
-    [[nodiscard]] const std::map<String, VariantList>& getAllVariants() const { return m_variants; }
+    [[nodiscard]] const std::map<std::string, VariantList>& getAllVariants() const { return m_variants; }
 
     // 是否有多部分数据
     [[nodiscard]] bool hasMultipart() const { return m_hasMultipart; }
 
 private:
     // 规范化状态键，保证属性顺序一致（例如 a=1,b=2 与 b=2,a=1 等价）
-    [[nodiscard]] static String normalizeStateKey(StringView stateKey);
+    [[nodiscard]] static std::string normalizeStateKey(std::string_view stateKey);
 
-    std::map<String, VariantList> m_variants;
+    std::map<std::string, VariantList> m_variants;
     bool m_hasMultipart = false;
 };
 
@@ -185,10 +185,10 @@ private:
     std::vector<IResourcePack*> m_resourcePackList;  // 所有资源包列表（原始指针）
 
     // 从所有资源包中读取模型文件
-    [[nodiscard]] Result<String> readModelFromResourcePacks(const String& filePath);
+    [[nodiscard]] Result<std::string> readModelFromResourcePacks(const std::string& filePath);
 
     // 解析模型JSON
-    [[nodiscard]] Result<UnbakedBlockModel> parseModel(StringView jsonContent);
+    [[nodiscard]] Result<UnbakedBlockModel> parseModel(std::string_view jsonContent);
 
     // 解析元素
     [[nodiscard]] Result<ModelElement> parseElement(const nlohmann::json& json);

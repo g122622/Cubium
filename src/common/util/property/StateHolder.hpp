@@ -140,7 +140,7 @@ public:
     /**
      * @brief 转换为字符串表示
      */
-    [[nodiscard]] String toString() const {
+    [[nodiscard]] std::string toString() const {
         std::ostringstream ss;
         ss << ownerName();
         if (!m_values.empty()) {
@@ -193,7 +193,7 @@ protected:
     /**
      * @brief 获取拥有者名称（子类可重写）
      */
-    [[nodiscard]] virtual String ownerName() const {
+    [[nodiscard]] virtual std::string ownerName() const {
         return "Unknown";
     }
 

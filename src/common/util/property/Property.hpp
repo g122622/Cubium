@@ -51,7 +51,7 @@ public:
     /**
      * @brief 获取属性名称
      */
-    [[nodiscard]] const String& name() const override {
+    [[nodiscard]] const std::string& name() const override {
         return m_name;
     }
 
@@ -100,12 +100,12 @@ public:
      * @param value 值
      * @return 字符串表示
      */
-    [[nodiscard]] virtual String valueToString(const T& value) const = 0;
+    [[nodiscard]] virtual std::string valueToString(const T& value) const = 0;
 
     /**
      * @brief 将值索引转换为字符串表示
      */
-    [[nodiscard]] String valueToString(size_t index) const override {
+    [[nodiscard]] std::string valueToString(size_t index) const override {
         return valueToString(valueAt(index));
     }
 
@@ -114,12 +114,12 @@ public:
      * @param str 字符串
      * @return 解析后的值，失败返回nullopt
      */
-    [[nodiscard]] virtual std::optional<T> parse(StringView str) const = 0;
+    [[nodiscard]] virtual std::optional<T> parse(std::string_view str) const = 0;
 
     /**
      * @brief 解析字符串为值索引（实现IProperty接口）
      */
-    [[nodiscard]] std::optional<size_t> parseValue(StringView str) const override {
+    [[nodiscard]] std::optional<size_t> parseValue(std::string_view str) const override {
         auto value = parse(str);
         if (value) {
             return indexOf(*value);
@@ -153,7 +153,7 @@ protected:
      * @param name 属性名称
      * @param values 允许的值列表
      */
-    Property(String name, std::vector<T> values)
+    Property(std::string name, std::vector<T> values)
         : m_name(std::move(name))
         , m_values(std::move(values)) {
         // 构建值到索引的映射
@@ -162,7 +162,7 @@ protected:
         }
     }
 
-    String m_name;
+    std::string m_name;
     std::vector<T> m_values;
     std::unordered_map<T, size_t> m_valueToIndex;
 };

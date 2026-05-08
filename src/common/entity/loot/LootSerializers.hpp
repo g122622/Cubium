@@ -278,7 +278,7 @@ public:
      * @param jsonStr JSON 字符串
      * @return 解析的掉落表
      */
-    static Result<std::unique_ptr<LootTable>> parseLootTable(const String& jsonStr);
+    static Result<std::unique_ptr<LootTable>> parseLootTable(const std::string& jsonStr);
 
     /**
      * @brief 序列化掉落表到 JSON
@@ -288,7 +288,7 @@ public:
     /**
      * @brief 序列化掉落表到 JSON 字符串
      */
-    static String toJsonString(const LootTable& table, i32 indent = -1);
+    static std::string toJsonString(const LootTable& table, i32 indent = -1);
 
 private:
     // ========================================================================

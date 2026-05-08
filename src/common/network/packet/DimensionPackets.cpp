@@ -61,7 +61,7 @@ Result<std::vector<u8>> RespawnPacket::serialize() const {
             dimensionName = "minecraft:overworld";
             break;
     }
-    ser.writeString(String(dimensionName));
+    ser.writeString(std::string(dimensionName));
 
     // 世界种子哈希
     ser.writeU64(m_hashedSeed);
@@ -102,7 +102,7 @@ Result<void> RespawnPacket::deserialize(const u8* data, size_t size) {
         return nameResult.error();
     }
     // 解析维度名称到维度 ID
-    const String& name = nameResult.value();
+    const std::string& name = nameResult.value();
     if (name == "minecraft:overworld" || name == "overworld") {
         m_dimension = 0;
     } else if (name == "minecraft:the_nether" || name == "the_nether") {

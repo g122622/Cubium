@@ -7,7 +7,7 @@ namespace mc::client::renderer::trident::gui {
 using json = nlohmann::json;
 
 Result<GuiSpriteDefinition> GuiSpriteParser::parse(
-    const String& jsonContent,
+    const std::string& jsonContent,
     i32 atlasWidth,
     i32 atlasHeight) {
 
@@ -18,7 +18,7 @@ Result<GuiSpriteDefinition> GuiSpriteParser::parse(
 
         // 解析纹理路径
         if (root.contains("texture")) {
-            result.texture = root["texture"].get<String>();
+            result.texture = root["texture"].get<std::string>();
         }
 
         // 解析精灵
@@ -57,10 +57,10 @@ Result<GuiSpriteDefinition> GuiSpriteParser::parse(
                 if (baseIt == result.sprites.end()) continue;
 
                 if (variants.contains("hover")) {
-                    baseIt->second.hoverSprite = variants["hover"].get<String>();
+                    baseIt->second.hoverSprite = variants["hover"].get<std::string>();
                 }
                 if (variants.contains("disabled")) {
-                    baseIt->second.disabledSprite = variants["disabled"].get<String>();
+                    baseIt->second.disabledSprite = variants["disabled"].get<std::string>();
                 }
             }
         }
@@ -69,47 +69,47 @@ Result<GuiSpriteDefinition> GuiSpriteParser::parse(
 
     } catch (const json::parse_error& e) {
         return Error(ErrorCode::ResourceParseError,
-            String("JSON parse error: ") + e.what());
+            std::string("JSON parse error: ") + e.what());
     } catch (const std::exception& e) {
         return Error(ErrorCode::ResourceParseError,
-            String("Error parsing sprite definition: ") + e.what());
+            std::string("Error parsing sprite definition: ") + e.what());
     }
 }
 
 Result<GuiSpriteDefinition> GuiSpriteParser::parseFromResourcePack(
     IResourcePack& resourcePack,
-    const String& spriteDefPath,
+    const std::string& spriteDefPath,
     i32 atlasWidth,
     i32 atlasHeight) {
 
     // 构建资源路径
-    String resourcePath = spriteDefPath;
-    if (resourcePath.find(':') != String::npos) {
+    std::string resourcePath = spriteDefPath;
+    if (resourcePath.find(':') != std::string::npos) {
         // 转换 minecraft:gui/sprites/widgets.json -> assets/minecraft/gui/sprites/widgets.json
         auto colonPos = resourcePath.find(':');
-        String namespace_ = resourcePath.substr(0, colonPos);
-        String path = resourcePath.substr(colonPos + 1);
+        std::string namespace_ = resourcePath.substr(0, colonPos);
+        std::string path = resourcePath.substr(colonPos + 1);
         resourcePath = "assets/" + namespace_ + "/" + path;
     }
 
     // 检查资源是否存在
     if (!resourcePack.hasResource(resourcePath)) {
         return Error(ErrorCode::NotFound,
-            String("Sprite definition not found: ") + spriteDefPath);
+            std::string("Sprite definition not found: ") + spriteDefPath);
     }
 
     // 读取资源
     auto readResult = resourcePack.readTextResource(resourcePath);
     if (readResult.failed()) {
         return Error(ErrorCode::FileReadFailed,
-            String("Failed to read sprite definition: ") + spriteDefPath);
+            std::string("Failed to read sprite definition: ") + spriteDefPath);
     }
 
     return parse(readResult.value(), atlasWidth, atlasHeight);
 }
 
 Result<GuiSprite> GuiSpriteParser::parseSprite(
-    const String& id,
+    const std::string& id,
     const void* jsonObj,
     i32 atlasWidth,
     i32 atlasHeight) {
@@ -118,14 +118,14 @@ Result<GuiSprite> GuiSpriteParser::parseSprite(
 
     if (!obj.is_object()) {
         return Error(ErrorCode::ResourceParseError,
-            String("Sprite '") + id + "' is not an object");
+            std::string("Sprite '") + id + "' is not an object");
     }
 
     // 必需字段
     if (!obj.contains("x") || !obj.contains("y") ||
         !obj.contains("width") || !obj.contains("height")) {
         return Error(ErrorCode::ResourceParseError,
-            String("Sprite '") + id + "' missing required fields (x, y, width, height)");
+            std::string("Sprite '") + id + "' missing required fields (x, y, width, height)");
     }
 
     i32 x = obj["x"].get<i32>();
@@ -138,10 +138,10 @@ Result<GuiSprite> GuiSpriteParser::parseSprite(
 
     // 可选字段：悬停和禁用状态变体
     if (obj.contains("hover")) {
-        sprite.hoverSprite = obj["hover"].get<String>();
+        sprite.hoverSprite = obj["hover"].get<std::string>();
     }
     if (obj.contains("disabled")) {
-        sprite.disabledSprite = obj["disabled"].get<String>();
+        sprite.disabledSprite = obj["disabled"].get<std::string>();
     }
 
     return sprite;

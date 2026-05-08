@@ -89,9 +89,9 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> load(IResourcePack& pack,
-                                     const String& texturePath,
+                                     const std::string& texturePath,
                                      u32 height, u32 ascent,
-                                     const std::vector<String>& charRows);
+                                     const std::vector<std::string>& charRows);
 
     [[nodiscard]] bool getGlyphData(u32 codepoint,
                                     std::vector<u8>& outPixels,
@@ -177,7 +177,7 @@ public:
      * @param text 文本
      * @return 宽度（像素）
      */
-    [[nodiscard]] f32 getStringWidth(const String& text);
+    [[nodiscard]] f32 getStringWidth(const std::string& text);
 
     /**
      * @brief 获取字符串宽度（UTF-8）

@@ -17,7 +17,7 @@ namespace mc::client::command {
  */
 class ClientCommandManager {
 public:
-    using CandidateProvider = std::function<std::vector<String>()>;
+    using CandidateProvider = std::function<std::vector<std::string>()>;
 
     /**
      * @brief 构造命令管理器
@@ -34,7 +34,7 @@ public:
      * @param jsonText 服务端同步的 JSON 文本。会在收到服务端相关数据包时被调用
      * @return 处理结果
      */
-    [[nodiscard]] Result<void> applyCommandTreeJson(StringView jsonText);
+    [[nodiscard]] Result<void> applyCommandTreeJson(std::string_view jsonText);
 
     /**
      * @brief 检查是否已接收命令树
@@ -44,7 +44,7 @@ public:
     /**
      * @brief 获取当前命令名称列表
      */
-    [[nodiscard]] std::vector<String> getCommandNames() const;
+    [[nodiscard]] std::vector<std::string> getCommandNames() const;
 
     /**
      * @brief 获取补全建议
@@ -52,7 +52,7 @@ public:
      * @param cursor 当前光标位置
      * @return 建议列表
      */
-    [[nodiscard]] mc::command::Suggestions getSuggestions(StringView input, i32 cursor) const;
+    [[nodiscard]] mc::command::Suggestions getSuggestions(std::string_view input, i32 cursor) const;
 
     /**
      * @brief 设置玩家名候选提供器
@@ -80,15 +80,15 @@ private:
      */
     [[nodiscard]] mc::command::Suggestions collectSuggestions(
         const mc::command::CommandTreeNodeSnapshot& node,
-        StringView fullInput,
+        std::string_view fullInput,
         i32 start,
         i32 end,
-        StringView tokenPrefix) const;
+        std::string_view tokenPrefix) const;
 
     /**
      * @brief 获取节点候选项
      */
-    [[nodiscard]] std::vector<String> getCandidates(
+    [[nodiscard]] std::vector<std::string> getCandidates(
         const mc::command::CommandTreeNodeSnapshot& node) const;
 
     /**
@@ -96,22 +96,22 @@ private:
      */
     [[nodiscard]] bool matchesFixedCandidate(
         const mc::command::CommandTreeNodeSnapshot& node,
-        StringView token) const;
+        std::string_view token) const;
 
     /**
      * @brief 判断是否为命令输入
      */
-    [[nodiscard]] static bool isCommandInput(StringView input);
+    [[nodiscard]] static bool isCommandInput(std::string_view input);
 
     /**
      * @brief 转小写
      */
-    [[nodiscard]] static String toLower(StringView input);
+    [[nodiscard]] static std::string toLower(std::string_view input);
 
     /**
      * @brief 不区分大小写的前缀匹配
      */
-    [[nodiscard]] static bool startsWithIgnoreCase(StringView value, StringView prefix);
+    [[nodiscard]] static bool startsWithIgnoreCase(std::string_view value, std::string_view prefix);
 
     mc::command::CommandTreeSnapshot m_snapshot;
     CandidateProvider m_playerNameProvider;

@@ -56,10 +56,10 @@ public:
                          MobDensityTracker& densityTracker);
 
     [[nodiscard]] bool canSpawn(entity::EntityClassification classification) const;
-    [[nodiscard]] bool canSpawnWithDensity(const String& entityTypeId,
+    [[nodiscard]] bool canSpawnWithDensity(const std::string& entityTypeId,
                                             const Vector3& pos,
                                             const SpawnCosts& spawnCosts) const;
-    void onSpawn(const String& entityTypeId, const Vector3& pos, const SpawnCosts& spawnCosts);
+    void onSpawn(const std::string& entityTypeId, const Vector3& pos, const SpawnCosts& spawnCosts);
     [[nodiscard]] i32 getCount(entity::EntityClassification classification) const;
 };
 ```

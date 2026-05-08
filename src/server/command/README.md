@@ -61,17 +61,17 @@ public:
     Dispatcher& dispatcher() noexcept;
 
     // 执行命令
-    Result<i32> execute(const String& input, ServerCommandSource& source);
+    Result<i32> execute(const std::string& input, ServerCommandSource& source);
 
     // 获取建议
-    std::future<Suggestions> getSuggestions(const String& input, ServerCommandSource& source);
+    std::future<Suggestions> getSuggestions(const std::string& input, ServerCommandSource& source);
 
     // 注册默认命令
     void registerDefaults();
 
     // 命令查询
-    std::vector<String> getCommandNames() const;
-    bool hasCommand(const String& name) const;
+    std::vector<std::string> getCommandNames() const;
+    bool hasCommand(const std::string& name) const;
 
     // 全局单例
     static CommandRegistry& getGlobal();
@@ -118,11 +118,11 @@ public:
         const Vector2f& rotation = Vector2f(0, 0),
         i32 permissionLevel = 0,
         PlayerId playerId = 0,
-        String playerName = ""
+        std::string playerName = ""
     );
 
     // ICommandSource 接口
-    void sendMessage(const String& message, const std::optional<Uuid>& senderUuid = std::nullopt) override;
+    void sendMessage(const std::string& message, const std::optional<Uuid>& senderUuid = std::nullopt) override;
     bool shouldReceiveFeedback() const override;
     bool shouldReceiveErrors() const override;
     bool allowLogging() const override;
@@ -135,7 +135,7 @@ public:
     const Vector3d& position() const noexcept;
     const Vector2f& rotation() const noexcept;
     i32 permissionLevel() const noexcept;
-    const String& name() const noexcept;
+    const std::string& name() const noexcept;
 
     // 权限检查
     bool hasPermission(i32 level) const noexcept;

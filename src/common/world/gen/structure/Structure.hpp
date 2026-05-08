@@ -406,7 +406,7 @@ class Structure {
 public:
     virtual ~Structure() = default;
 
-    [[nodiscard]] virtual const String& name() const = 0;
+    [[nodiscard]] virtual const std::string& name() const = 0;
     [[nodiscard]] virtual StructureSeparationSettings separationSettings() const = 0;
     [[nodiscard]] virtual const std::vector<BiomeId>& validBiomes() const = 0;
 

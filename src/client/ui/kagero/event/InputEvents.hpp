@@ -260,8 +260,8 @@ public:
     /**
      * @brief 获取UTF-8字符串
      */
-    [[nodiscard]] String toUtf8() const {
-        String result;
+    [[nodiscard]] std::string toUtf8() const {
+        std::string result;
         if (m_codePoint < 0x80) {
             result += static_cast<char>(m_codePoint);
         } else if (m_codePoint < 0x800) {

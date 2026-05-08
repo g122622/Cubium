@@ -41,7 +41,7 @@ u64 PlatformInfo::getProcessMemoryMB() {
     return getProcessMemoryMBWindows();
 }
 
-String PlatformInfo::getPlatformName() {
+std::string PlatformInfo::getPlatformName() {
     return getPlatformNameWindows();
 }
 
@@ -99,7 +99,7 @@ CpuInfo PlatformInfo::getCpuInfoWindows() {
         info.brand = brand;
         size_t start = info.brand.find_first_not_of(" \t");
         size_t end = info.brand.find_last_not_of(" \t");
-        if (start != String::npos && end != String::npos) {
+        if (start != std::string::npos && end != std::string::npos) {
             info.brand = info.brand.substr(start, end - start + 1);
         }
     }
@@ -130,7 +130,7 @@ u64 PlatformInfo::getProcessMemoryMBWindows() {
     return 0;
 }
 
-String PlatformInfo::getPlatformNameWindows() {
+std::string PlatformInfo::getPlatformNameWindows() {
     OSVERSIONINFOEXA osvi;
     ZeroMemory(&osvi, sizeof(osvi));
     osvi.dwOSVersionInfoSize = sizeof(osvi);
@@ -179,7 +179,7 @@ u64 PlatformInfo::getProcessMemoryMB() {
     return getProcessMemoryMBLinux();
 }
 
-String PlatformInfo::getPlatformName() {
+std::string PlatformInfo::getPlatformName() {
     return getPlatformNameLinux();
 }
 
@@ -206,7 +206,7 @@ CpuInfo PlatformInfo::getCpuInfoLinux() {
     // 读取 /proc/cpuinfo
     std::ifstream cpuinfo("/proc/cpuinfo");
     if (cpuinfo.is_open()) {
-        String line;
+        std::string line;
         u32 processorCount = 0;
         bool foundModel = false;
 
@@ -214,19 +214,19 @@ CpuInfo PlatformInfo::getCpuInfoLinux() {
             if (line.find("model name") == 0) {
                 if (!foundModel) {
                     size_t pos = line.find(':');
-                    if (pos != String::npos) {
+                    if (pos != std::string::npos) {
                         info.brand = line.substr(pos + 2);
                         foundModel = true;
                     }
                 }
             } else if (line.find("vendor_id") == 0) {
                 size_t pos = line.find(':');
-                if (pos != String::npos) {
+                if (pos != std::string::npos) {
                     info.vendor = line.substr(pos + 2);
                 }
             } else if (line.find("cpu MHz") == 0) {
                 size_t pos = line.find(':');
-                if (pos != String::npos) {
+                if (pos != std::string::npos) {
                     info.clockSpeedMHz = static_cast<u32>(std::stoul(line.substr(pos + 2)));
                 }
             } else if (line.find("processor") == 0) {
@@ -253,17 +253,17 @@ CpuInfo PlatformInfo::getCpuInfoLinux() {
 u64 PlatformInfo::getProcessMemoryMBLinux() {
     std::ifstream status("/proc/self/status");
     if (status.is_open()) {
-        String line;
+        std::string line;
         while (std::getline(status, line)) {
             if (line.find("VmRSS:") == 0) {
                 // VmRSS: 12345 kB
                 size_t pos = line.find(':');
-                if (pos != String::npos) {
-                    String value = line.substr(pos + 1);
+                if (pos != std::string::npos) {
+                    std::string value = line.substr(pos + 1);
                     // 去除空格和单位
                     size_t numStart = value.find_first_not_of(" \t");
                     size_t numEnd = value.find_first_of(" \tk", numStart);
-                    if (numStart != String::npos) {
+                    if (numStart != std::string::npos) {
                         u64 kb = std::stoull(value.substr(numStart, numEnd - numStart));
                         return kb / 1024;
                     }
@@ -274,13 +274,13 @@ u64 PlatformInfo::getProcessMemoryMBLinux() {
     return 0;
 }
 
-String PlatformInfo::getPlatformNameLinux() {
+std::string PlatformInfo::getPlatformNameLinux() {
     std::ifstream osRelease("/etc/os-release");
     if (osRelease.is_open()) {
-        String line;
+        std::string line;
         while (std::getline(osRelease, line)) {
             if (line.find("PRETTY_NAME=") == 0) {
-                String name = line.substr(12);
+                std::string name = line.substr(12);
                 // 去除引号
                 if (!name.empty() && name.front() == '"') {
                     name = name.substr(1);
@@ -312,7 +312,7 @@ u64 PlatformInfo::getProcessMemoryMB() {
     return getProcessMemoryMBMacOS();
 }
 
-String PlatformInfo::getPlatformName() {
+std::string PlatformInfo::getPlatformName() {
     return getPlatformNameMacOS();
 }
 
@@ -411,13 +411,13 @@ u64 PlatformInfo::getProcessMemoryMBMacOS() {
     return 0;
 }
 
-String PlatformInfo::getPlatformNameMacOS() {
+std::string PlatformInfo::getPlatformNameMacOS() {
     char version[256] = {};
     size_t size = sizeof(version);
 
     // 获取 macOS 版本
     if (sysctlbyname("kern.osproductversion", version, &size, nullptr, 0) == 0) {
-        return String("macOS ") + version;
+        return std::string("macOS ") + version;
     }
 
     return "macOS";

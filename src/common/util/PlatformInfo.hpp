@@ -20,8 +20,8 @@ struct MemoryInfo {
  * @brief CPU信息
  */
 struct CpuInfo {
-    String vendor;            // CPU厂商
-    String brand;             // CPU品牌/型号
+    std::string vendor;            // CPU厂商
+    std::string brand;             // CPU品牌/型号
     u32 coreCount;            // 核心数量
     u32 threadCount;          // 线程数量
     u32 clockSpeedMHz;        // 时钟速度 (MHz)
@@ -32,9 +32,9 @@ struct CpuInfo {
  * @brief GPU信息
  */
 struct GpuInfo {
-    String vendor;            // GPU厂商 (NVIDIA, AMD, Intel等)
-    String name;              // GPU型号
-    String driverVersion;     // 驱动版本
+    std::string vendor;            // GPU厂商 (NVIDIA, AMD, Intel等)
+    std::string name;              // GPU型号
+    std::string driverVersion;     // 驱动版本
     u64 dedicatedVideoMB;     // 专用显存 (MB)
     u64 sharedSystemMB;       // 共享系统内存 (MB)
     u32 apiMajorVersion;      // 图形API主版本号
@@ -97,7 +97,7 @@ public:
      *
      * 返回操作系统名称，如 "Windows 10", "Linux", "macOS"
      */
-    static String getPlatformName();
+    static std::string getPlatformName();
 
     /**
      * @brief 检查是否为64位系统
@@ -110,17 +110,17 @@ private:
     static MemoryInfo getMemoryInfoWindows();
     static CpuInfo getCpuInfoWindows();
     static u64 getProcessMemoryMBWindows();
-    static String getPlatformNameWindows();
+    static std::string getPlatformNameWindows();
     #elif defined(__linux__)
     static MemoryInfo getMemoryInfoLinux();
     static CpuInfo getCpuInfoLinux();
     static u64 getProcessMemoryMBLinux();
-    static String getPlatformNameLinux();
+    static std::string getPlatformNameLinux();
     #elif defined(__APPLE__)
     static MemoryInfo getMemoryInfoMacOS();
     static CpuInfo getCpuInfoMacOS();
     static u64 getProcessMemoryMBMacOS();
-    static String getPlatformNameMacOS();
+    static std::string getPlatformNameMacOS();
     #endif
 };
 

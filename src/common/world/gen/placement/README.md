@@ -128,10 +128,10 @@ public:
 
     void initialize();  // 注册所有内置放置器
 
-    void registerPlacement(const String& name, std::unique_ptr<Placement> placement);
-    const Placement* get(const String& name) const;
+    void registerPlacement(const std::string& name, std::unique_ptr<Placement> placement);
+    const Placement* get(const std::string& name) const;
     bool isInitialized() const;
-    std::vector<String> getNames() const;
+    std::vector<std::string> getNames() const;
 };
 ```
 

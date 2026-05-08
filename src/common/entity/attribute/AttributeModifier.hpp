@@ -56,7 +56,7 @@ public:
      * @param amount 修改量
      * @param operation 操作类型
      */
-    AttributeModifier(const String& id, const String& name, f64 amount, Operation operation)
+    AttributeModifier(const std::string& id, const std::string& name, f64 amount, Operation operation)
         : m_id(id)
         , m_name(name)
         , m_amount(amount)
@@ -66,12 +66,12 @@ public:
     /**
      * @brief 获取修改器ID
      */
-    [[nodiscard]] const String& id() const { return m_id; }
+    [[nodiscard]] const std::string& id() const { return m_id; }
 
     /**
      * @brief 获取修改器名称
      */
-    [[nodiscard]] const String& name() const { return m_name; }
+    [[nodiscard]] const std::string& name() const { return m_name; }
 
     /**
      * @brief 获取修改量
@@ -100,8 +100,8 @@ public:
     }
 
 private:
-    String m_id;
-    String m_name;
+    std::string m_id;
+    std::string m_name;
     f64 m_amount;
     Operation m_operation;
 };

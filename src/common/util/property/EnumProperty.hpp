@@ -27,8 +27,8 @@ public:
      * 特化此模板为枚举类型提供字符串转换
      */
     struct Traits {
-        static String toString(const E& value);
-        static std::optional<E> fromName(StringView name);
+        static std::string toString(const E& value);
+        static std::optional<E> fromName(std::string_view name);
     };
 
     /**
@@ -37,21 +37,21 @@ public:
      * @param values 允许的枚举值列表
      * @return 属性实例
      */
-    [[nodiscard]] static std::unique_ptr<EnumProperty<E>> create(const String& name, const std::vector<E>& values) {
+    [[nodiscard]] static std::unique_ptr<EnumProperty<E>> create(const std::string& name, const std::vector<E>& values) {
         return std::unique_ptr<EnumProperty<E>>(new EnumProperty<E>(name, values));
     }
 
     /**
      * @brief 将枚举值转换为字符串
      */
-    [[nodiscard]] String valueToString(const E& value) const override {
+    [[nodiscard]] std::string valueToString(const E& value) const override {
         return Traits::toString(value);
     }
 
     /**
      * @brief 解析字符串为枚举值
      */
-    [[nodiscard]] std::optional<E> parse(StringView str) const override {
+    [[nodiscard]] std::optional<E> parse(std::string_view str) const override {
         auto value = Traits::fromName(str);
         if (value && this->indexOf(*value)) {
             return value;
@@ -63,8 +63,8 @@ public:
      * @brief 计算哈希值
      */
     [[nodiscard]] size_t hashCode() const override {
-        size_t h = std::hash<String>{}(this->m_name);
-        h ^= (std::hash<String>{}("EnumProperty") << 1);
+        size_t h = std::hash<std::string>{}(this->m_name);
+        h ^= (std::hash<std::string>{}("EnumProperty") << 1);
         for (const auto& value : this->m_values) {
             h ^= std::hash<size_t>{}(static_cast<size_t>(value));
         }
@@ -79,7 +79,7 @@ public:
     }
 
 protected:
-    EnumProperty(const String& name, const std::vector<E>& values)
+    EnumProperty(const std::string& name, const std::vector<E>& values)
         : Property<E>(name, values) {
     }
 };
@@ -90,10 +90,10 @@ protected:
 
 template<>
 struct EnumProperty<Direction>::Traits {
-    static String toString(const Direction& value) {
+    static std::string toString(const Direction& value) {
         return Directions::toString(value);
     }
-    static std::optional<Direction> fromName(StringView name) {
+    static std::optional<Direction> fromName(std::string_view name) {
         return Directions::fromName(name);
     }
 };
@@ -104,10 +104,10 @@ struct EnumProperty<Direction>::Traits {
 
 template<>
 struct EnumProperty<Axis>::Traits {
-    static String toString(const Axis& value) {
+    static std::string toString(const Axis& value) {
         return Axes::toString(value);
     }
-    static std::optional<Axis> fromName(StringView name) {
+    static std::optional<Axis> fromName(std::string_view name) {
         return Axes::fromName(name);
     }
 };

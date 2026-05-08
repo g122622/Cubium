@@ -6,7 +6,7 @@ namespace mc {
 
 // EnumProperty Traits 实现 - 必须在 mc 命名空间
 template<>
-String EnumProperty<blocks::PistonHeadBlock::Type>::Traits::toString(const blocks::PistonHeadBlock::Type& value) {
+std::string EnumProperty<blocks::PistonHeadBlock::Type>::Traits::toString(const blocks::PistonHeadBlock::Type& value) {
     switch (value) {
         case blocks::PistonHeadBlock::Type::Normal: return "normal";
         case blocks::PistonHeadBlock::Type::Sticky: return "sticky";
@@ -15,7 +15,7 @@ String EnumProperty<blocks::PistonHeadBlock::Type>::Traits::toString(const block
 }
 
 template<>
-std::optional<blocks::PistonHeadBlock::Type> EnumProperty<blocks::PistonHeadBlock::Type>::Traits::fromName(StringView name) {
+std::optional<blocks::PistonHeadBlock::Type> EnumProperty<blocks::PistonHeadBlock::Type>::Traits::fromName(std::string_view name) {
     if (name == "normal") return blocks::PistonHeadBlock::Type::Normal;
     if (name == "sticky") return blocks::PistonHeadBlock::Type::Sticky;
     return std::nullopt;

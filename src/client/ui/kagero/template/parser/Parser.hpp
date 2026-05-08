@@ -122,7 +122,7 @@ public:
     /**
      * @brief 检查当前Token类型和值
      */
-    [[nodiscard]] bool check(TokenType type, const String& value) const;
+    [[nodiscard]] bool check(TokenType type, const std::string& value) const;
 
     /**
      * @brief 匹配并消费Token
@@ -134,7 +134,7 @@ public:
     /**
      * @brief 匹配并消费Token（带值）
      */
-    bool match(TokenType type, const String& value);
+    bool match(TokenType type, const std::string& value);
 
     /**
      * @brief 期望特定Token
@@ -146,17 +146,17 @@ public:
     /**
      * @brief 期望特定Token（带值）
      */
-    bool expect(TokenType type, const String& value);
+    bool expect(TokenType type, const std::string& value);
 
     /**
      * @brief 期望标识符
      */
-    [[nodiscard]] Token expectIdentifier(const String& context = "");
+    [[nodiscard]] Token expectIdentifier(const std::string& context = "");
 
     /**
      * @brief 期望字符串字面量
      */
-    [[nodiscard]] Token expectStringLiteral(const String& context = "");
+    [[nodiscard]] Token expectStringLiteral(const std::string& context = "");
 
     /**
      * @brief 跳过空白和换行Token
@@ -186,7 +186,7 @@ private:
      * @param isOpenTag 是否是开放标签 (<...>)
      * @return 标签名，如果解析失败返回空字符串
      */
-    [[nodiscard]] String parseStartTag(bool isOpenTag);
+    [[nodiscard]] std::string parseStartTag(bool isOpenTag);
 
     /**
      * @brief 解析属性列表
@@ -233,7 +233,7 @@ private:
      * @param expectedTagName 期望的标签名
      * @return 是否匹配
      */
-    bool parseEndTag(const String& expectedTagName);
+    bool parseEndTag(const std::string& expectedTagName);
 
     // ========== 语义验证 ==========
 
@@ -250,12 +250,12 @@ private:
     /**
      * @brief 验证绑定路径
      */
-    void validateBindingPath(const String& path, const SourceLocation& loc);
+    void validateBindingPath(const std::string& path, const SourceLocation& loc);
 
     /**
      * @brief 验证回调名称
      */
-    void validateCallbackName(const String& name, const SourceLocation& loc);
+    void validateCallbackName(const std::string& name, const SourceLocation& loc);
 
     /**
      * @brief 检查是否允许的内联表达式
@@ -281,13 +281,13 @@ private:
     /**
      * @brief 添加错误
      */
-    void addError(TemplateErrorType type, const String& message,
+    void addError(TemplateErrorType type, const std::string& message,
                   const SourceLocation& loc = SourceLocation());
 
     /**
      * @brief 添加错误（带上下文）
      */
-    void addError(TemplateErrorType type, const String& message, const Token& token);
+    void addError(TemplateErrorType type, const std::string& message, const Token& token);
 
     /**
      * @brief 检查是否到达文件末尾
@@ -302,7 +302,7 @@ private:
     /**
      * @brief 检查标签名是否有效
      */
-    [[nodiscard]] bool isValidTagName(const String& name) const;
+    [[nodiscard]] bool isValidTagName(const std::string& name) const;
 
 private:
     const std::vector<Token>& m_tokens;

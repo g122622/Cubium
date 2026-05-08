@@ -25,20 +25,20 @@ void FileSkinLoader::shutdown() {
     m_initialized = false;
 }
 
-bool FileSkinLoader::supportsUrl(const String& url) const {
+bool FileSkinLoader::supportsUrl(const std::string& url) const {
     // 支持文件路径和资源位置
-    if (url.find("://") != String::npos) {
+    if (url.find("://") != std::string::npos) {
         // 有协议，只支持 file://
         return url.find("file://") == 0;
     }
     return true;
 }
 
-Result<SkinLoadResult> FileSkinLoader::load(const String& url) {
+Result<SkinLoadResult> FileSkinLoader::load(const std::string& url) {
     SkinLoadResult result;
 
     // 尝试解析为资源位置
-    if (url.find(':') != String::npos && url.find("file://") != 0) {
+    if (url.find(':') != std::string::npos && url.find("file://") != 0) {
         // 格式: namespace:path
         ResourceLocation location(url);
         auto loadResult = loadFromResourcePack(location);
@@ -51,7 +51,7 @@ Result<SkinLoadResult> FileSkinLoader::load(const String& url) {
     return loadFromFilesystem(url);
 }
 
-void FileSkinLoader::loadAsync(const String& url,
+void FileSkinLoader::loadAsync(const std::string& url,
                                std::function<void(Result<SkinLoadResult>)> callback) {
     // 简单实现：同步加载后调用回调
     // 生产环境应该使用线程池
@@ -59,7 +59,7 @@ void FileSkinLoader::loadAsync(const String& url,
     callback(std::move(result));
 }
 
-void FileSkinLoader::cancel(const String& url) {
+void FileSkinLoader::cancel(const std::string& url) {
     // 文件加载是同步的，无法取消
 }
 
@@ -67,7 +67,7 @@ void FileSkinLoader::cancelAll() {
     // 文件加载是同步的，无法取消
 }
 
-Result<SkinLoadResult> FileSkinLoader::loadFromFilesystem(const String& path) {
+Result<SkinLoadResult> FileSkinLoader::loadFromFilesystem(const std::string& path) {
     SkinLoadResult result;
 
     // 检查文件是否存在
@@ -195,7 +195,7 @@ Result<std::vector<u8>> FileSkinLoader::validateAndConvertSkin(const std::vector
     return result;
 }
 
-String FileSkinLoader::calculateHash(const std::vector<u8>& data) {
+std::string FileSkinLoader::calculateHash(const std::vector<u8>& data) {
     // 简化的哈希计算（生产环境应该使用 SHA1）
     // 这里使用简单的累加哈希作为 fallback
     u64 hash = 0xcbf29ce484222325ULL;  // FNV offset basis

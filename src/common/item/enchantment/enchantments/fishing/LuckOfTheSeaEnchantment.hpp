@@ -20,11 +20,11 @@ class LuckOfTheSeaEnchantment : public Enchantment {
 public:
     LuckOfTheSeaEnchantment() = default;
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:luck_of_the_sea";
     }
 
-    [[nodiscard]] String getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override {
         (void)level;
         return "enchantment.minecraft.luck_of_the_sea";
     }

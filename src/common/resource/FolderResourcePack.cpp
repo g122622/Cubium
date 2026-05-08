@@ -7,13 +7,13 @@ namespace fs = std::filesystem;
 namespace mc {
 
 namespace {
-    String getDirectoryName(const String& path) {
+    std::string getDirectoryName(const std::string& path) {
         fs::path p(path);
         return p.filename().string();
     }
 }
 
-FolderResourcePack::FolderResourcePack(String rootPath)
+FolderResourcePack::FolderResourcePack(std::string rootPath)
     : m_rootPath(std::move(rootPath))
     , m_name(getDirectoryName(m_rootPath))
 {
@@ -23,16 +23,16 @@ Result<void> FolderResourcePack::initialize() {
     // 检查根目录是否存在
     if (!fs::exists(m_rootPath)) {
         return Error(ErrorCode::ResourcePackNotFound,
-                     String("Resource pack not found: ") + m_rootPath);
+                     std::string("Resource pack not found: ") + m_rootPath);
     }
 
     if (!fs::is_directory(m_rootPath)) {
         return Error(ErrorCode::ResourcePackInvalid,
-                     String("Resource pack path is not a directory: ") + m_rootPath);
+                     std::string("Resource pack path is not a directory: ") + m_rootPath);
     }
 
     // 读取pack.mcmeta
-    String mcmetaPath = m_rootPath + "/pack.mcmeta";
+    std::string mcmetaPath = m_rootPath + "/pack.mcmeta";
 
     if (fs::exists(mcmetaPath)) {
         auto result = PackMetadata::parseFile(mcmetaPath);
@@ -47,24 +47,24 @@ Result<void> FolderResourcePack::initialize() {
     return Result<void>::ok();
 }
 
-bool FolderResourcePack::hasResource(StringView resourcePath) const {
-    String fullPath = normalizePath(resourcePath);
+bool FolderResourcePack::hasResource(std::string_view resourcePath) const {
+    std::string fullPath = normalizePath(resourcePath);
     return fs::exists(fullPath) && fs::is_regular_file(fullPath);
 }
 
-Result<std::vector<u8>> FolderResourcePack::readResource(StringView resourcePath) const {
-    String fullPath = normalizePath(resourcePath);
+Result<std::vector<u8>> FolderResourcePack::readResource(std::string_view resourcePath) const {
+    std::string fullPath = normalizePath(resourcePath);
 
     if (!fs::exists(fullPath)) {
         return Error(ErrorCode::ResourceNotFound,
-                     String("Resource not found in folder pack: ") + String(m_name) + ", name: " + String(resourcePath));
+                     std::string("Resource not found in folder pack: ") + std::string(m_name) + ", name: " + std::string(resourcePath));
     }
 
     std::ifstream file(fullPath, std::ios::binary | std::ios::ate);
 
     if (!file.is_open()) {
         return Error(ErrorCode::FileOpenFailed,
-                     String("Cannot open resource: ") + fullPath);
+                     std::string("Cannot open resource: ") + fullPath);
     }
 
     auto size = file.tellg();
@@ -75,38 +75,38 @@ Result<std::vector<u8>> FolderResourcePack::readResource(StringView resourcePath
 
     if (!file) {
         return Error(ErrorCode::FileReadFailed,
-                     String("Failed to read resource: ") + fullPath);
+                     std::string("Failed to read resource: ") + fullPath);
     }
 
     return data;
 }
 
-Result<std::vector<String>> FolderResourcePack::listResources(
-    StringView directory,
-    StringView extension) const
+Result<std::vector<std::string>> FolderResourcePack::listResources(
+    std::string_view directory,
+    std::string_view extension) const
 {
-    String fullPath = m_rootPath + "/" + String(directory);
+    std::string fullPath = m_rootPath + "/" + std::string(directory);
 
     if (!fs::exists(fullPath) || !fs::is_directory(fullPath)) {
         return Error(ErrorCode::NotFound,
-                     String("Directory not found in folder pack: ") + String(m_name) + ", path: " + fullPath);
+                     std::string("Directory not found in folder pack: ") + std::string(m_name) + ", path: " + fullPath);
     }
 
-    std::vector<String> resources;
+    std::vector<std::string> resources;
 
     try {
         for (const auto& entry : fs::recursive_directory_iterator(fullPath)) {
             if (!entry.is_regular_file()) continue;
 
-            String filename = entry.path().filename().string();
+            std::string filename = entry.path().filename().string();
 
             if (!extension.empty()) {
-                String ext = entry.path().extension().string();
+                std::string ext = entry.path().extension().string();
                 if (extension[0] != '.') {
                     ext = ext.substr(1); // 移除前导点
                 }
 
-                String checkExt(extension);
+                std::string checkExt(extension);
                 if (checkExt[0] == '.') {
                     checkExt = checkExt.substr(1);
                 }
@@ -115,7 +115,7 @@ Result<std::vector<String>> FolderResourcePack::listResources(
             }
 
             // 返回相对于资源包根目录的路径
-            String relativePath = fs::relative(entry.path(), m_rootPath).string();
+            std::string relativePath = fs::relative(entry.path(), m_rootPath).string();
             // 将反斜杠转换为正斜杠
             for (char& c : relativePath) {
                 if (c == '\\') c = '/';
@@ -124,14 +124,14 @@ Result<std::vector<String>> FolderResourcePack::listResources(
         }
     } catch (const std::exception& e) {
         return Error(ErrorCode::OperationFailed,
-                     String("Failed to list directory: ") + e.what());
+                     std::string("Failed to list directory: ") + e.what());
     }
 
     return resources;
 }
 
-String FolderResourcePack::normalizePath(StringView resourcePath) const {
-    String path(resourcePath);
+std::string FolderResourcePack::normalizePath(std::string_view resourcePath) const {
+    std::string path(resourcePath);
 
     // 确保使用正斜杠
     for (char& c : path) {

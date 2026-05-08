@@ -26,41 +26,41 @@ public:
     // 纹理路径转换
     // -------------------------------------------------------------------------
 
-    String toUnifiedTexturePath(StringView path) const override {
+    std::string toUnifiedTexturePath(std::string_view path) const override {
         // 现代路径已经是统一的
-        return String(path);
+        return std::string(path);
     }
 
-    std::vector<String> getTexturePathVariants(StringView unifiedPath) const override;
+    std::vector<std::string> getTexturePathVariants(std::string_view unifiedPath) const override;
 
-    String toModernTextureName(StringView name) const override {
+    std::string toModernTextureName(std::string_view name) const override {
         // 已经是现代格式
-        return String(name);
+        return std::string(name);
     }
 
-    String toLegacyTextureName(StringView name) const override;
+    std::string toLegacyTextureName(std::string_view name) const override;
 
     // -------------------------------------------------------------------------
     // 模型路径转换
     // -------------------------------------------------------------------------
 
-    String toUnifiedModelPath(StringView path) const override {
+    std::string toUnifiedModelPath(std::string_view path) const override {
         // 现代模型路径已经是统一的
-        return String(path);
+        return std::string(path);
     }
 
-    std::vector<String> getModelPathVariants(StringView unifiedPath) const override {
+    std::vector<std::string> getModelPathVariants(std::string_view unifiedPath) const override {
         // 只返回统一路径
-        return { String(unifiedPath) };
+        return { std::string(unifiedPath) };
     }
 
     // -------------------------------------------------------------------------
     // 方块状态路径转换
     // -------------------------------------------------------------------------
 
-    String toUnifiedBlockStatePath(StringView path) const override {
+    std::string toUnifiedBlockStatePath(std::string_view path) const override {
         // 现代方块状态路径已经是统一的
-        return String(path);
+        return std::string(path);
     }
 
     // -------------------------------------------------------------------------

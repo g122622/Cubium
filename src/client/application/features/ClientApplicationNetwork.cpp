@@ -112,7 +112,7 @@ void ClientApplication::setupNetworkCallbacks()
 
     NetworkClientCallbacks callbacks;
 
-    callbacks.onLoginSuccess = [this](PlayerId playerId, EntityId entityId, const String& username) {
+    callbacks.onLoginSuccess = [this](PlayerId playerId, EntityId entityId, const std::string& username) {
         spdlog::info("Login successful: playerId={}, entityId={}, username={}", playerId, entityId, username);
 
         // 设置本地玩家身份
@@ -134,7 +134,7 @@ void ClientApplication::setupNetworkCallbacks()
         m_knownPlayerNames[playerId] = username;
     };
 
-    callbacks.onLoginFailed = [this](const String& reason) {
+    callbacks.onLoginFailed = [this](const std::string& reason) {
         spdlog::error("Login failed: {}", reason);
 
         m_knownPlayerNames.clear();
@@ -144,7 +144,7 @@ void ClientApplication::setupNetworkCallbacks()
         stop();
     };
 
-    callbacks.onDisconnected = [this](const String& reason) {
+    callbacks.onDisconnected = [this](const std::string& reason) {
         spdlog::info("Disconnected from server: {}", reason);
 
         // 如果正在离开世界，这是预期的断开，继续返回主菜单流程
@@ -185,7 +185,7 @@ void ClientApplication::setupNetworkCallbacks()
         showMainMenu();
     };
 
-    callbacks.onCommandTree = [this](const String& treeJson) {
+    callbacks.onCommandTree = [this](const std::string& treeJson) {
         if (!m_commandManager) {
             m_commandManager = std::make_unique<command::ClientCommandManager>();
         }
@@ -241,7 +241,7 @@ void ClientApplication::setupNetworkCallbacks()
         m_world.onChunkUnload(x, z);
     };
 
-    callbacks.onPlayerSpawn = [this](PlayerId playerId, const String& username, f64 x, f64 y, f64 z) {
+    callbacks.onPlayerSpawn = [this](PlayerId playerId, const std::string& username, f64 x, f64 y, f64 z) {
         m_knownPlayerNames[playerId] = username;
 
         // 使用 LocalPlayerIdentity 判断是否是本地玩家
@@ -284,14 +284,14 @@ void ClientApplication::setupNetworkCallbacks()
         m_world.setBlockState(x, y, z, BlockRegistry::instance().getBlockState(blockStateId));
     };
 
-    callbacks.onChatMessage = [this](const String& message, PlayerId senderId) {
+    callbacks.onChatMessage = [this](const std::string& message, PlayerId senderId) {
         if (m_kageroEngine) {
             auto* chatWidget = static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId));
             if (chatWidget) {
                 const auto it = m_knownPlayerNames.find(senderId);
-                const String senderName = (senderId != 0 && it != m_knownPlayerNames.end())
+                const std::string senderName = (senderId != 0 && it != m_knownPlayerNames.end())
                     ? it->second
-                    : String();
+                    : std::string();
                 if (!senderName.empty()) {
                     chatWidget->addMessage(senderName + ": " + message, 0xFFFFFFFF);
                 } else {
@@ -516,7 +516,7 @@ void ClientApplication::setupNetworkCallbacks()
         }
     };
 
-    callbacks.onSpawnEntity = [this](u32 entityId, const String& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 vx, f32 vy, f32 vz, const ItemStack* itemStack) {
+    callbacks.onSpawnEntity = [this](u32 entityId, const std::string& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 vx, f32 vy, f32 vz, const ItemStack* itemStack) {
         auto& entityManager = m_world.entityManager();
         ClientEntity* entity = entityManager.spawnEntity(static_cast<EntityId>(entityId), typeId);
         if (!entity) {
@@ -538,7 +538,7 @@ void ClientApplication::setupNetworkCallbacks()
         }
     };
 
-    callbacks.onSpawnMob = [this](u32 entityId, const String& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 headYaw) {
+    callbacks.onSpawnMob = [this](u32 entityId, const std::string& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 headYaw) {
         auto& entityManager = m_world.entityManager();
         ClientEntity* entity = entityManager.spawnEntity(static_cast<EntityId>(entityId), typeId);
         if (!entity) {
@@ -918,7 +918,7 @@ void ClientApplication::setupNetworkCallbacks()
         // 延迟更新 - 暂时不需要特殊处理
     };
 
-    callbacks.onPlayerListUpdateDisplayName = [this](const std::array<u8, 16>& uuid, const std::optional<String>& displayName) {
+    callbacks.onPlayerListUpdateDisplayName = [this](const std::array<u8, 16>& uuid, const std::optional<std::string>& displayName) {
         MC_UNUSED(uuid);
         MC_UNUSED(displayName);
         // 显示名更新 - 暂时不需要特殊处理
@@ -1016,7 +1016,7 @@ void ClientApplication::setupNetworkCallbacks()
         }
     };
 
-    callbacks.onDimensionInfo = [this](const std::vector<std::tuple<DimensionId, String, bool, bool, f32>>& dimensions) {
+    callbacks.onDimensionInfo = [this](const std::vector<std::tuple<DimensionId, std::string, bool, bool, f32>>& dimensions) {
         spdlog::info("Received DimensionInfo: {} dimensions available", dimensions.size());
         // TODO: 更新维度管理器的可用维度列表
         // 目前仅记录日志
@@ -1104,7 +1104,7 @@ void ClientApplication::setupNetworkCallbacks()
 
     // 标题显示回调
     callbacks.onTitle = [this](network::TitleAction action,
-                               const std::optional<String>& text,
+                               const std::optional<std::string>& text,
                                i32 fadeIn, i32 stay, i32 fadeOut) {
         if (m_kageroEngine) {
             auto* titleWidget = static_cast<ui::minecraft::widgets::TitleWidget*>(
@@ -1118,9 +1118,9 @@ void ClientApplication::setupNetworkCallbacks()
     m_networkClient->setCallbacks(callbacks);
 }
 
-std::vector<String> ClientApplication::collectPlayerCompletionCandidates() const
+std::vector<std::string> ClientApplication::collectPlayerCompletionCandidates() const
 {
-    std::vector<String> candidates;
+    std::vector<std::string> candidates;
     candidates.reserve(m_knownPlayerNames.size() + 1);
 
     for (const auto& [playerId, playerName] : m_knownPlayerNames) {
@@ -1142,12 +1142,12 @@ std::vector<String> ClientApplication::collectPlayerCompletionCandidates() const
     return candidates;
 }
 
-std::vector<String> ClientApplication::collectEntityCompletionCandidates() const
+std::vector<std::string> ClientApplication::collectEntityCompletionCandidates() const
 {
     return collectPlayerCompletionCandidates();
 }
 
-void ClientApplication::handleChatCommand(const String& input)
+void ClientApplication::handleChatCommand(const std::string& input)
 {
     if (input.empty()) {
         return;
@@ -1161,7 +1161,7 @@ void ClientApplication::handleChatCommand(const String& input)
     }
 
     if (input[0] == '/') {
-        String command = input.substr(1);
+        std::string command = input.substr(1);
 
         spdlog::info("Chat command received: {}", std::string(command.begin(), command.end()));
 

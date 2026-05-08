@@ -43,7 +43,7 @@ bool usesOldItemPaths(PackFormat format) {
            format == PackFormat::V1_11_to_1_12;
 }
 
-StringView packFormatToString(PackFormat format) {
+std::string_view packFormatToString(PackFormat format) {
     switch (format) {
         case PackFormat::Unknown:        return "Unknown";
         case PackFormat::V1_6_to_1_8:    return "1.6-1.8";

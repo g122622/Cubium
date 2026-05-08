@@ -51,13 +51,13 @@ public:
      * @brief 获取锁定钥匙名称
      * @return 钥匙名称（物品显示名）
      */
-    [[nodiscard]] const String& getLockKey() const { return m_lockKey; }
+    [[nodiscard]] const std::string& getLockKey() const { return m_lockKey; }
 
     /**
      * @brief 设置锁定钥匙名称
      * @param key 钥匙名称
      */
-    void setLockKey(const String& key) {
+    void setLockKey(const std::string& key) {
         m_lockKey = key;
         setChanged();
     }
@@ -77,14 +77,14 @@ public:
 
     // ========== 重写 BlockEntity 接口 ==========
 
-    [[nodiscard]] String getCustomName() const override { return m_customName; }
-    void setCustomName(const String& name) override;
+    [[nodiscard]] std::string getCustomName() const override { return m_customName; }
+    void setCustomName(const std::string& name) override;
 
     /**
      * @brief 获取显示名称
      * @return 如果有自定义名称返回自定义名称，否则返回默认名称
      */
-    [[nodiscard]] virtual String getDisplayName() const;
+    [[nodiscard]] virtual std::string getDisplayName() const;
 
     // ========== 序列化 ==========
 
@@ -105,12 +105,12 @@ protected:
      * @brief 获取默认显示名称（子类重写）
      * @return 默认名称（如"container.chest"、"container.furnace"等）
      */
-    [[nodiscard]] virtual String getDefaultName() const = 0;
+    [[nodiscard]] virtual std::string getDefaultName() const = 0;
 
 private:
     bool m_locked;          ///< 是否被锁定
-    String m_lockKey;       ///< 锁定钥匙名称
-    String m_customName;    ///< 自定义名称
+    std::string m_lockKey;       ///< 锁定钥匙名称
+    std::string m_customName;    ///< 自定义名称
 };
 
 } // namespace blockentity

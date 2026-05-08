@@ -183,7 +183,7 @@ Result<void> GuiSpriteAtlas::loadTextureFromMemory(const std::vector<u8>& pixels
     const size_t expectedSize = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
     if (pixels.size() != expectedSize) {
         return Error(ErrorCode::InvalidArgument,
-            String("Pixel data size mismatch: expected ") + std::to_string(expectedSize) +
+            std::string("Pixel data size mismatch: expected ") + std::to_string(expectedSize) +
             " bytes, got " + std::to_string(pixels.size()) + " bytes");
     }
 
@@ -446,7 +446,7 @@ Result<void> GuiSpriteAtlas::loadDefaultTextures() {
     return loadTextureFromMemory(m_impl->textureData, DEFAULT_SIZE, DEFAULT_SIZE);
 }
 
-Result<void> GuiSpriteAtlas::loadTextureAtlas(const String& filePath,
+Result<void> GuiSpriteAtlas::loadTextureAtlas(const std::string& filePath,
                                                i32 atlasWidth,
                                                i32 atlasHeight) {
     if (!m_initialized) {
@@ -459,7 +459,7 @@ Result<void> GuiSpriteAtlas::loadTextureAtlas(const String& filePath,
 
     if (!pixels) {
         return Error(ErrorCode::TextureLoadFailed,
-            String("Failed to load texture: ") + filePath + " - " + stbi_failure_reason());
+            std::string("Failed to load texture: ") + filePath + " - " + stbi_failure_reason());
     }
 
     // 复制像素数据
@@ -489,7 +489,7 @@ void GuiSpriteAtlas::registerSprite(const GuiSprite& sprite) {
     m_impl->spriteManager.registerSprite(sprite);
 }
 
-void GuiSpriteAtlas::registerSprite(const String& id, i32 x, i32 y,
+void GuiSpriteAtlas::registerSprite(const std::string& id, i32 x, i32 y,
                                      i32 width, i32 height,
                                      i32 atlasWidth, i32 atlasHeight) {
     // 使用默认图集尺寸（如果未指定）
@@ -502,11 +502,11 @@ void GuiSpriteAtlas::registerSprites(const std::vector<GuiSprite>& sprites) {
     m_impl->spriteManager.registerSprites(sprites);
 }
 
-const GuiSprite* GuiSpriteAtlas::getSprite(const String& id) const {
+const GuiSprite* GuiSpriteAtlas::getSprite(const std::string& id) const {
     return m_impl->spriteManager.getSprite(id);
 }
 
-bool GuiSpriteAtlas::hasSprite(const String& id) const {
+bool GuiSpriteAtlas::hasSprite(const std::string& id) const {
     return m_impl->spriteManager.hasSprite(id);
 }
 
@@ -546,7 +546,7 @@ VkSampler GuiSpriteAtlas::sampler() const {
 // TextureImage创建
 // ============================================================================
 
-ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(const String& spriteId) const {
+ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(const std::string& spriteId) const {
     const GuiSprite* sprite = getSprite(spriteId);
     if (!sprite) {
         // 返回无效的TextureImage
@@ -567,7 +567,7 @@ ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(const String&
         spriteId);
 }
 
-ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(const String& spriteId,
+ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(const std::string& spriteId,
                                                                      i32 customWidth,
                                                                      i32 customHeight) const {
     const GuiSprite* sprite = getSprite(spriteId);

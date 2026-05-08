@@ -14,7 +14,7 @@ namespace mc::server {
  * @brief 内置服务端配置
  */
 struct IntegratedServerConfig {
-    String worldName = "singleplayer";
+    std::string worldName = "singleplayer";
     i64 seed = 0; // TODO 这个会被后面代码覆盖，导致数据流混乱，需要重构配置系统
     GameMode defaultGameMode = GameMode::Survival;
     i32 viewDistance = 6;
@@ -122,13 +122,13 @@ private:
     void setupChunkSendCallback();
 
     // 发送数据包
-    void sendLoginResponse(bool success, PlayerId playerId, EntityId entityId, const String& username, const String& message);
+    void sendLoginResponse(bool success, PlayerId playerId, EntityId entityId, const std::string& username, const std::string& message);
     void sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId);
     void sendPlayerInventory();
     void sendChunkData(ChunkCoord x, ChunkCoord z, const std::vector<u8>& data);
     void sendUnloadChunk(ChunkCoord x, ChunkCoord z);
     void sendContainerContent(const AbstractContainerMenu& menu);
-    void sendOpenContainer(ContainerId containerId, mc::ContainerType type, const String& title, i32 slotCount);
+    void sendOpenContainer(ContainerId containerId, mc::ContainerType type, const std::string& title, i32 slotCount);
     void sendCloseContainer(ContainerId containerId);
     void sendToClient(const u8* data, size_t size);
     void sendBlockBreakAnim(EntityId breakerId, i32 x, i32 y, i32 z, i8 stage);

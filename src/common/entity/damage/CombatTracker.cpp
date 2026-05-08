@@ -170,12 +170,12 @@ LivingEntity* CombatTracker::getBestAttackerLiving() const {
     return dynamic_cast<LivingEntity*>(attacker);
 }
 
-String CombatTracker::getDeathMessage() const {
+std::string CombatTracker::getDeathMessage() const {
     if (!m_owner) {
         return "entity died";
     }
 
-    String ownerName = m_owner->getDisplayName()->getUnformattedText();
+    std::string ownerName = m_owner->getDisplayName()->getUnformattedText();
 
     // 检查是否有摔落伤害
     if (!m_entries.empty()) {
@@ -219,7 +219,7 @@ String CombatTracker::getDeathMessage() const {
 
     // 根据伤害来源类型生成死亡消息
     Entity* attacker = source->getEntity();
-    String deathKey = source->deathMessageKey();
+    std::string deathKey = source->deathMessageKey();
 
     if (attacker) {
         // 使用带攻击者的死亡消息
@@ -303,10 +303,10 @@ void CombatTracker::calculateFallSuffix() {
         // 检查是否是活板门（通过BlockTags检查）
         // MC 1.16.5: TRAPDOORS tag 包含所有类型的活板门
         // 由于活板门在isLadder中检查了OPEN状态，攀爬位置记录的活板门一定是打开的
-        const String& namespace_ = blockId.namespace_();
-        const String& path = blockId.path();
+        const std::string& namespace_ = blockId.namespace_();
+        const std::string& path = blockId.path();
         if (namespace_ == "minecraft" &&
-            (path.find("trapdoor") != String::npos || path.find("_trapdoor") != String::npos)) {
+            (path.find("trapdoor") != std::string::npos || path.find("_trapdoor") != std::string::npos)) {
             m_fallSuffix = "ladder";
             return;
         }

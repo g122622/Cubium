@@ -3,7 +3,7 @@
 
 namespace mc::skin {
 
-String SkinTextures::getSkinCacheKey() const {
+std::string SkinTextures::getSkinCacheKey() const {
     if (!m_skinHash.has_value() || m_skinHash->empty()) {
         return "";
     }
@@ -16,7 +16,7 @@ String SkinTextures::getSkinCacheKey() const {
     return "skins/" + *m_skinHash;
 }
 
-String SkinTextures::getCapeCacheKey() const {
+std::string SkinTextures::getCapeCacheKey() const {
     if (!m_capeHash.has_value() || m_capeHash->empty()) {
         return "";
     }
@@ -27,7 +27,7 @@ String SkinTextures::getCapeCacheKey() const {
     return "capes/" + *m_capeHash;
 }
 
-String SkinTextures::getElytraCacheKey() const {
+std::string SkinTextures::getElytraCacheKey() const {
     if (!m_elytraHash.has_value() || m_elytraHash->empty()) {
         return "";
     }
@@ -38,25 +38,25 @@ String SkinTextures::getElytraCacheKey() const {
     return "elytra/" + *m_elytraHash;
 }
 
-String SkinTextures::extractHashFromUrl(const String& url) {
+std::string SkinTextures::extractHashFromUrl(const std::string& url) {
     // Mojang 皮肤URL格式：http://textures.minecraft.net/texture/<hash>
     // 或：https://textures.minecraft.net/texture/<hash>
 
     // 查找最后一个斜杠
     size_t lastSlash = url.rfind('/');
-    if (lastSlash == String::npos || lastSlash + 1 >= url.length()) {
+    if (lastSlash == std::string::npos || lastSlash + 1 >= url.length()) {
         spdlog::warn("SkinTextures::extractHashFromUrl: Invalid URL format: {}", url);
         return "";
     }
 
     // 提取哈希部分
-    String hash = url.substr(lastSlash + 1);
+    std::string hash = url.substr(lastSlash + 1);
 
     // 验证哈希格式（应该是64个十六进制字符）
     if (hash.length() != 64) {
         // 有些URL可能有查询参数，尝试移除
         size_t queryPos = hash.find('?');
-        if (queryPos != String::npos) {
+        if (queryPos != std::string::npos) {
             hash = hash.substr(0, queryPos);
         }
 

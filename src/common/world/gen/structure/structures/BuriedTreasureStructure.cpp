@@ -55,7 +55,7 @@ void BuriedTreasurePiece::generate(IWorldWriter& world, math::Random& rng,
     }
 }
 
-const String BuriedTreasureStructure::m_name = "buried_treasure";
+const std::string BuriedTreasureStructure::m_name = "buried_treasure";
 
 const std::vector<BiomeId> BuriedTreasureStructure::m_validBiomes = {
     Biomes::Beach,

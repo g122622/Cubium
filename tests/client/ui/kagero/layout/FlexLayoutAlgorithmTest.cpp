@@ -37,7 +37,7 @@ using mc::i32;
  */
 class TestWidget : public Widget {
 public:
-    explicit TestWidget(const mc::String& id = "", i32 w = 100, i32 h = 50)
+    explicit TestWidget(const mc::std::string& id = "", i32 w = 100, i32 h = 50)
         : Widget(id) {
         setSize(w, h);
     }
@@ -55,7 +55,7 @@ public:
  * @brief 创建一个固定尺寸的适配器
  */
 inline std::pair<std::unique_ptr<TestWidget>, std::unique_ptr<WidgetLayoutAdaptor>>
-createTestAdaptor(const mc::String& id, i32 width, i32 height, const LayoutConstraints& constraints = LayoutConstraints{}) {
+createTestAdaptor(const mc::std::string& id, i32 width, i32 height, const LayoutConstraints& constraints = LayoutConstraints{}) {
     auto widget = std::make_unique<TestWidget>(id, width, height);
     auto adaptor = std::make_unique<WidgetLayoutAdaptor>(widget.get());
     adaptor->setConstraints(constraints);
@@ -89,7 +89,7 @@ protected:
      */
     WidgetLayoutAdaptor* addWidget(i32 width, i32 height,
                                    const LayoutConstraints& constraints = LayoutConstraints{}) {
-        mc::String id = mc::String("widget_") + std::to_string(idCounter++);
+        mc::std::string id = mc::std::string("widget_") + std::to_string(idCounter++);
         auto [widget, adaptor] = createTestAdaptor(id, width, height, constraints);
         auto* ptr = adaptor.get();
         widgets.push_back(std::move(widget));

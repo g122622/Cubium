@@ -43,7 +43,7 @@ Result<void> ClientApplication::initializeResources()
     }
 
     // 2. 扫描资源包目录
-    String resourcePackDir = m_settings.resourcePackDir.get();
+    std::string resourcePackDir = m_settings.resourcePackDir.get();
     if (resourcePackDir.empty()) {
         resourcePackDir = "resourcepacks";
     }

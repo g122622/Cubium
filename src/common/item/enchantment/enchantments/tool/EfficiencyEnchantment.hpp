@@ -21,11 +21,11 @@ class EfficiencyEnchantment : public Enchantment {
 public:
     EfficiencyEnchantment() = default;
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:efficiency";
     }
 
-    [[nodiscard]] String getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override {
         (void)level;
         return "enchantment.minecraft.efficiency";
     }

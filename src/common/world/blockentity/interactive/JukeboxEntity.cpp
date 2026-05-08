@@ -28,7 +28,7 @@ namespace {
 
     // MC 1.16.5 固定映射表
     // 参考: net.minecraft.item.Items 中的 MusicDiscItem 构造
-    static const std::unordered_map<String, i32> s_discSignals = {
+    static const std::unordered_map<std::string, i32> s_discSignals = {
         {"minecraft:music_disc_13", 1},
         {"minecraft:music_disc_cat", 2},
         {"minecraft:music_disc_blocks", 3},
@@ -44,7 +44,7 @@ namespace {
         {"minecraft:music_disc_pigstep", 13},
     };
 
-    const String& location = item->itemLocation().toString();
+    const std::string& location = item->itemLocation().toString();
     const auto it = s_discSignals.find(location);
     return it != s_discSignals.end() ? it->second : 0;
 }

@@ -6,7 +6,7 @@
 #include "core/Types.hpp"
 
 using namespace mc::text;
-using mc::String;
+using mc::std::string;
 
 // ============================================================================
 // StringTextComponent 测试
@@ -336,17 +336,17 @@ TEST_F(TextParserTest, ToLegacyFormat) {
     style.setBold(true);
     text.setStyle(style);
 
-    String legacy = TextParser::toLegacyFormat(text);
+    std::string legacy = TextParser::toLegacyFormat(text);
     EXPECT_EQ(legacy, "§c§lHello");
 }
 
 TEST_F(TextParserTest, RoundTrip) {
-    String original = "§cHello §lWorld!";
+    std::string original = "§cHello §lWorld!";
 
     auto component = TextParser::parse(original);
     ASSERT_NE(component, nullptr);
 
-    String roundTrip = TextParser::toLegacyFormat(*component);
+    std::string roundTrip = TextParser::toLegacyFormat(*component);
 
     // 注意：可能不完全相同（样式顺序可能不同）
     EXPECT_EQ(component->getUnformattedText(), "Hello World!");
@@ -357,8 +357,8 @@ TEST_F(TextParserTest, InvalidCode) {
 
     ASSERT_NE(component, nullptr);
     // 无效代码应该作为普通文本保留
-    EXPECT_TRUE(component->getUnformattedText().find("§x") != String::npos ||
-                component->getUnformattedText().find("x") != String::npos);
+    EXPECT_TRUE(component->getUnformattedText().find("§x") != std::string::npos ||
+                component->getUnformattedText().find("x") != std::string::npos);
 }
 
 TEST_F(TextParserTest, EmptyText) {

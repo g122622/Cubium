@@ -56,7 +56,7 @@ public:
      * @param atlasWidth 图集总宽度（像素）
      * @param atlasHeight 图集总高度（像素）
      */
-    void registerSprite(const String& id, i32 x, i32 y, i32 width, i32 height,
+    void registerSprite(const std::string& id, i32 x, i32 y, i32 width, i32 height,
                         i32 atlasWidth, i32 atlasHeight);
 
     /**
@@ -70,14 +70,14 @@ public:
      * @param id 精灵ID
      * @return 精灵指针，如果不存在返回nullptr
      */
-    [[nodiscard]] const GuiSprite* getSprite(const String& id) const;
+    [[nodiscard]] const GuiSprite* getSprite(const std::string& id) const;
 
     /**
      * @brief 检查精灵是否存在
      * @param id 精灵ID
      * @return 如果精灵存在返回true
      */
-    [[nodiscard]] bool hasSprite(const String& id) const;
+    [[nodiscard]] bool hasSprite(const std::string& id) const;
 
     /**
      * @brief 清除所有精灵
@@ -109,10 +109,10 @@ public:
     /**
      * @brief 获取所有精灵（只读）
      */
-    [[nodiscard]] const std::unordered_map<String, GuiSprite>& sprites() const { return m_sprites; }
+    [[nodiscard]] const std::unordered_map<std::string, GuiSprite>& sprites() const { return m_sprites; }
 
 private:
-    std::unordered_map<String, GuiSprite> m_sprites;
+    std::unordered_map<std::string, GuiSprite> m_sprites;
     i32 m_atlasWidth = 256;   ///< 用于精灵UV计算的图集宽度
     i32 m_atlasHeight = 256;  ///< 用于精灵UV计算的图集高度
 };

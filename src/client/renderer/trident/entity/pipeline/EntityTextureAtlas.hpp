@@ -143,7 +143,7 @@ public:
      * @param location 纹理资源位置字符串
      * @return 纹理区域，如果不存在返回nullptr
      */
-    [[nodiscard]] const TextureRegion* getRegion(const String& location) const;
+    [[nodiscard]] const TextureRegion* getRegion(const std::string& location) const;
 
     /**
      * @brief 获取图集图像视图

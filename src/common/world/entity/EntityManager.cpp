@@ -226,7 +226,7 @@ std::unordered_map<entity::EntityClassification, i32> EntityManager::countEntiti
     for (const auto& [id, entity] : m_entities) {
         if (entity && !entity->isRemoved()) {
             // 通过实体类型ID获取分类
-            const String& typeId = entity->getTypeId();
+            const std::string& typeId = entity->getTypeId();
             const entity::EntityType* type = registry.getType(typeId);
             if (type) {
                 entity::EntityClassification classification = type->classification();
@@ -245,7 +245,7 @@ i32 EntityManager::getCountByClassification(entity::EntityClassification classif
     auto& registry = entity::EntityRegistry::instance();
     for (const auto& [id, entity] : m_entities) {
         if (entity && !entity->isRemoved()) {
-            const String& typeId = entity->getTypeId();
+            const std::string& typeId = entity->getTypeId();
             const entity::EntityType* type = registry.getType(typeId);
             if (type && type->classification() == classification) {
                 count++;

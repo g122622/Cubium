@@ -29,7 +29,7 @@ src/common/util/nbt/
   - `Float` (0x05) - 单精度浮点
   - `Double` (0x06) - 双精度浮点
   - `ByteArray` (0x07) - 字节数组
-  - `String` (0x08) - UTF-8 字符串
+  - `std::string` (0x08) - UTF-8 字符串
   - `List` (0x09) - 同类型元素列表
   - `Compound` (0x0A) - 键值对映射
   - `IntArray` (0x0B) - 整型数组
@@ -173,7 +173,7 @@ MIT License，原作者 Ktlo (2020)。
 - `<type_traits>` - 类型特征
 
 ### 项目内部依赖
-- `common/core/Types.hpp` - 基础类型定义（`i8`, `i16`, `i32`, `i64`, `u8`, `u32`, `u64`, `String`）
+- `common/core/Types.hpp` - 基础类型定义（`i8`, `i16`, `i32`, `i64`, `u8`, `u32`, `u64`, `std::string`）
 - `common/util/assert/AssertAll.hpp` - 断言库（仅 Nbt.cpp 使用）
 
 ### 被依赖
@@ -251,7 +251,7 @@ std::cout << contexts::mojangson << tag;
 | Long | int64_t | `tags::long_tag` |
 | Float | float | `tags::float_tag` |
 | Double | double | `tags::double_tag` |
-| String | std::string | `tags::string_tag` |
+| std::string | std::string | `tags::string_tag` |
 | ByteArray | std::vector<int8_t> | `tags::bytearray_tag` |
 | IntArray | std::vector<int32_t> | `tags::intarray_tag` |
 | LongArray | std::vector<int64_t> | `tags::longarray_tag` |

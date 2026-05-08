@@ -10,7 +10,7 @@ PlayerManager::PlayerManager(const ServerCoreConfig& config)
 }
 
 ServerPlayerData* PlayerManager::addPlayer(PlayerId playerId,
-                                            const String& username,
+                                            const std::string& username,
                                             network::ConnectionPtr connection) {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -50,7 +50,7 @@ void PlayerManager::removePlayer(PlayerId playerId) {
     auto it = m_players.find(playerId);
     if (it == m_players.end()) return;
 
-    String username = it->second.username;
+    std::string username = it->second.username;
     u32 sessionId = it->second.sessionId;
 
     // 移除会话映射
@@ -75,7 +75,7 @@ void PlayerManager::removePlayerBySessionId(u32 sessionId) {
     auto playerIt = m_players.find(playerId);
     if (playerIt == m_players.end()) return;
 
-    String username = playerIt->second.username;
+    std::string username = playerIt->second.username;
 
     // 移除会话映射
     m_sessionToPlayer.erase(sessionId);

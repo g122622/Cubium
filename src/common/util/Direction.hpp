@@ -269,8 +269,8 @@ namespace Directions {
     /**
      * @brief 从名称获取方向
      */
-    inline std::optional<Direction> fromName(StringView name) {
-        static const std::unordered_map<String, Direction> nameMap = {
+    inline std::optional<Direction> fromName(std::string_view name) {
+        static const std::unordered_map<std::string, Direction> nameMap = {
             {"down", Direction::Down},
             {"up", Direction::Up},
             {"north", Direction::North},
@@ -278,14 +278,14 @@ namespace Directions {
             {"west", Direction::West},
             {"east", Direction::East}
         };
-        auto it = nameMap.find(String(name));
+        auto it = nameMap.find(std::string(name));
         return it != nameMap.end() ? std::optional<Direction>(it->second) : std::nullopt;
     }
 
     /**
      * @brief 获取方向名称
      */
-    inline String toString(Direction dir) {
+    inline std::string toString(Direction dir) {
         const size_t idx = static_cast<size_t>(dir);
         if (idx >= 6) return "none";
         const char* names[] = {"down", "up", "north", "south", "west", "east"};
@@ -511,14 +511,14 @@ namespace Axes {
         return {Axis::X, Axis::Y, Axis::Z};
     }
 
-    inline std::optional<Axis> fromName(StringView name) {
+    inline std::optional<Axis> fromName(std::string_view name) {
         if (name == "x") return Axis::X;
         if (name == "y") return Axis::Y;
         if (name == "z") return Axis::Z;
         return std::nullopt;
     }
 
-    inline String toString(Axis axis) {
+    inline std::string toString(Axis axis) {
         const char* names[] = {"x", "y", "z"};
         return names[static_cast<size_t>(axis)];
     }

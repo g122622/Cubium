@@ -572,7 +572,7 @@ private:
     i16 m_transactionId = 0;  // 事务ID计数器，用于防重放
 
     // 不能进行合成操作的玩家UUID集合
-    std::unordered_set<String> m_cannotCraftPlayers;
+    std::unordered_set<std::string> m_cannotCraftPlayers;
 
     // 物品丢弃回调
     ItemDropCallback m_itemDropCallback;

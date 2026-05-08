@@ -8,7 +8,7 @@
 namespace mc::world::spawn {
 
 // 静态成员定义
-std::unordered_map<String, EntitySpawnPlacementRegistry::PlacementEntry> EntitySpawnPlacementRegistry::s_registry;
+std::unordered_map<std::string, EntitySpawnPlacementRegistry::PlacementEntry> EntitySpawnPlacementRegistry::s_registry;
 bool EntitySpawnPlacementRegistry::s_initialized = false;
 
 // ============================================================================
@@ -16,7 +16,7 @@ bool EntitySpawnPlacementRegistry::s_initialized = false;
 // ============================================================================
 
 void EntitySpawnPlacementRegistry::registerPlacement(
-    const String& entityTypeId,
+    const std::string& entityTypeId,
     PlacementType placementType,
     HeightmapType heightmapType,
     PlacementPredicate predicate)
@@ -28,7 +28,7 @@ void EntitySpawnPlacementRegistry::registerPlacement(
 // 查询方法
 // ============================================================================
 
-PlacementType EntitySpawnPlacementRegistry::getPlacementType(const String& entityTypeId) {
+PlacementType EntitySpawnPlacementRegistry::getPlacementType(const std::string& entityTypeId) {
     auto it = s_registry.find(entityTypeId);
     if (it != s_registry.end()) {
         return it->second.placementType;
@@ -36,7 +36,7 @@ PlacementType EntitySpawnPlacementRegistry::getPlacementType(const String& entit
     return PlacementType::NoRestrictions;
 }
 
-HeightmapType EntitySpawnPlacementRegistry::getHeightmapType(const String& entityTypeId) {
+HeightmapType EntitySpawnPlacementRegistry::getHeightmapType(const std::string& entityTypeId) {
     auto it = s_registry.find(entityTypeId);
     if (it != s_registry.end()) {
         return it->second.heightmapType;
@@ -45,7 +45,7 @@ HeightmapType EntitySpawnPlacementRegistry::getHeightmapType(const String& entit
 }
 
 const EntitySpawnPlacementRegistry::PlacementEntry* EntitySpawnPlacementRegistry::getPlacementEntry(
-    const String& entityTypeId)
+    const std::string& entityTypeId)
 {
     auto it = s_registry.find(entityTypeId);
     if (it != s_registry.end()) {
@@ -62,7 +62,7 @@ bool EntitySpawnPlacementRegistry::canSpawnAtLocation(
     PlacementType placementType,
     const ISpawnWorldReader& world,
     const Vector3i& pos,
-    const String& entityTypeId)
+    const std::string& entityTypeId)
 {
     // 无限制类型直接返回 true
     if (placementType == PlacementType::NoRestrictions) {
@@ -92,7 +92,7 @@ bool EntitySpawnPlacementRegistry::canSpawnAtLocation(
 }
 
 bool EntitySpawnPlacementRegistry::canSpawnEntity(
-    const String& entityTypeId,
+    const std::string& entityTypeId,
     ISpawnWorldReader& world,
     SpawnReason reason,
     const Vector3i& pos,
@@ -125,7 +125,7 @@ bool EntitySpawnPlacementRegistry::canSpawnEntity(
 bool EntitySpawnPlacementRegistry::checkOnGroundSpawn(
     const ISpawnWorldReader& world,
     const Vector3i& pos,
-    const String& entityTypeId)
+    const std::string& entityTypeId)
 {
     // 参考 MC 1.16.5 WorldEntitySpawner.canSpawnAtBody (ON_GROUND case)
 
@@ -167,7 +167,7 @@ bool EntitySpawnPlacementRegistry::checkOnGroundSpawn(
 bool EntitySpawnPlacementRegistry::checkInWaterSpawn(
     const ISpawnWorldReader& world,
     const Vector3i& pos,
-    const String& entityTypeId)
+    const std::string& entityTypeId)
 {
     // 参考 MC 1.16.5 WorldEntitySpawner.canSpawnAtBody (IN_WATER case)
 
@@ -212,7 +212,7 @@ bool EntitySpawnPlacementRegistry::checkInWaterSpawn(
 bool EntitySpawnPlacementRegistry::checkInLavaSpawn(
     const ISpawnWorldReader& world,
     const Vector3i& pos,
-    const String& entityTypeId)
+    const std::string& entityTypeId)
 {
     // 参考 MC 1.16.5 WorldEntitySpawner.canSpawnAtBody (IN_LAVA case)
 
@@ -238,7 +238,7 @@ bool EntitySpawnPlacementRegistry::checkInLavaSpawn(
 bool EntitySpawnPlacementRegistry::isValidSpawnBlock(
     const ISpawnWorldReader& world,
     const Vector3i& pos,
-    const String& /*entityTypeId*/)
+    const std::string& /*entityTypeId*/)
 {
     // 参考 MC 1.16.5 WorldEntitySpawner.isValidEmptySpawnBlock
 

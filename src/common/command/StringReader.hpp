@@ -23,7 +23,7 @@ public:
     static constexpr char SYNTAX_ESCAPE = '\\';
     static constexpr char SYNTAX_QUOTE = '"';
 
-    explicit StringReader(StringView input)
+    explicit StringReader(std::string_view input)
         : m_input(input)
         , m_cursor(0) {}
 
@@ -32,7 +32,7 @@ public:
 
     // ========== 基本访问 ==========
 
-    [[nodiscard]] StringView getString() const noexcept { return m_input; }
+    [[nodiscard]] std::string_view getString() const noexcept { return m_input; }
     [[nodiscard]] i32 getCursor() const noexcept { return m_cursor; }
     [[nodiscard]] i32 getRemainingLength() const noexcept {
         return static_cast<i32>(m_input.length()) - m_cursor;
@@ -95,21 +95,21 @@ public:
     /**
      * @brief 读取直到遇到空白或字符串结束
      */
-    [[nodiscard]] String readUnquotedString() {
+    [[nodiscard]] std::string readUnquotedString() {
         i32 start = m_cursor;
         while (canRead() && !isWhitespace(peek()) && peek() != SYNTAX_QUOTE) {
             skip();
         }
         const size_t startIndex = static_cast<size_t>(start);
         const size_t endIndex = static_cast<size_t>(m_cursor);
-        return String(m_input.substr(startIndex, endIndex - startIndex));
+        return std::string(m_input.substr(startIndex, endIndex - startIndex));
     }
 
     /**
      * @brief 读取引号字符串
      * @throws CommandException 如果字符串未正确闭合
      */
-    [[nodiscard]] String readQuotedString() {
+    [[nodiscard]] std::string readQuotedString() {
         if (!canRead()) {
             return "";
         }
@@ -122,7 +122,7 @@ public:
 
         skip(); // 跳过开始引号
 
-        String result;
+        std::string result;
         bool escaped = false;
 
         while (canRead()) {
@@ -154,7 +154,7 @@ public:
     /**
      * @brief 读取字符串（自动检测是否带引号）
      */
-    [[nodiscard]] String readString() {
+    [[nodiscard]] std::string readString() {
         if (!canRead()) {
             return "";
         }
@@ -173,7 +173,7 @@ public:
      */
     [[nodiscard]] bool readBool() {
         i32 start = m_cursor;
-        String value = readUnquotedString();
+        std::string value = readUnquotedString();
 
         if (value == "true") {
             return true;
@@ -324,28 +324,28 @@ public:
     /**
      * @brief 读取剩余内容
      */
-    [[nodiscard]] String getRemaining() const {
-        return String(m_input.substr(static_cast<size_t>(m_cursor)));
+    [[nodiscard]] std::string getRemaining() const {
+        return std::string(m_input.substr(static_cast<size_t>(m_cursor)));
     }
 
     /**
      * @brief 从当前位置读取直到指定字符
      */
-    [[nodiscard]] String readUntil(char terminator) {
+    [[nodiscard]] std::string readUntil(char terminator) {
         i32 start = m_cursor;
         while (canRead() && peek() != terminator) {
             skip();
         }
         const size_t startIndex = static_cast<size_t>(start);
         const size_t endIndex = static_cast<size_t>(m_cursor);
-        return String(m_input.substr(startIndex, endIndex - startIndex));
+        return std::string(m_input.substr(startIndex, endIndex - startIndex));
     }
 
     /**
      * @brief 尝试匹配字符串
      * @return 是否匹配成功
      */
-    bool tryRead(const String& expected) {
+    bool tryRead(const std::string& expected) {
         if (!canRead(static_cast<i32>(expected.length()))) {
             return false;
         }
@@ -367,13 +367,13 @@ public:
     void expect(char c) {
         if (!canRead() || peek() != c) {
             throw CommandException(CommandErrorType::DispatcherExpectedLiteral,
-                "Expected '" + String(1, c) + "'", m_cursor);
+                "Expected '" + std::string(1, c) + "'", m_cursor);
         }
         skip();
     }
 
 private:
-    StringView m_input;
+    std::string_view m_input;
     i32 m_cursor;
 };
 

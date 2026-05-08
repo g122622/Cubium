@@ -67,21 +67,21 @@ public:
      * @param text 纯文本内容
      * @return 如果设置成功返回 true
      */
-    bool setLineFromLegacy(i32 line, const String& text);
+    bool setLineFromLegacy(i32 line, const std::string& text);
 
     /**
      * @brief 获取指定行的纯文本内容
      * @param line 行号 (0-3)
      * @return 纯文本内容
      */
-    [[nodiscard]] String getLineText(i32 line) const;
+    [[nodiscard]] std::string getLineText(i32 line) const;
 
     /**
      * @brief 获取指定行的格式化文本（§ 代码格式）
      * @param line 行号 (0-3)
      * @return 格式化文本
      */
-    [[nodiscard]] String getLineFormatted(i32 line) const;
+    [[nodiscard]] std::string getLineFormatted(i32 line) const;
 
     /**
      * @brief 设置所有行文本

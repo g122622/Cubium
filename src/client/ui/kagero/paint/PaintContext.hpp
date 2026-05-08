@@ -28,7 +28,7 @@ public:
      * @param bounds 边界矩形
      * @param color 颜色（ARGB）
      */
-    void drawTextCentered(const String& text, const Rect& bounds, u32 color);
+    void drawTextCentered(const std::string& text, const Rect& bounds, u32 color);
 
     /**
      * @brief 绘制边框
@@ -61,7 +61,7 @@ public:
      * @param y Y坐标
      * @param color 颜色（ARGB）
      */
-    void drawText(const String& text, i32 x, i32 y, u32 color);
+    void drawText(const std::string& text, i32 x, i32 y, u32 color);
 
     /**
      * @brief 绘制图像
@@ -102,7 +102,7 @@ public:
      * @param text 文本内容
      * @return 文本宽度（像素）
      */
-    [[nodiscard]] f32 getTextWidth(const String& text) const;
+    [[nodiscard]] f32 getTextWidth(const std::string& text) const;
 
     /**
      * @brief 获取字体高度

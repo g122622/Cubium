@@ -5,7 +5,7 @@ namespace mc {
 namespace crafting {
 
 namespace {
-    const std::unordered_map<RecipeType, String> typeToStringMap = {
+    const std::unordered_map<RecipeType, std::string> typeToStringMap = {
         {RecipeType::Crafting,          "minecraft:crafting"},
         {RecipeType::ShapedCrafting,    "minecraft:crafting_shaped"},
         {RecipeType::ShapelessCrafting, "minecraft:crafting_shapeless"},
@@ -18,7 +18,7 @@ namespace {
         {RecipeType::Special,           "minecraft:special"}
     };
 
-    const std::unordered_map<String, RecipeType> stringToTypeMap = {
+    const std::unordered_map<std::string, RecipeType> stringToTypeMap = {
         {"minecraft:crafting",           RecipeType::Crafting},
         {"minecraft:crafting_shaped",    RecipeType::ShapedCrafting},
         {"crafting_shaped",              RecipeType::ShapedCrafting},
@@ -41,7 +41,7 @@ namespace {
     };
 }
 
-String recipeTypeToString(RecipeType type) {
+std::string recipeTypeToString(RecipeType type) {
     auto it = typeToStringMap.find(type);
     if (it != typeToStringMap.end()) {
         return it->second;
@@ -49,7 +49,7 @@ String recipeTypeToString(RecipeType type) {
     return "minecraft:crafting";
 }
 
-std::optional<RecipeType> recipeTypeFromString(const String& str) {
+std::optional<RecipeType> recipeTypeFromString(const std::string& str) {
     auto it = stringToTypeMap.find(str);
     if (it != stringToTypeMap.end()) {
         return it->second;

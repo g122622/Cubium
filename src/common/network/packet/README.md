@@ -298,7 +298,7 @@ if (result.success()) {
   - 结束标记: 0xFF
 
 - 类型ID映射 (19种类型)
-  - Byte, VarInt, Float, String, TextComponent
+  - Byte, VarInt, Float, std::string, TextComponent
   - OptChat, Slot, Boolean, Rotation, Position
   - OptPosition, Direction, OptUUID, OptBlockID, NBT
   - Particle, VillagerData, OptVarInt, Pose
@@ -560,7 +560,7 @@ if (result.success()) {
 - 协议格式:
   | 动作类型 | 字段 | 类型 |
   |---------|------|------|
-  | Title/Subtitle/Actionbar | text | String (JSON) |
+  | Title/Subtitle/Actionbar | text | std::string (JSON) |
   | Times | fadeIn, stay, fadeOut | i32 × 3 |
   | Clear/Reset | 无 | - |
 
@@ -669,7 +669,7 @@ PacketModule.hpp (统一入口)
 
 | 依赖模块 | 用途 |
 |---------|------|
-| `common/core/Types.hpp` | 基本类型定义 (i8, i16, i32, u8, f32, String 等) |
+| `common/core/Types.hpp` | 基本类型定义 (i8, i16, i32, u8, f32, std::string 等) |
 | `common/core/Result.hpp` | 错误处理 (Result<T>, Error, ErrorCode) |
 | `common/util/math/Vector3.hpp` | 三维向量 |
 | `common/util/Direction.hpp` | 方向枚举 |

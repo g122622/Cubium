@@ -6,7 +6,7 @@ namespace mc::entity {
 
 // 引入 mc 命名空间的类型
 using mc::u8;
-using mc::String;
+using mc::std::string;
 
 /**
  * @brief 实体姿态枚举
@@ -49,7 +49,7 @@ inline const char* getPoseName(EntityPose pose) {
  * @param name 姿态名称
  * @return 姿态枚举，未知名称返回 Standing
  */
-inline EntityPose getPoseByName(const String& name) {
+inline EntityPose getPoseByName(const std::string& name) {
     if (name == "standing") return EntityPose::Standing;
     if (name == "fall_flying") return EntityPose::FallFlying;
     if (name == "sleeping") return EntityPose::Sleeping;

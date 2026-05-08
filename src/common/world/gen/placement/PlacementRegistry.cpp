@@ -38,7 +38,7 @@ void PlacementRegistry::initialize()
     m_initialized = true;
 }
 
-void PlacementRegistry::registerPlacement(const String& name, std::unique_ptr<Placement> placement)
+void PlacementRegistry::registerPlacement(const std::string& name, std::unique_ptr<Placement> placement)
 {
     if (!placement) {
         return;
@@ -47,15 +47,15 @@ void PlacementRegistry::registerPlacement(const String& name, std::unique_ptr<Pl
     m_placements[name] = std::move(placement);
 }
 
-const Placement* PlacementRegistry::get(const String& name) const
+const Placement* PlacementRegistry::get(const std::string& name) const
 {
     auto it = m_placements.find(name);
     return it != m_placements.end() ? it->second.get() : nullptr;
 }
 
-std::vector<String> PlacementRegistry::getNames() const
+std::vector<std::string> PlacementRegistry::getNames() const
 {
-    std::vector<String> names;
+    std::vector<std::string> names;
     names.reserve(m_placements.size());
     for (const auto& pair : m_placements) {
         names.push_back(pair.first);

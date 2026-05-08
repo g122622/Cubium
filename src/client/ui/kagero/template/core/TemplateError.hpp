@@ -55,14 +55,14 @@ enum class TemplateErrorType : u8 {
  */
 struct TemplateErrorInfo {
     TemplateErrorType type;
-    String message;
+    std::string message;
     SourceLocation location;
-    String sourcePath;
-    String context;  ///< 错误上下文（周围代码）
+    std::string sourcePath;
+    std::string context;  ///< 错误上下文（周围代码）
 
-    TemplateErrorInfo(TemplateErrorType type_, String message_,
+    TemplateErrorInfo(TemplateErrorType type_, std::string message_,
                       SourceLocation location_ = SourceLocation(),
-                      String sourcePath_ = "")
+                      std::string sourcePath_ = "")
         : type(type_)
         , message(std::move(message_))
         , location(location_)
@@ -120,8 +120,8 @@ struct TemplateErrorInfo {
     /**
      * @brief 格式化为完整错误消息
      */
-    [[nodiscard]] String format() const {
-        String result;
+    [[nodiscard]] std::string format() const {
+        std::string result;
         result += typeName();
         result += ": ";
         result += message;
@@ -151,9 +151,9 @@ public:
         : std::runtime_error(info.format())
         , m_info(std::move(info)) {}
 
-    TemplateError(TemplateErrorType type, const String& message,
+    TemplateError(TemplateErrorType type, const std::string& message,
                   SourceLocation location = SourceLocation(),
-                  const String& sourcePath = "")
+                  const std::string& sourcePath = "")
         : TemplateError(TemplateErrorInfo(type, message, location, sourcePath)) {}
 
     /**
@@ -174,7 +174,7 @@ public:
     /**
      * @brief 添加上下文信息
      */
-    void setContext(const String& context) {
+    void setContext(const std::string& context) {
         m_info.context = context;
     }
 
@@ -183,42 +183,42 @@ public:
     /**
      * @brief 创建词法错误
      */
-    static TemplateError lexer(const String& message, SourceLocation loc = SourceLocation()) {
+    static TemplateError lexer(const std::string& message, SourceLocation loc = SourceLocation()) {
         return TemplateError(TemplateErrorType::LexerError, message, loc);
     }
 
     /**
      * @brief 创建语法错误
      */
-    static TemplateError parser(const String& message, SourceLocation loc = SourceLocation()) {
+    static TemplateError parser(const std::string& message, SourceLocation loc = SourceLocation()) {
         return TemplateError(TemplateErrorType::ParserError, message, loc);
     }
 
     /**
      * @brief 创建语义错误
      */
-    static TemplateError semantic(const String& message, SourceLocation loc = SourceLocation()) {
+    static TemplateError semantic(const std::string& message, SourceLocation loc = SourceLocation()) {
         return TemplateError(TemplateErrorType::SemanticError, message, loc);
     }
 
     /**
      * @brief 创建编译错误
      */
-    static TemplateError compile(const String& message, SourceLocation loc = SourceLocation()) {
+    static TemplateError compile(const std::string& message, SourceLocation loc = SourceLocation()) {
         return TemplateError(TemplateErrorType::CompileError, message, loc);
     }
 
     /**
      * @brief 创建运行时错误
      */
-    static TemplateError runtime(const String& message) {
+    static TemplateError runtime(const std::string& message) {
         return TemplateError(TemplateErrorType::RuntimeError, message);
     }
 
     /**
      * @brief 创建"未知标签"错误
      */
-    static TemplateError unknownTag(const String& tagName, SourceLocation loc = SourceLocation()) {
+    static TemplateError unknownTag(const std::string& tagName, SourceLocation loc = SourceLocation()) {
         return TemplateError(TemplateErrorType::UnknownTag,
             "Unknown tag: <" + tagName + ">", loc);
     }
@@ -226,7 +226,7 @@ public:
     /**
      * @brief 创建"无效绑定路径"错误
      */
-    static TemplateError invalidBindingPath(const String& path, SourceLocation loc = SourceLocation()) {
+    static TemplateError invalidBindingPath(const std::string& path, SourceLocation loc = SourceLocation()) {
         return TemplateError(TemplateErrorType::InvalidBindingPath,
             "Invalid binding path: '" + path + "'", loc);
     }
@@ -260,7 +260,7 @@ public:
     /**
      * @brief 添加错误（简化版）
      */
-    void addError(TemplateErrorType type, const String& message,
+    void addError(TemplateErrorType type, const std::string& message,
                   SourceLocation location = SourceLocation()) {
         m_errors.emplace_back(type, message, location);
     }

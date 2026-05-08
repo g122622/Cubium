@@ -166,20 +166,20 @@ public:
      * @param enchantmentId 附魔ID
      * @return 附魔等级（0表示无此附魔）
      */
-    [[nodiscard]] i32 getEnchantmentLevel(const String& enchantmentId) const;
+    [[nodiscard]] i32 getEnchantmentLevel(const std::string& enchantmentId) const;
 
     /**
      * @brief 检查是否有指定附魔
      * @param enchantmentId 附魔ID
      */
-    [[nodiscard]] bool hasEnchantment(const String& enchantmentId) const;
+    [[nodiscard]] bool hasEnchantment(const std::string& enchantmentId) const;
 
     /**
      * @brief 添加或更新附魔
      * @param enchantmentId 附魔ID
      * @param level 附魔等级
      */
-    void addEnchantment(const String& enchantmentId, i32 level);
+    void addEnchantment(const std::string& enchantmentId, i32 level);
 
     // ========== 自定义数据 ==========
 
@@ -212,20 +212,20 @@ public:
      * @param name 子标签名称
      * @return 子标签指针，不存在或不是对象时返回nullptr
      */
-    [[nodiscard]] const nlohmann::json* getChildTag(const String& name) const;
+    [[nodiscard]] const nlohmann::json* getChildTag(const std::string& name) const;
 
     /**
      * @brief 获取或创建子标签
      * @param name 子标签名称
      * @return 子标签引用
      */
-    [[nodiscard]] nlohmann::json& getOrCreateChildTag(const String& name);
+    [[nodiscard]] nlohmann::json& getOrCreateChildTag(const std::string& name);
 
     /**
      * @brief 移除子标签
      * @param name 子标签名称
      */
-    void removeChildTag(const String& name);
+    void removeChildTag(const std::string& name);
 
     // ========== 耐久度 ==========
 
@@ -359,7 +359,7 @@ public:
      *
      * @return 自定义名称纯文本
      */
-    [[nodiscard]] String getCustomName() const {
+    [[nodiscard]] std::string getCustomName() const {
         return m_customName ? m_customName->getUnformattedText() : "";
     }
 
@@ -375,7 +375,7 @@ public:
      * @brief 设置自定义名称（纯文本，向后兼容）
      * @param name 新名称
      */
-    void setCustomName(const String& name) {
+    void setCustomName(const std::string& name) {
         if (name.empty()) {
             m_customName = nullptr;
         } else {
@@ -445,7 +445,7 @@ public:
      * @brief 添加一行 Lore（纯文本）
      * @param line Lore 纯文本
      */
-    void addLoreLine(const String& line) {
+    void addLoreLine(const std::string& line) {
         m_lore.push_back(std::make_unique<text::StringTextComponent>(line));
     }
 
@@ -578,7 +578,7 @@ private:
     std::unique_ptr<text::ITextComponent> m_customName;  // 自定义名称（铁砧重命名）
     std::vector<std::unique_ptr<text::ITextComponent>> m_lore;  // 物品描述（Lore）
     item::enchant::EnchantmentContainer m_enchantments;  // 附魔容器
-    String m_potionId;      // 药水ID（用于药水物品）
+    std::string m_potionId;      // 药水ID（用于药水物品）
     nlohmann::json m_customData;  // 自定义数据（用于display等扩展标签）
 
     // 允许 PotionUtils 访问私有成员

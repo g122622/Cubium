@@ -6,7 +6,7 @@
 
 namespace {
 
-mc::String trimWhitespace(mc::StringView input)
+mc::std::string trimWhitespace(mc::std::string_view input)
 {
     size_t begin = 0;
     size_t end = input.size();
@@ -18,26 +18,26 @@ mc::String trimWhitespace(mc::StringView input)
         --end;
     }
 
-    return mc::String(input.substr(begin, end - begin));
+    return mc::std::string(input.substr(begin, end - begin));
 }
 
 } // namespace
 
 namespace mc {
 
-Direction parseDirection(StringView str) {
+Direction parseDirection(std::string_view str) {
     auto result = Directions::fromName(str);
     return result.has_value() ? result.value() : Direction::None;
 }
 
-String directionToString(Direction dir) {
+std::string directionToString(Direction dir) {
     if (dir == Direction::None) return "";
     return Directions::toString(dir);
 }
 
-ResourceLocation BakedBlockModel::resolveTexture(StringView textureRef) const
+ResourceLocation BakedBlockModel::resolveTexture(std::string_view textureRef) const
 {
-    String ref(textureRef);
+    std::string ref(textureRef);
 
     // 移除前导 #
     if (!ref.empty() && ref[0] == '#')
@@ -105,7 +105,7 @@ bool BlockStateVariant::operator==(const BlockStateVariant& other) const
            weight == other.weight;
 }
 
-Result<BlockStateDefinition> BlockStateDefinition::parse(StringView jsonContent)
+Result<BlockStateDefinition> BlockStateDefinition::parse(std::string_view jsonContent)
 {
     try
     {
@@ -120,7 +120,7 @@ Result<BlockStateDefinition> BlockStateDefinition::parse(StringView jsonContent)
 
             for (auto it = variants.begin(); it != variants.end(); ++it)
             {
-                String stateKey = normalizeStateKey(it.key());
+                std::string stateKey = normalizeStateKey(it.key());
                 VariantList list;
 
                 if (it.value().is_array())
@@ -132,7 +132,7 @@ Result<BlockStateDefinition> BlockStateDefinition::parse(StringView jsonContent)
 
                         if (v.contains("model"))
                         {
-                            variant.model = ResourceLocation(v["model"].get<String>());
+                            variant.model = ResourceLocation(v["model"].get<std::string>());
                         }
 
                         if (v.contains("x"))
@@ -165,7 +165,7 @@ Result<BlockStateDefinition> BlockStateDefinition::parse(StringView jsonContent)
 
                     if (it.value().contains("model"))
                     {
-                        variant.model = ResourceLocation(it.value()["model"].get<String>());
+                        variant.model = ResourceLocation(it.value()["model"].get<std::string>());
                     }
 
                     if (it.value().contains("x"))
@@ -215,7 +215,7 @@ Result<BlockStateDefinition> BlockStateDefinition::parse(StringView jsonContent)
 
                     if (applyJson.contains("model"))
                     {
-                        variant.model = ResourceLocation(applyJson["model"].get<String>());
+                        variant.model = ResourceLocation(applyJson["model"].get<std::string>());
                     }
 
                     if (applyJson.contains("x"))
@@ -286,20 +286,20 @@ Result<BlockStateDefinition> BlockStateDefinition::parse(StringView jsonContent)
     catch (const std::exception& e)
     {
         return Error(ErrorCode::ResourceParseError,
-                     String("Failed to parse block state: ") + e.what());
+                     std::string("Failed to parse block state: ") + e.what());
     }
 }
 
-const VariantList* BlockStateDefinition::getVariants(StringView stateStr) const
+const VariantList* BlockStateDefinition::getVariants(std::string_view stateStr) const
 {
-    String key(stateStr);
+    std::string key(stateStr);
     auto it = m_variants.find(key);
     if (it != m_variants.end())
     {
         return &it->second;
     }
 
-    String normalizedKey = normalizeStateKey(stateStr);
+    std::string normalizedKey = normalizeStateKey(stateStr);
     if (normalizedKey != key)
     {
         it = m_variants.find(normalizedKey);
@@ -322,33 +322,33 @@ const VariantList* BlockStateDefinition::getVariants(StringView stateStr) const
     return nullptr;
 }
 
-String BlockStateDefinition::normalizeStateKey(StringView stateKey)
+std::string BlockStateDefinition::normalizeStateKey(std::string_view stateKey)
 {
-    String trimmed = trimWhitespace(stateKey);
+    std::string trimmed = trimWhitespace(stateKey);
     if (trimmed.empty() || trimmed == "normal")
     {
         return "normal";
     }
 
-    std::vector<std::pair<String, String>> props;
+    std::vector<std::pair<std::string, std::string>> props;
 
     size_t start = 0;
     while (start < trimmed.size())
     {
         size_t end = trimmed.find(',', start);
-        if (end == String::npos)
+        if (end == std::string::npos)
         {
             end = trimmed.size();
         }
 
-        String token = trimWhitespace(StringView(trimmed.data() + start, end - start));
+        std::string token = trimWhitespace(std::string_view(trimmed.data() + start, end - start));
         if (!token.empty())
         {
             size_t eq = token.find('=');
-            if (eq != String::npos)
+            if (eq != std::string::npos)
             {
-                String key = trimWhitespace(StringView(token.data(), eq));
-                String value = trimWhitespace(StringView(token.data() + eq + 1, token.size() - eq - 1));
+                std::string key = trimWhitespace(std::string_view(token.data(), eq));
+                std::string value = trimWhitespace(std::string_view(token.data() + eq + 1, token.size() - eq - 1));
                 if (!key.empty())
                 {
                     props.emplace_back(std::move(key), std::move(value));
@@ -356,7 +356,7 @@ String BlockStateDefinition::normalizeStateKey(StringView stateKey)
             }
             else
             {
-                props.emplace_back(std::move(token), String());
+                props.emplace_back(std::move(token), std::string());
             }
         }
 
@@ -371,7 +371,7 @@ String BlockStateDefinition::normalizeStateKey(StringView stateKey)
     std::sort(props.begin(), props.end(),
               [](const auto& a, const auto& b) { return a.first < b.first; });
 
-    String normalized;
+    std::string normalized;
     for (size_t i = 0; i < props.size(); ++i)
     {
         if (i > 0)
@@ -419,11 +419,11 @@ Result<UnbakedBlockModel> BlockModelLoader::loadModel(const ResourceLocation& lo
     // 构建文件路径
     // 模型路径格式: "anvil_undamaged" -> "assets/minecraft/models/block/anvil_undamaged.json"
     // 或 "minecraft:block/anvil_undamaged" -> "assets/minecraft/models/block/anvil_undamaged.json"
-    String filePath;
-    String path = location.path();
+    std::string filePath;
+    std::string path = location.path();
 
     // 检查路径是否已包含 "models/block"
-    if (path.find("models/block") != String::npos || path.find("models\\block") != String::npos)
+    if (path.find("models/block") != std::string::npos || path.find("models\\block") != std::string::npos)
     {
         // 已经是完整路径
         filePath = location.toFilePath("json");
@@ -461,7 +461,7 @@ Result<UnbakedBlockModel> BlockModelLoader::loadModel(const ResourceLocation& lo
     return model;
 }
 
-Result<String> BlockModelLoader::readModelFromResourcePacks(const String& filePath)
+Result<std::string> BlockModelLoader::readModelFromResourcePacks(const std::string& filePath)
 {
     // 优先从资源包列表中查找（支持多资源包）
     if (!m_resourcePackList.empty())
@@ -529,8 +529,8 @@ Result<BakedBlockModel> BlockModelLoader::bakeModel(const ResourceLocation& loca
         }
 
         // 转换父模型位置
-        String parentPath = model.parentLocation.path();
-        if (parentPath.find("block/") == String::npos && parentPath.find("block\\") == String::npos)
+        std::string parentPath = model.parentLocation.path();
+        if (parentPath.find("block/") == std::string::npos && parentPath.find("block\\") == std::string::npos)
         {
             // 父模型路径可能是相对路径
             parentPath = "block/" + parentPath;
@@ -574,15 +574,15 @@ Result<BakedBlockModel> BlockModelLoader::bakeModel(const ResourceLocation& loca
         changed = false;
         for (auto& [name, texLoc] : baked.textures)
         {
-            String path = texLoc.path();
+            std::string path = texLoc.path();
             if (!path.empty() && path[0] == '#')
             {
                 // 这是一个纹理变量引用
-                String varName = path.substr(1);
+                std::string varName = path.substr(1);
                 auto varIt = baked.textures.find(varName);
                 if (varIt != baked.textures.end())
                 {
-                    String varPath = varIt->second.path();
+                    std::string varPath = varIt->second.path();
                     // 只有当变量值不是另一个变量引用时才解析
                     if (!varPath.empty() && varPath[0] != '#')
                     {
@@ -617,7 +617,7 @@ void BlockModelLoader::clearCache()
     m_unbakedModels.clear();
 }
 
-Result<UnbakedBlockModel> BlockModelLoader::parseModel(StringView jsonContent)
+Result<UnbakedBlockModel> BlockModelLoader::parseModel(std::string_view jsonContent)
 {
     try
     {
@@ -628,7 +628,7 @@ Result<UnbakedBlockModel> BlockModelLoader::parseModel(StringView jsonContent)
         // 解析父模型
         if (json.contains("parent"))
         {
-            model.parentLocation = ResourceLocation(json["parent"].get<String>());
+            model.parentLocation = ResourceLocation(json["parent"].get<std::string>());
         }
 
         // 解析环境光遮蔽
@@ -643,8 +643,8 @@ Result<UnbakedBlockModel> BlockModelLoader::parseModel(StringView jsonContent)
             const auto& textures = json["textures"];
             for (auto it = textures.begin(); it != textures.end(); ++it)
             {
-                String name = it.key();
-                String path = it.value().get<String>();
+                std::string name = it.key();
+                std::string path = it.value().get<std::string>();
 
                 // 移除前导 # (如果有)
                 if (!path.empty() && path[0] == '#')
@@ -673,7 +673,7 @@ Result<UnbakedBlockModel> BlockModelLoader::parseModel(StringView jsonContent)
     }
     catch (const std::exception& e)
     {
-        return Error(ErrorCode::ResourceParseError, String("Failed to parse model: ") + e.what());
+        return Error(ErrorCode::ResourceParseError, std::string("Failed to parse model: ") + e.what());
     }
 }
 
@@ -795,13 +795,13 @@ Result<ModelFace> BlockModelLoader::parseFace(const nlohmann::json& json, Direct
     // 解析纹理
     if (json.contains("texture"))
     {
-        face.texture = json["texture"].get<String>();
+        face.texture = json["texture"].get<std::string>();
     }
 
     // 解析剔除面
     if (json.contains("cullface"))
     {
-        face.cullFace = parseDirection(json["cullface"].get<String>());
+        face.cullFace = parseDirection(json["cullface"].get<std::string>());
     }
 
     // 解析着色索引
@@ -857,7 +857,7 @@ ModelRotation BlockModelLoader::parseRotation(const nlohmann::json& json)
 
     if (json.contains("axis"))
     {
-        rot.axis = json["axis"].get<String>();
+        rot.axis = json["axis"].get<std::string>();
     }
 
     if (json.contains("angle"))

@@ -111,7 +111,7 @@ public:
         return m_inner ? m_inner->getMutexFlags() : emptyFlags;
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         return m_inner ? m_inner->getTypeName() : "DUMMY";
     }
 

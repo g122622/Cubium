@@ -93,13 +93,13 @@ public:
      * @brief 获取自定义名称
      * @return 自定义名称
      */
-    [[nodiscard]] String getCustomName() const override { return m_customName; }
+    [[nodiscard]] std::string getCustomName() const override { return m_customName; }
 
     /**
      * @brief 设置自定义名称
      * @param name 名称
      */
-    void setCustomName(const String& name) override;
+    void setCustomName(const std::string& name) override;
 
     // ========== 动画 ==========
 
@@ -144,7 +144,7 @@ private:
     i32 m_enchantPower = 0;
 
     /// 自定义名称（铁砧重命名）
-    String m_customName;
+    std::string m_customName;
 
     // ========== 动画状态 ==========
     /// 书本翻转角度（0-2π）

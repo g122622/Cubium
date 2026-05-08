@@ -33,12 +33,12 @@ enum class ItemDisplayContext : u8 {
 /**
  * @brief 从字符串解析显示上下文
  */
-[[nodiscard]] ItemDisplayContext parseDisplayContext(StringView str);
+[[nodiscard]] ItemDisplayContext parseDisplayContext(std::string_view str);
 
 /**
  * @brief 显示上下文转字符串
  */
-[[nodiscard]] String displayContextToString(ItemDisplayContext ctx);
+[[nodiscard]] std::string displayContextToString(ItemDisplayContext ctx);
 
 /**
  * @brief 物品变换数据
@@ -72,7 +72,7 @@ struct ItemTransform {
  * 定义基于物品状态的模型替换规则
  */
 struct ItemModelOverride {
-    std::map<String, f32> predicates;  // 条件谓词，如 {"damage": 0.25}
+    std::map<std::string, f32> predicates;  // 条件谓词，如 {"damage": 0.25}
     ResourceLocation model;             // 替换模型
 
     /**
@@ -98,12 +98,12 @@ struct UnbakedItemModel {
     ResourceLocation location;                   // 模型位置
     ResourceLocation parentLocation;             // 父模型位置
     std::vector<ModelElement> elements;          // 3D 元素（可选）
-    std::map<String, String> textures;           // 纹理变量 -> 路径
+    std::map<std::string, std::string> textures;           // 纹理变量 -> 路径
     std::map<ItemDisplayContext, ItemTransform> display;  // 显示变换
     std::vector<ItemModelOverride> overrides;    // 模型覆盖条件
     ItemModelType type = ItemModelType::Generated;
     bool ambientOcclusion = true;
-    String name;                                 // 模型名称（调试用）
+    std::string name;                                 // 模型名称（调试用）
 
     /**
      * @brief 检查是否有父模型
@@ -130,7 +130,7 @@ struct BakedItemModel {
 
     // 3D 元素（Block/Custom 类型使用）
     std::vector<ModelElement> elements;
-    std::map<String, ResourceLocation> textures;
+    std::map<std::string, ResourceLocation> textures;
 
     // 显示变换
     std::map<ItemDisplayContext, ItemTransform> display;
@@ -147,7 +147,7 @@ struct BakedItemModel {
      * @brief 解析纹理变量引用
      * 例如: "#layer0" -> "minecraft:item/diamond_sword"
      */
-    [[nodiscard]] ResourceLocation resolveTexture(StringView textureRef) const;
+    [[nodiscard]] ResourceLocation resolveTexture(std::string_view textureRef) const;
 };
 
 /**
@@ -201,12 +201,12 @@ private:
     /**
      * @brief 从资源包读取模型文件
      */
-    [[nodiscard]] Result<String> readModelFromResourcePacks(const String& filePath);
+    [[nodiscard]] Result<std::string> readModelFromResourcePacks(const std::string& filePath);
 
     /**
      * @brief 解析模型 JSON
      */
-    [[nodiscard]] Result<UnbakedItemModel> parseModel(const ResourceLocation& location, StringView jsonContent);
+    [[nodiscard]] Result<UnbakedItemModel> parseModel(const ResourceLocation& location, std::string_view jsonContent);
 
     /**
      * @brief 解析 display 节点

@@ -75,7 +75,7 @@ public:
      * @pre playerId != 0
      * @pre world != nullptr
      */
-    Player* createPlayerEntity(PlayerId playerId, const String& username,
+    Player* createPlayerEntity(PlayerId playerId, const std::string& username,
                                ServerWorld& world, f32 spawnX, f32 spawnY, f32 spawnZ);
 
     /**

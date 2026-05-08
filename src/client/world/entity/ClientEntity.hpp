@@ -31,7 +31,7 @@ public:
      * @param id 实体ID
      * @param typeId 实体类型标识符（如 "pig", "cow"）
      */
-    ClientEntity(EntityId id, const String& typeId);
+    ClientEntity(EntityId id, const std::string& typeId);
     ~ClientEntity() = default;
 
     // 禁止拷贝
@@ -45,9 +45,9 @@ public:
     // ========== 基本信息 ==========
 
     [[nodiscard]] EntityId id() const { return m_id; }
-    [[nodiscard]] const String& typeId() const { return m_typeId; }
-    [[nodiscard]] const String& uuid() const { return m_uuid; }
-    void setUuid(const String& uuid) { m_uuid = uuid; }
+    [[nodiscard]] const std::string& typeId() const { return m_typeId; }
+    [[nodiscard]] const std::string& uuid() const { return m_uuid; }
+    void setUuid(const std::string& uuid) { m_uuid = uuid; }
 
     // ========== 位置插值配置 ==========
 
@@ -600,8 +600,8 @@ public:
 private:
     // 基本信息
     EntityId m_id;
-    String m_typeId;
-    String m_uuid;
+    std::string m_typeId;
+    std::string m_uuid;
 
     // 位置
     Vector3 m_position;

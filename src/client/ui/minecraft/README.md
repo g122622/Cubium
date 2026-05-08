@@ -167,7 +167,7 @@ Minecraft 字体封装，包装 `ITypeface` 接口。
 ```cpp
 class Screen : public ContainerWidget {
 public:
-    explicit Screen(String id);
+    explicit Screen(std::string id);
 
     virtual void onOpen();      // 屏幕打开时调用
     virtual void onClose();     // 屏幕关闭时调用
@@ -247,7 +247,7 @@ ChatWidget chat;
 chat.setFont(&font);
 chat.setGuiRenderer(&gui);
 chat.setCommandManager(commandManager);
-chat.setCommandCallback([](const String& msg) {
+chat.setCommandCallback([](const std::string& msg) {
     // 处理聊天消息
 });
 chat.open();        // 打开聊天框
@@ -479,7 +479,7 @@ debugScreen.setCamera(&camera);
 debugScreen.setWorld(&world);
 debugScreen.setEntityManager(&entityManager);
 debugScreen.setTextWidthCallback([&](const std::string& text) {
-    return font.getTextWidth(String(text.begin(), text.end()));
+    return font.getTextWidth(std::string(text.begin(), text.end()));
 });
 
 // 按 F3 切换显示

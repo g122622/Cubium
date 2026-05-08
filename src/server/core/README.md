@@ -51,7 +51,7 @@ struct ServerCoreConfig {
 | 字段 | 类型 | 描述 |
 |------|------|------|
 | `playerId` | `PlayerId` | 玩家唯一标识 |
-| `username` | `String` | 用户名 |
+| `username` | `std::string` | 用户名 |
 | `connection` | `ConnectionWeakPtr` | 网络连接（弱引用） |
 | `sessionId` | `u32` | 会话ID（TCP连接标识） |
 | `loggedIn` | `bool` | 登录状态 |
@@ -481,11 +481,11 @@ PacketHandler packetHandler(
 );
 
 // 设置回调
-packetHandler.setOnLoginSuccess([](PlayerId playerId, const String& username) {
+packetHandler.setOnLoginSuccess([](PlayerId playerId, const std::string& username) {
     spdlog::info("Player {} logged in", username);
 });
 
-packetHandler.setOnChat([](PlayerId playerId, const String& username, const String& message) {
+packetHandler.setOnChat([](PlayerId playerId, const std::string& username, const std::string& message) {
     spdlog::info("[Chat] {}: {}", username, message);
 });
 ```
@@ -654,8 +654,8 @@ PacketHandler(PlayerManager&, ConnectionManager&, TeleportManager&, ...);
 
 使用 `std::function` 实现事件通知：
 ```cpp
-using LoginCallback = std::function<void(PlayerId, const String&)>;
-using ChatCallback = std::function<void(PlayerId, const String&, const String&)>;
+using LoginCallback = std::function<void(PlayerId, const std::string&)>;
+using ChatCallback = std::function<void(PlayerId, const std::string&, const std::string&)>;
 ```
 
 ---

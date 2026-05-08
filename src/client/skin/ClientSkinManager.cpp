@@ -23,7 +23,7 @@ Result<void> ClientSkinManager::initialize(VkDevice device,
                                            VkPhysicalDevice physicalDevice,
                                            VkCommandPool commandPool,
                                            VkQueue graphicsQueue,
-                                           const String& cacheDir) {
+                                           const std::string& cacheDir) {
     if (m_initialized) {
         return {};
     }
@@ -110,7 +110,7 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
         return Error(ErrorCode::InvalidArgument, "Failed to create player info");
     }
 
-    String key = uuidToKey(profile.uuid());
+    std::string key = uuidToKey(profile.uuid());
 
     // 检查是否已有纹理区域
     {
@@ -142,7 +142,7 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
     // 尝试从缓存加载皮肤 PNG 数据并上传到图集
     const auto& textures = info->textures();
     if (textures.hasSkin() && textures.skinHash().has_value()) {
-        const String& hash = *textures.skinHash();
+        const std::string& hash = *textures.skinHash();
 
         // 检查缓存中是否有皮肤文件
         if (m_skinManager->cache().hasSkin(hash)) {
@@ -187,7 +187,7 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
 }
 
 const TextureRegion* ClientSkinManager::getSkinRegion(const std::array<u8, 16>& uuid) const {
-    String key = uuidToKey(uuid);
+    std::string key = uuidToKey(uuid);
 
     {
         std::lock_guard<std::mutex> lock(m_regionMutex);
@@ -206,7 +206,7 @@ const TextureRegion* ClientSkinManager::getSkinRegion(const std::array<u8, 16>& 
 }
 
 const TextureRegion* ClientSkinManager::getCapeRegion(const std::array<u8, 16>& uuid) const {
-    String key = uuidToKey(uuid);
+    std::string key = uuidToKey(uuid);
 
     std::lock_guard<std::mutex> lock(m_regionMutex);
     auto it = m_capeRegions.find(key);
@@ -214,7 +214,7 @@ const TextureRegion* ClientSkinManager::getCapeRegion(const std::array<u8, 16>& 
 }
 
 const TextureRegion* ClientSkinManager::getElytraRegion(const std::array<u8, 16>& uuid) const {
-    String key = uuidToKey(uuid);
+    std::string key = uuidToKey(uuid);
 
     std::lock_guard<std::mutex> lock(m_regionMutex);
     auto it = m_elytraRegions.find(key);
@@ -431,7 +431,7 @@ Result<ResourceLocation> ClientSkinManager::uploadSkinToAtlas(
     return preferredLocation;
 }
 
-String ClientSkinManager::uuidToKey(const std::array<u8, 16>& uuid) {
+std::string ClientSkinManager::uuidToKey(const std::array<u8, 16>& uuid) {
     return ::mc::skin::GameProfile(uuid, "").uuidToStringNoDashes();
 }
 

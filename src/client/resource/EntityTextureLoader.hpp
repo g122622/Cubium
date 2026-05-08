@@ -71,14 +71,14 @@ public:
      */
     [[nodiscard]] Result<void> loadEntityTexture(mc::IResourcePack& pack,
                                                   EntityTextureAtlas& atlas,
-                                                  const String& entityTypeId);
+                                                  const std::string& entityTypeId);
 
     /**
      * @brief 获取实体纹理路径
      * @param entityTypeId 实体类型ID
      * @return 纹理资源位置列表（尝试多个路径）
      */
-    [[nodiscard]] static std::vector<ResourceLocation> getTexturePaths(const String& entityTypeId);
+    [[nodiscard]] static std::vector<ResourceLocation> getTexturePaths(const std::string& entityTypeId);
 
     /**
      * @brief 判断实体分类是否需要纹理
@@ -93,7 +93,7 @@ private:
      * @param entityTypeId 实体类型ID（如 "minecraft:pig"）
      * @return 实体名称（如 "pig"）
      */
-    [[nodiscard]] static String parseEntityName(const String& entityTypeId);
+    [[nodiscard]] static std::string parseEntityName(const std::string& entityTypeId);
 
     /**
      * @brief 加载附加纹理（如羊的毛皮层）

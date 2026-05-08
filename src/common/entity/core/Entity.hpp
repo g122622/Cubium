@@ -250,21 +250,21 @@ public:
      */
     void setId(EntityId id) { m_id = id; }
     [[nodiscard]] LegacyEntityType legacyType() const { return m_legacyType; }
-    [[nodiscard]] const String& uuid() const { return m_uuid; }
-    void setUuid(const String& uuid) { m_uuid = uuid; }
+    [[nodiscard]] const std::string& uuid() const { return m_uuid; }
+    void setUuid(const std::string& uuid) { m_uuid = uuid; }
 
     /**
      * @brief 获取实体类型标识符
      * @return 实体类型字符串（用于网络同步和渲染）
      */
-    [[nodiscard]] virtual String getTypeId() const;
+    [[nodiscard]] virtual std::string getTypeId() const;
 
     /**
      * @brief 设置实体类型标识符
      *
      * 当实体由注册表工厂创建时，调用方应传入注册名（如 minecraft:pig）。
      */
-    void setTypeId(const String& typeId) { m_typeId = typeId; }
+    void setTypeId(const std::string& typeId) { m_typeId = typeId; }
 
     // ========== 世界访问 ==========
 
@@ -1083,8 +1083,8 @@ public:
      * @brief 获取自定义名称的纯文本
      * @return 自定义名称纯文本，如果没有返回空字符串
      */
-    [[nodiscard]] String customNameText() const {
-        return m_customName ? m_customName->getUnformattedText() : String();
+    [[nodiscard]] std::string customNameText() const {
+        return m_customName ? m_customName->getUnformattedText() : std::string();
     }
 
     /**
@@ -1114,7 +1114,7 @@ public:
      * @brief 设置自定义名称（纯文本，向后兼容）
      * @param name 名称字符串
      */
-    void setCustomName(const String& name);
+    void setCustomName(const std::string& name);
 
     /**
      * @brief 检查自定义名称是否可见
@@ -1545,7 +1545,7 @@ public:
     void doBlockCollisions(const Vector3& actualMovement, const Vector3& desiredMovement);
 
     // toString，用于调试，所有实体统一
-    [[nodiscard]] String toString() const;
+    [[nodiscard]] std::string toString() const;
 
 protected:
     /**
@@ -1553,12 +1553,12 @@ protected:
      * @param suffix 声音后缀（例如 ambient、hurt、death）
      * @return 声音事件ID，无效类型返回空
      */
-    [[nodiscard]] std::optional<ResourceLocation> makeSoundEventId(StringView suffix) const;
+    [[nodiscard]] std::optional<ResourceLocation> makeSoundEventId(std::string_view suffix) const;
 
     EntityId m_id;
     LegacyEntityType m_legacyType;
-    String m_uuid;              // UUID 字符串
-    String m_typeId;            // 资源标识符（如 minecraft:pig）
+    std::string m_uuid;              // UUID 字符串
+    std::string m_typeId;            // 资源标识符（如 minecraft:pig）
     Vector3 m_position;         // 当前位置
     Vector3 m_prevPosition;     // 上一帧位置
     Vector3 m_velocity;         // 速度

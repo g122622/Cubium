@@ -9,7 +9,7 @@ BasicParticleData::BasicParticleData(ParticleTypeId type)
     MC_ASSERT(isValidParticleType(type));
 }
 
-BasicParticleData::BasicParticleData(const String& typeName) {
+BasicParticleData::BasicParticleData(const std::string& typeName) {
     auto id = ParticleRegistry::instance().getTypeId(typeName);
     if (id.has_value()) {
         m_type = id.value();
@@ -18,7 +18,7 @@ BasicParticleData::BasicParticleData(const String& typeName) {
     }
 }
 
-String BasicParticleData::getTypeName() const {
+std::string BasicParticleData::getTypeName() const {
     return ParticleRegistry::instance().getTypeName(m_type);
 }
 

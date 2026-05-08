@@ -21,7 +21,7 @@
 
 using namespace mc::client::ui::kagero::state;
 using mc::i32;
-using mc::String;
+using mc::std::string;
 using mc::f32;
 using mc::u64;
 
@@ -53,8 +53,8 @@ TEST_F(StateStoreTest, SetAndGet) {
     store.set<i32>("player.health", 100);
     EXPECT_EQ(store.get<i32>("player.health"), 100);
 
-    store.set<String>("player.name", "Steve");
-    EXPECT_EQ(store.get<String>("player.name"), "Steve");
+    store.set<std::string>("player.name", "Steve");
+    EXPECT_EQ(store.get<std::string>("player.name"), "Steve");
 
     store.set<f32>("settings.volume", 0.8f);
     EXPECT_FLOAT_EQ(store.get<f32>("settings.volume"), 0.8f);
@@ -68,7 +68,7 @@ TEST_F(StateStoreTest, GetWithDefaultValue) {
 
     // 键不存在时返回默认值
     EXPECT_EQ(store.get<i32>("nonexistent.key", 42), 42);
-    EXPECT_EQ(store.get<String>("nonexistent.key", "default"), "default");
+    EXPECT_EQ(store.get<std::string>("nonexistent.key", "default"), "default");
     EXPECT_FLOAT_EQ(store.get<f32>("nonexistent.key", 1.5f), 1.5f);
 }
 
@@ -143,7 +143,7 @@ TEST_F(StateStoreTest, TypeMismatch) {
     store.set<i32>("test", 42);
 
     // 尝试用错误的类型获取应返回默认值
-    EXPECT_EQ(store.get<String>("test", "default"), "default");
+    EXPECT_EQ(store.get<std::string>("test", "default"), "default");
 }
 
 // ============================================================================
@@ -271,14 +271,14 @@ TEST_F(StateStoreTest, DispatchComplexAction) {
     auto initPlayer = [](StateStore& s) {
         s.set<i32>("player.health", 100);
         s.set<i32>("player.maxHealth", 100);
-        s.set<String>("player.name", "Steve");
+        s.set<std::string>("player.name", "Steve");
     };
 
     store.dispatch(initPlayer);
 
     EXPECT_EQ(store.get<i32>("player.health"), 100);
     EXPECT_EQ(store.get<i32>("player.maxHealth"), 100);
-    EXPECT_EQ(store.get<String>("player.name"), "Steve");
+    EXPECT_EQ(store.get<std::string>("player.name"), "Steve");
 }
 
 // ============================================================================
@@ -288,9 +288,9 @@ TEST_F(StateStoreTest, DispatchComplexAction) {
 TEST_F(StateStoreTest, Middleware) {
     StateStore& store = StateStore::instance();
 
-    std::vector<String> changedKeys;
+    std::vector<std::string> changedKeys;
 
-    store.addMiddleware([&changedKeys](const String& key, const std::any&, StateStore&) {
+    store.addMiddleware([&changedKeys](const std::string& key, const std::any&, StateStore&) {
         changedKeys.push_back(key);
     });
 
@@ -314,13 +314,13 @@ TEST_F(StateStoreTest, MultipleMiddlewares) {
     StateStore& store = StateStore::instance();
 
     int count = 0;
-    String lastKey;
+    std::string lastKey;
 
-    store.addMiddleware([&count](const String&, const std::any&, StateStore&) {
+    store.addMiddleware([&count](const std::string&, const std::any&, StateStore&) {
         count++;
     });
 
-    store.addMiddleware([&lastKey](const String& key, const std::any&, StateStore&) {
+    store.addMiddleware([&lastKey](const std::string& key, const std::any&, StateStore&) {
         lastKey = key;
     });
 
@@ -334,7 +334,7 @@ TEST_F(StateStoreTest, MiddlewareCanModifyState) {
     StateStore& store = StateStore::instance();
 
     // 中间件记录变化后的值
-    store.addMiddleware([](const String& key, const std::any& value, StateStore&) {
+    store.addMiddleware([](const std::string& key, const std::any& value, StateStore&) {
         if (key == "player.health") {
             // 中间件在值设置前被调用，value 是即将设置的新值
             // 这里可以执行其他操作
@@ -500,7 +500,7 @@ TEST_F(StateStoreTest, ConcurrentSubscribe) {
     for (int t = 0; t < numThreads; ++t) {
         threads.emplace_back([&store, &totalSubscriptions, t, iterations]() {
             for (int i = 0; i < iterations; ++i) {
-                String key = "key_" + std::to_string(t) + "_" + std::to_string(i);
+                std::string key = "key_" + std::to_string(t) + "_" + std::to_string(i);
                 u64 id = store.subscribe(key, []() {});
                 totalSubscriptions++;
                 store.unsubscribe(id);
@@ -531,7 +531,7 @@ TEST_F(StateStoreTest, EmptyKey) {
 TEST_F(StateStoreTest, LongKey) {
     StateStore& store = StateStore::instance();
 
-    String longKey(1000, 'a');
+    std::string longKey(1000, 'a');
     store.set<i32>(longKey, 42);
     EXPECT_EQ(store.get<i32>(longKey), 42);
 }

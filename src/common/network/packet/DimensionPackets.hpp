@@ -125,7 +125,7 @@ public:
      */
     struct DimensionInfo {
         DimensionId id = 0;
-        String name;
+        std::string name;
         bool hasSkyLight = true;
         bool hasCeiling = false;
         f32 ambientLight = 0.0f;

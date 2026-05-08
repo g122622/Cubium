@@ -39,7 +39,7 @@ PlayerDataManager::~PlayerDataManager()
 // 玩家数据操作
 // ============================================================================
 
-Result<PlayerSaveData*> PlayerDataManager::loadPlayer(const String& uuid)
+Result<PlayerSaveData*> PlayerDataManager::loadPlayer(const std::string& uuid)
 {
     // 先检查缓存
     {
@@ -148,7 +148,7 @@ Result<void> PlayerDataManager::savePlayerImmediate(const PlayerSaveData& data)
     return Result<void>::ok();
 }
 
-Result<void> PlayerDataManager::deletePlayer(const String& uuid)
+Result<void> PlayerDataManager::deletePlayer(const std::string& uuid)
 {
     // 从数据库删除
     auto key = makeKey(uuid);
@@ -164,7 +164,7 @@ Result<void> PlayerDataManager::deletePlayer(const String& uuid)
     return Result<void>::ok();
 }
 
-bool PlayerDataManager::hasPlayer(const String& uuid) const
+bool PlayerDataManager::hasPlayer(const std::string& uuid) const
 {
     // 先检查缓存
     {
@@ -179,7 +179,7 @@ bool PlayerDataManager::hasPlayer(const String& uuid) const
     return m_db.exists(cf::PLAYERS, key);
 }
 
-PlayerSaveData* PlayerDataManager::getCachedPlayer(const String& uuid)
+PlayerSaveData* PlayerDataManager::getCachedPlayer(const std::string& uuid)
 {
     std::lock_guard<std::mutex> lock(m_cacheMutex);
     auto it = m_cache.find(uuid);
@@ -189,7 +189,7 @@ PlayerSaveData* PlayerDataManager::getCachedPlayer(const String& uuid)
     return nullptr;
 }
 
-const PlayerSaveData* PlayerDataManager::getCachedPlayer(const String& uuid) const
+const PlayerSaveData* PlayerDataManager::getCachedPlayer(const std::string& uuid) const
 {
     std::lock_guard<std::mutex> lock(m_cacheMutex);
     auto it = m_cache.find(uuid);
@@ -346,7 +346,7 @@ PlayerSaveData PlayerDataManager::fromPlayer(const ServerPlayer& player)
 
 Result<size_t> PlayerDataManager::saveAllDirty()
 {
-    std::vector<String> dirtyUuids;
+    std::vector<std::string> dirtyUuids;
     {
         std::lock_guard<std::mutex> lock(m_cacheMutex);
         dirtyUuids.assign(m_dirtyUuids.begin(), m_dirtyUuids.end());
@@ -388,7 +388,7 @@ Result<size_t> PlayerDataManager::saveAllDirty()
 
 Result<size_t> PlayerDataManager::saveAll()
 {
-    std::vector<String> allUuids;
+    std::vector<std::string> allUuids;
     {
         std::lock_guard<std::mutex> lock(m_cacheMutex);
         allUuids.reserve(m_cache.size());
@@ -428,7 +428,7 @@ Result<size_t> PlayerDataManager::saveAll()
     return savedCount;
 }
 
-void PlayerDataManager::markDirty(const String& uuid)
+void PlayerDataManager::markDirty(const std::string& uuid)
 {
     std::lock_guard<std::mutex> lock(m_cacheMutex);
     m_dirtyUuids.insert(uuid);
@@ -440,10 +440,10 @@ size_t PlayerDataManager::dirtyCount() const
     return m_dirtyUuids.size();
 }
 
-std::vector<String> PlayerDataManager::getDirtyUuids() const
+std::vector<std::string> PlayerDataManager::getDirtyUuids() const
 {
     std::lock_guard<std::mutex> lock(m_cacheMutex);
-    return std::vector<String>(m_dirtyUuids.begin(), m_dirtyUuids.end());
+    return std::vector<std::string>(m_dirtyUuids.begin(), m_dirtyUuids.end());
 }
 
 void PlayerDataManager::clearCache()
@@ -467,12 +467,12 @@ size_t PlayerDataManager::cacheSize() const
 // 私有方法
 // ============================================================================
 
-std::vector<u8> PlayerDataManager::makeKey(const String& uuid)
+std::vector<u8> PlayerDataManager::makeKey(const std::string& uuid)
 {
     return std::vector<u8>(uuid.begin(), uuid.end());
 }
 
-void PlayerDataManager::removeFromCache(const String& uuid)
+void PlayerDataManager::removeFromCache(const std::string& uuid)
 {
     std::lock_guard<std::mutex> lock(m_cacheMutex);
     m_cache.erase(uuid);

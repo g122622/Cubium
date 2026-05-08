@@ -150,7 +150,7 @@ public:
      * @param name 维度名称（如 "minecraft:overworld"）
      * @return 维度ID，如果不存在则返回 -1
      */
-    [[nodiscard]] DimensionId getDimensionIdByName(const String& name) const;
+    [[nodiscard]] DimensionId getDimensionIdByName(const std::string& name) const;
 
     // ========== 遍历 ==========
 
@@ -188,7 +188,7 @@ public:
 
 protected:
     std::unordered_map<DimensionId, std::unique_ptr<Dimension>> m_dimensions;
-    std::unordered_map<String, DimensionId> m_nameToId;
+    std::unordered_map<std::string, DimensionId> m_nameToId;
     u64 m_worldSeed = 0;
     bool m_initialized = false;
 

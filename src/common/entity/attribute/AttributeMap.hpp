@@ -29,7 +29,7 @@ public:
      */
     bool registerAttribute(const Attribute& attribute) {
         std::lock_guard<std::mutex> lock(m_mutex);
-        const String& name = attribute.registryName();
+        const std::string& name = attribute.registryName();
         if (m_instances.find(name) != m_instances.end()) {
             return false;
         }
@@ -42,7 +42,7 @@ public:
      * @param name 属性名称
      * @return 属性实例指针，不存在返回nullptr
      */
-    AttributeInstance* getInstance(const String& name) {
+    AttributeInstance* getInstance(const std::string& name) {
         std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_instances.find(name);
         if (it != m_instances.end()) {
@@ -56,7 +56,7 @@ public:
      * @param name 属性名称
      * @return 属性实例指针，不存在返回nullptr
      */
-    [[nodiscard]] const AttributeInstance* getInstance(const String& name) const {
+    [[nodiscard]] const AttributeInstance* getInstance(const std::string& name) const {
         std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_instances.find(name);
         if (it != m_instances.end()) {
@@ -71,7 +71,7 @@ public:
      * @param defaultValue 默认值（属性不存在时返回）
      * @return 属性值
      */
-    [[nodiscard]] f64 getValue(const String& name, f64 defaultValue = 0.0) const {
+    [[nodiscard]] f64 getValue(const std::string& name, f64 defaultValue = 0.0) const {
         const AttributeInstance* instance = getInstance(name);
         return instance ? instance->getValue() : defaultValue;
     }
@@ -82,7 +82,7 @@ public:
      * @param defaultValue 默认值（属性不存在时返回）
      * @return 基础值
      */
-    [[nodiscard]] f64 getBaseValue(const String& name, f64 defaultValue = 0.0) const {
+    [[nodiscard]] f64 getBaseValue(const std::string& name, f64 defaultValue = 0.0) const {
         const AttributeInstance* instance = getInstance(name);
         return instance ? instance->baseValue() : defaultValue;
     }
@@ -93,7 +93,7 @@ public:
      * @param value 新的基础值
      * @return 是否成功设置
      */
-    bool setBaseValue(const String& name, f64 value) {
+    bool setBaseValue(const std::string& name, f64 value) {
         AttributeInstance* instance = getInstance(name);
         if (instance) {
             instance->setBaseValue(value);
@@ -108,7 +108,7 @@ public:
      * @param modifier 修改器
      * @return 是否成功添加
      */
-    bool addModifier(const String& attributeName, const AttributeModifier& modifier) {
+    bool addModifier(const std::string& attributeName, const AttributeModifier& modifier) {
         AttributeInstance* instance = getInstance(attributeName);
         if (instance) {
             instance->addModifier(modifier);
@@ -123,7 +123,7 @@ public:
      * @param modifierId 修改器ID
      * @return 是否成功移除
      */
-    bool removeModifier(const String& attributeName, const String& modifierId) {
+    bool removeModifier(const std::string& attributeName, const std::string& modifierId) {
         AttributeInstance* instance = getInstance(attributeName);
         if (instance) {
             return instance->removeModifier(modifierId);
@@ -135,7 +135,7 @@ public:
      * @brief 检查是否有属性
      * @param name 属性名称
      */
-    [[nodiscard]] bool hasAttribute(const String& name) const {
+    [[nodiscard]] bool hasAttribute(const std::string& name) const {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_instances.find(name) != m_instances.end();
     }
@@ -143,7 +143,7 @@ public:
     /**
      * @brief 获取所有属性实例
      */
-    [[nodiscard]] const std::unordered_map<String, std::unique_ptr<AttributeInstance>>& allInstances() const {
+    [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<AttributeInstance>>& allInstances() const {
         return m_instances;
     }
 
@@ -178,7 +178,7 @@ public:
     }
 
 private:
-    std::unordered_map<String, std::unique_ptr<AttributeInstance>> m_instances;
+    std::unordered_map<std::string, std::unique_ptr<AttributeInstance>> m_instances;
     mutable std::mutex m_mutex;
 };
 

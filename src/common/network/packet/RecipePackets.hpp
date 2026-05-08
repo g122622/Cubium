@@ -27,8 +27,8 @@ public:
      * @param recipeData 序列化的配方数据
      */
     RecipeSyncPacket(const ResourceLocation& recipeId,
-                     const String& recipeType,
-                     const String& recipeData)
+                     const std::string& recipeType,
+                     const std::string& recipeData)
         : m_recipeId(recipeId)
         , m_recipeType(recipeType)
         , m_recipeData(recipeData)
@@ -36,13 +36,13 @@ public:
 
     // Getters
     [[nodiscard]] const ResourceLocation& recipeId() const { return m_recipeId; }
-    [[nodiscard]] const String& recipeType() const { return m_recipeType; }
-    [[nodiscard]] const String& recipeData() const { return m_recipeData; }
+    [[nodiscard]] const std::string& recipeType() const { return m_recipeType; }
+    [[nodiscard]] const std::string& recipeData() const { return m_recipeData; }
 
     // Setters
     void setRecipeId(const ResourceLocation& id) { m_recipeId = id; }
-    void setRecipeType(const String& type) { m_recipeType = type; }
-    void setRecipeData(const String& data) { m_recipeData = data; }
+    void setRecipeType(const std::string& type) { m_recipeType = type; }
+    void setRecipeData(const std::string& data) { m_recipeData = data; }
 
     // 序列化
     void serialize(network::PacketSerializer& ser) const {
@@ -72,8 +72,8 @@ public:
 
 private:
     ResourceLocation m_recipeId;
-    String m_recipeType;
-    String m_recipeData;
+    std::string m_recipeType;
+    std::string m_recipeData;
 };
 
 /**

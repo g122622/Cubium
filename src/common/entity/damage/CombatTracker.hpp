@@ -101,7 +101,7 @@ public:
      * @brief 生成死亡消息
      * @return 死亡消息字符串
      */
-    [[nodiscard]] String getDeathMessage() const;
+    [[nodiscard]] std::string getDeathMessage() const;
 
     /**
      * @brief 检查是否有战斗记录
@@ -181,7 +181,7 @@ private:
     i32 m_combatEndTime = 0;                // 战斗结束时间
     bool m_inCombat = false;                // 是否在战斗中
     bool m_takingDamage = false;            // 是否正在受到伤害
-    String m_fallSuffix;                    // 当前摔落后缀
+    std::string m_fallSuffix;                    // 当前摔落后缀
 };
 
 } // namespace mc

@@ -13,7 +13,7 @@ namespace {
  * 索引与 SoundCategory 枚举值对应。
  * 名称与 MC Java 一致。
  */
-constexpr StringView s_categoryNames[] = {
+constexpr std::string_view s_categoryNames[] = {
     "master",   // Master
     "music",    // Music
     "record",   // Records (注意: MC Java 使用单数形式 "record")
@@ -31,7 +31,7 @@ static_assert(std::size(s_categoryNames) == static_cast<size_t>(SoundCategory::C
 
 } // anonymous namespace
 
-StringView getSoundCategoryName(SoundCategory category) noexcept {
+std::string_view getSoundCategoryName(SoundCategory category) noexcept {
     const size_t index = static_cast<size_t>(category);
     if (index >= static_cast<size_t>(SoundCategory::Count)) {
         return "master"; // 默认返回 master
@@ -39,7 +39,7 @@ StringView getSoundCategoryName(SoundCategory category) noexcept {
     return s_categoryNames[index];
 }
 
-std::optional<SoundCategory> parseSoundCategory(StringView name) noexcept {
+std::optional<SoundCategory> parseSoundCategory(std::string_view name) noexcept {
     if (name.empty()) {
         return std::nullopt;
     }
@@ -48,7 +48,7 @@ std::optional<SoundCategory> parseSoundCategory(StringView name) noexcept {
     auto toLower = [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); };
 
     // 比较函数：不区分大小写
-    auto equalsIgnoreCase = [toLower](StringView a, StringView b) {
+    auto equalsIgnoreCase = [toLower](std::string_view a, std::string_view b) {
         if (a.size() != b.size()) return false;
         for (size_t i = 0; i < a.size(); ++i) {
             if (toLower(a[i]) != toLower(b[i])) return false;

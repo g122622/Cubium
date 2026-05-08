@@ -74,7 +74,7 @@ compat::PackFormat ResourceLoader::detectFormat(const IResourcePack& pack) {
 
 std::vector<compat::unified::UnifiedTexture> ResourceLoader::loadTextures() {
     std::vector<compat::unified::UnifiedTexture> textures;
-    std::set<String> loadedLocations;  // 跟踪已加载的位置以避免重复
+    std::set<std::string> loadedLocations;  // 跟踪已加载的位置以避免重复
 
     m_stats.texturesLoaded = 0;
     m_stats.texturesFailed = 0;
@@ -88,7 +88,7 @@ std::vector<compat::unified::UnifiedTexture> ResourceLoader::loadTextures() {
         if (listResult.success()) {
             for (const auto& file : listResult.value()) {
                 // 转换为统一位置
-                String unifiedPath = ctx.mapper->toUnifiedTexturePath(file);
+                std::string unifiedPath = ctx.mapper->toUnifiedTexturePath(file);
 
                 // 跳过已加载的
                 if (loadedLocations.count(unifiedPath)) {
@@ -119,7 +119,7 @@ std::vector<compat::unified::UnifiedTexture> ResourceLoader::loadTextures() {
         listResult = ctx.pack->listResources("textures/item", ".png");
         if (listResult.success()) {
             for (const auto& file : listResult.value()) {
-                String unifiedPath = ctx.mapper->toUnifiedTexturePath(file);
+                std::string unifiedPath = ctx.mapper->toUnifiedTexturePath(file);
 
                 if (loadedLocations.count(unifiedPath)) {
                     continue;
@@ -149,7 +149,7 @@ std::vector<compat::unified::UnifiedTexture> ResourceLoader::loadTextures() {
             listResult = ctx.pack->listResources("textures/blocks", ".png");
             if (listResult.success()) {
                 for (const auto& file : listResult.value()) {
-                    String unifiedPath = ctx.mapper->toUnifiedTexturePath(file);
+                    std::string unifiedPath = ctx.mapper->toUnifiedTexturePath(file);
 
                     if (loadedLocations.count(unifiedPath)) {
                         continue;
@@ -179,7 +179,7 @@ std::vector<compat::unified::UnifiedTexture> ResourceLoader::loadTextures() {
 Result<compat::unified::UnifiedTexture> ResourceLoader::loadTexture(
     const ResourceLocation& location)
 {
-    String unifiedPath = location.path();
+    std::string unifiedPath = location.path();
 
     // 逆序尝试每个包
     for (auto it = m_packs.rbegin(); it != m_packs.rend(); ++it) {
@@ -189,7 +189,7 @@ Result<compat::unified::UnifiedTexture> ResourceLoader::loadTexture(
         auto variants = ctx.mapper->getTexturePathVariants(unifiedPath);
 
         for (const auto& variant : variants) {
-            String filePath = ResourceLocation(location.namespace_(), variant).toFilePath("png");
+            std::string filePath = ResourceLocation(location.namespace_(), variant).toFilePath("png");
 
             if (ctx.pack->hasResource(filePath)) {
                 auto pixelsResult = readTexturePixels(*ctx.pack, filePath);
@@ -213,7 +213,7 @@ Result<compat::unified::UnifiedTexture> ResourceLoader::loadTexture(
 
 Result<compat::unified::PixelData> ResourceLoader::readTexturePixels(
     const IResourcePack& pack,
-    const String& path)
+    const std::string& path)
 {
     auto readResult = pack.readResource(path);
     if (readResult.failed()) {
@@ -244,7 +244,7 @@ Result<compat::unified::PixelData> ResourceLoader::readTexturePixels(
 
 std::vector<compat::unified::UnifiedModel> ResourceLoader::loadModels() {
     std::vector<compat::unified::UnifiedModel> models;
-    std::set<String> loadedLocations;
+    std::set<std::string> loadedLocations;
 
     m_stats.modelsLoaded = 0;
     m_stats.modelsFailed = 0;
@@ -266,7 +266,7 @@ Result<compat::unified::UnifiedModel> ResourceLoader::loadModel(const ResourceLo
 
 std::vector<compat::unified::UnifiedBlockState> ResourceLoader::loadBlockStates() {
     std::vector<compat::unified::UnifiedBlockState> blockStates;
-    std::set<String> loadedLocations;
+    std::set<std::string> loadedLocations;
 
     m_stats.blockStatesLoaded = 0;
     m_stats.blockStatesFailed = 0;
@@ -286,13 +286,13 @@ Result<compat::unified::UnifiedBlockState> ResourceLoader::loadBlockState(const 
     return Error(ErrorCode::Unsupported, "方块状态加载尚未实现");
 }
 
-std::pair<const IResourcePack*, String> ResourceLoader::findTexture(const String& unifiedPath) {
+std::pair<const IResourcePack*, std::string> ResourceLoader::findTexture(const std::string& unifiedPath) {
     for (auto it = m_packs.rbegin(); it != m_packs.rend(); ++it) {
         const auto& ctx = *it;
 
         auto variants = ctx.mapper->getTexturePathVariants(unifiedPath);
         for (const auto& variant : variants) {
-            String filePath = ResourceLocation(variant).toFilePath("png");
+            std::string filePath = ResourceLocation(variant).toFilePath("png");
             if (ctx.pack->hasResource(filePath)) {
                 return {ctx.pack.get(), filePath};
             }

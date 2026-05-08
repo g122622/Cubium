@@ -15,7 +15,7 @@ src/common/core/
 └── settings/
     ├── SettingsBase.hpp         # Settings base class
     ├── SettingsBase.cpp         # Settings implementation
-    ├── SettingsTypes.hpp        # Option types (Boolean, Range, Float, Enum, String)
+    ├── SettingsTypes.hpp        # Option types (Boolean, Range, Float, Enum, std::string)
     └── ResourcePackListOption.hpp  # Resource pack list option
 ```
 
@@ -37,9 +37,6 @@ using u32 = std::uint32_t;
 using u64 = std::uint64_t;
 using f32 = float;
 using f64 = double;
-
-using String     = std::string;
-using StringView = std::string_view;
 ```
 
 **Simple Vector Types (for command system):**
@@ -102,16 +99,16 @@ enum class ErrorCode : i32 {
 ```cpp
 class Error {
 public:
-    Error(ErrorCode code, StringView message = "", StringView source = "");
+    Error(ErrorCode code, std::string_view message = "", std::string_view source = "");
     [[nodiscard]] ErrorCode code() const noexcept;
-    [[nodiscard]] const String& message() const noexcept;
+    [[nodiscard]] const std::string& message() const noexcept;
     [[nodiscard]] bool success() const noexcept;
-    [[nodiscard]] String toString() const;
+    [[nodiscard]] std::string toString() const;
 
     // Static factory methods
     static Error ok();
-    static Error notFound(StringView message = "");
-    static Error invalidArgument(StringView message = "");
+    static Error notFound(std::string_view message = "");
+    static Error invalidArgument(std::string_view message = "");
 };
 ```
 
@@ -300,15 +297,15 @@ public:
     void loadFromJson(const nlohmann::json& j);
     void saveToJson(nlohmann::json& j) const;
 
-    void registerOption(const String& group, IOption* option);
+    void registerOption(const std::string& group, IOption* option);
     void resetToDefaults();
-    void resetGroupToDefaults(const String& group);
+    void resetGroupToDefaults(const std::string& group);
 
     void enableAutoSave(std::filesystem::path path);
     void disableAutoSave();
 
-    static std::filesystem::path getSettingsPath(const String& appName);
-    static std::filesystem::path ensureSettingsDir(const String& appName);
+    static std::filesystem::path getSettingsPath(const std::string& appName);
+    static std::filesystem::path ensureSettingsDir(const std::string& appName);
 
 protected:
     void onSettingChanged();
@@ -319,7 +316,7 @@ protected:
 ```cpp
 // Interface
 class IOption {
-    virtual String getKey() const = 0;
+    virtual std::string getKey() const = 0;
     virtual SettingsValue getValue() const = 0;
     virtual bool setValue(const SettingsValue& value) = 0;
     virtual void serialize(nlohmann::json& j) const = 0;
@@ -330,7 +327,7 @@ class IOption {
 
 // Boolean option
 class BooleanOption : public IOption {
-    BooleanOption(String key, bool defaultValue = false);
+    BooleanOption(std::string key, bool defaultValue = false);
     bool get() const;
     void set(bool value);
     operator bool() const;
@@ -339,7 +336,7 @@ class BooleanOption : public IOption {
 
 // Integer range option (with clamping)
 class RangeOption : public IOption {
-    RangeOption(String key, i32 min, i32 max, i32 defaultValue);
+    RangeOption(std::string key, i32 min, i32 max, i32 defaultValue);
     i32 get() const;
     void set(i32 value);  // Auto-clamps to [min, max]
     operator i32() const;
@@ -350,7 +347,7 @@ class RangeOption : public IOption {
 
 // Float option (with clamping)
 class FloatOption : public IOption {
-    FloatOption(String key, f32 min, f32 max, f32 defaultValue);
+    FloatOption(std::string key, f32 min, f32 max, f32 defaultValue);
     f32 get() const;
     void set(f32 value);  // Auto-clamps to [min, max]
     operator f32() const;
@@ -360,39 +357,39 @@ class FloatOption : public IOption {
 // Enum option (with name mapping)
 template<typename T>
 class EnumOption : public IOption {
-    EnumOption(String key, std::vector<T> values, T defaultValue, std::vector<String> names);
+    EnumOption(std::string key, std::vector<T> values, T defaultValue, std::vector<std::string> names);
     T get() const;
     void set(T value);
-    bool setByName(const String& name);
-    String getName() const;
+    bool setByName(const std::string& name);
+    std::string getName() const;
     operator T() const;
     void onChange(SettingsCallback<T> callback);
 };
 
-// String option
+// std::string option
 class StringOption : public IOption {
-    StringOption(String key, String defaultValue = "");
-    const String& get() const;
-    void set(String value);
-    operator StringView() const;
-    void onChange(SettingsCallback<String> callback);
+    StringOption(std::string key, std::string defaultValue = "");
+    const std::string& get() const;
+    void set(std::string value);
+    operator std::string_view() const;
+    void onChange(SettingsCallback<std::string> callback);
 };
 ```
 
 **ResourcePackListOption.hpp:**
 ```cpp
 struct ResourcePackEntry {
-    String path;
+    std::string path;
     bool enabled = true;
     i32 priority = 0;
 };
 
 class ResourcePackListOption : public IOption {
     void add(const ResourcePackEntry& entry);
-    bool remove(const String& path);
-    const ResourcePackEntry* find(const String& path) const;
-    bool setEnabled(const String& path, bool enabled);
-    bool setPriority(const String& path, i32 priority);
+    bool remove(const std::string& path);
+    const ResourcePackEntry* find(const std::string& path) const;
+    bool setEnabled(const std::string& path, bool enabled);
+    bool setPriority(const std::string& path, i32 priority);
 
     std::vector<ResourcePackEntry> getSortedEntries() const;
     std::vector<ResourcePackEntry> getEnabledEntries() const;
@@ -451,7 +448,7 @@ The core module provides:
 
 **External Dependencies:**
 - `<cstdint>` - Integer types
-- `<string>`, `<string_view>` - String types
+- `<string>`, `<string_view>` - std::string types
 - `<optional>` - Optional type
 - `<variant>` - For SettingsValue
 - `<functional>` - Callbacks
@@ -542,7 +539,7 @@ Tests are located in `tests/common/test_core.cpp` and `tests/common/SettingsTest
 - `Result.ValueOrDefault` - Default value handling
 - `Result.VoidResult` - Result<void> specialization
 - `Result.ChainingOperations` - Error propagation
-- `Result.StringResult` - String result type
+- `Result.StringResult` - std::string result type
 - `Result.VectorResult` - Vector result type
 - `Result.MoveSemantics` - Move semantics for unique_ptr
 
@@ -558,7 +555,7 @@ Tests are located in `tests/common/test_core.cpp` and `tests/common/SettingsTest
 - `Constants.NetworkConstants` - Network constant values
 
 **Settings Tests:**
-- All option types (Boolean, Range, Float, Enum, String)
+- All option types (Boolean, Range, Float, Enum, std::string)
 - Serialization/deserialization
 - Callback invocation
 - Default value handling

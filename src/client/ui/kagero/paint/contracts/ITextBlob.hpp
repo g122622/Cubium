@@ -13,7 +13,7 @@ class ITextBlob {
 public:
     virtual ~ITextBlob() = default;
 
-    [[nodiscard]] virtual const String& text() const = 0;
+    [[nodiscard]] virtual const std::string& text() const = 0;
     [[nodiscard]] virtual const ITypeface& typeface() const = 0;
     [[nodiscard]] virtual f32 textSize() const = 0;
 };

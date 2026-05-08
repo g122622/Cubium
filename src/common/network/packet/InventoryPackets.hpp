@@ -444,7 +444,7 @@ public:
      * @param type 容器类型
      * @param title 容器标题
      */
-    OpenContainerPacket(ContainerId containerId, i32 type, const String& title)
+    OpenContainerPacket(ContainerId containerId, i32 type, const std::string& title)
         : m_containerId(containerId)
         , m_type(type)
         , m_title(title)
@@ -453,12 +453,12 @@ public:
     // Getters
     [[nodiscard]] ContainerId containerId() const { return m_containerId; }
     [[nodiscard]] i32 type() const { return m_type; }
-    [[nodiscard]] const String& title() const { return m_title; }
+    [[nodiscard]] const std::string& title() const { return m_title; }
 
     // Setters
     void setContainerId(ContainerId id) { m_containerId = id; }
     void setType(i32 type) { m_type = type; }
-    void setTitle(const String& title) { m_title = title; }
+    void setTitle(const std::string& title) { m_title = title; }
 
     // 序列化 (MC 1.16.5 对齐: VarInt windowId, VarInt type, Component title)
     void serialize(network::PacketSerializer& ser) const {
@@ -489,7 +489,7 @@ public:
 private:
     ContainerId m_containerId = 0;
     i32 m_type = 0;
-    String m_title;
+    std::string m_title;
 };
 
 // ============================================================================

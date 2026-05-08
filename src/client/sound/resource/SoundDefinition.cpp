@@ -10,7 +10,7 @@ namespace mc::client::sound {
 // SoundDefinition
 // ============================================================================
 
-SoundDefinition::SoundDefinition(StringView path)
+SoundDefinition::SoundDefinition(std::string_view path)
     : location(ResourceLocation::parse(path))
     , type(SoundType::File)
 {
@@ -31,13 +31,13 @@ ResourceLocation SoundDefinition::toOggLocation() const {
 
 Result<SoundDefinition> SoundDefinition::parse(
     const nlohmann::json& json,
-    StringView namespace_
+    std::string_view namespace_
 ) {
     SoundDefinition def;
 
     if (json.is_string()) {
         // 简单字符串格式: "dig/stone1"
-        String path = json.get<String>();
+        std::string path = json.get<std::string>();
 
         // 检查是否是事件引用（以 # 开头）
         if (!path.empty() && path[0] == '#') {
@@ -48,8 +48,8 @@ Result<SoundDefinition> SoundDefinition::parse(
             // 文件引用
             def.type = SoundType::File;
             // 如果没有命名空间，添加默认命名空间
-            if (path.find(':') == String::npos) {
-                def.location = ResourceLocation(String(namespace_), path);
+            if (path.find(':') == std::string::npos) {
+                def.location = ResourceLocation(std::string(namespace_), path);
             } else {
                 def.location = ResourceLocation::parse(path);
             }
@@ -60,7 +60,7 @@ Result<SoundDefinition> SoundDefinition::parse(
             return Error(ErrorCode::InvalidData, "Sound definition missing 'name' field");
         }
 
-        String name = json["name"].get<String>();
+        std::string name = json["name"].get<std::string>();
 
         // 检查是否是事件引用
         if (!name.empty() && name[0] == '#') {
@@ -69,8 +69,8 @@ Result<SoundDefinition> SoundDefinition::parse(
         } else {
             def.type = SoundType::File;
             // 如果没有命名空间，添加默认命名空间
-            if (name.find(':') == String::npos) {
-                def.location = ResourceLocation(String(namespace_), name);
+            if (name.find(':') == std::string::npos) {
+                def.location = ResourceLocation(std::string(namespace_), name);
             } else {
                 def.location = ResourceLocation::parse(name);
             }
@@ -128,7 +128,7 @@ Result<SoundDefinition> SoundDefinition::parse(
 
         // 支持 type 字段（事件引用的另一种方式）
         if (json.contains("type")) {
-            String typeStr = json["type"].get<String>();
+            std::string typeStr = json["type"].get<std::string>();
             if (typeStr == "event") {
                 def.type = SoundType::Event;
             } else if (typeStr == "file") {
@@ -151,17 +151,17 @@ SoundEventDefinition::SoundEventDefinition(ResourceLocation location)
 {
 }
 
-SoundEventDefinition::SoundEventDefinition(StringView eventId)
+SoundEventDefinition::SoundEventDefinition(std::string_view eventId)
     : location(ResourceLocation::parse(eventId))
 {
 }
 
 Result<SoundEventDefinition> SoundEventDefinition::parse(
-    StringView eventId,
+    std::string_view eventId,
     const nlohmann::json& json,
-    StringView namespace_
+    std::string_view namespace_
 ) {
-    SoundEventDefinition def{String(eventId)};
+    SoundEventDefinition def{std::string(eventId)};
 
     if (!json.is_object()) {
         return Error(ErrorCode::InvalidData, "Sound event definition must be an object");
@@ -177,7 +177,7 @@ Result<SoundEventDefinition> SoundEventDefinition::parse(
     // 解析 subtitle 字段
     if (json.contains("subtitle")) {
         if (json["subtitle"].is_string()) {
-            def.subtitle = json["subtitle"].get<String>();
+            def.subtitle = json["subtitle"].get<std::string>();
         }
     }
 
@@ -198,7 +198,7 @@ Result<SoundEventDefinition> SoundEventDefinition::parse(
             def.sounds.push_back(std::move(result.value()));
         } else {
             spdlog::warn("Sound event '{}' skipped invalid sound entry: {}",
-                         String(eventId),
+                         std::string(eventId),
                          result.error().message());
         }
     }

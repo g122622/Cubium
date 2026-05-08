@@ -9,7 +9,7 @@ void GuiSpriteManager::registerSprite(const GuiSprite& sprite) {
     m_sprites[sprite.id] = sprite;
 }
 
-void GuiSpriteManager::registerSprite(const String& id, i32 x, i32 y,
+void GuiSpriteManager::registerSprite(const std::string& id, i32 x, i32 y,
                                        i32 width, i32 height,
                                        i32 atlasWidth, i32 atlasHeight) {
     GuiSprite sprite(id, x, y, width, height, atlasWidth, atlasHeight);
@@ -22,7 +22,7 @@ void GuiSpriteManager::registerSprites(const std::vector<GuiSprite>& sprites) {
     }
 }
 
-const GuiSprite* GuiSpriteManager::getSprite(const String& id) const {
+const GuiSprite* GuiSpriteManager::getSprite(const std::string& id) const {
     auto it = m_sprites.find(id);
     if (it != m_sprites.end()) {
         return &it->second;
@@ -30,7 +30,7 @@ const GuiSprite* GuiSpriteManager::getSprite(const String& id) const {
     return nullptr;
 }
 
-bool GuiSpriteManager::hasSprite(const String& id) const {
+bool GuiSpriteManager::hasSprite(const std::string& id) const {
     return m_sprites.find(id) != m_sprites.end();
 }
 

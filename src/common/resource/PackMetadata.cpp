@@ -4,13 +4,13 @@
 
 namespace mc {
 
-PackMetadata::PackMetadata(i32 packFormat, String description)
+PackMetadata::PackMetadata(i32 packFormat, std::string description)
     : m_packFormat(packFormat)
     , m_description(std::move(description))
 {
 }
 
-Result<PackMetadata> PackMetadata::parse(StringView jsonContent) {
+Result<PackMetadata> PackMetadata::parse(std::string_view jsonContent) {
     try {
         auto json = nlohmann::json::parse(jsonContent);
 
@@ -24,25 +24,25 @@ Result<PackMetadata> PackMetadata::parse(StringView jsonContent) {
             }
 
             if (pack.contains("description")) {
-                metadata.m_description = pack["description"].get<String>();
+                metadata.m_description = pack["description"].get<std::string>();
             }
         }
 
         return metadata;
     } catch (const std::exception& e) {
         return Error(ErrorCode::ResourceParseError,
-                     String("Failed to parse pack.mcmeta: ") + e.what());
+                     std::string("Failed to parse pack.mcmeta: ") + e.what());
     }
 }
 
-Result<PackMetadata> PackMetadata::parseFile(StringView filePath) {
-    std::ifstream file(String(filePath), std::ios::binary);
+Result<PackMetadata> PackMetadata::parseFile(std::string_view filePath) {
+    std::ifstream file(std::string(filePath), std::ios::binary);
 
     if (!file.is_open()) {
-        return Error(ErrorCode::FileNotFound, String("Cannot open: ") + String(filePath));
+        return Error(ErrorCode::FileNotFound, std::string("Cannot open: ") + std::string(filePath));
     }
 
-    String content((std::istreambuf_iterator<char>(file)),
+    std::string content((std::istreambuf_iterator<char>(file)),
                    std::istreambuf_iterator<char>());
 
     return parse(content);

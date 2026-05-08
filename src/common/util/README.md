@@ -483,7 +483,7 @@ using namespace mc::util;
 MemoryInfo mem = PlatformInfo::getMemoryInfo();
 CpuInfo cpu = PlatformInfo::getCpuInfo();
 u64 processMem = PlatformInfo::getProcessMemoryMB();
-String platform = PlatformInfo::getPlatformName();
+std::string platform = PlatformInfo::getPlatformName();
 ```
 
 #### TimeUtils
@@ -509,7 +509,7 @@ u64 us = TimeUtils::getCurrentTimeUs();
 using namespace mc::util;
 
 // ASCII 小写转换
-String lower = toLowerAscii("HELLO");  // "hello"
+std::string lower = toLowerAscii("HELLO");  // "hello"
 
 // 数字检测
 if (isNumeric("12345")) { ... }        // true

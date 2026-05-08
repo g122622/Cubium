@@ -6,7 +6,7 @@ TextureImage::TextureImage(VkImageView imageView, VkSampler sampler,
                            i32 width, i32 height,
                            f32 u0, f32 v0, f32 u1, f32 v1,
                            u8 atlasSlot,
-                           String debugName)
+                           std::string debugName)
     : m_imageView(imageView)
     , m_sampler(sampler)
     , m_width(width)

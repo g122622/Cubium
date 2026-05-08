@@ -24,11 +24,11 @@ class BaneOfArthropodsEnchantment : public DamageEnchantment {
 public:
     BaneOfArthropodsEnchantment() : DamageEnchantment(Type::Arthropods) {}
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:bane_of_arthropods";
     }
 
-    [[nodiscard]] String getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override {
         (void)level;
         return "enchantment.minecraft.bane_of_arthropods";
     }

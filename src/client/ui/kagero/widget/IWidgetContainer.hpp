@@ -49,7 +49,7 @@ public:
      * @param id 组件ID
      * @return 如果找到并移除返回true
      */
-    virtual bool removeWidgetById(const String& id) = 0;
+    virtual bool removeWidgetById(const std::string& id) = 0;
 
     /**
      * @brief 清空所有子组件
@@ -71,12 +71,12 @@ public:
      * @param id 组件ID
      * @return 组件指针，如果未找到返回nullptr
      */
-    [[nodiscard]] virtual Widget* findWidgetById(const String& id) = 0;
+    [[nodiscard]] virtual Widget* findWidgetById(const std::string& id) = 0;
 
     /**
      * @brief 通过ID查找子组件（const版本）
      */
-    [[nodiscard]] virtual const Widget* findWidgetById(const String& id) const = 0;
+    [[nodiscard]] virtual const Widget* findWidgetById(const std::string& id) const = 0;
 
     /**
      * @brief 获取指定位置的组件
@@ -187,11 +187,11 @@ public:
      * @param id 组件ID
      * @return 是否成功移除
      */
-    bool removeChild(const String& id) {
+    bool removeChild(const std::string& id) {
         return removeWidgetById(id);
     }
 
-    bool removeWidgetById(const String& id) override {
+    bool removeWidgetById(const std::string& id) override {
         auto it = std::find_if(m_children.begin(), m_children.end(),
             [&id](const Widget::Ptr& ptr) {
                 return ptr->id() == id;
@@ -234,7 +234,7 @@ public:
         return m_children.size();
     }
 
-    [[nodiscard]] Widget* findWidgetById(const String& id) override {
+    [[nodiscard]] Widget* findWidgetById(const std::string& id) override {
         auto it = std::find_if(m_children.begin(), m_children.end(),
             [&id](const Widget::Ptr& ptr) {
                 return ptr->id() == id;
@@ -246,11 +246,11 @@ public:
     /**
      * @brief 通过ID查找子组件（别名，与文档一致）
      */
-    [[nodiscard]] Widget* findChild(const String& id) {
+    [[nodiscard]] Widget* findChild(const std::string& id) {
         return findWidgetById(id);
     }
 
-    [[nodiscard]] const Widget* findWidgetById(const String& id) const override {
+    [[nodiscard]] const Widget* findWidgetById(const std::string& id) const override {
         auto it = std::find_if(m_children.begin(), m_children.end(),
             [&id](const Widget::Ptr& ptr) {
                 return ptr->id() == id;
@@ -259,7 +259,7 @@ public:
         return (it != m_children.end()) ? it->get() : nullptr;
     }
 
-    [[nodiscard]] const Widget* findChild(const String& id) const {
+    [[nodiscard]] const Widget* findChild(const std::string& id) const {
         return findWidgetById(id);
     }
 

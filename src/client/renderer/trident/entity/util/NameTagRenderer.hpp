@@ -57,7 +57,7 @@ public:
     static void renderNameTag(
         VkCommandBuffer cmd,
         Entity& entity,
-        const String& displayName,
+        const std::string& displayName,
         f64 partialTicks,
         pipeline::EntityPipeline& pipeline
     );
@@ -67,7 +67,7 @@ public:
      */
     static void renderNameTag(
         Entity& entity,
-        const String& displayName,
+        const std::string& displayName,
         f64 partialTicks
     );
 

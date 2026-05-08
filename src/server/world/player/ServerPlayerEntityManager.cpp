@@ -8,7 +8,7 @@
 
 namespace mc::server {
 
-Player* ServerPlayerEntityManager::createPlayerEntity(PlayerId playerId, const String& username,
+Player* ServerPlayerEntityManager::createPlayerEntity(PlayerId playerId, const std::string& username,
                                                        ServerWorld& world, f32 spawnX, f32 spawnY, f32 spawnZ) {
     MC_ASSERT_RELEASE(playerId != 0);
 

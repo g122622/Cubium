@@ -82,7 +82,7 @@ bool FluidState::canDisplace(IWorld& world, const BlockPos& pos,
     return m_owner->canDisplace(*this, world, pos, fluid, dir);
 }
 
-String FluidState::ownerName() const {
+std::string FluidState::ownerName() const {
     return m_owner->toString();
 }
 

@@ -47,7 +47,7 @@ namespace {
         {BlockEntityType::Jukebox,        ResourceLocation("minecraft", "jukebox")}
     };
 
-    const std::unordered_map<String, BlockEntityType> idToTypeMap = {
+    const std::unordered_map<std::string, BlockEntityType> idToTypeMap = {
         {"minecraft:chest",          BlockEntityType::Chest},
         {"minecraft:trapped_chest",  BlockEntityType::TrappedChest},
         {"minecraft:ender_chest",    BlockEntityType::EnderChest},
@@ -110,7 +110,7 @@ ResourceLocation blockEntityTypeToId(BlockEntityType type) {
 }
 
 BlockEntityType blockEntityTypeFromId(const ResourceLocation& id) {
-    String idStr = id.toString();
+    std::string idStr = id.toString();
     auto it = idToTypeMap.find(idStr);
     if (it != idToTypeMap.end()) {
         return it->second;

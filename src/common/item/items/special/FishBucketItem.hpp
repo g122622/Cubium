@@ -33,7 +33,7 @@ public:
     /**
      * @brief 获取鱼类型名称
      */
-    [[nodiscard]] const String& getFishTypeName() const { return m_fishTypeName; }
+    [[nodiscard]] const std::string& getFishTypeName() const { return m_fishTypeName; }
 
     /**
      * @brief 方块交互 - 放置水并生成鱼
@@ -66,7 +66,7 @@ private:
      */
     void returnEmptyBucket(Player& player, ItemStack& stack) const;
 
-    String m_fishTypeName;
+    std::string m_fishTypeName;
 };
 
 } // namespace item

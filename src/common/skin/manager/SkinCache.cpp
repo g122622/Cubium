@@ -6,7 +6,7 @@
 
 namespace mc::skin {
 
-SkinCache::SkinCache(const String& cacheDir)
+SkinCache::SkinCache(const std::string& cacheDir)
     : m_cacheDirStr(cacheDir)
     , m_cacheDir(cacheDir)
     , m_skinsDir(cacheDir + "/skins")
@@ -84,7 +84,7 @@ void SkinCache::scanExistingFiles() {
             if (subdir.is_directory()) {
                 for (const auto& file : std::filesystem::directory_iterator(subdir.path())) {
                     if (file.is_regular_file()) {
-                        String hash = file.path().filename().string();
+                        std::string hash = file.path().filename().string();
                         CacheEntry entry;
                         entry.hash = hash;
                         entry.location = generateSkinLocation(hash);
@@ -105,7 +105,7 @@ void SkinCache::scanExistingFiles() {
             if (subdir.is_directory()) {
                 for (const auto& file : std::filesystem::directory_iterator(subdir.path())) {
                     if (file.is_regular_file()) {
-                        String hash = file.path().filename().string();
+                        std::string hash = file.path().filename().string();
                         CacheEntry entry;
                         entry.hash = hash;
                         entry.location = generateCapeLocation(hash);
@@ -130,7 +130,7 @@ void SkinCache::saveMetadata() {
     // 简化实现：目前不持久化元数据
 }
 
-std::filesystem::path SkinCache::getCacheFilePath(const String& type, const String& hash) const {
+std::filesystem::path SkinCache::getCacheFilePath(const std::string& type, const std::string& hash) const {
     // 使用哈希前2个字符作为子目录名
     if (hash.length() >= 2) {
         return m_cacheDir / type / hash.substr(0, 2) / hash;
@@ -138,11 +138,11 @@ std::filesystem::path SkinCache::getCacheFilePath(const String& type, const Stri
     return m_cacheDir / type / hash;
 }
 
-bool SkinCache::hasSkin(const String& hash) const {
+bool SkinCache::hasSkin(const std::string& hash) const {
     return hasTexture("skins", hash);
 }
 
-std::optional<std::filesystem::path> SkinCache::getSkinPath(const String& hash) const {
+std::optional<std::filesystem::path> SkinCache::getSkinPath(const std::string& hash) const {
     std::filesystem::path path = getCacheFilePath("skins", hash);
     if (std::filesystem::exists(path)) {
         return path;
@@ -150,15 +150,15 @@ std::optional<std::filesystem::path> SkinCache::getSkinPath(const String& hash) 
     return std::nullopt;
 }
 
-Result<std::filesystem::path> SkinCache::saveSkin(const String& hash, const std::vector<u8>& data) {
+Result<std::filesystem::path> SkinCache::saveSkin(const std::string& hash, const std::vector<u8>& data) {
     return saveTexture("skins", hash, data);
 }
 
-Result<std::vector<u8>> SkinCache::readSkin(const String& hash) const {
+Result<std::vector<u8>> SkinCache::readSkin(const std::string& hash) const {
     return readTexture("skins", hash);
 }
 
-bool SkinCache::removeSkin(const String& hash) {
+bool SkinCache::removeSkin(const std::string& hash) {
     auto path = getSkinPath(hash);
     if (path.has_value()) {
         std::error_code ec;
@@ -175,24 +175,24 @@ bool SkinCache::removeSkin(const String& hash) {
     return false;
 }
 
-bool SkinCache::hasCape(const String& hash) const {
+bool SkinCache::hasCape(const std::string& hash) const {
     return hasTexture("capes", hash);
 }
 
-Result<std::filesystem::path> SkinCache::saveCape(const String& hash, const std::vector<u8>& data) {
+Result<std::filesystem::path> SkinCache::saveCape(const std::string& hash, const std::vector<u8>& data) {
     return saveTexture("capes", hash, data);
 }
 
-Result<std::vector<u8>> SkinCache::readCape(const String& hash) const {
+Result<std::vector<u8>> SkinCache::readCape(const std::string& hash) const {
     return readTexture("capes", hash);
 }
 
-bool SkinCache::hasTexture(const String& type, const String& hash) const {
+bool SkinCache::hasTexture(const std::string& type, const std::string& hash) const {
     std::filesystem::path path = getCacheFilePath(type, hash);
     return std::filesystem::exists(path);
 }
 
-Result<std::filesystem::path> SkinCache::saveTexture(const String& type, const String& hash,
+Result<std::filesystem::path> SkinCache::saveTexture(const std::string& type, const std::string& hash,
                                                       const std::vector<u8>& data) {
     std::filesystem::path path = getCacheFilePath(type, hash);
     std::filesystem::path parentDir = path.parent_path();
@@ -247,7 +247,7 @@ Result<std::filesystem::path> SkinCache::saveTexture(const String& type, const S
     return path;
 }
 
-Result<std::vector<u8>> SkinCache::readTexture(const String& type, const String& hash) const {
+Result<std::vector<u8>> SkinCache::readTexture(const std::string& type, const std::string& hash) const {
     std::filesystem::path path = getCacheFilePath(type, hash);
 
     if (!std::filesystem::exists(path)) {
@@ -278,7 +278,7 @@ Result<std::vector<u8>> SkinCache::readTexture(const String& type, const String&
     return data;
 }
 
-void SkinCache::updateAccessTime(const String& hash) {
+void SkinCache::updateAccessTime(const std::string& hash) {
     std::lock_guard<std::mutex> lock(m_entriesMutex);
 
     auto skinIt = m_skinEntries.find(hash);
@@ -293,7 +293,7 @@ void SkinCache::updateAccessTime(const String& hash) {
     }
 }
 
-ResourceLocation SkinCache::generateSkinLocation(const String& hash) const {
+ResourceLocation SkinCache::generateSkinLocation(const std::string& hash) const {
     // 格式: minecraft:skins/ab/abcdef...
     if (hash.length() >= 2) {
         return ResourceLocation("minecraft:skins/" + hash.substr(0, 2) + "/" + hash);
@@ -301,7 +301,7 @@ ResourceLocation SkinCache::generateSkinLocation(const String& hash) const {
     return ResourceLocation("minecraft:skins/" + hash);
 }
 
-ResourceLocation SkinCache::generateCapeLocation(const String& hash) const {
+ResourceLocation SkinCache::generateCapeLocation(const std::string& hash) const {
     // 格式: minecraft:capes/ab/abcdef...
     if (hash.length() >= 2) {
         return ResourceLocation("minecraft:capes/" + hash.substr(0, 2) + "/" + hash);

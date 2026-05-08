@@ -229,7 +229,7 @@ TEST(AnimalSoundTest, WolfAmbientSound_UsesVanillaVariants) {
             continue;
         }
 
-        const String soundId = sound->toString();
+        const std::string soundId = sound->toString();
         if (soundId == "minecraft:entity.wolf.whine" || soundId == "minecraft:entity.wolf.pant") {
             foundLowHealthAmbient = true;
             break;

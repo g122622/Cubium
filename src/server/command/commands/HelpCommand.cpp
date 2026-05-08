@@ -47,7 +47,7 @@ void HelpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         return showHelp(ctx, dispatcher);
     });
 
-    auto commandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto commandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command",
         StringArgumentType::word());
     commandArg->setCommand([&dispatcher](CommandContext<ServerCommandSource>& ctx) {
@@ -82,7 +82,7 @@ i32 HelpCommand::showHelp(CommandContext<ServerCommandSource>& context, CommandD
 
 i32 HelpCommand::showCommandHelp(CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher) {
     auto& source = context.getSource();
-    const String commandName = context.getArgument<String>("command");
+    const std::string commandName = context.getArgument<std::string>("command");
     auto node = dispatcher.getRoot()->getChild(commandName);
     if (!node || node->getType() != NodeType::Literal || !node->canUse(source)) {
         source.sendError("Unknown command: " + commandName);

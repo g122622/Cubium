@@ -90,7 +90,7 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
     return removedCount;
 }
 
-[[nodiscard]] String describeTargets(const ServerCommandSource& source, const std::vector<PlayerId>& targetPlayerIds)
+[[nodiscard]] std::string describeTargets(const ServerCommandSource& source, const std::vector<PlayerId>& targetPlayerIds)
 {
     if (targetPlayerIds.size() == 1 && source.server() != nullptr) {
         const auto* playerData = source.server()->playerManager().getPlayer(targetPlayerIds.front());

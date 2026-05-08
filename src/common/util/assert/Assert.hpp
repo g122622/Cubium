@@ -21,13 +21,13 @@ enum class AssertLevel : u8 {
  * @brief 断言失败信息
  */
 struct AssertFailure {
-    String expression;      // 断言表达式
-    String message;         // 自定义消息
-    String file;            // 文件名
+    std::string expression;      // 断言表达式
+    std::string message;         // 自定义消息
+    std::string file;            // 文件名
     i32 line;               // 行号
-    String function;        // 函数名
+    std::string function;        // 函数名
     AssertLevel level;      // 断言级别
-    String stackTrace;      // 堆栈跟踪（可选）
+    std::string stackTrace;      // 堆栈跟踪（可选）
 };
 
 /**
@@ -112,7 +112,7 @@ public:
     /**
      * @brief 捕获堆栈跟踪
      */
-    [[nodiscard]] String captureStackTrace() const;
+    [[nodiscard]] std::string captureStackTrace() const;
 
 private:
     AssertManager() = default;
@@ -153,7 +153,7 @@ public:
 
 private:
     AssertFailure m_failure;
-    String m_what;
+    std::string m_what;
 };
 
 // ============================================================================
@@ -165,7 +165,7 @@ namespace detail {
 /**
  * @brief 格式化断言失败消息
  */
-String formatFailureMessage(
+std::string formatFailureMessage(
     const char* expression,
     const char* message,
     const char* file,
@@ -177,7 +177,7 @@ String formatFailureMessage(
  * @brief 值格式化帮助器
  */
 template<typename T>
-String formatValue(const T& value) {
+std::string formatValue(const T& value) {
     std::ostringstream oss;
     oss << value;
     return oss.str();
@@ -186,14 +186,14 @@ String formatValue(const T& value) {
 /**
  * @brief 字符串值格式化（带引号）
  */
-inline String formatValue(const char* value) {
+inline std::string formatValue(const char* value) {
     if (value == nullptr) {
         return "nullptr";
     }
-    return "\"" + String(value) + "\"";
+    return "\"" + std::string(value) + "\"";
 }
 
-inline String formatValue(const String& value) {
+inline std::string formatValue(const std::string& value) {
     return "\"" + value + "\"";
 }
 
@@ -201,7 +201,7 @@ inline String formatValue(const String& value) {
  * @brief 指针格式化
  */
 template<typename T>
-String formatValue(T* value) {
+std::string formatValue(T* value) {
     if (value == nullptr) {
         return "nullptr";
     }
@@ -213,7 +213,7 @@ String formatValue(T* value) {
 /**
  * @brief 布尔值格式化
  */
-inline String formatValue(bool value) {
+inline std::string formatValue(bool value) {
     return value ? "true" : "false";
 }
 
@@ -221,7 +221,7 @@ inline String formatValue(bool value) {
  * @brief 格式化比较断言消息
  */
 template<typename T, typename U>
-String formatComparisonMessage(
+std::string formatComparisonMessage(
     const char* op,
     const char* aName,
     const T& aValue,

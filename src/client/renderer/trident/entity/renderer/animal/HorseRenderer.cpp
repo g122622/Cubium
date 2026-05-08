@@ -64,7 +64,7 @@ ResourceLocation HorseRenderer::getEntityTexture(::mc::HorseEntity& entity) {
         "", "white", "whitefield", "whitedots", "blackdots"
     };
 
-    String textureName = "textures/entity/horse/horse_";
+    std::string textureName = "textures/entity/horse/horse_";
     textureName += colorNames[static_cast<i32>(color)];
     if (marking != CoatTypes::None) {
         textureName += markingNames[static_cast<i32>(marking)];
@@ -85,7 +85,7 @@ ResourceLocation HorseRenderer::getEntityTexture(const ::mc::HorseEntity& entity
         "", "white", "whitefield", "whitedots", "blackdots"
     };
 
-    String textureName = "textures/entity/horse/horse_";
+    std::string textureName = "textures/entity/horse/horse_";
     textureName += colorNames[static_cast<i32>(color)];
     if (marking != CoatTypes::None) {
         textureName += markingNames[static_cast<i32>(marking)];

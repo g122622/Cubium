@@ -11,7 +11,7 @@
 namespace mc {
 
 CombatEntry::CombatEntry(std::unique_ptr<DamageSource> source, f32 damage, i32 timestamp,
-                         f32 health, const String& fallSuffix, f32 fallDistance)
+                         f32 health, const std::string& fallSuffix, f32 fallDistance)
     : m_source(std::move(source))
     , m_damage(damage)
     , m_timestamp(timestamp)

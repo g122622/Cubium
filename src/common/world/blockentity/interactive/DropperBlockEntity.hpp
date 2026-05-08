@@ -39,7 +39,7 @@ protected:
      * @brief 获取默认显示名称
      * @return 投掷器的显示名称
      */
-    [[nodiscard]] String getDefaultName() const override { return "container.dropper"; }
+    [[nodiscard]] std::string getDefaultName() const override { return "container.dropper"; }
 };
 
 } // namespace blockentity

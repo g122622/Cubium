@@ -118,7 +118,7 @@ public:
      * @brief 获取图案纹理名称
      * @return 纹理名称（用于渲染）
      */
-    [[nodiscard]] String getTextureName() const;
+    [[nodiscard]] std::string getTextureName() const;
 
     // ========== Tick 更新 ==========
 

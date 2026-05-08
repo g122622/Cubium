@@ -39,7 +39,7 @@ public:
      *
      * @return 粒子类型名称
      */
-    [[nodiscard]] virtual String getTypeName() const = 0;
+    [[nodiscard]] virtual std::string getTypeName() const = 0;
 
     /**
      * @brief 获取命令行参数字符串
@@ -49,7 +49,7 @@ public:
      *
      * @return 参数字符串
      */
-    [[nodiscard]] virtual String getParameters() const { return ""; }
+    [[nodiscard]] virtual std::string getParameters() const { return ""; }
 
     /**
      * @brief 克隆粒子数据
@@ -77,7 +77,7 @@ public:
      * @param reader 字符串读取器
      * @return 解析后的粒子数据，失败返回 nullptr
      */
-    [[nodiscard]] virtual std::unique_ptr<T> deserialize(const String& input) const = 0;
+    [[nodiscard]] virtual std::unique_ptr<T> deserialize(const std::string& input) const = 0;
 };
 
 } // namespace mc::client::renderer::trident::particle::data

@@ -259,6 +259,6 @@ TEST_F(BlockStateLoaderTest, GetCobblestoneVariant) {
     const auto* variant = loader.getVariant(cobblestone, "normal");
     if (variant) {
         // cobblestone有多个变体，选择第一个
-        EXPECT_TRUE(variant->model.path().find("cobblestone") != String::npos);
+        EXPECT_TRUE(variant->model.path().find("cobblestone") != std::string::npos);
     }
 }

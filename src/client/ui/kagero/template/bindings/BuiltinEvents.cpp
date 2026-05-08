@@ -25,11 +25,11 @@ void BuiltinEvents::initialize() {
     m_initialized = true;
 }
 
-void BuiltinEvents::registerHandler(const String& eventName, EventHandler handler) {
+void BuiltinEvents::registerHandler(const std::string& eventName, EventHandler handler) {
     m_handlers[eventName] = std::move(handler);
 }
 
-bool BuiltinEvents::handle(widget::Widget* widget, const String& eventName,
+bool BuiltinEvents::handle(widget::Widget* widget, const std::string& eventName,
                            const event::Event& event) {
     auto it = m_handlers.find(eventName);
     if (it == m_handlers.end()) {
@@ -40,12 +40,12 @@ bool BuiltinEvents::handle(widget::Widget* widget, const String& eventName,
     return true;
 }
 
-bool BuiltinEvents::hasEvent(const String& eventName) const {
+bool BuiltinEvents::hasEvent(const std::string& eventName) const {
     return m_handlers.find(eventName) != m_handlers.end();
 }
 
-std::vector<String> BuiltinEvents::registeredEvents() const {
-    std::vector<String> events;
+std::vector<std::string> BuiltinEvents::registeredEvents() const {
+    std::vector<std::string> events;
     events.reserve(m_handlers.size());
     for (const auto& [name, handler] : m_handlers) {
         events.push_back(name);
@@ -53,7 +53,7 @@ std::vector<String> BuiltinEvents::registeredEvents() const {
     return events;
 }
 
-event::EventType BuiltinEvents::getEventType(const String& eventName) const {
+event::EventType BuiltinEvents::getEventType(const std::string& eventName) const {
     auto it = m_eventTypes.find(eventName);
     return it != m_eventTypes.end() ? it->second : event::EventType::Custom;
 }
@@ -273,8 +273,8 @@ void BuiltinEvents::registerScrollEvents() {
 
 namespace event_utils {
 
-event::EventType inferEventType(const String& eventName) {
-    static const std::unordered_map<String, event::EventType> eventTypeMap = {
+event::EventType inferEventType(const std::string& eventName) {
+    static const std::unordered_map<std::string, event::EventType> eventTypeMap = {
         {event_names::CLICK, event::EventType::MouseClick},
         {event_names::DOUBLE_CLICK, event::EventType::MouseClick},
         {event_names::RIGHT_CLICK, event::EventType::MouseClick},
@@ -340,11 +340,11 @@ event::ValueChangeEvent<T> createValueChangeEvent(const T& oldValue, const T& ne
 template event::ValueChangeEvent<i32> createValueChangeEvent(const i32&, const i32&);
 template event::ValueChangeEvent<f32> createValueChangeEvent(const f32&, const f32&);
 template event::ValueChangeEvent<bool> createValueChangeEvent(const bool&, const bool&);
-template event::ValueChangeEvent<String> createValueChangeEvent(const String&, const String&);
+template event::ValueChangeEvent<std::string> createValueChangeEvent(const std::string&, const std::string&);
 
-i32 parseKeyCode(const String& keyName) {
+i32 parseKeyCode(const std::string& keyName) {
     // 简化版本，只支持常用键
-    static const std::unordered_map<String, i32> keyMap = {
+    static const std::unordered_map<std::string, i32> keyMap = {
         {"unknown", 0},
         {"space", 32},
         {"enter", 257},
@@ -388,7 +388,7 @@ i32 parseKeyCode(const String& keyName) {
         {"right_super", 347}
     };
 
-    String lower = keyName;
+    std::string lower = keyName;
     std::transform(lower.begin(), lower.end(), lower.begin(),
                    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
@@ -411,8 +411,8 @@ i32 parseKeyCode(const String& keyName) {
     return 0; // 未知键
 }
 
-i32 parseMouseButton(const String& buttonName) {
-    String lower = buttonName;
+i32 parseMouseButton(const std::string& buttonName) {
+    std::string lower = buttonName;
     std::transform(lower.begin(), lower.end(), lower.begin(),
                    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
@@ -425,20 +425,20 @@ i32 parseMouseButton(const String& buttonName) {
     return 0;
 }
 
-i32 parseKeyMods(const String& mods) {
+i32 parseKeyMods(const std::string& mods) {
     i32 result = 0;
 
     // 解析修饰键字符串，格式如 "shift+ctrl" 或 "alt"
-    String lower = mods;
+    std::string lower = mods;
     std::transform(lower.begin(), lower.end(), lower.begin(),
                    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-    if (lower.find("shift") != String::npos) result |= 0x01;
-    if (lower.find("ctrl") != String::npos || lower.find("control") != String::npos) result |= 0x02;
-    if (lower.find("alt") != String::npos) result |= 0x04;
-    if (lower.find("super") != String::npos || lower.find("meta") != String::npos) result |= 0x08;
-    if (lower.find("caps") != String::npos) result |= 0x10;
-    if (lower.find("num") != String::npos) result |= 0x20;
+    if (lower.find("shift") != std::string::npos) result |= 0x01;
+    if (lower.find("ctrl") != std::string::npos || lower.find("control") != std::string::npos) result |= 0x02;
+    if (lower.find("alt") != std::string::npos) result |= 0x04;
+    if (lower.find("super") != std::string::npos || lower.find("meta") != std::string::npos) result |= 0x08;
+    if (lower.find("caps") != std::string::npos) result |= 0x10;
+    if (lower.find("num") != std::string::npos) result |= 0x20;
 
     return result;
 }

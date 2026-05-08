@@ -131,7 +131,7 @@ public:
 
         // 加载自定义名称
         if (data.contains("CustomName") && data["CustomName"].is_string()) {
-            setCustomName(data["CustomName"].get<String>());
+            setCustomName(data["CustomName"].get<std::string>());
         }
 
         // 加载背包内容

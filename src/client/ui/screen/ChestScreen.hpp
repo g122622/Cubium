@@ -32,7 +32,7 @@ public:
     /**
      * @brief 获取屏幕标题
      */
-    [[nodiscard]] String getTitle() const override {
+    [[nodiscard]] std::string getTitle() const override {
         return "Chest";
     }
 

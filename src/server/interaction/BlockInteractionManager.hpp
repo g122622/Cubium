@@ -37,7 +37,7 @@ class InventoryManager;
  */
 struct BlockInteractionResult {
     bool success = false;
-    String message;
+    std::string message;
 };
 
 /**
@@ -46,7 +46,7 @@ struct BlockInteractionResult {
 struct BlockBreakResult {
     bool blockBroken = false;
     u32 newBlockStateId = 0;
-    String message;
+    std::string message;
 };
 
 /**
@@ -58,7 +58,7 @@ struct BlockPlacementResult {
     bool itemConsumed = false;
     BlockPos position;
     u32 newBlockStateId = 0;
-    String message;
+    std::string message;
 };
 
 namespace interaction {

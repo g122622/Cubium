@@ -97,7 +97,7 @@ protected:
     /**
      * @brief 获取默认显示名称
      */
-    [[nodiscard]] String getDefaultName() const override { return "container.dispenser"; }
+    [[nodiscard]] std::string getDefaultName() const override { return "container.dispenser"; }
 
     /// 库存
     SimpleInventory m_inventory;

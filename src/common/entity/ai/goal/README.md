@@ -534,7 +534,7 @@ public:
         }
     }
 
-    String getTypeName() const override {
+    std::string getTypeName() const override {
         return "MyCustomGoal";
     }
 
@@ -770,7 +770,7 @@ classDiagram
         +tick() void
         +setMutexFlags(flags) void
         +getMutexFlags() EnumSet~GoalFlag~
-        +getTypeName() String
+        +getTypeName() std::string
     }
 
     class PrioritizedGoal {

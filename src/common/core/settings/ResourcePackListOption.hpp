@@ -15,7 +15,7 @@ namespace mc {
  * 表示资源包列表中的单个资源包配置。
  */
 struct ResourcePackEntry {
-    String path;           ///< 资源包路径（绝对路径或相对于资源包目录的相对路径）
+    std::string path;           ///< 资源包路径（绝对路径或相对于资源包目录的相对路径）
     bool enabled = true;   ///< 是否启用
     i32 priority = 0;      ///< 优先级（越大越优先，会被后加载覆盖较低优先级的资源）
 
@@ -30,7 +30,7 @@ struct ResourcePackEntry {
      * @param e 是否启用
      * @param pr 优先级
      */
-    ResourcePackEntry(String p, bool e = true, i32 pr = 0)
+    ResourcePackEntry(std::string p, bool e = true, i32 pr = 0)
         : path(std::move(p)), enabled(e), priority(pr) {}
 
     /**
@@ -39,7 +39,7 @@ struct ResourcePackEntry {
     static ResourcePackEntry fromJson(const nlohmann::json& j) {
         ResourcePackEntry entry;
         if (j.contains("path") && j["path"].is_string()) {
-            entry.path = j["path"].get<String>();
+            entry.path = j["path"].get<std::string>();
         }
         if (j.contains("enabled") && j["enabled"].is_boolean()) {
             entry.enabled = j["enabled"].get<bool>();
@@ -103,7 +103,7 @@ public:
      * @brief 构造资源包列表选项
      * @param key 选项键名
      */
-    explicit ResourcePackListOption(String key)
+    explicit ResourcePackListOption(std::string key)
         : m_key(std::move(key))
     {
     }
@@ -113,7 +113,7 @@ public:
      * @param key 选项键名
      * @param defaultEntries 默认资源包列表
      */
-    ResourcePackListOption(String key, std::vector<ResourcePackEntry> defaultEntries)
+    ResourcePackListOption(std::string key, std::vector<ResourcePackEntry> defaultEntries)
         : m_key(std::move(key))
         , m_entries(std::move(defaultEntries))
         , m_default(m_entries)
@@ -124,7 +124,7 @@ public:
     // IOption 接口实现
     // ========================================================================
 
-    [[nodiscard]] String getKey() const override { return m_key; }
+    [[nodiscard]] std::string getKey() const override { return m_key; }
 
     [[nodiscard]] SettingsValue getValue() const override {
         // 返回条目数量作为整数值
@@ -206,7 +206,7 @@ public:
      * @param path 资源包路径
      * @return 是否成功移除
      */
-    bool remove(const String& path) {
+    bool remove(const std::string& path) {
         auto it = std::find_if(m_entries.begin(), m_entries.end(),
             [&](const ResourcePackEntry& e) { return e.path == path; });
         if (it != m_entries.end()) {
@@ -222,7 +222,7 @@ public:
      * @param path 资源包路径
      * @return 条目指针，未找到返回 nullptr
      */
-    [[nodiscard]] const ResourcePackEntry* find(const String& path) const {
+    [[nodiscard]] const ResourcePackEntry* find(const std::string& path) const {
         auto it = std::find_if(m_entries.begin(), m_entries.end(),
             [&](const ResourcePackEntry& e) { return e.path == path; });
         return it != m_entries.end() ? &(*it) : nullptr;
@@ -234,7 +234,7 @@ public:
      * @param entry 新的条目值
      * @return 是否成功更新
      */
-    bool update(const String& path, const ResourcePackEntry& entry) {
+    bool update(const std::string& path, const ResourcePackEntry& entry) {
         auto it = std::find_if(m_entries.begin(), m_entries.end(),
             [&](const ResourcePackEntry& e) { return e.path == path; });
         if (it != m_entries.end()) {
@@ -251,7 +251,7 @@ public:
      * @param enabled 是否启用
      * @return 是否成功更新
      */
-    bool setEnabled(const String& path, bool enabled) {
+    bool setEnabled(const std::string& path, bool enabled) {
         auto it = std::find_if(m_entries.begin(), m_entries.end(),
             [&](const ResourcePackEntry& e) { return e.path == path; });
         if (it != m_entries.end() && it->enabled != enabled) {
@@ -268,7 +268,7 @@ public:
      * @param priority 新优先级
      * @return 是否成功更新
      */
-    bool setPriority(const String& path, i32 priority) {
+    bool setPriority(const std::string& path, i32 priority) {
         auto it = std::find_if(m_entries.begin(), m_entries.end(),
             [&](const ResourcePackEntry& e) { return e.path == path; });
         if (it != m_entries.end() && it->priority != priority) {
@@ -365,7 +365,7 @@ public:
     }
 
 private:
-    String m_key;
+    std::string m_key;
     std::vector<ResourcePackEntry> m_entries;
     std::vector<ResourcePackEntry> m_default;
     std::function<void(const std::vector<ResourcePackEntry>&)> m_callback;

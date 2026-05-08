@@ -244,7 +244,7 @@ auto vanillaPack = std::make_shared<InMemoryResourcePack>();
 loader.addResourcePack(vanillaPack);
 
 // 设置加载回调（可选）
-loader.setTextureCallback([](const String& path, bool success) {
+loader.setTextureCallback([](const std::string& path, bool success) {
     if (success) {
         spdlog::info("加载纹理: {}", path);
     } else {
@@ -379,7 +379,7 @@ TEST_F(TextureMapperTest, LogTextures) {
 
 // 路径转换测试
 TEST_F(TextureMapperTest, PathTransformation) {
-    String legacy = mapper.toLegacyPath("textures/block/jungle_log.png");
+    std::string legacy = mapper.toLegacyPath("textures/block/jungle_log.png");
     EXPECT_EQ(legacy, "textures/blocks/log_jungle.png");
 }
 ```

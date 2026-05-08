@@ -21,11 +21,11 @@ class BlastProtectionEnchantment : public ProtectionEnchantment {
 public:
     BlastProtectionEnchantment() : ProtectionEnchantment(Type::Explosion) {}
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:blast_protection";
     }
 
-    [[nodiscard]] String getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override {
         (void)level;
         return "enchantment.minecraft.blast_protection";
     }

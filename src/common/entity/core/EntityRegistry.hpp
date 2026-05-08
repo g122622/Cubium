@@ -11,7 +11,7 @@ namespace mc {
 namespace entity {
 
 // 引入 mc 命名空间的类型
-using mc::String;
+using mc::std::string;
 using mc::Error;
 using mc::ErrorCode;
 using mc::Result;
@@ -53,7 +53,7 @@ public:
      *
      * 如果资源位置已存在，返回错误。
      */
-    Result<EntityTypeId> registerType(const String& resourceLocation, EntityType type) {
+    Result<EntityTypeId> registerType(const std::string& resourceLocation, EntityType type) {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         // 检查是否已存在
@@ -67,7 +67,7 @@ public:
 
         // 设置ID和名称
         const_cast<EntityTypeId&>(type.m_id) = id;
-        const_cast<String&>(type.m_name) = resourceLocation;
+        const_cast<std::string&>(type.m_name) = resourceLocation;
 
         // 存储
         m_types.push_back(std::move(type));
@@ -94,7 +94,7 @@ public:
      * @param name 资源位置（如 minecraft:pig）
      * @return 实体类型指针，不存在返回nullptr
      */
-    [[nodiscard]] const EntityType* getType(const String& name) const {
+    [[nodiscard]] const EntityType* getType(const std::string& name) const {
         auto it = m_nameToId.find(name);
         if (it == m_nameToId.end()) {
             return nullptr;
@@ -120,7 +120,7 @@ public:
      * @param name 资源位置
      * @return 是否存在
      */
-    [[nodiscard]] bool hasType(const String& name) const {
+    [[nodiscard]] bool hasType(const std::string& name) const {
         return m_nameToId.find(name) != m_nameToId.end();
     }
 
@@ -158,7 +158,7 @@ private:
     EntityRegistry() : m_nextId(1) {} // 0保留给无效ID
 
     std::vector<EntityType> m_types;
-    std::unordered_map<String, EntityTypeId> m_nameToId;
+    std::unordered_map<std::string, EntityTypeId> m_nameToId;
     EntityTypeId m_nextId;
     mutable std::mutex m_mutex;
 };

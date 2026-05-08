@@ -23,7 +23,7 @@ namespace mc {
 
 namespace {
 
-String trimStateToken(StringView token) {
+std::string trimStateToken(std::string_view token) {
     MC_TRACE_EVENT("client.resource", "ResourceManager::trimStateToken");
 
     size_t start = 0;
@@ -36,31 +36,31 @@ String trimStateToken(StringView token) {
         --end;
     }
 
-    return String(token.substr(start, end - start));
+    return std::string(token.substr(start, end - start));
 }
 
-String normalizeStateString(StringView stateStr) {
+std::string normalizeStateString(std::string_view stateStr) {
     MC_TRACE_EVENT("client.resource", "ResourceManager::normalizeStateString");
 
-    String trimmed = trimStateToken(stateStr);
+    std::string trimmed = trimStateToken(stateStr);
     if (trimmed.empty() || trimmed == "normal") {
         return "normal";
     }
 
-    std::map<String, String> props;
+    std::map<std::string, std::string> props;
     size_t start = 0;
     while (start < trimmed.size()) {
         size_t end = trimmed.find(',', start);
-        if (end == String::npos) {
+        if (end == std::string::npos) {
             end = trimmed.size();
         }
 
-        String token = trimStateToken(StringView(trimmed.data() + start, end - start));
+        std::string token = trimStateToken(std::string_view(trimmed.data() + start, end - start));
         if (!token.empty()) {
             size_t eq = token.find('=');
-            if (eq != String::npos) {
-                String key = trimStateToken(StringView(token.data(), eq));
-                String value = trimStateToken(StringView(token.data() + eq + 1, token.size() - eq - 1));
+            if (eq != std::string::npos) {
+                std::string key = trimStateToken(std::string_view(token.data(), eq));
+                std::string value = trimStateToken(std::string_view(token.data() + eq + 1, token.size() - eq - 1));
                 if (!key.empty()) {
                     props[key] = value;
                 }
@@ -74,7 +74,7 @@ String normalizeStateString(StringView stateStr) {
         return "normal";
     }
 
-    String normalized;
+    std::string normalized;
     bool first = true;
     for (const auto& [key, value] : props) {
         if (!first) {
@@ -87,12 +87,12 @@ String normalizeStateString(StringView stateStr) {
     return normalized;
 }
 
-std::vector<std::pair<String, String>> parseStateConditions(StringView stateStr) {
+std::vector<std::pair<std::string, std::string>> parseStateConditions(std::string_view stateStr) {
     MC_TRACE_EVENT("client.resource", "ResourceManager::parseStateConditions");
 
-    std::vector<std::pair<String, String>> conditions;
+    std::vector<std::pair<std::string, std::string>> conditions;
 
-    const String normalized = normalizeStateString(stateStr);
+    const std::string normalized = normalizeStateString(stateStr);
     if (normalized.empty() || normalized == "normal") {
         return conditions;
     }
@@ -100,15 +100,15 @@ std::vector<std::pair<String, String>> parseStateConditions(StringView stateStr)
     size_t start = 0;
     while (start < normalized.size()) {
         size_t end = normalized.find(',', start);
-        if (end == String::npos) {
+        if (end == std::string::npos) {
             end = normalized.size();
         }
 
-        StringView token(normalized.data() + start, end - start);
+        std::string_view token(normalized.data() + start, end - start);
         size_t eq = token.find('=');
-        if (eq != StringView::npos) {
-            String key(token.substr(0, eq));
-            String value(token.substr(eq + 1));
+        if (eq != std::string_view::npos) {
+            std::string key(token.substr(0, eq));
+            std::string value(token.substr(eq + 1));
             if (!key.empty()) {
                 conditions.emplace_back(std::move(key), std::move(value));
             }
@@ -121,8 +121,8 @@ std::vector<std::pair<String, String>> parseStateConditions(StringView stateStr)
 }
 
 bool matchConditions(
-    const std::vector<std::pair<String, String>>& conditions,
-    const std::map<String, String>& properties)
+    const std::vector<std::pair<std::string, std::string>>& conditions,
+    const std::map<std::string, std::string>& properties)
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::matchConditions");
 
@@ -149,7 +149,7 @@ bool matchConditions(
     }
 
     try {
-        const String jsonText(mcmetaData.begin(), mcmetaData.end());
+        const std::string jsonText(mcmetaData.begin(), mcmetaData.end());
         const auto json = nlohmann::json::parse(jsonText);
 
         if (!json.is_object() || !json.contains("animation") || !json["animation"].is_object()) {
@@ -273,13 +273,13 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas() {
     size_t addedCount = 0;
     size_t variantCount = 0;
     size_t failedCount = 0;
-    std::vector<String> failedTextures;
+    std::vector<std::string> failedTextures;
 
     for (const auto& texLoc : textures) {
         bool added = false;
 
         // 获取纹理路径的所有变体（包括 block/blocks 路径互换和名称映射）
-        String texPath = texLoc.path();
+        std::string texPath = texLoc.path();
         auto pathVariants = texMapper.getPathVariants(texPath);
 
         // 遍历资源包（后添加的优先级更高）
@@ -289,7 +289,7 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas() {
             // 尝试所有路径变体
             for (const auto& variantPath : pathVariants) {
                 ResourceLocation variantLoc(texLoc.namespace_(), variantPath);
-                String filePath = variantLoc.toFilePath("png");
+                std::string filePath = variantLoc.toFilePath("png");
 
                 if (pack->hasResource(filePath)) {
                     auto readResult = pack->readResource(filePath);
@@ -307,7 +307,7 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas() {
                             u32 frameWidth = static_cast<u32>(width);
                             u32 frameHeight = static_cast<u32>(height);
 
-                            const String mcmetaPath = filePath + ".mcmeta";
+                            const std::string mcmetaPath = filePath + ".mcmeta";
                             if (pack->hasResource(mcmetaPath)) {
                                 const auto mcmetaResult = pack->readResource(mcmetaPath);
                                 if (mcmetaResult.success()) {
@@ -380,12 +380,12 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas() {
 
 const BlockAppearance* ResourceManager::getBlockAppearance(
     const ResourceLocation& blockId,
-    const std::map<String, String>& properties) const
+    const std::map<std::string, std::string>& properties) const
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::getBlockAppearance");
 
     // 构建缓存键
-    String cacheKey = blockId.toString();
+    std::string cacheKey = blockId.toString();
     if (!properties.empty()) {
         cacheKey += "?";
         bool first = true;
@@ -404,7 +404,7 @@ const BlockAppearance* ResourceManager::getBlockAppearance(
     // 回退匹配：允许方块状态定义只约束部分属性
     // 性能优化：m_blockAppearances 是有序 map，使用 lower_bound 将扫描范围
     // 缩小到同一 blockId 前缀区间，避免全表遍历。
-    const String blockPrefix = blockId.toString();
+    const std::string blockPrefix = blockId.toString();
     const size_t blockPrefixSize = blockPrefix.size();
 
     const BlockAppearance* bestMatch = nullptr;
@@ -435,9 +435,9 @@ const BlockAppearance* ResourceManager::getBlockAppearance(
             firstBlockAppearance = &appearance;
         }
 
-        StringView statePart = "normal";
+        std::string_view statePart = "normal";
         if (isStateKey && appearanceKey.size() > blockPrefixSize + 1) {
-            statePart = StringView(appearanceKey.data() + blockPrefixSize + 1,
+            statePart = std::string_view(appearanceKey.data() + blockPrefixSize + 1,
                                    appearanceKey.size() - blockPrefixSize - 1);
         }
 
@@ -507,7 +507,7 @@ Result<DecodedTexture> ResourceManager::loadTextureRGBA(
         const auto& pack = *packIt;
         for (const auto& variantPath : pathVariants) {
             const ResourceLocation variantLocation(textureLocation.namespace_(), variantPath);
-            const String filePath = variantLocation.toFilePath("png");
+            const std::string filePath = variantLocation.toFilePath("png");
             if (!pack->hasResource(filePath)) {
                 continue;
             }
@@ -688,8 +688,8 @@ void ResourceManager::computeBlockAppearances() {
         // 处理每个状态变体
         for (const auto& [stateStr, variantList] : def->getAllVariants()) {
             // 构建缓存键
-            String cacheKey = blockId.toString();
-            const String normalizedState = normalizeStateString(stateStr);
+            std::string cacheKey = blockId.toString();
+            const std::string normalizedState = normalizeStateString(stateStr);
             if (normalizedState != "normal" && !normalizedState.empty()) {
                 cacheKey += "?" + normalizedState;
             }
@@ -715,7 +715,7 @@ void ResourceManager::computeBlockAppearances() {
             // 解析面纹理
             for (const auto& element : bakedModel.elements) {
                 for (const auto& [dir, face] : element.faces) {
-                    String dirStr = directionToString(dir);
+                    std::string dirStr = directionToString(dir);
 
                     // 保留 tintindex（仅记录有着色需求的面）
                     if (face.tintIndex >= 0 && !appearance.faceTintIndices.count(dirStr)) {
@@ -791,7 +791,7 @@ std::set<ResourceLocation> ResourceManager::collectRequiredTextures() const {
     for (const auto& [loc, model] : m_bakedModels) {
         for (const auto& [name, texLoc] : model.textures) {
             // 跳过纹理变量引用（以 # 开头的值）
-            String texPath = texLoc.path();
+            std::string texPath = texLoc.path();
             if (!texPath.empty() && texPath[0] == '#') {
                 // 纹理变量引用，不应该出现在烘焙模型中
                 spdlog::warn("Texture variable reference found in baked model {}: {}={}",
@@ -808,12 +808,12 @@ std::set<ResourceLocation> ResourceManager::collectRequiredTextures() const {
     return textures;
 }
 
-ResourceLocation ResourceManager::texturePathToLocation(StringView path) {
+ResourceLocation ResourceManager::texturePathToLocation(std::string_view path) {
     MC_TRACE_EVENT("client.resource", "ResourceManager::texturePathToLocation");
 
     // 处理纹理路径
     // 例如: "blocks/stone" -> "minecraft:textures/blocks/stone"
-    String p(path);
+    std::string p(path);
 
     // 移除前导的 "#"
     if (!p.empty() && p[0] == '#') {

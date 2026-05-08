@@ -35,7 +35,7 @@ namespace LootParams {
 // LootParameterSet
 // ============================================================================
 
-bool LootParameterSet::contains(const String& paramId) const {
+bool LootParameterSet::contains(const std::string& paramId) const {
     for (const auto& id : m_requiredParams) {
         if (id == paramId) return true;
     }
@@ -45,7 +45,7 @@ bool LootParameterSet::contains(const String& paramId) const {
     return false;
 }
 
-bool LootParameterSet::validate(const std::vector<String>& providedParams) const {
+bool LootParameterSet::validate(const std::vector<std::string>& providedParams) const {
     // 检查所有必需参数
     for (const auto& required : m_requiredParams) {
         bool found = false;
@@ -72,7 +72,7 @@ LootContext::LootContext(IWorld& world, math::Random& random)
 {
 }
 
-const LootTable* LootContext::getLootTable(const String& id) const {
+const LootTable* LootContext::getLootTable(const std::string& id) const {
     if (m_lootTableResolver) {
         return m_lootTableResolver(id);
     }

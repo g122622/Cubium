@@ -17,15 +17,15 @@ namespace mc::client::ui::kagero::widget {
  */
 class TextFieldWidget : public Widget {
 public:
-    using TextChangedCallback = std::function<void(const String&)>;
-    using TextValidator = std::function<bool(const String&)>;
+    using TextChangedCallback = std::function<void(const std::string&)>;
+    using TextValidator = std::function<bool(const std::string&)>;
 
     TextFieldWidget() = default;
 
     /**
      * @brief 构造函数
      */
-    TextFieldWidget(String id, i32 x, i32 y, i32 width, i32 height)
+    TextFieldWidget(std::string id, i32 x, i32 y, i32 width, i32 height)
         : Widget(std::move(id)) {
         setBounds(Rect(x, y, width, height));
     }
@@ -44,7 +44,7 @@ public:
         }
         ctx.drawBorder(bounds(), 1.0f, Colors::fromARGB(255, 120, 120, 120));
 
-        const String& displayText = m_text.empty() ? m_placeholder : m_text;
+        const std::string& displayText = m_text.empty() ? m_placeholder : m_text;
         if (displayText.empty()) {
             return;
         }
@@ -134,10 +134,10 @@ public:
     /**
      * @brief 设置文本
      */
-    void setText(const String& text) {
+    void setText(const std::string& text) {
         if (m_validator && !m_validator(text)) return;
 
-        String newText = text;
+        std::string newText = text;
         if (static_cast<i32>(newText.size()) > m_maxLength) {
             newText = newText.substr(0, m_maxLength);
         }
@@ -153,12 +153,12 @@ public:
     /**
      * @brief 获取文本
      */
-    [[nodiscard]] const String& text() const { return m_text; }
+    [[nodiscard]] const std::string& text() const { return m_text; }
 
     /**
      * @brief 在光标处写入文本，或替换当前选区
      */
-    void writeText(const String& text) {
+    void writeText(const std::string& text) {
         if (text.empty() && !hasSelection()) return;
         if (!m_active) return;
 
@@ -167,12 +167,12 @@ public:
 
         // 替换选区会释放可写空间，因此这里要把被替换的字符数加回去。
         const i32 availableSpace = m_maxLength - static_cast<i32>(m_text.size()) + (selEnd - selStart);
-        String toWrite = filterAllowedCharacters(text);
+        std::string toWrite = filterAllowedCharacters(text);
         if (static_cast<i32>(toWrite.size()) > availableSpace) {
             toWrite = toWrite.substr(0, std::max(0, availableSpace));
         }
 
-        String newText = m_text.substr(0, selStart) + toWrite + m_text.substr(selEnd);
+        std::string newText = m_text.substr(0, selStart) + toWrite + m_text.substr(selEnd);
         if (m_validator && !m_validator(newText)) return;
 
         m_text = newText;
@@ -184,7 +184,7 @@ public:
     /**
      * @brief 获取选中的文本
      */
-    [[nodiscard]] String getSelectedText() const {
+    [[nodiscard]] std::string getSelectedText() const {
         const i32 start = std::min(m_cursorPosition, m_selectionEnd);
         const i32 end = std::max(m_cursorPosition, m_selectionEnd);
         return m_text.substr(start, end - start);
@@ -199,7 +199,7 @@ public:
         const i32 start = std::min(m_cursorPosition, m_selectionEnd);
         const i32 end = std::max(m_cursorPosition, m_selectionEnd);
 
-        String newText = m_text.substr(0, start) + m_text.substr(end);
+        std::string newText = m_text.substr(0, start) + m_text.substr(end);
         if (m_validator && !m_validator(newText)) return;
 
         m_text = newText;
@@ -297,14 +297,14 @@ public:
     /**
      * @brief 设置占位符文本
      */
-    void setPlaceholder(const String& placeholder) {
+    void setPlaceholder(const std::string& placeholder) {
         m_placeholder = placeholder;
     }
 
     /**
      * @brief 获取占位符文本
      */
-    [[nodiscard]] const String& placeholder() const { return m_placeholder; }
+    [[nodiscard]] const std::string& placeholder() const { return m_placeholder; }
 
     /**
      * @brief 设置文本变化回调
@@ -444,7 +444,7 @@ protected:
         }
 
         if (start != end) {
-            String newText = m_text.substr(0, start) + m_text.substr(end);
+            std::string newText = m_text.substr(0, start) + m_text.substr(end);
             if (m_validator && !m_validator(newText)) return;
 
             m_text = newText;
@@ -476,7 +476,7 @@ protected:
     /**
      * @brief 计算文本宽度
      */
-    [[nodiscard]] f32 measureTextWidth(const String& text) const {
+    [[nodiscard]] f32 measureTextWidth(const std::string& text) const {
         f32 width = 0.0f;
         for (char32_t codePoint : text) {
             width += measureGlyphAdvance(codePoint);
@@ -600,8 +600,8 @@ protected:
     /**
      * @brief 过滤允许输入的字符
      */
-    static String filterAllowedCharacters(const String& text) {
-        String result;
+    static std::string filterAllowedCharacters(const std::string& text) {
+        std::string result;
         result.reserve(text.size());
         for (char32_t codePoint : text) {
             if (isAllowedCharacter(static_cast<u32>(codePoint))) {
@@ -614,14 +614,14 @@ protected:
     /**
      * @brief 将码点转为字符串
      */
-    static String codePointToString(u32 codePoint) {
-        String result;
+    static std::string codePointToString(u32 codePoint) {
+        std::string result;
         result.push_back(static_cast<char32_t>(codePoint));
         return result;
     }
 
-    String m_text;
-    String m_placeholder;
+    std::string m_text;
+    std::string m_placeholder;
     i32 m_maxLength = 32;
     i32 m_cursorPosition = 0;
     i32 m_selectionEnd = 0;

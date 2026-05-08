@@ -53,7 +53,7 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] String getTypeName() const override { return "AvoidEntityGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "AvoidEntityGoal"; }
 
 protected:
     /**

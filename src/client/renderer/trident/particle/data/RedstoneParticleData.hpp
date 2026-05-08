@@ -44,8 +44,8 @@ public:
     // ========================================================================
 
     [[nodiscard]] ParticleTypeId getType() const override { return ParticleTypeId::Redstone; }
-    [[nodiscard]] String getTypeName() const override;
-    [[nodiscard]] String getParameters() const override;
+    [[nodiscard]] std::string getTypeName() const override;
+    [[nodiscard]] std::string getParameters() const override;
     [[nodiscard]] std::unique_ptr<ParticleData> clone() const override;
 
     // ========================================================================

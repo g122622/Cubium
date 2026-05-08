@@ -24,7 +24,7 @@ void PardonIpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
             false));
 
     // /pardon-ip <target>
-    auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "target",
         StringArgumentType::string()
     );
@@ -38,7 +38,7 @@ void PardonIpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
 i32 PardonIpCommand::pardonIp(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
-    String target = context.getArgument<String>("target");
+    std::string target = context.getArgument<std::string>("target");
 
     // TODO: 实现封禁 IP 列表系统
     // 需要检查 BannedIpList 是否包含该 IP

@@ -17,7 +17,7 @@ namespace mc::client {
 struct WindowConfig {
     i32 width = 1280;
     i32 height = 720;
-    String title = "Minecraft Reborn";
+    std::string title = "Minecraft Reborn";
     bool fullscreen = false;
     bool vsync = true;
     bool resizable = true;
@@ -91,7 +91,7 @@ public:
     /**
      * @brief 设置窗口标题
      */
-    void setTitle(const String& title);
+    void setTitle(const std::string& title);
 
     /**
      * @brief 设置窗口尺寸

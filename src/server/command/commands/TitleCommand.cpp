@@ -101,7 +101,7 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 
     // title <json> 子命令
     auto titleTextNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("title");
-    auto titleJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto titleJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "json",
         StringArgumentType::greedyString()
     );
@@ -112,7 +112,7 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 
     // subtitle <json> 子命令
     auto subtitleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("subtitle");
-    auto subtitleJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto subtitleJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "json",
         StringArgumentType::greedyString()
     );
@@ -123,7 +123,7 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 
     // actionbar <json> 子命令
     auto actionbarNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("actionbar");
-    auto actionbarJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto actionbarJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "json",
         StringArgumentType::greedyString()
     );
@@ -206,7 +206,7 @@ i32 TitleCommand::setTitle(CommandContext<ServerCommandSource>& context) {
     }
 
     // 获取JSON文本参数
-    const String& jsonText = context.getArgument<String>("json");
+    const std::string& jsonText = context.getArgument<std::string>("json");
 
     // 创建并广播主标题包
     auto packet = network::TitlePacket::createTitle(jsonText);
@@ -224,7 +224,7 @@ i32 TitleCommand::setSubtitle(CommandContext<ServerCommandSource>& context) {
     }
 
     // 获取JSON文本参数
-    const String& jsonText = context.getArgument<String>("json");
+    const std::string& jsonText = context.getArgument<std::string>("json");
 
     // 创建并广播副标题包
     auto packet = network::TitlePacket::createSubtitle(jsonText);
@@ -242,7 +242,7 @@ i32 TitleCommand::setActionbar(CommandContext<ServerCommandSource>& context) {
     }
 
     // 获取JSON文本参数
-    const String& jsonText = context.getArgument<String>("json");
+    const std::string& jsonText = context.getArgument<std::string>("json");
 
     // 创建并广播动作栏包
     auto packet = network::TitlePacket::createActionbar(jsonText);

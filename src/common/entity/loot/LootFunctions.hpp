@@ -50,7 +50,7 @@ public:
     /**
      * @brief 获取函数类型标识
      */
-    [[nodiscard]] virtual String getType() const = 0;
+    [[nodiscard]] virtual std::string getType() const = 0;
 
     // ========== 条件管理 ==========
 
@@ -98,7 +98,7 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "set_count"; }
+    [[nodiscard]] std::string getType() const override { return "set_count"; }
 
     [[nodiscard]] const RandomValueRange& getCount() const { return m_count; }
     [[nodiscard]] bool isAdd() const { return m_add; }
@@ -147,7 +147,7 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "apply_bonus"; }
+    [[nodiscard]] std::string getType() const override { return "apply_bonus"; }
 
     [[nodiscard]] BonusType getBonusType() const { return m_bonusType; }
     [[nodiscard]] i32 getBonusMultiplier() const { return m_bonusMultiplier; }
@@ -234,7 +234,7 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "looting_enchant"; }
+    [[nodiscard]] std::string getType() const override { return "looting_enchant"; }
 
     [[nodiscard]] const RandomValueRange& getCount() const { return m_count; }
     [[nodiscard]] i32 getLimit() const { return m_limit; }
@@ -263,7 +263,7 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "set_damage"; }
+    [[nodiscard]] std::string getType() const override { return "set_damage"; }
 
     [[nodiscard]] const RandomValueRange& getDurability() const { return m_durability; }
     [[nodiscard]] bool isAdd() const { return m_add; }
@@ -286,17 +286,17 @@ public:
      * @param name 自定义名称（JSON 文本格式或纯文本）
      * @param replace 是否替换原有名称（默认true）
      */
-    explicit SetNameFunction(const String& name, bool replace = true);
+    explicit SetNameFunction(const std::string& name, bool replace = true);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "set_name"; }
+    [[nodiscard]] std::string getType() const override { return "set_name"; }
 
-    [[nodiscard]] const String& getName() const { return m_name; }
+    [[nodiscard]] const std::string& getName() const { return m_name; }
     [[nodiscard]] bool isReplace() const { return m_replace; }
 
 private:
-    String m_name;
+    std::string m_name;
     bool m_replace;
 };
 
@@ -313,17 +313,17 @@ public:
      * @param lore 描述行列表
      * @param replace 是否替换原有描述（默认true）
      */
-    explicit SetLoreFunction(const std::vector<String>& lore, bool replace = true);
+    explicit SetLoreFunction(const std::vector<std::string>& lore, bool replace = true);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "set_lore"; }
+    [[nodiscard]] std::string getType() const override { return "set_lore"; }
 
-    [[nodiscard]] const std::vector<String>& getLore() const { return m_lore; }
+    [[nodiscard]] const std::vector<std::string>& getLore() const { return m_lore; }
     [[nodiscard]] bool isReplace() const { return m_replace; }
 
 private:
-    std::vector<String> m_lore;
+    std::vector<std::string> m_lore;
     bool m_replace;
 };
 
@@ -346,7 +346,7 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "limit_count"; }
+    [[nodiscard]] std::string getType() const override { return "limit_count"; }
 
     [[nodiscard]] i32 getMin() const { return m_min; }
     [[nodiscard]] i32 getMax() const { return m_max; }
@@ -370,7 +370,7 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "furnace_smelt"; }
+    [[nodiscard]] std::string getType() const override { return "furnace_smelt"; }
 };
 
 /**
@@ -392,7 +392,7 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "enchant_with_levels"; }
+    [[nodiscard]] std::string getType() const override { return "enchant_with_levels"; }
 
     [[nodiscard]] const RandomValueRange& getLevels() const { return m_levels; }
     [[nodiscard]] bool isTreasure() const { return m_treasure; }
@@ -415,17 +415,17 @@ public:
      * @param enchantments 可选的附魔ID列表（空表示随机选择所有适用附魔）
      * @param treasure 是否包含宝藏附魔
      */
-    explicit EnchantRandomlyFunction(const std::vector<String>& enchantments = {}, bool treasure = false);
+    explicit EnchantRandomlyFunction(const std::vector<std::string>& enchantments = {}, bool treasure = false);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "enchant_randomly"; }
+    [[nodiscard]] std::string getType() const override { return "enchant_randomly"; }
 
-    [[nodiscard]] const std::vector<String>& getEnchantments() const { return m_enchantments; }
+    [[nodiscard]] const std::vector<std::string>& getEnchantments() const { return m_enchantments; }
     [[nodiscard]] bool isTreasure() const { return m_treasure; }
 
 private:
-    std::vector<String> m_enchantments;
+    std::vector<std::string> m_enchantments;
     bool m_treasure;
 };
 
@@ -444,7 +444,7 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "explosion_decay"; }
+    [[nodiscard]] std::string getType() const override { return "explosion_decay"; }
 };
 
 /**
@@ -461,16 +461,16 @@ public:
      * @brief 构造设置NBT函数
      * @param nbtString NBT标签字符串（JSON格式）
      */
-    explicit SetNbtFunction(const String& nbtString);
+    explicit SetNbtFunction(const std::string& nbtString);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "set_nbt"; }
+    [[nodiscard]] std::string getType() const override { return "set_nbt"; }
 
-    [[nodiscard]] const String& getNbtString() const { return m_nbtString; }
+    [[nodiscard]] const std::string& getNbtString() const { return m_nbtString; }
 
 private:
-    String m_nbtString;
+    std::string m_nbtString;
 };
 
 /**
@@ -501,7 +501,7 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "copy_name"; }
+    [[nodiscard]] std::string getType() const override { return "copy_name"; }
 
     [[nodiscard]] Source getSource() const { return m_source; }
 
@@ -524,19 +524,19 @@ public:
      * @param blockId 方块ID
      * @param properties 要复制的属性名列表（空表示复制所有）
      */
-    explicit CopyBlockStateFunction(const String& blockId,
-                                    const std::vector<String>& properties = {});
+    explicit CopyBlockStateFunction(const std::string& blockId,
+                                    const std::vector<std::string>& properties = {});
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "copy_block_state"; }
+    [[nodiscard]] std::string getType() const override { return "copy_block_state"; }
 
-    [[nodiscard]] const String& getBlockId() const { return m_blockId; }
-    [[nodiscard]] const std::vector<String>& getProperties() const { return m_properties; }
+    [[nodiscard]] const std::string& getBlockId() const { return m_blockId; }
+    [[nodiscard]] const std::vector<std::string>& getProperties() const { return m_properties; }
 
 private:
-    String m_blockId;
-    std::vector<String> m_properties;
+    std::string m_blockId;
+    std::vector<std::string> m_properties;
 };
 
 /**
@@ -572,8 +572,8 @@ public:
      * @brief NBT操作定义
      */
     struct NbtOperation {
-        String sourcePath;
-        String targetPath;
+        std::string sourcePath;
+        std::string targetPath;
         Operation operation;
     };
 
@@ -586,11 +586,11 @@ public:
     /**
      * @brief 添加NBT操作
      */
-    void addOperation(const String& sourcePath, const String& targetPath, Operation operation);
+    void addOperation(const std::string& sourcePath, const std::string& targetPath, Operation operation);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "copy_nbt"; }
+    [[nodiscard]] std::string getType() const override { return "copy_nbt"; }
 
     [[nodiscard]] Source getSource() const { return m_source; }
     [[nodiscard]] const std::vector<NbtOperation>& getOperations() const { return m_operations; }
@@ -618,7 +618,7 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "fill_player_head"; }
+    [[nodiscard]] std::string getType() const override { return "fill_player_head"; }
 
     [[nodiscard]] CopyNameFunction::Source getSource() const { return m_source; }
 
@@ -641,11 +641,11 @@ public:
      * @brief 属性修饰符定义
      */
     struct AttributeModifier {
-        String name;            // 修饰符名称
-        String attributeId;     // 属性ID
+        std::string name;            // 修饰符名称
+        std::string attributeId;     // 属性ID
         f32 value;              // 修饰值
         u8 operation;           // 操作类型
-        String slot;            // 装备槽位
+        std::string slot;            // 装备槽位
     };
 
     /**
@@ -660,7 +660,7 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "set_attributes"; }
+    [[nodiscard]] std::string getType() const override { return "set_attributes"; }
 
     [[nodiscard]] const std::vector<AttributeModifier>& getModifiers() const { return m_modifiers; }
 
@@ -682,7 +682,7 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "set_contents"; }
+    [[nodiscard]] std::string getType() const override { return "set_contents"; }
 };
 
 /**
@@ -700,17 +700,17 @@ public:
      * @param lootTableId 掉落表ID
      * @param seed 随机种子（0表示使用世界种子）
      */
-    explicit SetLootTableFunction(const String& lootTableId, u64 seed = 0);
+    explicit SetLootTableFunction(const std::string& lootTableId, u64 seed = 0);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "set_loot_table"; }
+    [[nodiscard]] std::string getType() const override { return "set_loot_table"; }
 
-    [[nodiscard]] const String& getLootTableId() const { return m_lootTableId; }
+    [[nodiscard]] const std::string& getLootTableId() const { return m_lootTableId; }
     [[nodiscard]] u64 getSeed() const { return m_seed; }
 
 private:
-    String m_lootTableId;
+    std::string m_lootTableId;
     u64 m_seed;
 };
 
@@ -743,7 +743,7 @@ public:
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "exploration_map"; }
+    [[nodiscard]] std::string getType() const override { return "exploration_map"; }
 
     [[nodiscard]] Destination getDestination() const { return m_destination; }
 
@@ -765,7 +765,7 @@ public:
      * @brief 效果定义
      */
     struct EffectEntry {
-        String effectId;        // 效果ID
+        std::string effectId;        // 效果ID
         RandomValueRange duration;  // 持续时间（秒）
     };
 
@@ -774,11 +774,11 @@ public:
     /**
      * @brief 添加效果
      */
-    void addEffect(const String& effectId, const RandomValueRange& duration);
+    void addEffect(const std::string& effectId, const RandomValueRange& duration);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
-    [[nodiscard]] String getType() const override { return "set_stew_effect"; }
+    [[nodiscard]] std::string getType() const override { return "set_stew_effect"; }
 
     [[nodiscard]] const std::vector<EffectEntry>& getEffects() const { return m_effects; }
 
@@ -835,12 +835,12 @@ public:
     /**
      * @brief 创建设置名称函数
      */
-    [[nodiscard]] static std::unique_ptr<LootFunction> setName(const String& name, bool replace = true);
+    [[nodiscard]] static std::unique_ptr<LootFunction> setName(const std::string& name, bool replace = true);
 
     /**
      * @brief 创建设置描述函数
      */
-    [[nodiscard]] static std::unique_ptr<LootFunction> setLore(const std::vector<String>& lore, bool replace = true);
+    [[nodiscard]] static std::unique_ptr<LootFunction> setLore(const std::vector<std::string>& lore, bool replace = true);
 
     /**
      * @brief 创建限制数量函数
@@ -862,7 +862,7 @@ public:
      * @brief 创建随机附魔函数
      */
     [[nodiscard]] static std::unique_ptr<LootFunction> enchantRandomly(
-        const std::vector<String>& enchantments = {}, bool treasure = false);
+        const std::vector<std::string>& enchantments = {}, bool treasure = false);
 
     /**
      * @brief 创建爆炸衰减函数
@@ -872,7 +872,7 @@ public:
     /**
      * @brief 创建设置NBT函数
      */
-    [[nodiscard]] static std::unique_ptr<LootFunction> setNbt(const String& nbtString);
+    [[nodiscard]] static std::unique_ptr<LootFunction> setNbt(const std::string& nbtString);
 
     /**
      * @brief 创建复制名称函数
@@ -882,7 +882,7 @@ public:
     /**
      * @brief 创建复制方块状态函数
      */
-    [[nodiscard]] static std::unique_ptr<LootFunction> copyBlockState(const String& blockId);
+    [[nodiscard]] static std::unique_ptr<LootFunction> copyBlockState(const std::string& blockId);
 
     /**
      * @brief 创建复制NBT函数
@@ -909,7 +909,7 @@ public:
     /**
      * @brief 创建设置掉落表函数
      */
-    [[nodiscard]] static std::unique_ptr<LootFunction> setLootTable(const String& lootTableId);
+    [[nodiscard]] static std::unique_ptr<LootFunction> setLootTable(const std::string& lootTableId);
 
     /**
      * @brief 创建探险地图函数

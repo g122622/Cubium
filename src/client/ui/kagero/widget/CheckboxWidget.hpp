@@ -45,7 +45,7 @@ public:
      * @param y Y坐标
      * @param text 显示文本
      */
-    CheckboxWidget(String id, i32 x, i32 y, String text)
+    CheckboxWidget(std::string id, i32 x, i32 y, std::string text)
         : Widget(std::move(id))
         , m_text(std::move(text)) {
         setBounds(Rect(x, y, 20, 20)); // 默认尺寸
@@ -60,7 +60,7 @@ public:
      * @param height 高度
      * @param text 显示文本
      */
-    CheckboxWidget(String id, i32 x, i32 y, i32 width, i32 height, String text)
+    CheckboxWidget(std::string id, i32 x, i32 y, i32 width, i32 height, std::string text)
         : Widget(std::move(id))
         , m_text(std::move(text)) {
         setBounds(Rect(x, y, width, height));
@@ -125,14 +125,14 @@ public:
     /**
      * @brief 设置文本
      */
-    void setText(const String& text) {
+    void setText(const std::string& text) {
         m_text = text;
     }
 
     /**
      * @brief 获取文本
      */
-    [[nodiscard]] const String& text() const { return m_text; }
+    [[nodiscard]] const std::string& text() const { return m_text; }
 
     /**
      * @brief 设置状态变化回调
@@ -174,7 +174,7 @@ public:
 
 protected:
     bool m_checked = false;             ///< 选中状态
-    String m_text;                      ///< 显示文本
+    std::string m_text;                      ///< 显示文本
     u32 m_textColor = Colors::WHITE;    ///< 文本颜色
     u32 m_checkColor = Colors::MC_WHITE; ///< 勾选颜色
     OnChangedCallback m_onChanged;      ///< 状态变化回调

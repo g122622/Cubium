@@ -5,7 +5,7 @@
 
 namespace mc::skin {
 
-SkinManager::SkinManager(const String& cacheDir)
+SkinManager::SkinManager(const std::string& cacheDir)
     : m_cacheDir(cacheDir)
     , m_cache(std::make_unique<SkinCache>(cacheDir))
     , m_defaultSkinProvider(std::make_unique<DefaultSkinProvider>()) {
@@ -62,7 +62,7 @@ void SkinManager::shutdown() {
 }
 
 std::shared_ptr<PlayerSkinInfo> SkinManager::getOrCreatePlayerInfo(const GameProfile& profile) {
-    String key = uuidToKey(profile.uuid());
+    std::string key = uuidToKey(profile.uuid());
 
     std::shared_ptr<PlayerSkinInfo> info;
     bool wasNew = false;
@@ -90,20 +90,20 @@ std::shared_ptr<PlayerSkinInfo> SkinManager::getOrCreatePlayerInfo(const GamePro
 }
 
 std::shared_ptr<PlayerSkinInfo> SkinManager::getPlayerInfo(const std::array<u8, 16>& uuid) const {
-    String key = uuidToKey(uuid);
+    std::string key = uuidToKey(uuid);
     std::lock_guard<std::mutex> lock(m_playerInfosMutex);
     auto it = m_playerInfos.find(key);
     return it != m_playerInfos.end() ? it->second : nullptr;
 }
 
-std::shared_ptr<PlayerSkinInfo> SkinManager::getPlayerInfo(const String& uuidStr) const {
+std::shared_ptr<PlayerSkinInfo> SkinManager::getPlayerInfo(const std::string& uuidStr) const {
     std::lock_guard<std::mutex> lock(m_playerInfosMutex);
     auto it = m_playerInfos.find(uuidStr);
     return it != m_playerInfos.end() ? it->second : nullptr;
 }
 
 void SkinManager::removePlayerInfo(const std::array<u8, 16>& uuid) {
-    String key = uuidToKey(uuid);
+    std::string key = uuidToKey(uuid);
     std::lock_guard<std::mutex> lock(m_playerInfosMutex);
     m_playerInfos.erase(key);
     spdlog::debug("SkinManager: Removed player info for {}", key);
@@ -159,7 +159,7 @@ SkinType SkinManager::getDefaultSkinType(const std::array<u8, 16>& uuid) const {
 bool SkinManager::loadFromCache(const SkinTextures& textures, std::shared_ptr<PlayerSkinInfo> info) {
     // 尝试从缓存加载皮肤
     if (textures.hasSkin() && textures.skinHash().has_value()) {
-        const String& hash = *textures.skinHash();
+        const std::string& hash = *textures.skinHash();
         if (m_cache->hasSkin(hash)) {
             auto location = m_cache->generateSkinLocation(hash);
             info->setSkinLocation(location);
@@ -172,7 +172,7 @@ bool SkinManager::loadFromCache(const SkinTextures& textures, std::shared_ptr<Pl
 
     // 尝试从缓存加载披风
     if (textures.hasCape() && textures.capeHash().has_value()) {
-        const String& hash = *textures.capeHash();
+        const std::string& hash = *textures.capeHash();
         if (m_cache->hasCape(hash)) {
             auto location = m_cache->generateCapeLocation(hash);
             info->setCapeLocation(location);
@@ -245,7 +245,7 @@ void SkinManager::useDefaultSkin(std::shared_ptr<PlayerSkinInfo> info) {
                   info->profile().uuidToString());
 }
 
-String SkinManager::uuidToKey(const std::array<u8, 16>& uuid) {
+std::string SkinManager::uuidToKey(const std::array<u8, 16>& uuid) {
     return GameProfile(uuid, "").uuidToStringNoDashes();
 }
 

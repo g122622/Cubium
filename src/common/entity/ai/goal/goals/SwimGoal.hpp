@@ -28,7 +28,7 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     void tick() override;
 
-    [[nodiscard]] String getTypeName() const override { return "SwimGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "SwimGoal"; }
 
 private:
     MobEntity* m_mob;

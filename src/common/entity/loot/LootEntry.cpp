@@ -52,7 +52,7 @@ bool EmptyLootEntry::generate(std::function<void(const ItemStack&)> /*consumer*/
 // ItemLootEntry
 // ============================================================================
 
-ItemLootEntry::ItemLootEntry(const String& itemId,
+ItemLootEntry::ItemLootEntry(const std::string& itemId,
                              const RandomValueRange& count,
                              i32 weight, i32 quality)
     : LootEntry(weight, quality)
@@ -105,7 +105,7 @@ bool ItemLootEntry::generate(std::function<void(const ItemStack&)> consumer,
 // TableLootEntry
 // ============================================================================
 
-TableLootEntry::TableLootEntry(const String& tableId, i32 weight, i32 quality)
+TableLootEntry::TableLootEntry(const std::string& tableId, i32 weight, i32 quality)
     : LootEntry(weight, quality)
     , m_tableId(tableId)
 {
@@ -289,7 +289,7 @@ bool GroupLootEntry::generate(std::function<void(const ItemStack&)> consumer,
 // LootEntryBuilder
 // ============================================================================
 
-LootEntryBuilder LootEntryBuilder::item(const String& itemId) {
+LootEntryBuilder LootEntryBuilder::item(const std::string& itemId) {
     LootEntryBuilder builder;
     builder.m_itemId = itemId;
     builder.m_type = LootEntryType::Item;
@@ -302,7 +302,7 @@ LootEntryBuilder LootEntryBuilder::empty() {
     return builder;
 }
 
-LootEntryBuilder LootEntryBuilder::table(const String& tableId) {
+LootEntryBuilder LootEntryBuilder::table(const std::string& tableId) {
     LootEntryBuilder builder;
     builder.m_tableId = tableId;
     builder.m_type = LootEntryType::Table;

@@ -4,7 +4,7 @@
 namespace mc {
 
 namespace {
-    const std::unordered_map<ScreenType, String> typeToIdMap = {
+    const std::unordered_map<ScreenType, std::string> typeToIdMap = {
         {ScreenType::Inventory,          "minecraft:inventory"},
         {ScreenType::CreativeInventory,  "minecraft:creative_inventory"},
         {ScreenType::Chest,              "minecraft:chest"},
@@ -33,7 +33,7 @@ namespace {
         {ScreenType::JigsawBlock,        "minecraft:jigsaw"}
     };
 
-    const std::unordered_map<String, ScreenType> idToTypeMap = {
+    const std::unordered_map<std::string, ScreenType> idToTypeMap = {
         {"minecraft:inventory",          ScreenType::Inventory},
         {"minecraft:creative_inventory", ScreenType::CreativeInventory},
         {"minecraft:chest",              ScreenType::Chest},
@@ -69,7 +69,7 @@ namespace {
     };
 }
 
-String screenTypeToId(ScreenType type) {
+std::string screenTypeToId(ScreenType type) {
     auto it = typeToIdMap.find(type);
     if (it != typeToIdMap.end()) {
         return it->second;
@@ -77,7 +77,7 @@ String screenTypeToId(ScreenType type) {
     return "minecraft:unknown";
 }
 
-ScreenType screenTypeFromId(const String& id) {
+ScreenType screenTypeFromId(const std::string& id) {
     auto it = idToTypeMap.find(id);
     if (it != idToTypeMap.end()) {
         return it->second;

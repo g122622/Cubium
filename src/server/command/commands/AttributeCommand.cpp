@@ -35,7 +35,7 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
         "target",
         EntityArgumentType::entity());
 
-    auto attributeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto attributeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "attribute",
         StringArgumentType::string());
 
@@ -80,8 +80,8 @@ i32 AttributeCommand::getAttribute(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    const String attrName = context.getArgument<String>("attribute");
-    String normalizedAttrName = normalizeAttributeName(attrName);
+    const std::string attrName = context.getArgument<std::string>("attribute");
+    std::string normalizedAttrName = normalizeAttributeName(attrName);
 
     if (playerIds.size() > 1) {
         source.sendMessage("Only one entity is allowed, but the provided selector allows more");
@@ -137,8 +137,8 @@ i32 AttributeCommand::setAttributeBase(CommandContext<ServerCommandSource>& cont
         return 0;
     }
 
-    const String attrName = context.getArgument<String>("attribute");
-    String normalizedAttrName = normalizeAttributeName(attrName);
+    const std::string attrName = context.getArgument<std::string>("attribute");
+    std::string normalizedAttrName = normalizeAttributeName(attrName);
     f32 value = context.getArgument<f32>("value");
 
     PlayerId playerId = playerIds[0];
@@ -176,9 +176,9 @@ i32 AttributeCommand::setAttributeBase(CommandContext<ServerCommandSource>& cont
     return 1;
 }
 
-String AttributeCommand::normalizeAttributeName(const String& name)
+std::string AttributeCommand::normalizeAttributeName(const std::string& name)
 {
-    String normalized = name;
+    std::string normalized = name;
 
     // 移除 minecraft: 前缀
     if (normalized.find("minecraft:") == 0) {
@@ -188,7 +188,7 @@ String AttributeCommand::normalizeAttributeName(const String& name)
     // 添加 generic. 前缀（如果需要）
     if (normalized.find("generic.") != 0 && normalized.find("horse.") != 0) {
         // 常见的通用属性需要 generic. 前缀
-        static const std::vector<String> genericAttrs = {
+        static const std::vector<std::string> genericAttrs = {
             "max_health", "follow_range", "knockback_resistance",
             "movement_speed", "flying_speed", "attack_damage",
             "attack_knockback", "attack_speed", "armor",
@@ -207,11 +207,11 @@ String AttributeCommand::normalizeAttributeName(const String& name)
     return normalized;
 }
 
-bool AttributeCommand::isKnownAttribute(const String& name) noexcept
+bool AttributeCommand::isKnownAttribute(const std::string& name) noexcept
 {
     using namespace entity::attribute;
 
-    static const std::unordered_set<String> knownAttrs = {
+    static const std::unordered_set<std::string> knownAttrs = {
         Attributes::MAX_HEALTH,
         Attributes::FOLLOW_RANGE,
         Attributes::KNOCKBACK_RESISTANCE,
@@ -232,11 +232,11 @@ bool AttributeCommand::isKnownAttribute(const String& name) noexcept
     return knownAttrs.count(name) > 0;
 }
 
-f64 AttributeCommand::getAttributeDefaultValue(const String& name) noexcept
+f64 AttributeCommand::getAttributeDefaultValue(const std::string& name) noexcept
 {
     using namespace entity::attribute;
 
-    static const std::unordered_map<String, f64> defaultValues = {
+    static const std::unordered_map<std::string, f64> defaultValues = {
         {Attributes::MAX_HEALTH, 20.0},
         {Attributes::FOLLOW_RANGE, 32.0},
         {Attributes::KNOCKBACK_RESISTANCE, 0.0},
@@ -261,11 +261,11 @@ f64 AttributeCommand::getAttributeDefaultValue(const String& name) noexcept
     return 0.0;
 }
 
-std::pair<f64, f64> AttributeCommand::getAttributeRange(const String& name) noexcept
+std::pair<f64, f64> AttributeCommand::getAttributeRange(const std::string& name) noexcept
 {
     using namespace entity::attribute;
 
-    static const std::unordered_map<String, std::pair<f64, f64>> ranges = {
+    static const std::unordered_map<std::string, std::pair<f64, f64>> ranges = {
         {Attributes::MAX_HEALTH, {0.0, 1024.0}},
         {Attributes::FOLLOW_RANGE, {0.0, 2048.0}},
         {Attributes::KNOCKBACK_RESISTANCE, {0.0, 1.0}},

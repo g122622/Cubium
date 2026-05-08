@@ -643,7 +643,7 @@ context.setOwnedValue(LootParams::FORTUNE_LEVEL, 3);
 当使用 `TableLootEntry` 引用其他掉落表时，可能导致循环引用。系统已内置检测机制，但需要正确设置掉落表解析器:
 
 ```cpp
-context->setLootTableResolver([&manager](const String& id) -> const LootTable* {
+context->setLootTableResolver([&manager](const std::string& id) -> const LootTable* {
     return manager.getTable(id);
 });
 ```
@@ -692,9 +692,9 @@ if (result.success()) {
 }
 
 // 序列化为 JSON 字符串
-String json = table->toJson();
+std::string json = table->toJson();
 // 或带格式化
-String prettyJson = table->toJson(2);
+std::string prettyJson = table->toJson(2);
 ```
 
 支持解析的 JSON 格式完全兼容 Minecraft 1.16.5 数据包格式。

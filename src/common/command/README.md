@@ -83,9 +83,9 @@ literal->setRequirement([](const Source& s) { return s.hasPermission(2); });
 ```cpp
 template<typename S>
 class CommandContext {
-    T getArgument<T>(const String& name) const;
-    T getArgumentOr<T>(const String& name, const T& defaultValue) const;
-    bool hasArgument(const String& name) const;
+    T getArgument<T>(const std::string& name) const;
+    T getArgumentOr<T>(const std::string& name, const T& defaultValue) const;
+    bool hasArgument(const std::string& name) const;
 };
 ```
 
@@ -103,7 +103,7 @@ i32 num = reader.readInt();        // 123
 reader.skipWhitespace();
 f64 dec = reader.readDouble();     // 45.6
 reader.skipWhitespace();
-String str = reader.readString();  // "hello world"
+std::string str = reader.readString();  // "hello world"
 ```
 
 ### 参数类型
@@ -175,9 +175,9 @@ auto entitiesArg = EntityArgumentType::entities();  // 多个实体
 ```cpp
 class CommandException : public std::runtime_error {
     CommandErrorType type() const;
-    const String& message() const;
+    const std::string& message() const;
     i32 cursor() const;  // 错误位置
-    CommandException withInput(StringView input) const;
+    CommandException withInput(std::string_view input) const;
 };
 ```
 
@@ -477,9 +477,9 @@ public:
         // 解析逻辑
     }
     
-    String getTypeName() const override { return "my_type"; }
+    std::string getTypeName() const override { return "my_type"; }
     
-    std::vector<String> getExamples() const override {
+    std::vector<std::string> getExamples() const override {
         return {"example1", "example2"};
     }
     

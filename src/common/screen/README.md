@@ -64,7 +64,7 @@ src/common/screen/
 
 **辅助函数**：
 - `screenTypeToId(ScreenType)` - 获取屏幕类型的资源位置ID
-- `screenTypeFromId(const String&)` - 从资源位置ID解析屏幕类型
+- `screenTypeFromId(const std::string&)` - 从资源位置ID解析屏幕类型
 
 ### ScreenType.cpp
 
@@ -181,7 +181,7 @@ public:
         // 清理资源
     }
 
-    String getTitle() const override {
+    std::string getTitle() const override {
         return "My Screen";
     }
 };
@@ -193,7 +193,7 @@ public:
 #include "screen/ScreenType.hpp"
 
 // 获取屏幕类型的资源ID
-mc::String id = mc::screenTypeToId(mc::ScreenType::CraftingTable);
+mc::std::string id = mc::screenTypeToId(mc::ScreenType::CraftingTable);
 // 结果: "minecraft:crafting_table"
 
 // 从资源ID解析屏幕类型
@@ -312,12 +312,12 @@ enum class ScreenType : u8 {
 
 2. 在 `ScreenType.cpp` 中添加映射：
 ```cpp
-const std::unordered_map<ScreenType, String> typeToIdMap = {
+const std::unordered_map<ScreenType, std::string> typeToIdMap = {
     // ...
     {ScreenType::NewScreen, "minecraft:new_screen"},
 };
 
-const std::unordered_map<String, ScreenType> idToTypeMap = {
+const std::unordered_map<std::string, ScreenType> idToTypeMap = {
     // ...
     {"minecraft:new_screen", ScreenType::NewScreen},
     {"new_screen", ScreenType::NewScreen},  // 可选：添加简写

@@ -33,7 +33,7 @@ public:
 	/**
 	 * @brief 获取Boss名称（显示在生命条上）
 	 */
-	[[nodiscard]] virtual String getBossName() const = 0;
+	[[nodiscard]] virtual std::string getBossName() const = 0;
 
 	/**
 	 * @brief 获取生命条显示范围
@@ -235,7 +235,7 @@ public:
 
 	// ========== BossEntity 接口 ==========
 
-	[[nodiscard]] String getBossName() const override { return "Ender Dragon"; }
+	[[nodiscard]] std::string getBossName() const override { return "Ender Dragon"; }
 	[[nodiscard]] f32 getHealthBarRange() const override { return 256.0f; }
 	[[nodiscard]] u32 getHealthBarColor() const override { return 0x800080; }  // 紫色
 

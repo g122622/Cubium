@@ -128,7 +128,7 @@ public:
     using PlacementPredicate = std::function<bool(
         const ISpawnWorldReader& world,
         const Vector3i& pos,
-        const String& entityTypeId
+        const std::string& entityTypeId
     )>;
 
     /**
@@ -164,7 +164,7 @@ public:
      * @param predicate 额外的放置条件检查函数（可选）
      */
     static void registerPlacement(
-        const String& entityTypeId,
+        const std::string& entityTypeId,
         PlacementType placementType,
         HeightmapType heightmapType,
         PlacementPredicate predicate = nullptr
@@ -176,7 +176,7 @@ public:
      * @param entityTypeId 实体类型ID
      * @return 放置类型，如果未注册返回 NoRestrictions
      */
-    [[nodiscard]] static PlacementType getPlacementType(const String& entityTypeId);
+    [[nodiscard]] static PlacementType getPlacementType(const std::string& entityTypeId);
 
     /**
      * @brief 获取实体高度图类型
@@ -184,7 +184,7 @@ public:
      * @param entityTypeId 实体类型ID
      * @return 高度图类型，如果未注册返回 MotionBlockingNoLeaves
      */
-    [[nodiscard]] static HeightmapType getHeightmapType(const String& entityTypeId);
+    [[nodiscard]] static HeightmapType getHeightmapType(const std::string& entityTypeId);
 
     /**
      * @brief 获取实体放置条目
@@ -192,7 +192,7 @@ public:
      * @param entityTypeId 实体类型ID
      * @return 放置条目指针，如果未注册返回 nullptr
      */
-    [[nodiscard]] static const PlacementEntry* getPlacementEntry(const String& entityTypeId);
+    [[nodiscard]] static const PlacementEntry* getPlacementEntry(const std::string& entityTypeId);
 
     /**
      * @brief 检查位置是否可以生成指定类型的实体
@@ -211,7 +211,7 @@ public:
         PlacementType placementType,
         const ISpawnWorldReader& world,
         const Vector3i& pos,
-        const String& entityTypeId
+        const std::string& entityTypeId
     );
 
     /**
@@ -229,7 +229,7 @@ public:
      * 参考 MC 1.16.5 EntitySpawnPlacementRegistry.canSpawnEntity
      */
     [[nodiscard]] static bool canSpawnEntity(
-        const String& entityTypeId,
+        const std::string& entityTypeId,
         ISpawnWorldReader& world,
         SpawnReason reason,
         const Vector3i& pos,
@@ -250,7 +250,7 @@ public:
     [[nodiscard]] static bool checkOnGroundSpawn(
         const ISpawnWorldReader& world,
         const Vector3i& pos,
-        const String& entityTypeId
+        const std::string& entityTypeId
     );
 
     /**
@@ -267,7 +267,7 @@ public:
     [[nodiscard]] static bool checkInWaterSpawn(
         const ISpawnWorldReader& world,
         const Vector3i& pos,
-        const String& entityTypeId
+        const std::string& entityTypeId
     );
 
     /**
@@ -281,7 +281,7 @@ public:
     [[nodiscard]] static bool checkInLavaSpawn(
         const ISpawnWorldReader& world,
         const Vector3i& pos,
-        const String& entityTypeId
+        const std::string& entityTypeId
     );
 
     /**
@@ -298,7 +298,7 @@ public:
 
 private:
     /// 放置规则注册表
-    static std::unordered_map<String, PlacementEntry> s_registry;
+    static std::unordered_map<std::string, PlacementEntry> s_registry;
 
     /// 是否已初始化
     static bool s_initialized;
@@ -314,7 +314,7 @@ private:
     [[nodiscard]] static bool isValidSpawnBlock(
         const ISpawnWorldReader& world,
         const Vector3i& pos,
-        const String& entityTypeId
+        const std::string& entityTypeId
     );
 
     /**

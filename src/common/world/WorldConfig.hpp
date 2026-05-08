@@ -25,7 +25,7 @@ enum class WorldType : u8 {
  * @param type 世界类型
  * @return 显示名称
  */
-[[nodiscard]] inline String worldTypeName(WorldType type) {
+[[nodiscard]] inline std::string worldTypeName(WorldType type) {
     switch (type) {
         case WorldType::Default:      return "default";
         case WorldType::Flat:         return "flat";
@@ -41,7 +41,7 @@ enum class WorldType : u8 {
  * @param name 世界类型名称
  * @return 世界类型枚举值
  */
-[[nodiscard]] inline WorldType parseWorldType(const String& name) {
+[[nodiscard]] inline WorldType parseWorldType(const std::string& name) {
     if (name == "flat") {
         return WorldType::Flat;
     } else if (name == "largeBiomes" || name == "large_biomes") {

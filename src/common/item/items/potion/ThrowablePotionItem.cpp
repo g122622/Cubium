@@ -21,7 +21,7 @@ bool ThrowablePotionItem::hasEffect(const ItemStack& stack) const {
     return potion != nullptr && potion->hasEffects();
 }
 
-String ThrowablePotionItem::getTranslationKey(const ItemStack& stack) const {
+std::string ThrowablePotionItem::getTranslationKey(const ItemStack& stack) const {
     const potion::Potion* potion = potion::PotionUtils::getPotion(stack);
     if (potion != nullptr && potion->hasEffects()) {
         return getEffectTranslationKeyPrefix() + potion->baseName();

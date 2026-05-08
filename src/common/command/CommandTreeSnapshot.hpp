@@ -30,16 +30,16 @@ enum class CommandTreeSuggestionKind : u8 {
 struct CommandTreeNodeSnapshot {
     u32 id = 0;
     NodeType type = NodeType::Root;
-    String name;
-    String typeName;
+    std::string name;
+    std::string typeName;
     nlohmann::json metadata = nlohmann::json::object();
-    std::vector<String> examples;
+    std::vector<std::string> examples;
     std::vector<u32> children;
     std::optional<u32> redirect;
     RedirectModifier redirectModifier = RedirectModifier::None;
     bool executable = false;
     CommandTreeSuggestionKind suggestionKind = CommandTreeSuggestionKind::None;
-    std::vector<String> suggestionCandidates;
+    std::vector<std::string> suggestionCandidates;
 };
 
 /**
@@ -62,7 +62,7 @@ public:
     /**
      * @brief 序列化为 JSON 字符串
      */
-    [[nodiscard]] String toJsonString() const;
+    [[nodiscard]] std::string toJsonString() const;
 
     /**
      * @brief 从 JSON 对象反序列化
@@ -72,7 +72,7 @@ public:
     /**
      * @brief 从 JSON 字符串反序列化
      */
-    [[nodiscard]] static Result<CommandTreeSnapshot> fromJsonString(StringView jsonText);
+    [[nodiscard]] static Result<CommandTreeSnapshot> fromJsonString(std::string_view jsonText);
 };
 
 namespace detail {
@@ -89,7 +89,7 @@ namespace detail {
     return "root";
 }
 
-[[nodiscard]] inline NodeType parseNodeType(StringView text) {
+[[nodiscard]] inline NodeType parseNodeType(std::string_view text) {
     if (text == "root") {
         return NodeType::Root;
     }
@@ -111,7 +111,7 @@ namespace detail {
     return "none";
 }
 
-[[nodiscard]] inline RedirectModifier parseRedirectModifier(StringView text) {
+[[nodiscard]] inline RedirectModifier parseRedirectModifier(std::string_view text) {
     if (text == "single") {
         return RedirectModifier::Single;
     }
@@ -139,7 +139,7 @@ namespace detail {
     return "none";
 }
 
-[[nodiscard]] inline CommandTreeSuggestionKind parseSuggestionKind(StringView text) {
+[[nodiscard]] inline CommandTreeSuggestionKind parseSuggestionKind(std::string_view text) {
     if (text == "fixed") {
         return CommandTreeSuggestionKind::Fixed;
     }
@@ -158,7 +158,7 @@ namespace detail {
     return CommandTreeSuggestionKind::None;
 }
 
-[[nodiscard]] inline bool pathMatches(const std::vector<String>& path, std::initializer_list<const char*> segments) {
+[[nodiscard]] inline bool pathMatches(const std::vector<std::string>& path, std::initializer_list<const char*> segments) {
     if (path.size() != segments.size()) {
         return false;
     }
@@ -175,9 +175,9 @@ namespace detail {
 
 template<typename NodeT>
 [[nodiscard]] inline CommandTreeSuggestionKind inferSuggestionKind(
-    const std::vector<String>& path,
+    const std::vector<std::string>& path,
     const NodeT& node,
-    std::vector<String>& candidates
+    std::vector<std::string>& candidates
 ) {
     candidates.clear();
 
@@ -190,7 +190,7 @@ template<typename NodeT>
         return CommandTreeSuggestionKind::Fixed;
     }
 
-    const String typeName = node.getTypeName();
+    const std::string typeName = node.getTypeName();
     if (typeName == "player" || typeName == "players") {
         return CommandTreeSuggestionKind::PlayerNames;
     }
@@ -311,7 +311,7 @@ template<typename S>
             }
         }
 
-        std::vector<String> suggestionCandidates;
+        std::vector<std::string> suggestionCandidates;
         snapshotNode.suggestionKind = detail::inferSuggestionKind(
             dispatcher.getPath(node),
             *node,

@@ -212,7 +212,7 @@ public:
      * @param defaultKey 默认按键码（GLFW 键码）
      * @param category 分类 ID（如 "key.categories.movement"）
      */
-    KeyBinding(String id, i32 defaultKey, String category);
+    KeyBinding(std::string id, i32 defaultKey, std::string category);
 
     /**
      * @brief 析构函数
@@ -234,7 +234,7 @@ public:
     /**
      * @brief 获取绑定 ID
      */
-    [[nodiscard]] const String& id() const noexcept { return m_id; }
+    [[nodiscard]] const std::string& id() const noexcept { return m_id; }
 
     /**
      * @brief 获取默认按键码
@@ -249,13 +249,13 @@ public:
     /**
      * @brief 获取分类 ID
      */
-    [[nodiscard]] const String& category() const noexcept { return m_category; }
+    [[nodiscard]] const std::string& category() const noexcept { return m_category; }
 
     /**
      * @brief 获取翻译键（用于 UI 显示）
      * @return 翻译键，如 "key.forward"
      */
-    [[nodiscard]] const String& translationKey() const noexcept { return m_id; }
+    [[nodiscard]] const std::string& translationKey() const noexcept { return m_id; }
 
     // ========================================================================
     // 按键设置
@@ -307,20 +307,20 @@ public:
      * @param id 绑定 ID
      * @return 按键绑定指针，找不到返回 nullptr
      */
-    [[nodiscard]] static KeyBinding* find(const String& id);
+    [[nodiscard]] static KeyBinding* find(const std::string& id);
 
     /**
      * @brief 获取分类下的所有按键绑定
      * @param category 分类 ID
      * @return 按键绑定列表
      */
-    [[nodiscard]] static std::vector<KeyBinding*> getByCategory(const String& category);
+    [[nodiscard]] static std::vector<KeyBinding*> getByCategory(const std::string& category);
 
     /**
      * @brief 获取所有分类
      * @return 分类 ID 列表
      */
-    [[nodiscard]] static std::vector<String> getCategories();
+    [[nodiscard]] static std::vector<std::string> getCategories();
 
     /**
      * @brief 更新所有按键状态
@@ -365,10 +365,10 @@ public:
     static void deserializeAll(const nlohmann::json& j);
 
 private:
-    String m_id;              // 绑定 ID（如 "key.forward"）
+    std::string m_id;              // 绑定 ID（如 "key.forward"）
     i32 m_defaultKey;         // 默认按键码
     i32 m_currentKey;         // 当前按键码
-    String m_category;        // 分类（如 "key.categories.movement"）
+    std::string m_category;        // 分类（如 "key.categories.movement"）
 
     // 状态
     bool m_pressed = false;
@@ -376,8 +376,8 @@ private:
     bool m_justReleased = false;
 
     // 静态注册表
-    static std::map<String, KeyBinding*> s_bindings;
-    static std::map<String, std::vector<KeyBinding*>> s_categoryBindings;
+    static std::map<std::string, KeyBinding*> s_bindings;
+    static std::map<std::string, std::vector<KeyBinding*>> s_categoryBindings;
     static StateCallback s_stateCallback;
 
     // 注册到全局

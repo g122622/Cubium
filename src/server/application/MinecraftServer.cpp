@@ -101,9 +101,9 @@ void MinecraftServer::setPlayerIdleTimeoutMinutes(i32 timeoutMinutes)
     m_playerIdleTimeoutMinutes = timeoutMinutes;
 }
 
-void MinecraftServer::broadcastServerMessage(StringView message)
+void MinecraftServer::broadcastServerMessage(std::string_view message)
 {
-    const String text(message);
+    const std::string text(message);
     spdlog::info("[System] {}", text);
 }
 
@@ -1063,7 +1063,7 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
     }
 
     auto& packet = result.value();
-    String message = packet.message();
+    std::string message = packet.message();
 
     if (!message.empty() && message[0] == '/') {
         // 执行命令

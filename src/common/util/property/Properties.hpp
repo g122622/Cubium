@@ -1217,98 +1217,98 @@ private:
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::DoorHinge>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::DoorHinge& value);
-    static std::optional<mc::BlockStateProperties::DoorHinge> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::DoorHinge& value);
+    static std::optional<mc::BlockStateProperties::DoorHinge> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::DoubleBlockHalf>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::DoubleBlockHalf& value);
-    static std::optional<mc::BlockStateProperties::DoubleBlockHalf> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::DoubleBlockHalf& value);
+    static std::optional<mc::BlockStateProperties::DoubleBlockHalf> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::ChestType>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::ChestType& value);
-    static std::optional<mc::BlockStateProperties::ChestType> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::ChestType& value);
+    static std::optional<mc::BlockStateProperties::ChestType> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::AttachFace>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::AttachFace& value);
-    static std::optional<mc::BlockStateProperties::AttachFace> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::AttachFace& value);
+    static std::optional<mc::BlockStateProperties::AttachFace> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::StairsShape>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::StairsShape& value);
-    static std::optional<mc::BlockStateProperties::StairsShape> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::StairsShape& value);
+    static std::optional<mc::BlockStateProperties::StairsShape> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::SlabType>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::SlabType& value);
-    static std::optional<mc::BlockStateProperties::SlabType> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::SlabType& value);
+    static std::optional<mc::BlockStateProperties::SlabType> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::WallHeight>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::WallHeight& value);
-    static std::optional<mc::BlockStateProperties::WallHeight> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::WallHeight& value);
+    static std::optional<mc::BlockStateProperties::WallHeight> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::BedPart>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::BedPart& value);
-    static std::optional<mc::BlockStateProperties::BedPart> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::BedPart& value);
+    static std::optional<mc::BlockStateProperties::BedPart> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::BellAttachment>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::BellAttachment& value);
-    static std::optional<mc::BlockStateProperties::BellAttachment> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::BellAttachment& value);
+    static std::optional<mc::BlockStateProperties::BellAttachment> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::BambooLeaves>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::BambooLeaves& value);
-    static std::optional<mc::BlockStateProperties::BambooLeaves> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::BambooLeaves& value);
+    static std::optional<mc::BlockStateProperties::BambooLeaves> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::Half>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::Half& value);
-    static std::optional<mc::BlockStateProperties::Half> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::Half& value);
+    static std::optional<mc::BlockStateProperties::Half> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::RailShape>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::RailShape& value);
-    static std::optional<mc::BlockStateProperties::RailShape> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::RailShape& value);
+    static std::optional<mc::BlockStateProperties::RailShape> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::RedstoneSide>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::RedstoneSide& value);
-    static std::optional<mc::BlockStateProperties::RedstoneSide> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::RedstoneSide& value);
+    static std::optional<mc::BlockStateProperties::RedstoneSide> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::PistonType>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::PistonType& value);
-    static std::optional<mc::BlockStateProperties::PistonType> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::PistonType& value);
+    static std::optional<mc::BlockStateProperties::PistonType> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::ComparatorMode>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::ComparatorMode& value);
-    static std::optional<mc::BlockStateProperties::ComparatorMode> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::ComparatorMode& value);
+    static std::optional<mc::BlockStateProperties::ComparatorMode> fromName(mc::std::string_view name);
 };
 
 template<>
 struct mc::EnumProperty<mc::BlockStateProperties::NoteBlockInstrument>::Traits {
-    static mc::String toString(const mc::BlockStateProperties::NoteBlockInstrument& value);
-    static std::optional<mc::BlockStateProperties::NoteBlockInstrument> fromName(mc::StringView name);
+    static mc::std::string toString(const mc::BlockStateProperties::NoteBlockInstrument& value);
+    static std::optional<mc::BlockStateProperties::NoteBlockInstrument> fromName(mc::std::string_view name);
 };
 
 // ============================================================================
@@ -1317,10 +1317,10 @@ struct mc::EnumProperty<mc::BlockStateProperties::NoteBlockInstrument>::Traits {
 
 template<>
 struct mc::EnumProperty<mc::world::gen::jigsaw::JigsawOrientation>::Traits {
-    static mc::String toString(const mc::world::gen::jigsaw::JigsawOrientation& value) {
+    static mc::std::string toString(const mc::world::gen::jigsaw::JigsawOrientation& value) {
         return mc::world::gen::jigsaw::JigsawOrientations::toString(value);
     }
-    static std::optional<mc::world::gen::jigsaw::JigsawOrientation> fromName(mc::StringView name) {
+    static std::optional<mc::world::gen::jigsaw::JigsawOrientation> fromName(mc::std::string_view name) {
         return mc::world::gen::jigsaw::JigsawOrientations::fromName(name);
     }
 };

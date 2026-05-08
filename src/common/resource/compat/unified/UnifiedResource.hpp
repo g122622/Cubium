@@ -34,7 +34,7 @@ enum class ResourceType : u8 {
  */
 struct UnifiedResource {
     ResourceLocation location;      ///< 规范位置（现代格式）
-    String originalPath;            ///< 资源包中的原始路径
+    std::string originalPath;            ///< 资源包中的原始路径
     PackFormat sourceFormat;        ///< 源包格式版本
     ResourceType type = ResourceType::Unknown;
 

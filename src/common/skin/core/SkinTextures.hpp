@@ -26,8 +26,8 @@ enum class TextureType : u8 {
  * 从 textures 属性的 Base64 JSON 中解析。
  */
 struct TextureMetadata {
-    String url;                          // 下载URL
-    std::optional<String> hash;          // 纹理哈希（用于缓存文件名）
+    std::string url;                          // 下载URL
+    std::optional<std::string> hash;          // 纹理哈希（用于缓存文件名）
     std::optional<SkinType> skinType;    // 仅皮肤：模型类型（default/slim）
 
     TextureMetadata() = default;
@@ -114,23 +114,23 @@ public:
 
     // ========== URL 获取（用于下载） ==========
 
-    [[nodiscard]] const std::optional<String>& skinUrl() const { return m_skinUrl; }
-    [[nodiscard]] const std::optional<String>& capeUrl() const { return m_capeUrl; }
-    [[nodiscard]] const std::optional<String>& elytraUrl() const { return m_elytraUrl; }
+    [[nodiscard]] const std::optional<std::string>& skinUrl() const { return m_skinUrl; }
+    [[nodiscard]] const std::optional<std::string>& capeUrl() const { return m_capeUrl; }
+    [[nodiscard]] const std::optional<std::string>& elytraUrl() const { return m_elytraUrl; }
 
-    void setSkinUrl(const String& url) { m_skinUrl = url; }
-    void setCapeUrl(const String& url) { m_capeUrl = url; }
-    void setElytraUrl(const String& url) { m_elytraUrl = url; }
+    void setSkinUrl(const std::string& url) { m_skinUrl = url; }
+    void setCapeUrl(const std::string& url) { m_capeUrl = url; }
+    void setElytraUrl(const std::string& url) { m_elytraUrl = url; }
 
     // ========== 哈希获取（用于缓存） ==========
 
-    [[nodiscard]] const std::optional<String>& skinHash() const { return m_skinHash; }
-    [[nodiscard]] const std::optional<String>& capeHash() const { return m_capeHash; }
-    [[nodiscard]] const std::optional<String>& elytraHash() const { return m_elytraHash; }
+    [[nodiscard]] const std::optional<std::string>& skinHash() const { return m_skinHash; }
+    [[nodiscard]] const std::optional<std::string>& capeHash() const { return m_capeHash; }
+    [[nodiscard]] const std::optional<std::string>& elytraHash() const { return m_elytraHash; }
 
-    void setSkinHash(const String& hash) { m_skinHash = hash; }
-    void setCapeHash(const String& hash) { m_capeHash = hash; }
-    void setElytraHash(const String& hash) { m_elytraHash = hash; }
+    void setSkinHash(const std::string& hash) { m_skinHash = hash; }
+    void setCapeHash(const std::string& hash) { m_capeHash = hash; }
+    void setElytraHash(const std::string& hash) { m_elytraHash = hash; }
 
     // ========== 状态检查 ==========
 
@@ -155,17 +155,17 @@ public:
      *
      * @return 缓存键字符串，如果没有皮肤hash返回空
      */
-    [[nodiscard]] String getSkinCacheKey() const;
+    [[nodiscard]] std::string getSkinCacheKey() const;
 
     /**
      * @brief 获取披风缓存键
      */
-    [[nodiscard]] String getCapeCacheKey() const;
+    [[nodiscard]] std::string getCapeCacheKey() const;
 
     /**
      * @brief 获取鞘翅缓存键
      */
-    [[nodiscard]] String getElytraCacheKey() const;
+    [[nodiscard]] std::string getElytraCacheKey() const;
 
     // ========== 从URL提取哈希 ==========
 
@@ -176,20 +176,20 @@ public:
      *
      * @return 哈希字符串，提取失败返回空
      */
-    [[nodiscard]] static String extractHashFromUrl(const String& url);
+    [[nodiscard]] static std::string extractHashFromUrl(const std::string& url);
 
 private:
     std::optional<ResourceLocation> m_skin;
     std::optional<ResourceLocation> m_cape;
     std::optional<ResourceLocation> m_elytra;
 
-    std::optional<String> m_skinUrl;
-    std::optional<String> m_capeUrl;
-    std::optional<String> m_elytraUrl;
+    std::optional<std::string> m_skinUrl;
+    std::optional<std::string> m_capeUrl;
+    std::optional<std::string> m_elytraUrl;
 
-    std::optional<String> m_skinHash;
-    std::optional<String> m_capeHash;
-    std::optional<String> m_elytraHash;
+    std::optional<std::string> m_skinHash;
+    std::optional<std::string> m_capeHash;
+    std::optional<std::string> m_elytraHash;
 
     SkinType m_skinType = SkinType::Default;
 };

@@ -29,11 +29,11 @@ enum class PlayerListAction : u8 {
  */
 struct PlayerListEntry {
     std::array<u8, 16> uuid;                            // 玩家UUID
-    String name;                                         // 玩家名称
+    std::string name;                                         // 玩家名称
     std::vector<GameProfileProperty> properties;        // 档案属性（皮肤等）
     GameMode gameMode = GameMode::Survival;             // 游戏模式
     i32 ping = 0;                                        // 延迟（毫秒）
-    std::optional<String> displayName;                   // 显示名（可选）
+    std::optional<std::string> displayName;                   // 显示名（可选）
 
     PlayerListEntry() = default;
 
@@ -89,7 +89,7 @@ struct PlayerListEntry {
  *
  * AddPlayer 条目格式：
  * - UUID: 16 bytes
- * - Name: String (max 16)
+ * - Name: std::string (max 16)
  * - Properties count: VarInt
  * - Properties: [name, value, hasSignature, signature?]
  * - GameMode: VarInt

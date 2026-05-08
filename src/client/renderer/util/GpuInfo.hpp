@@ -12,9 +12,9 @@ namespace mc::client {
  * 用于存储从Vulkan获取的GPU信息
  */
 struct DebugGpuInfo {
-    String vendor;              // GPU厂商 (NVIDIA, AMD, Intel等)
-    String name;                // GPU型号
-    String driverVersion;       // 驱动版本
+    std::string vendor;              // GPU厂商 (NVIDIA, AMD, Intel等)
+    std::string name;                // GPU型号
+    std::string driverVersion;       // 驱动版本
     u64 dedicatedVideoMB = 0;   // 专用显存 (MB)
     u64 sharedSystemMB = 0;     // 共享系统内存 (MB)
     u32 apiMajorVersion = 0;    // Vulkan API主版本

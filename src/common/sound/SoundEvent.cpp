@@ -9,7 +9,7 @@ SoundEvent::SoundEvent(ResourceLocation id)
 {
 }
 
-SoundEvent::SoundEvent(StringView idString)
+SoundEvent::SoundEvent(std::string_view idString)
     : m_id(ResourceLocation::parse(idString))
     , m_attenuationDistance(DEFAULT_ATTENUATION_DISTANCE)
 {

@@ -104,7 +104,7 @@ LoginResult PacketHandler::handleLoginRequest(u32 sessionId, network::Connection
     }
 
     auto& packet = packetResult.value();
-    String username = packet.username();
+    std::string username = packet.username();
 
     spdlog::info("PacketHandler: Player '{}' attempting to join from session {}", username, sessionId);
 
@@ -326,7 +326,7 @@ PacketHandleResult PacketHandler::handleChatMessage(u32 sessionId, const u8* dat
     }
 
     auto& packet = result.value();
-    String message = packet.message();
+    std::string message = packet.message();
 
     spdlog::info("[Chat] {}: {}", player->username, message);
 

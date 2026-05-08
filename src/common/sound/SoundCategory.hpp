@@ -17,7 +17,7 @@ namespace mc::sound {
  * 使用示例:
  * @code
  * SoundCategory category = SoundCategory::Blocks;
- * StringView name = getSoundCategoryName(category); // "block"
+ * std::string_view name = getSoundCategoryName(category); // "block"
  *
  * auto parsed = parseSoundCategory("music");
  * if (parsed) {
@@ -62,7 +62,7 @@ enum class SoundCategory : u8 {
  * - Ambient -> "ambient"
  * - Voice   -> "voice"
  */
-[[nodiscard]] StringView getSoundCategoryName(SoundCategory category) noexcept;
+[[nodiscard]] std::string_view getSoundCategoryName(SoundCategory category) noexcept;
 
 /**
  * @brief 从名称解析声音类别
@@ -85,7 +85,7 @@ enum class SoundCategory : u8 {
  * - "ambient", "AMBIENT" -> SoundCategory::Ambient
  * - "voice", "VOICE" -> SoundCategory::Voice
  */
-[[nodiscard]] std::optional<SoundCategory> parseSoundCategory(StringView name) noexcept;
+[[nodiscard]] std::optional<SoundCategory> parseSoundCategory(std::string_view name) noexcept;
 
 /**
  * @brief 检查声音类别是否有效（非 Count）

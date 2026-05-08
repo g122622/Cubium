@@ -337,7 +337,7 @@ void WorldLightManager::checkChunkEdges(i32 chunkX, i32 chunkZ) {
 // 调试信息
 // ============================================================================
 
-String WorldLightManager::getDebugInfo(LightType type, const SectionPos& pos) const {
+std::string WorldLightManager::getDebugInfo(LightType type, const SectionPos& pos) const {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     (void)pos;  // 暂时未使用

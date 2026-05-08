@@ -61,7 +61,7 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] String getTypeName() const override { return "LookAtGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "LookAtGoal"; }
 
 protected:
     /**
@@ -104,7 +104,7 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] String getTypeName() const override { return "LookRandomlyGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "LookRandomlyGoal"; }
 
 private:
     MobEntity* m_mob;

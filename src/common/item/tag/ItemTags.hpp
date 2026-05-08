@@ -36,7 +36,7 @@ public:
      * @param id 标签ID字符串（namespace:path）。
      * @return 标签指针，不存在返回 nullptr。
      */
-    [[nodiscard]] static ItemTag* getTag(const String& id);
+    [[nodiscard]] static ItemTag* getTag(const std::string& id);
 
     /**
      * @brief 遍历全部标签。

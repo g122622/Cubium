@@ -7,7 +7,7 @@ using namespace mc::client::sound;
 
 namespace {
 
-SoundEventDefinition makeEvent(const String& id, const String& soundId, bool replace = false) {
+SoundEventDefinition makeEvent(const std::string& id, const std::string& soundId, bool replace = false) {
     SoundEventDefinition definition{ResourceLocation(id)};
     definition.replace = replace;
     definition.sounds.emplace_back(ResourceLocation(soundId));

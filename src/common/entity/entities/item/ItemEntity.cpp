@@ -123,7 +123,7 @@ bool ItemEntity::onPlayerPickup(Player& player) {
     return true;
 }
 
-void ItemEntity::setOwner(const String& ownerUuid, const String& throwerUuid) {
+void ItemEntity::setOwner(const std::string& ownerUuid, const std::string& throwerUuid) {
     m_ownerUuid = ownerUuid;
     m_throwerUuid = throwerUuid;
 }

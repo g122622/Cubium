@@ -29,7 +29,7 @@ void TextureMapper::initializeMappings() {
     // MC 1.12: log_oak, log_oak_top, log_spruce, ...
     // MC 1.13+: oak_log, oak_log_top, spruce_log, ...
     // =========================================================================
-    static const std::vector<std::pair<String, String>> logMappings = {
+    static const std::vector<std::pair<std::string, std::string>> logMappings = {
         {"oak_log", "log_oak"},
         {"oak_log_top", "log_oak_top"},
         {"spruce_log", "log_spruce"},
@@ -54,7 +54,7 @@ void TextureMapper::initializeMappings() {
     // MC 1.12: leaves_oak, leaves_spruce, ...
     // MC 1.13+: oak_leaves, spruce_leaves, ...
     // =========================================================================
-    static const std::vector<std::pair<String, String>> leafMappings = {
+    static const std::vector<std::pair<std::string, std::string>> leafMappings = {
         {"oak_leaves", "leaves_oak"},
         {"spruce_leaves", "leaves_spruce"},
         {"birch_leaves", "leaves_birch"},
@@ -73,7 +73,7 @@ void TextureMapper::initializeMappings() {
     // MC 1.12: sapling_oak, sapling_spruce, ...
     // MC 1.13+: oak_sapling, spruce_sapling, ...
     // =========================================================================
-    static const std::vector<std::pair<String, String>> saplingMappings = {
+    static const std::vector<std::pair<std::string, std::string>> saplingMappings = {
         {"oak_sapling", "sapling_oak"},
         {"spruce_sapling", "sapling_spruce"},
         {"birch_sapling", "sapling_birch"},
@@ -92,7 +92,7 @@ void TextureMapper::initializeMappings() {
     // MC 1.12: planks_oak, planks_spruce, ...
     // MC 1.13+: oak_planks, spruce_planks, ...
     // =========================================================================
-    static const std::vector<std::pair<String, String>> planksMappings = {
+    static const std::vector<std::pair<std::string, std::string>> planksMappings = {
         {"oak_planks", "planks_oak"},
         {"spruce_planks", "planks_spruce"},
         {"birch_planks", "planks_birch"},
@@ -112,7 +112,7 @@ void TextureMapper::initializeMappings() {
     // MC 1.13+: white_wool, orange_wool, ...
     // 注意: silver -> light_gray
     // =========================================================================
-    static const std::vector<std::pair<String, String>> woolMappings = {
+    static const std::vector<std::pair<std::string, std::string>> woolMappings = {
         {"white_wool", "wool_colored_white"},
         {"orange_wool", "wool_colored_orange"},
         {"magenta_wool", "wool_colored_magenta"},
@@ -142,7 +142,7 @@ void TextureMapper::initializeMappings() {
     // MC 1.13+: white_concrete, orange_concrete, ...
     // 注意: silver -> light_gray
     // =========================================================================
-    static const std::vector<std::pair<String, String>> concreteMappings = {
+    static const std::vector<std::pair<std::string, std::string>> concreteMappings = {
         {"white_concrete", "concrete_white"},
         {"orange_concrete", "concrete_orange"},
         {"magenta_concrete", "concrete_magenta"},
@@ -169,7 +169,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 混凝土粉末纹理
     // =========================================================================
-    static const std::vector<std::pair<String, String>> concretePowderMappings = {
+    static const std::vector<std::pair<std::string, std::string>> concretePowderMappings = {
         {"white_concrete_powder", "concrete_powder_white"},
         {"orange_concrete_powder", "concrete_powder_orange"},
         {"magenta_concrete_powder", "concrete_powder_magenta"},
@@ -198,7 +198,7 @@ void TextureMapper::initializeMappings() {
     // MC 1.12: hardened_clay_stained_white, ...
     // MC 1.13+: white_terracotta, ...
     // =========================================================================
-    static const std::vector<std::pair<String, String>> terracottaMappings = {
+    static const std::vector<std::pair<std::string, std::string>> terracottaMappings = {
         {"white_terracotta", "hardened_clay_stained_white"},
         {"orange_terracotta", "hardened_clay_stained_orange"},
         {"magenta_terracotta", "hardened_clay_stained_magenta"},
@@ -225,7 +225,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 釉面陶瓦纹理
     // =========================================================================
-    static const std::vector<std::pair<String, String>> glazedTerracottaMappings = {
+    static const std::vector<std::pair<std::string, std::string>> glazedTerracottaMappings = {
         {"white_glazed_terracotta", "glazed_terracotta_white"},
         {"orange_glazed_terracotta", "glazed_terracotta_orange"},
         {"magenta_glazed_terracotta", "glazed_terracotta_magenta"},
@@ -254,7 +254,7 @@ void TextureMapper::initializeMappings() {
     // MC 1.12: stone_granite, stone_diorite, stone_andesite
     // MC 1.13+: granite, diorite, andesite
     // =========================================================================
-    static const std::vector<std::pair<String, String>> stoneMappings = {
+    static const std::vector<std::pair<std::string, std::string>> stoneMappings = {
         {"granite", "stone_granite"},
         {"polished_granite", "stone_granite_smooth"},
         {"diorite", "stone_diorite"},
@@ -273,7 +273,7 @@ void TextureMapper::initializeMappings() {
     // MC 1.12: grass_top, grass_side, grass_side_overlay, grass_side_snowed
     // MC 1.13+: grass_block_top, grass_block_side, grass_block_side_overlay, grass_block_snow
     // =========================================================================
-    static const std::vector<std::pair<String, String>> grassMappings = {
+    static const std::vector<std::pair<std::string, std::string>> grassMappings = {
         {"grass_block_top", "grass_top"},
         {"grass_block_side", "grass_side"},
         {"grass_block_side_overlay", "grass_side_overlay"},
@@ -288,7 +288,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 灰化土
     // =========================================================================
-    static const std::vector<std::pair<String, String>> podzolMappings = {
+    static const std::vector<std::pair<std::string, std::string>> podzolMappings = {
         {"podzol_top", "dirt_podzol_top"},
         {"podzol_side", "dirt_podzol_side"},
     };
@@ -301,7 +301,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 砂岩
     // =========================================================================
-    static const std::vector<std::pair<String, String>> sandstoneMappings = {
+    static const std::vector<std::pair<std::string, std::string>> sandstoneMappings = {
         {"sandstone_top", "sandstone_top"},
         {"sandstone_bottom", "sandstone_bottom"},
         {"sandstone_side", "sandstone_normal"},
@@ -325,7 +325,7 @@ void TextureMapper::initializeMappings() {
     // MC 1.13+: dandelion, poppy, blue_orchid, ...
     // 注意: rose -> poppy, houstonia -> azure_bluet
     // =========================================================================
-    static const std::vector<std::pair<String, String>> flowerMappings = {
+    static const std::vector<std::pair<std::string, std::string>> flowerMappings = {
         {"dandelion", "flower_dandelion"},
         {"poppy", "flower_rose"},  // rose -> poppy
         {"blue_orchid", "flower_blue_orchid"},
@@ -346,7 +346,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 高草
     // =========================================================================
-    static const std::vector<std::pair<String, String>> tallGrassMappings = {
+    static const std::vector<std::pair<std::string, std::string>> tallGrassMappings = {
         {"short_grass", "tallgrass"},
         {"tall_grass_top", "double_plant_grass_top"},
         {"tall_grass_bottom", "double_plant_grass_bottom"},
@@ -363,7 +363,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 门
     // =========================================================================
-    static const std::vector<std::pair<String, String>> doorMappings = {
+    static const std::vector<std::pair<std::string, std::string>> doorMappings = {
         {"oak_door_bottom", "door_wood_lower"},
         {"oak_door_top", "door_wood_upper"},
         {"spruce_door_bottom", "door_spruce_lower"},
@@ -388,7 +388,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 床
     // =========================================================================
-    static const std::vector<std::pair<String, String>> bedMappings = {
+    static const std::vector<std::pair<std::string, std::string>> bedMappings = {
         {"white_bed", "bed_white"},
         {"orange_bed", "bed_orange"},
         {"magenta_bed", "bed_magenta"},
@@ -415,7 +415,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 潜影盒
     // =========================================================================
-    static const std::vector<std::pair<String, String>> shulkerBoxMappings = {
+    static const std::vector<std::pair<std::string, std::string>> shulkerBoxMappings = {
         {"white_shulker_box", "shulker_top_white"},
         {"orange_shulker_box", "shulker_top_orange"},
         {"magenta_shulker_box", "shulker_top_magenta"},
@@ -442,7 +442,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 杂项方块
     // =========================================================================
-    static const std::vector<std::pair<String, String>> miscMappings = {
+    static const std::vector<std::pair<std::string, std::string>> miscMappings = {
         {"bricks", "brick"},
         {"wet_sponge", "sponge_wet"},
         {"crafting_table_top", "crafting_table_top"},
@@ -482,7 +482,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 石砖
     // =========================================================================
-    static const std::vector<std::pair<String, String>> stoneBrickMappings = {
+    static const std::vector<std::pair<std::string, std::string>> stoneBrickMappings = {
         {"stone_bricks", "stonebrick"},
         {"mossy_stone_bricks", "stonebrick_mossy"},
         {"cracked_stone_bricks", "stonebrick_cracked"},
@@ -497,7 +497,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 下界砖
     // =========================================================================
-    static const std::vector<std::pair<String, String>> netherMappings = {
+    static const std::vector<std::pair<std::string, std::string>> netherMappings = {
         {"red_nether_bricks", "red_nether_brick"},
     };
 
@@ -509,7 +509,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 海晶石
     // =========================================================================
-    static const std::vector<std::pair<String, String>> prismarineMappings = {
+    static const std::vector<std::pair<std::string, std::string>> prismarineMappings = {
         {"prismarine", "prismarine_rough"},
         {"prismarine_bricks", "prismarine_bricks"},
         {"dark_prismarine", "prismarine_dark"},
@@ -523,7 +523,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 紫珀块
     // =========================================================================
-    static const std::vector<std::pair<String, String>> purpurMappings = {
+    static const std::vector<std::pair<std::string, std::string>> purpurMappings = {
         {"purpur_block", "purpur_block"},
         {"purpur_pillar", "purpur_pillar"},
         {"purpur_pillar_top", "purpur_pillar_top"},
@@ -537,7 +537,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 末地石
     // =========================================================================
-    static const std::vector<std::pair<String, String>> endMappings = {
+    static const std::vector<std::pair<std::string, std::string>> endMappings = {
         {"end_stone", "end_stone"},
         {"end_stone_bricks", "end_bricks"},
     };
@@ -550,7 +550,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 蘑菇
     // =========================================================================
-    static const std::vector<std::pair<String, String>> mushroomMappings = {
+    static const std::vector<std::pair<std::string, std::string>> mushroomMappings = {
         {"brown_mushroom_block", "mushroom_block_skin_brown"},
         {"red_mushroom_block", "mushroom_block_skin_red"},
         {"mushroom_stem", "mushroom_block_skin_stem"},
@@ -571,7 +571,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 甘蔗
     // =========================================================================
-    static const std::vector<std::pair<String, String>> reedMappings = {
+    static const std::vector<std::pair<std::string, std::string>> reedMappings = {
         {"sugar_cane", "reeds"},
     };
 
@@ -613,7 +613,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 南瓜/西瓜茎
     // =========================================================================
-    static const std::vector<std::pair<String, String>> stemMappings = {
+    static const std::vector<std::pair<std::string, std::string>> stemMappings = {
         {"pumpkin_stem", "pumpkin_stem_connected"},
         {"attached_pumpkin_stem", "pumpkin_stem_disconnected"},
         {"melon_stem", "melon_stem_connected"},
@@ -638,7 +638,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 睡莲
     // =========================================================================
-    static const std::vector<std::pair<String, String>> lilyPadMappings = {
+    static const std::vector<std::pair<std::string, std::string>> lilyPadMappings = {
         {"lily_pad", "waterlily"},
     };
 
@@ -655,7 +655,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 命令方块
     // =========================================================================
-    static const std::vector<std::pair<String, String>> commandBlockMappings = {
+    static const std::vector<std::pair<std::string, std::string>> commandBlockMappings = {
         {"command_block_front", "command_block_front"},
         {"command_block_back", "command_block_back"},
         {"command_block_side", "command_block_side"},
@@ -685,7 +685,7 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
     // 侦测器
     // =========================================================================
-    static const std::vector<std::pair<String, String>> observerMappings = {
+    static const std::vector<std::pair<std::string, std::string>> observerMappings = {
         {"observer_front", "observer_front"},
         {"observer_back", "observer_back"},
         {"observer_back_on", "observer_back_lit"},
@@ -709,29 +709,29 @@ void TextureMapper::initializeMappings() {
     // =========================================================================
 }
 
-String TextureMapper::getLegacyName(StringView modernName) const {
-    auto it = m_modernToLegacy.find(String(modernName));
-    return it != m_modernToLegacy.end() ? it->second : String();
+std::string TextureMapper::getLegacyName(std::string_view modernName) const {
+    auto it = m_modernToLegacy.find(std::string(modernName));
+    return it != m_modernToLegacy.end() ? it->second : std::string();
 }
 
-String TextureMapper::getModernName(StringView legacyName) const {
-    auto it = m_legacyToModern.find(String(legacyName));
-    return it != m_legacyToModern.end() ? it->second : String();
+std::string TextureMapper::getModernName(std::string_view legacyName) const {
+    auto it = m_legacyToModern.find(std::string(legacyName));
+    return it != m_legacyToModern.end() ? it->second : std::string();
 }
 
-std::vector<String> TextureMapper::getNameVariants(StringView name) const {
-    std::vector<String> variants;
-    String nameStr(name);
+std::vector<std::string> TextureMapper::getNameVariants(std::string_view name) const {
+    std::vector<std::string> variants;
+    std::string nameStr(name);
     variants.push_back(nameStr);  // 始终包含原名称
 
     // 检查是否是具有旧版映射的现代名称
-    String legacy = getLegacyName(name);
+    std::string legacy = getLegacyName(name);
     if (!legacy.empty() && legacy != nameStr) {
         variants.push_back(legacy);
     }
 
     // 检查是否是具有现代映射的旧版名称
-    String modern = getModernName(name);
+    std::string modern = getModernName(name);
     if (!modern.empty() && modern != nameStr) {
         variants.push_back(modern);
     }
@@ -739,24 +739,24 @@ std::vector<String> TextureMapper::getNameVariants(StringView name) const {
     return variants;
 }
 
-bool TextureMapper::hasMapping(StringView name) const {
-    String nameStr(name);
+bool TextureMapper::hasMapping(std::string_view name) const {
+    std::string nameStr(name);
     return m_modernToLegacy.count(nameStr) > 0 || m_legacyToModern.count(nameStr) > 0;
 }
 
-String TextureMapper::toModernPath(StringView legacyPath) const {
-    String path(legacyPath);
+std::string TextureMapper::toModernPath(std::string_view legacyPath) const {
+    std::string path(legacyPath);
 
     // 将 textures/blocks/ 替换为 textures/block/
-    const String oldPrefix = "textures/blocks/";
-    const String newPrefix = "textures/block/";
+    const std::string oldPrefix = "textures/blocks/";
+    const std::string newPrefix = "textures/block/";
     if (path.find(oldPrefix) == 0) {
         path = newPrefix + path.substr(oldPrefix.length());
     }
 
     // 将 textures/items/ 替换为 textures/item/
-    const String oldItemPrefix = "textures/items/";
-    const String newItemPrefix = "textures/item/";
+    const std::string oldItemPrefix = "textures/items/";
+    const std::string newItemPrefix = "textures/item/";
     if (path.find(oldItemPrefix) == 0) {
         path = newItemPrefix + path.substr(oldItemPrefix.length());
     }
@@ -764,12 +764,12 @@ String TextureMapper::toModernPath(StringView legacyPath) const {
     // 提取名称并转换
     size_t lastSlash = path.find_last_of("/\\");
     size_t dotPos = path.find_last_of('.');
-    if (lastSlash != String::npos && dotPos != String::npos && dotPos > lastSlash) {
-        String dirPath = path.substr(0, lastSlash + 1);
-        String baseName = path.substr(lastSlash + 1, dotPos - lastSlash - 1);
-        String ext = path.substr(dotPos);
+    if (lastSlash != std::string::npos && dotPos != std::string::npos && dotPos > lastSlash) {
+        std::string dirPath = path.substr(0, lastSlash + 1);
+        std::string baseName = path.substr(lastSlash + 1, dotPos - lastSlash - 1);
+        std::string ext = path.substr(dotPos);
 
-        String modernName = getModernName(baseName);
+        std::string modernName = getModernName(baseName);
         if (!modernName.empty()) {
             path = dirPath + modernName + ext;
         }
@@ -778,19 +778,19 @@ String TextureMapper::toModernPath(StringView legacyPath) const {
     return path;
 }
 
-String TextureMapper::toLegacyPath(StringView modernPath) const {
-    String path(modernPath);
+std::string TextureMapper::toLegacyPath(std::string_view modernPath) const {
+    std::string path(modernPath);
 
     // 将 textures/block/ 替换为 textures/blocks/
-    const String newPrefix = "textures/block/";
-    const String oldPrefix = "textures/blocks/";
+    const std::string newPrefix = "textures/block/";
+    const std::string oldPrefix = "textures/blocks/";
     if (path.find(newPrefix) == 0) {
         path = oldPrefix + path.substr(newPrefix.length());
     }
 
     // 将 textures/item/ 替换为 textures/items/
-    const String newItemPrefix = "textures/item/";
-    const String oldItemPrefix = "textures/items/";
+    const std::string newItemPrefix = "textures/item/";
+    const std::string oldItemPrefix = "textures/items/";
     if (path.find(newItemPrefix) == 0) {
         path = oldItemPrefix + path.substr(newItemPrefix.length());
     }
@@ -798,12 +798,12 @@ String TextureMapper::toLegacyPath(StringView modernPath) const {
     // 提取名称并转换
     size_t lastSlash = path.find_last_of("/\\");
     size_t dotPos = path.find_last_of('.');
-    if (lastSlash != String::npos && dotPos != String::npos && dotPos > lastSlash) {
-        String dirPath = path.substr(0, lastSlash + 1);
-        String baseName = path.substr(lastSlash + 1, dotPos - lastSlash - 1);
-        String ext = path.substr(dotPos);
+    if (lastSlash != std::string::npos && dotPos != std::string::npos && dotPos > lastSlash) {
+        std::string dirPath = path.substr(0, lastSlash + 1);
+        std::string baseName = path.substr(lastSlash + 1, dotPos - lastSlash - 1);
+        std::string ext = path.substr(dotPos);
 
-        String legacyName = getLegacyName(baseName);
+        std::string legacyName = getLegacyName(baseName);
         if (!legacyName.empty()) {
             path = dirPath + legacyName + ext;
         }
@@ -812,9 +812,9 @@ String TextureMapper::toLegacyPath(StringView modernPath) const {
     return path;
 }
 
-std::vector<String> TextureMapper::getPathVariants(StringView path) const {
-    std::vector<String> variants;
-    String pathStr(path);
+std::vector<std::string> TextureMapper::getPathVariants(std::string_view path) const {
+    std::vector<std::string> variants;
+    std::string pathStr(path);
 
     // 始终包含原始路径
     variants.push_back(pathStr);
@@ -822,10 +822,10 @@ std::vector<String> TextureMapper::getPathVariants(StringView path) const {
     // 判断路径是否有扩展名
     size_t lastSlash = pathStr.find_last_of("/\\");
     size_t dotPos = pathStr.find_last_of('.');
-    bool hasExtension = (dotPos != String::npos && lastSlash != String::npos && dotPos > lastSlash);
+    bool hasExtension = (dotPos != std::string::npos && lastSlash != std::string::npos && dotPos > lastSlash);
 
-    String dirPath, baseName, ext;
-    if (lastSlash != String::npos) {
+    std::string dirPath, baseName, ext;
+    if (lastSlash != std::string::npos) {
         dirPath = pathStr.substr(0, lastSlash + 1);
         if (hasExtension) {
             baseName = pathStr.substr(lastSlash + 1, dotPos - lastSlash - 1);
@@ -849,8 +849,8 @@ std::vector<String> TextureMapper::getPathVariants(StringView path) const {
     auto nameVariants = getNameVariants(baseName);
 
     // 确定目录路径变体 (block vs blocks, item vs items)
-    String modernDir = dirPath;
-    String legacyDir = dirPath;
+    std::string modernDir = dirPath;
+    std::string legacyDir = dirPath;
 
     if (dirPath.find("textures/block/") == 0) {
         legacyDir = "textures/blocks/" + dirPath.substr(15);
@@ -866,7 +866,7 @@ std::vector<String> TextureMapper::getPathVariants(StringView path) const {
     // 对于每个名称变体，尝试每个目录变体
     for (const auto& name : nameVariants) {
         // 使用原始目录
-        String variant = dirPath + name + ext;
+        std::string variant = dirPath + name + ext;
         if (std::find(variants.begin(), variants.end(), variant) == variants.end()) {
             variants.push_back(variant);
         }

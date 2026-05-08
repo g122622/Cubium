@@ -18,7 +18,7 @@ DispenseItemBehaviorRegistry& DispenseItemBehaviorRegistry::instance() {
     return instance;
 }
 
-void DispenseItemBehaviorRegistry::registerBehavior(const String& itemId, std::unique_ptr<IDispenseItemBehavior> behavior) {
+void DispenseItemBehaviorRegistry::registerBehavior(const std::string& itemId, std::unique_ptr<IDispenseItemBehavior> behavior) {
     m_behaviors[itemId] = std::move(behavior);
 }
 
@@ -33,7 +33,7 @@ IDispenseItemBehavior* DispenseItemBehaviorRegistry::getBehavior(const ItemStack
     return getBehavior(item->itemLocation().toString());
 }
 
-IDispenseItemBehavior* DispenseItemBehaviorRegistry::getBehavior(const String& itemId) const {
+IDispenseItemBehavior* DispenseItemBehaviorRegistry::getBehavior(const std::string& itemId) const {
     auto it = m_behaviors.find(itemId);
     if (it != m_behaviors.end()) {
         return it->second.get();
@@ -41,7 +41,7 @@ IDispenseItemBehavior* DispenseItemBehaviorRegistry::getBehavior(const String& i
     return nullptr;
 }
 
-bool DispenseItemBehaviorRegistry::hasBehavior(const String& itemId) const {
+bool DispenseItemBehaviorRegistry::hasBehavior(const std::string& itemId) const {
     return m_behaviors.find(itemId) != m_behaviors.end();
 }
 

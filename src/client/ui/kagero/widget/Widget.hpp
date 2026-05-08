@@ -56,7 +56,7 @@ public:
      * @brief 构造函数（带ID）
      * @param id 组件ID
      */
-    explicit Widget(String id) : m_id(std::move(id)) {}
+    explicit Widget(std::string id) : m_id(std::move(id)) {}
 
     /**
      * @brief 虚析构函数
@@ -410,12 +410,12 @@ public:
     /**
      * @brief 获取组件ID
      */
-    [[nodiscard]] const String& id() const { return m_id; }
+    [[nodiscard]] const std::string& id() const { return m_id; }
 
     /**
      * @brief 设置组件ID
      */
-    void setId(String id) { m_id = std::move(id); }
+    void setId(std::string id) { m_id = std::move(id); }
 
     /**
      * @brief 获取边界
@@ -535,7 +535,7 @@ protected:
     }
 
     // 成员变量
-    String m_id;                    ///< 组件ID
+    std::string m_id;                    ///< 组件ID
     Rect m_bounds;                  ///< 边界矩形
     Anchor m_anchor = Anchor::TopLeft;  ///< 锚点
     Margin m_margin;                ///< 边距

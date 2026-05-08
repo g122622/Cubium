@@ -15,7 +15,7 @@ void ClientCommandManager::clear() {
     m_snapshot.nodes.clear();
 }
 
-Result<void> ClientCommandManager::applyCommandTreeJson(StringView jsonText) {
+Result<void> ClientCommandManager::applyCommandTreeJson(std::string_view jsonText) {
     auto snapshotResult = mc::command::CommandTreeSnapshot::fromJsonString(jsonText);
     if (snapshotResult.failed()) {
         clear();
@@ -32,8 +32,8 @@ bool ClientCommandManager::hasCommandTree() const noexcept {
     return !m_snapshot.empty();
 }
 
-std::vector<String> ClientCommandManager::getCommandNames() const {
-    std::vector<String> names;
+std::vector<std::string> ClientCommandManager::getCommandNames() const {
+    std::vector<std::string> names;
     if (m_snapshot.nodes.empty()) {
         return names;
     }
@@ -52,13 +52,13 @@ std::vector<String> ClientCommandManager::getCommandNames() const {
     return names;
 }
 
-mc::command::Suggestions ClientCommandManager::getSuggestions(StringView input, i32 cursor) const {
+mc::command::Suggestions ClientCommandManager::getSuggestions(std::string_view input, i32 cursor) const {
     if (!hasCommandTree() || cursor <= 0 || input.empty()) {
         return mc::command::Suggestions::empty();
     }
 
     const i32 clampedCursor = std::clamp(cursor, 0, static_cast<i32>(input.size()));
-    StringView prefixInput = input.substr(0, static_cast<size_t>(clampedCursor));
+    std::string_view prefixInput = input.substr(0, static_cast<size_t>(clampedCursor));
 
     if (!isCommandInput(prefixInput)) {
         return mc::command::Suggestions::empty();
@@ -80,7 +80,7 @@ mc::command::Suggestions ClientCommandManager::getSuggestions(StringView input, 
 
         const i32 tokenStart = reader.getCursor();
         mc::command::StringReader tokenReader = reader;
-        const String token = tokenReader.readUnquotedString();
+        const std::string token = tokenReader.readUnquotedString();
         const i32 tokenEnd = tokenReader.getCursor();
         const bool tokenCompleted = tokenEnd < static_cast<i32>(prefixInput.size());
 
@@ -146,10 +146,10 @@ const mc::command::CommandTreeNodeSnapshot* ClientCommandManager::getNode(u32 no
 
 mc::command::Suggestions ClientCommandManager::collectSuggestions(
     const mc::command::CommandTreeNodeSnapshot& node,
-    StringView fullInput,
+    std::string_view fullInput,
     i32 start,
     i32 end,
-    StringView tokenPrefix) const {
+    std::string_view tokenPrefix) const {
     mc::command::SuggestionsBuilder builder(fullInput, start, end);
 
     for (u32 childId : node.children) {
@@ -180,9 +180,9 @@ mc::command::Suggestions ClientCommandManager::collectSuggestions(
     return builder.build();
 }
 
-std::vector<String> ClientCommandManager::getCandidates(
+std::vector<std::string> ClientCommandManager::getCandidates(
     const mc::command::CommandTreeNodeSnapshot& node) const {
-    std::vector<String> candidates;
+    std::vector<std::string> candidates;
 
     switch (node.suggestionKind) {
         case mc::command::CommandTreeSuggestionKind::None:
@@ -234,7 +234,7 @@ std::vector<String> ClientCommandManager::getCandidates(
 
 bool ClientCommandManager::matchesFixedCandidate(
     const mc::command::CommandTreeNodeSnapshot& node,
-    StringView token) const {
+    std::string_view token) const {
     switch (node.suggestionKind) {
         case mc::command::CommandTreeSuggestionKind::Fixed:
         case mc::command::CommandTreeSuggestionKind::CommandNames:
@@ -253,19 +253,19 @@ bool ClientCommandManager::matchesFixedCandidate(
     return !token.empty();
 }
 
-bool ClientCommandManager::isCommandInput(StringView input) {
+bool ClientCommandManager::isCommandInput(std::string_view input) {
     return !input.empty() && input.front() == '/';
 }
 
-String ClientCommandManager::toLower(StringView input) {
-    String result(input.begin(), input.end());
+std::string ClientCommandManager::toLower(std::string_view input) {
+    std::string result(input.begin(), input.end());
     for (char& character : result) {
         character = static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
     }
     return result;
 }
 
-bool ClientCommandManager::startsWithIgnoreCase(StringView value, StringView prefix) {
+bool ClientCommandManager::startsWithIgnoreCase(std::string_view value, std::string_view prefix) {
     if (prefix.size() > value.size()) {
         return false;
     }

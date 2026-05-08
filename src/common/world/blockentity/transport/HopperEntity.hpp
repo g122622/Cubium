@@ -74,7 +74,7 @@ public:
     // ========== LockableBlockEntity 接口 ==========
 
 protected:
-    [[nodiscard]] String getDefaultName() const override { return "container.hopper"; }
+    [[nodiscard]] std::string getDefaultName() const override { return "container.hopper"; }
 
 public:
     // ========== 序列化 ==========

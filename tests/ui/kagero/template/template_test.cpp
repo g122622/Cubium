@@ -16,7 +16,7 @@
 #include "client/ui/kagero/event/UIEvents.hpp"
 
 using namespace mc::client::ui::kagero::tpl;
-using mc::String;
+using mc::std::string;
 using mc::i32;
 using mc::i64;
 using mc::f32;
@@ -126,11 +126,11 @@ TEST_F(TemplateErrorTest, ErrorInfoFormat) {
         "template.xml"
     );
 
-    String formatted = info.format();
-    EXPECT_TRUE(formatted.find("ParserError") != String::npos);
-    EXPECT_TRUE(formatted.find("Syntax error") != String::npos);
-    EXPECT_TRUE(formatted.find("line 10") != String::npos);
-    EXPECT_TRUE(formatted.find("template.xml") != String::npos);
+    std::string formatted = info.format();
+    EXPECT_TRUE(formatted.find("ParserError") != std::string::npos);
+    EXPECT_TRUE(formatted.find("Syntax error") != std::string::npos);
+    EXPECT_TRUE(formatted.find("line 10") != std::string::npos);
+    EXPECT_TRUE(formatted.find("template.xml") != std::string::npos);
 }
 
 TEST_F(TemplateErrorTest, ErrorInfoTypeName) {
@@ -157,7 +157,7 @@ TEST_F(TemplateErrorTest, TemplateErrorException) {
 
     EXPECT_EQ(error.type(), core::TemplateErrorType::InvalidBindingPath);
     EXPECT_EQ(error.location().line, 1u);
-    EXPECT_TRUE(String(error.what()).find("Invalid path") != String::npos);
+    EXPECT_TRUE(std::string(error.what()).find("Invalid path") != std::string::npos);
 }
 
 TEST_F(TemplateErrorTest, TemplateErrorFactoryMethods) {
@@ -235,7 +235,7 @@ TEST_F(TemplateErrorTest, ErrorCollectorMerge) {
 
 class LexerTest : public ::testing::Test {
 protected:
-    parser::Lexer createLexer(const String& source) {
+    parser::Lexer createLexer(const std::string& source) {
         return parser::Lexer(source, "<test>");
     }
 };
@@ -378,7 +378,7 @@ TEST_F(LexerTest, StringEscaping) {
         if (token.type == parser::TokenType::StringLiteral) {
             foundString = true;
             // 应该包含换行符
-            EXPECT_TRUE(token.value.find('\n') != String::npos);
+            EXPECT_TRUE(token.value.find('\n') != std::string::npos);
             break;
         }
     }
@@ -392,10 +392,10 @@ TEST_F(LexerTest, StringEscapeSequences) {
     auto& tokens = lexer.tokens();
     for (const auto& token : tokens) {
         if (token.type == parser::TokenType::StringLiteral) {
-            EXPECT_TRUE(token.value.find('\t') != String::npos);
-            EXPECT_TRUE(token.value.find('\n') != String::npos);
-            EXPECT_TRUE(token.value.find('"') != String::npos);
-            EXPECT_TRUE(token.value.find('\\') != String::npos);
+            EXPECT_TRUE(token.value.find('\t') != std::string::npos);
+            EXPECT_TRUE(token.value.find('\n') != std::string::npos);
+            EXPECT_TRUE(token.value.find('"') != std::string::npos);
+            EXPECT_TRUE(token.value.find('\\') != std::string::npos);
             break;
         }
     }
@@ -453,9 +453,9 @@ TEST_F(LexerTest, TokenFormat) {
     auto& tokens = lexer.tokens();
     ASSERT_GE(tokens.size(), 2);
 
-    String formatted = tokens[1].format();
-    EXPECT_TRUE(formatted.find("Identifier") != String::npos);
-    EXPECT_TRUE(formatted.find("screen") != String::npos);
+    std::string formatted = tokens[1].format();
+    EXPECT_TRUE(formatted.find("Identifier") != std::string::npos);
+    EXPECT_TRUE(formatted.find("screen") != std::string::npos);
 }
 
 TEST_F(LexerTest, TokenIsMethods) {
@@ -557,10 +557,10 @@ TEST_F(LexerTest, LexerGetLineContent) {
     auto lexer = createLexer("line1\nline2\nline3");
     lexer.tokenize();
 
-    String line1 = lexer.getLineContent(1);
+    std::string line1 = lexer.getLineContent(1);
     EXPECT_EQ(line1, "line1");
 
-    String line2 = lexer.getLineContent(2);
+    std::string line2 = lexer.getLineContent(2);
     EXPECT_EQ(line2, "line2");
 }
 
@@ -569,10 +569,10 @@ TEST_F(LexerTest, LexerGetContext) {
     lexer.tokenize();
 
     core::SourceLocation loc(2, 3, 8);
-    String context = lexer.getContext(loc, 1);
-    EXPECT_TRUE(context.find("line1") != String::npos);
-    EXPECT_TRUE(context.find("line2") != String::npos);
-    EXPECT_TRUE(context.find("line3") != String::npos);
+    std::string context = lexer.getContext(loc, 1);
+    EXPECT_TRUE(context.find("line1") != std::string::npos);
+    EXPECT_TRUE(context.find("line2") != std::string::npos);
+    EXPECT_TRUE(context.find("line3") != std::string::npos);
 }
 
 TEST_F(LexerTest, LexerStaticMethods) {
@@ -611,7 +611,7 @@ protected:
         m_config = core::TemplateConfig::defaults();
     }
 
-    std::unique_ptr<ast::DocumentNode> parse(const String& source) {
+    std::unique_ptr<ast::DocumentNode> parse(const std::string& source) {
         parser::Lexer lexer(source, "<test>");
         lexer.tokenize();
 
@@ -839,7 +839,7 @@ TEST_F(ParserTest, ConditionInfoWithNegation) {
     ASSERT_NE(attr, nullptr);
     EXPECT_TRUE(attr->isBinding());
     // The binding path includes the ! prefix
-    EXPECT_TRUE(attr->rawValue.find("!") != String::npos || attr->binding->path.find("!") != String::npos);
+    EXPECT_TRUE(attr->rawValue.find("!") != std::string::npos || attr->binding->path.find("!") != std::string::npos);
 }
 
 TEST_F(ParserTest, InvalidTagInStrictMode) {
@@ -982,7 +982,7 @@ TEST_F(AstTest, AttributeCreateStatic) {
     EXPECT_EQ(attr.rawValue, "10,20");
 
     // Check value parsing - string
-    EXPECT_TRUE(std::holds_alternative<String>(attr.value));
+    EXPECT_TRUE(std::holds_alternative<std::string>(attr.value));
 }
 
 TEST_F(AstTest, AttributeCreateStaticBoolean) {
@@ -1005,7 +1005,7 @@ TEST_F(AstTest, AttributeCreateStaticFloat) {
     auto attr = ast::Attribute::createStatic("opacity", "0.75");
     EXPECT_TRUE(attr.isStatic());
     // Value type may be float or string depending on parsing
-    EXPECT_TRUE(std::holds_alternative<f32>(attr.value) || std::holds_alternative<String>(attr.value));
+    EXPECT_TRUE(std::holds_alternative<f32>(attr.value) || std::holds_alternative<std::string>(attr.value));
     if (std::holds_alternative<f32>(attr.value)) {
         EXPECT_FLOAT_EQ(std::get<f32>(attr.value), 0.75f);
     }
@@ -1299,7 +1299,7 @@ TEST_F(AstVisitorTest, CountNodes) {
 }
 
 TEST_F(AstVisitorTest, PreorderTraversal) {
-    std::vector<String> visitedTags;
+    std::vector<std::string> visitedTags;
     ast::traversal::preorder(*m_document, [&visitedTags](ast::Node& node) {
         if (auto* elem = dynamic_cast<ast::ElementNode*>(&node)) {
             visitedTags.push_back(elem->tagName);
@@ -1315,7 +1315,7 @@ TEST_F(AstVisitorTest, PreorderTraversal) {
 }
 
 TEST_F(AstVisitorTest, PostorderTraversal) {
-    std::vector<String> visitedTags;
+    std::vector<std::string> visitedTags;
     ast::traversal::postorder(*m_document, [&visitedTags](ast::Node& node) {
         if (auto* elem = dynamic_cast<ast::ElementNode*>(&node)) {
             visitedTags.push_back(elem->tagName);
@@ -1379,12 +1379,12 @@ TEST_F(AstVisitorTest, VisitorStop) {
 }
 
 TEST_F(AstVisitorTest, ConstVisitor) {
-    std::vector<String> visitedTags;
+    std::vector<std::string> visitedTags;
 
     class ConstTagCollector : public ast::ConstAstVisitor {
     public:
-        std::vector<String>& tags;
-        ConstTagCollector(std::vector<String>& t) : tags(t) {}
+        std::vector<std::string>& tags;
+        ConstTagCollector(std::vector<std::string>& t) : tags(t) {}
 
         void visitElement(const ast::ElementNode& node) override {
             tags.push_back(node.tagName);
@@ -1524,9 +1524,9 @@ TEST_F(TemplateCompilerTest, CompileWithDebug) {
     EXPECT_TRUE(result->isValid());
 
     // Check debug dump
-    String dump = result->debugDump();
-    EXPECT_TRUE(dump.find("Compiled Template") != String::npos);
-    EXPECT_TRUE(dump.find("Source:") != String::npos);
+    std::string dump = result->debugDump();
+    EXPECT_TRUE(dump.find("Compiled Template") != std::string::npos);
+    EXPECT_TRUE(dump.find("Source:") != std::string::npos);
 }
 
 TEST_F(TemplateCompilerTest, CompileFromFile) {
@@ -1627,7 +1627,7 @@ protected:
 };
 
 TEST_F(BindingContextTest, ExposeVariable) {
-    String playerName = "Steve";
+    std::string playerName = "Steve";
     m_ctx->expose("player.name", &playerName);
 
     EXPECT_TRUE(m_ctx->hasPath("player.name"));
@@ -1656,7 +1656,7 @@ TEST_F(BindingContextTest, ExposeWritableVariable) {
 
 TEST_F(BindingContextTest, ExposeCallback) {
     bool callbackCalled = false;
-    String callbackArg;
+    std::string callbackArg;
 
     m_ctx->exposeCallback("onClick", [&](mc::client::ui::kagero::widget::Widget*,
                                           const mc::client::ui::kagero::event::Event&) {
@@ -1701,7 +1701,7 @@ TEST_F(BindingContextTest, LoopVariables) {
 }
 
 TEST_F(BindingContextTest, ResolveLoopVariable) {
-    m_ctx->setLoopVariable("slot", binder::Value(String("item_data")));
+    m_ctx->setLoopVariable("slot", binder::Value(std::string("item_data")));
 
     // Resolve $slot - need to call with loopVar parameter
     auto value = m_ctx->resolveBinding("$slot", "slot", binder::Value());
@@ -1713,29 +1713,29 @@ TEST_F(BindingContextTest, ResolveLoopVariable) {
 }
 
 TEST_F(BindingContextTest, Subscribe) {
-    String playerName = "Steve";
+    std::string playerName = "Steve";
     m_ctx->expose("player.name", &playerName);
 
-    String lastValue;
-    u64 subId = m_ctx->subscribe("player.name", [&](const String& path, const binder::Value& value) {
+    std::string lastValue;
+    u64 subId = m_ctx->subscribe("player.name", [&](const std::string& path, const binder::Value& value) {
         lastValue = value.asString();
     });
 
     EXPECT_GT(subId, 0u);
 
     // Notify change
-    m_ctx->notifyChange("player.name", binder::Value(String("Alex")));
+    m_ctx->notifyChange("player.name", binder::Value(std::string("Alex")));
     EXPECT_EQ(lastValue, "Alex");
 
     // Unsubscribe
     m_ctx->unsubscribe(subId);
 
     // Notify again - lastValue may or may not update depending on implementation
-    m_ctx->notifyChange("player.name", binder::Value(String("Bob")));
+    m_ctx->notifyChange("player.name", binder::Value(std::string("Bob")));
 }
 
 TEST_F(BindingContextTest, Clear) {
-    String name = "Test";
+    std::string name = "Test";
     m_ctx->expose("name", &name);
     m_ctx->exposeCallback("callback", [](auto*, const auto&) {});
 
@@ -1788,7 +1788,7 @@ TEST_F(ValueTest, FloatValue) {
 }
 
 TEST_F(ValueTest, StringValue) {
-    binder::Value v(String("hello"));
+    binder::Value v(std::string("hello"));
     EXPECT_TRUE(v.isString());
     EXPECT_EQ(v.asString(), "hello");
     EXPECT_EQ(v.toString(), "hello");
@@ -1804,7 +1804,7 @@ TEST_F(ValueTest, FromAny) {
     auto vFloat = binder::Value::fromAny(std::any(3.14f));
     EXPECT_TRUE(vFloat.isFloat());
 
-    auto vString = binder::Value::fromAny(std::any(String("test")));
+    auto vString = binder::Value::fromAny(std::any(std::string("test")));
     EXPECT_TRUE(vString.isString());
 
     auto vNull = binder::Value::fromAny(std::any());
@@ -1829,7 +1829,7 @@ TEST_F(ValueTest, TypeConversions) {
     EXPECT_EQ(vTrue.toInteger(), 1);
     EXPECT_FLOAT_EQ(vTrue.toFloat(), 1.0f);
 
-    binder::Value vString(String("42"));
+    binder::Value vString(std::string("42"));
     EXPECT_EQ(vString.toInteger(), 42);
     EXPECT_FLOAT_EQ(vString.toFloat(), 42.0f);
 }
@@ -1953,7 +1953,7 @@ TEST_F(IntegrationTest, BindingContextWithTemplate) {
     );
 
     // Expose variables
-    String playerName = "Steve";
+    std::string playerName = "Steve";
     i32 playerHealth = 100;
     ctx.expose("player.name", &playerName);
     ctx.expose("player.health", &playerHealth);
@@ -2044,7 +2044,7 @@ protected:
         m_config = core::TemplateConfig::defaults();
     }
 
-    std::unique_ptr<ast::DocumentNode> parse(const String& source) {
+    std::unique_ptr<ast::DocumentNode> parse(const std::string& source) {
         parser::Lexer lexer(source, "<test>");
         lexer.tokenize();
 
@@ -2133,7 +2133,7 @@ protected:
         m_config = core::TemplateConfig::defaults();
     }
 
-    std::unique_ptr<ast::DocumentNode> parse(const String& source) {
+    std::unique_ptr<ast::DocumentNode> parse(const std::string& source) {
         parser::Lexer lexer(source, "<test>");
         lexer.tokenize();
 
@@ -2268,9 +2268,9 @@ TEST_F(ValueArrayTest, ArrayToString) {
     items.emplace_back(binder::Value(3));
 
     binder::Value v(items);
-    String str = v.toString();
-    EXPECT_TRUE(str.find("[") != String::npos);
-    EXPECT_TRUE(str.find("]") != String::npos);
+    std::string str = v.toString();
+    EXPECT_TRUE(str.find("[") != std::string::npos);
+    EXPECT_TRUE(str.find("]") != std::string::npos);
 }
 
 TEST_F(ValueArrayTest, ArrayEquality) {
@@ -2323,9 +2323,9 @@ protected:
 TEST_F(BindingContextCollectionTest, ResolveCollection) {
     // Set up a collection
     std::vector<binder::Value> items;
-    items.emplace_back(binder::Value(String("item1")));
-    items.emplace_back(binder::Value(String("item2")));
-    items.emplace_back(binder::Value(String("item3")));
+    items.emplace_back(binder::Value(std::string("item1")));
+    items.emplace_back(binder::Value(std::string("item2")));
+    items.emplace_back(binder::Value(std::string("item3")));
 
     m_ctx->setCollectionValue("inventory", items);
 
@@ -2472,8 +2472,8 @@ TEST_F(UpdateSchedulerTest, ExecutePendingNoCallback) {
 }
 
 TEST_F(UpdateSchedulerTest, ExecuteWithCallback) {
-    std::vector<String> updatedPaths;
-    m_scheduler->setUpdateCallback([&updatedPaths](const String& path) -> bool {
+    std::vector<std::string> updatedPaths;
+    m_scheduler->setUpdateCallback([&updatedPaths](const std::string& path) -> bool {
         updatedPaths.push_back(path);
         return true;
     });
@@ -2627,11 +2627,11 @@ TEST_F(CompiledTemplateTest, DebugDump) {
         "screen.btn", "click", "onClick"
     });
 
-    String dump = compiled.debugDump();
-    EXPECT_TRUE(dump.find("Compiled Template") != String::npos);
-    EXPECT_TRUE(dump.find("test.tpl") != String::npos);
-    EXPECT_TRUE(dump.find("Binding Plans") != String::npos);
-    EXPECT_TRUE(dump.find("Event Plans") != String::npos);
+    std::string dump = compiled.debugDump();
+    EXPECT_TRUE(dump.find("Compiled Template") != std::string::npos);
+    EXPECT_TRUE(dump.find("test.tpl") != std::string::npos);
+    EXPECT_TRUE(dump.find("Binding Plans") != std::string::npos);
+    EXPECT_TRUE(dump.find("Event Plans") != std::string::npos);
 }
 
 // ==================== TemplateCompiler Configuration Tests ====================
@@ -2682,7 +2682,7 @@ protected:
 
 TEST_F(BindingContextAdvancedTest, PathResolution) {
     i32 health = 100;
-    String name = "Steve";
+    std::string name = "Steve";
 
     m_ctx->expose("player.health", &health);
     m_ctx->expose("player.name", &name);
@@ -2729,10 +2729,10 @@ TEST_F(BindingContextAdvancedTest, WritableFloatVariable) {
 }
 
 TEST_F(BindingContextAdvancedTest, WritableStringVariable) {
-    String name = "Alex";
+    std::string name = "Alex";
     m_ctx->exposeWritable("player.name", &name);
 
-    EXPECT_TRUE(m_ctx->setBinding("player.name", binder::Value(String("Steve"))));
+    EXPECT_TRUE(m_ctx->setBinding("player.name", binder::Value(std::string("Steve"))));
     EXPECT_EQ(name, "Steve");
 }
 
@@ -2740,9 +2740,9 @@ TEST_F(BindingContextAdvancedTest, NotifyChangeWithSubscriber) {
     i32 health = 100;
     m_ctx->expose("player.health", &health);
 
-    String changedPath;
+    std::string changedPath;
     binder::Value changedValue;
-    u64 subId = m_ctx->subscribe("player.health", [&](const String& path, const binder::Value& value) {
+    u64 subId = m_ctx->subscribe("player.health", [&](const std::string& path, const binder::Value& value) {
         changedPath = path;
         changedValue = value;
     });
@@ -2762,10 +2762,10 @@ TEST_F(BindingContextAdvancedTest, MultipleSubscribers) {
     int callCount1 = 0;
     int callCount2 = 0;
 
-    u64 sub1 = m_ctx->subscribe("player.xp", [&](const String&, const binder::Value&) {
+    u64 sub1 = m_ctx->subscribe("player.xp", [&](const std::string&, const binder::Value&) {
         callCount1++;
     });
-    u64 sub2 = m_ctx->subscribe("player.xp", [&](const String&, const binder::Value&) {
+    u64 sub2 = m_ctx->subscribe("player.xp", [&](const std::string&, const binder::Value&) {
         callCount2++;
     });
 
@@ -2788,7 +2788,7 @@ TEST_F(BindingContextAdvancedTest, CollectionOperations) {
     EXPECT_EQ(numbers[4].asInteger(), 5);
 
     // Test setCollection with strings
-    m_ctx->setCollection<String>("names", {"Alice", "Bob", "Charlie"});
+    m_ctx->setCollection<std::string>("names", {"Alice", "Bob", "Charlie"});
 
     auto names = m_ctx->resolveCollection("names");
     EXPECT_EQ(names.size(), 3u);
@@ -2916,7 +2916,7 @@ TEST_F(DocumentationExampleTest, CompileTemplateExample) {
 // 文档示例 2: 绑定上下文使用
 TEST_F(DocumentationExampleTest, BindingContextExample) {
     // 暴露只读变量
-    String playerName = "Steve";
+    std::string playerName = "Steve";
     m_ctx->expose("player.name", &playerName);
 
     // 暴露可写变量
@@ -2959,11 +2959,11 @@ TEST_F(DocumentationExampleTest, StateSubscriptionExample) {
     i32 health = 100;
     m_ctx->exposeWritable("player.health", &health);
 
-    String changedPath;
+    std::string changedPath;
     binder::Value newValue;
 
     u64 subId = m_ctx->subscribe("player.health",
-        [&](const String& path, const binder::Value& value) {
+        [&](const std::string& path, const binder::Value& value) {
             changedPath = path;
             newValue = value;
         });
@@ -2997,7 +2997,7 @@ TEST_F(DocumentationExampleTest, CollectionExample) {
     std::vector<binder::Value> items;
     items.emplace_back(binder::Value("Item1"));  // const char* 构造
     items.emplace_back(binder::Value("Item2"));
-    items.emplace_back(binder::Value(String("Item3")));  // String 构造
+    items.emplace_back(binder::Value(std::string("Item3")));  // std::string 构造
 
     m_ctx->setCollectionValue("items", items);
 
@@ -3005,7 +3005,7 @@ TEST_F(DocumentationExampleTest, CollectionExample) {
     auto resolved = m_ctx->resolveCollection("items");
     EXPECT_EQ(resolved.size(), 3u);
 
-    // 验证类型正确（应该是 String 而不是 Bool）
+    // 验证类型正确（应该是 std::string 而不是 Bool）
     EXPECT_TRUE(resolved[0].isString());
     EXPECT_TRUE(resolved[1].isString());
     EXPECT_TRUE(resolved[2].isString());
@@ -3041,9 +3041,9 @@ TEST_F(DocumentationExampleTest, FullCompileWorkflow) {
 TEST_F(DocumentationExampleTest, UpdateSchedulerWorkflow) {
     runtime::UpdateScheduler scheduler;
 
-    std::vector<String> executedPaths;
+    std::vector<std::string> executedPaths;
 
-    scheduler.setUpdateCallback([&executedPaths](const String& path) -> bool {
+    scheduler.setUpdateCallback([&executedPaths](const std::string& path) -> bool {
         executedPaths.push_back(path);
         return true;
     });
@@ -3072,7 +3072,7 @@ TEST_F(DocumentationExampleTest, UpdateSchedulerWorkflow) {
 
 class LexerEdgeCaseTest : public ::testing::Test {
 protected:
-    parser::Lexer createLexer(const String& source) {
+    parser::Lexer createLexer(const std::string& source) {
         return parser::Lexer(source, "<test>");
     }
 };
@@ -3129,8 +3129,8 @@ TEST_F(LexerEdgeCaseTest, CommentContainingTags) {
     for (const auto& token : tokens) {
         if (token.type == parser::TokenType::Comment) {
             foundComment = true;
-            EXPECT_TRUE(token.value.find("<button/>") != String::npos);
-            EXPECT_TRUE(token.value.find("<text") != String::npos);
+            EXPECT_TRUE(token.value.find("<button/>") != std::string::npos);
+            EXPECT_TRUE(token.value.find("<text") != std::string::npos);
             break;
         }
     }
@@ -3166,8 +3166,8 @@ TEST_F(LexerEdgeCaseTest, StringWithInvalidEscapeSequence) {
 
 TEST_F(LexerEdgeCaseTest, VeryLongStringLiteral) {
     // 超长字符串
-    String longValue(10000, 'a');
-    String source = "<text value=\"" + longValue + "\"/>";
+    std::string longValue(10000, 'a');
+    std::string source = "<text value=\"" + longValue + "\"/>";
     auto lexer = createLexer(source);
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
@@ -3183,8 +3183,8 @@ TEST_F(LexerEdgeCaseTest, VeryLongStringLiteral) {
 
 TEST_F(LexerEdgeCaseTest, VeryLongIdentifier) {
     // 超长标识符
-    String longId(1000, 'a');
-    String source = "<" + longId + "/>";
+    std::string longId(1000, 'a');
+    std::string source = "<" + longId + "/>";
     auto lexer = createLexer(source);
     EXPECT_TRUE(lexer.tokenize());
     EXPECT_FALSE(lexer.hasErrors());
@@ -3267,7 +3267,7 @@ TEST_F(LexerEdgeCaseTest, MultipleTagsOnSameLine) {
 
 TEST_F(LexerEdgeCaseTest, DeeplyNestedTags) {
     // 深度嵌套
-    String source;
+    std::string source;
     for (int i = 0; i < 100; ++i) {
         source += "<container>";
     }
@@ -3386,7 +3386,7 @@ protected:
         m_config = core::TemplateConfig::defaults();
     }
 
-    std::unique_ptr<ast::DocumentNode> parse(const String& source) {
+    std::unique_ptr<ast::DocumentNode> parse(const std::string& source) {
         parser::Lexer lexer(source, "<test>");
         lexer.tokenize();
 
@@ -3394,7 +3394,7 @@ protected:
         return parser.parse();
     }
 
-    std::unique_ptr<ast::DocumentNode> parseWithErrors(const String& source,
+    std::unique_ptr<ast::DocumentNode> parseWithErrors(const std::string& source,
                                                         core::TemplateErrorCollector& errors) {
         parser::Lexer lexer(source, "<test>");
         lexer.tokenize();
@@ -3414,7 +3414,7 @@ protected:
 
 TEST_F(ParserEdgeCaseTest, DeeplyNestedElements) {
     // 测试深度嵌套
-    String source = "<screen>";
+    std::string source = "<screen>";
     for (int i = 0; i < 50; ++i) {
         source += "<container>";
     }
@@ -3609,7 +3609,7 @@ TEST_F(ParserEdgeCaseTest, TextWithLeadingAndTrailingWhitespace) {
 
 TEST_F(ParserEdgeCaseTest, ElementWithLargeNumberOfAttributes) {
     // 大量属性
-    String source = "<text";
+    std::string source = "<text";
     for (int i = 0; i < 50; ++i) {
         source += " attr" + std::to_string(i) + "=\"value" + std::to_string(i) + "\"";
     }
@@ -3792,26 +3792,26 @@ TEST_F(ValueEdgeCaseTest, FloatBoundaryValues) {
 
 TEST_F(ValueEdgeCaseTest, StringEdgeCases) {
     // 空字符串
-    binder::Value emptyStr(String(""));
+    binder::Value emptyStr(std::string(""));
     EXPECT_TRUE(emptyStr.isString());
     EXPECT_EQ(emptyStr.asString().size(), 0u);
 
     // 长字符串
-    String longStr(10000, 'a');
+    std::string longStr(10000, 'a');
     binder::Value longValue(longStr);
     EXPECT_EQ(longValue.asString().size(), 10000u);
 
     // 字符串包含特殊字符
-    binder::Value special(String("Hello\nWorld\tTab\"Quote\\Backslash"));
+    binder::Value special(std::string("Hello\nWorld\tTab\"Quote\\Backslash"));
     EXPECT_TRUE(special.isString());
 }
 
 TEST_F(ValueEdgeCaseTest, StringToNumberConversion) {
-    binder::Value intStr(String("12345"));
-    binder::Value floatStr(String("123.456"));
-    binder::Value negStr(String("-789"));
-    binder::Value invalidStr(String("not a number"));
-    binder::Value emptyNumStr(String(""));
+    binder::Value intStr(std::string("12345"));
+    binder::Value floatStr(std::string("123.456"));
+    binder::Value negStr(std::string("-789"));
+    binder::Value invalidStr(std::string("not a number"));
+    binder::Value emptyNumStr(std::string(""));
 
     EXPECT_EQ(intStr.toInteger(), 12345);
     EXPECT_FLOAT_EQ(intStr.toFloat(), 12345.0f);
@@ -3898,7 +3898,7 @@ TEST_F(ValueEdgeCaseTest, EqualityEdgeCases) {
     // 相同类型
     EXPECT_TRUE(binder::Value(42) == binder::Value(42));
     EXPECT_FALSE(binder::Value(42) == binder::Value(43));
-    EXPECT_TRUE(binder::Value(String("hello")) == binder::Value(String("hello")));
+    EXPECT_TRUE(binder::Value(std::string("hello")) == binder::Value(std::string("hello")));
     EXPECT_TRUE(binder::Value(true) == binder::Value(true));
 
     // 跨数字类型比较
@@ -3941,8 +3941,8 @@ TEST_F(ValueEdgeCaseTest, FromAnyTypeConversions) {
     auto doubleVal = binder::Value::fromAny(std::any(2.718));
     EXPECT_TRUE(doubleVal.isFloat());
 
-    // String
-    auto strVal = binder::Value::fromAny(std::any(String("test")));
+    // std::string
+    auto strVal = binder::Value::fromAny(std::any(std::string("test")));
     EXPECT_TRUE(strVal.isString());
 
     // const char*
@@ -3957,7 +3957,7 @@ TEST_F(ValueEdgeCaseTest, FromAnyTypeConversions) {
 TEST_F(ValueEdgeCaseTest, GetPropertyReturnsNull) {
     // 简单值类型不支持属性访问
     binder::Value intVal(42);
-    binder::Value strVal(String("hello"));
+    binder::Value strVal(std::string("hello"));
     binder::Value arrVal(std::vector<binder::Value>{});
 
     EXPECT_TRUE(intVal.getProperty("anything").isNull());
@@ -4076,7 +4076,7 @@ TEST_F(BindingContextEdgeCaseTest, CallbackThrowsException) {
 TEST_F(BindingContextEdgeCaseTest, SubscribeToNonexistentPath) {
     // 订阅不存在的路径应该成功（可能在未来创建）
     bool called = false;
-    u64 subId = m_ctx->subscribe("future.path", [&](const String&, const binder::Value&) {
+    u64 subId = m_ctx->subscribe("future.path", [&](const std::string&, const binder::Value&) {
         called = true;
     });
 
@@ -4096,7 +4096,7 @@ TEST_F(BindingContextEdgeCaseTest, UnsubscribeTwice) {
     i32 value = 42;
     m_ctx->expose("test.value", &value);
 
-    u64 subId = m_ctx->subscribe("test.value", [](const String&, const binder::Value&) {});
+    u64 subId = m_ctx->subscribe("test.value", [](const std::string&, const binder::Value&) {});
 
     m_ctx->unsubscribe(subId);
     // 再次取消应该安全
@@ -4110,9 +4110,9 @@ TEST_F(BindingContextEdgeCaseTest, MultipleSubscribersSamePath) {
 
     int callCount1 = 0, callCount2 = 0, callCount3 = 0;
 
-    u64 sub1 = m_ctx->subscribe("test.value", [&](const String&, const binder::Value&) { callCount1++; });
-    u64 sub2 = m_ctx->subscribe("test.value", [&](const String&, const binder::Value&) { callCount2++; });
-    u64 sub3 = m_ctx->subscribe("test.value", [&](const String&, const binder::Value&) { callCount3++; });
+    u64 sub1 = m_ctx->subscribe("test.value", [&](const std::string&, const binder::Value&) { callCount1++; });
+    u64 sub2 = m_ctx->subscribe("test.value", [&](const std::string&, const binder::Value&) { callCount2++; });
+    u64 sub3 = m_ctx->subscribe("test.value", [&](const std::string&, const binder::Value&) { callCount3++; });
 
     m_ctx->notifyChange("test.value", binder::Value(100));
 
@@ -4131,9 +4131,9 @@ TEST_F(BindingContextEdgeCaseTest, SubscriberReceivesCorrectValue) {
     m_ctx->expose("test.value", &value);
 
     binder::Value receivedValue;
-    String receivedPath;
+    std::string receivedPath;
 
-    u64 subId = m_ctx->subscribe("test.value", [&](const String& path, const binder::Value& val) {
+    u64 subId = m_ctx->subscribe("test.value", [&](const std::string& path, const binder::Value& val) {
         receivedPath = path;
         receivedValue = val;
     });
@@ -4189,8 +4189,8 @@ TEST_F(BindingContextEdgeCaseTest, NestedLoopVariables) {
 TEST_F(BindingContextEdgeCaseTest, LoopVariableWithPropertyAccess) {
     // 循环变量属性访问
     std::vector<binder::Value> items;
-    items.emplace_back(binder::Value(String("first")));
-    items.emplace_back(binder::Value(String("second")));
+    items.emplace_back(binder::Value(std::string("first")));
+    items.emplace_back(binder::Value(std::string("second")));
 
     m_ctx->setCollectionValue("items", items);
 
@@ -4249,7 +4249,7 @@ TEST_F(BindingContextEdgeCaseTest, ClearRemovesAllBindings) {
 
 TEST_F(BindingContextEdgeCaseTest, TypeMismatchedSetBinding) {
     // 类型不匹配的设置
-    String strValue = "hello";
+    std::string strValue = "hello";
     m_ctx->exposeWritable("test.string", &strValue);
 
     // 设置不同类型的值
@@ -4287,11 +4287,11 @@ TEST_F(BindingContextEdgeCaseTest, SetBindingStringToInt) {
     i32 intValue = 0;
     m_ctx->exposeWritable("test.int", &intValue);
 
-    EXPECT_TRUE(m_ctx->setBinding("test.int", binder::Value(String("42"))));
+    EXPECT_TRUE(m_ctx->setBinding("test.int", binder::Value(std::string("42"))));
     EXPECT_EQ(intValue, 42);
 
     // 无效字符串
-    EXPECT_TRUE(m_ctx->setBinding("test.int", binder::Value(String("not a number"))));
+    EXPECT_TRUE(m_ctx->setBinding("test.int", binder::Value(std::string("not a number"))));
     // 应该转换为0
     EXPECT_EQ(intValue, 0);
 }
@@ -4351,9 +4351,9 @@ TEST_F(UpdateSchedulerEdgeCaseTest, CancelByPathMultipleSchedules) {
 }
 
 TEST_F(UpdateSchedulerEdgeCaseTest, ExecuteByPriority) {
-    std::vector<String> executedPaths;
+    std::vector<std::string> executedPaths;
 
-    m_scheduler->setUpdateCallback([&executedPaths](const String& path) -> bool {
+    m_scheduler->setUpdateCallback([&executedPaths](const std::string& path) -> bool {
         executedPaths.push_back(path);
         return true;
     });
@@ -4392,7 +4392,7 @@ TEST_F(UpdateSchedulerEdgeCaseTest, ExecutePendingWithNoCallback) {
 TEST_F(UpdateSchedulerEdgeCaseTest, ExecutePendingWithFailingCallback) {
     // 回调返回失败
     int callCount = 0;
-    m_scheduler->setUpdateCallback([&callCount](const String& path) -> bool {
+    m_scheduler->setUpdateCallback([&callCount](const std::string& path) -> bool {
         callCount++;
         return path != "fail"; // "fail" 路径返回失败
     });
@@ -4448,7 +4448,7 @@ TEST_F(UpdateSchedulerEdgeCaseTest, TimestampIncreases) {
 }
 
 TEST_F(UpdateSchedulerEdgeCaseTest, CallbackThrowsException) {
-    m_scheduler->setUpdateCallback([](const String&) -> bool {
+    m_scheduler->setUpdateCallback([](const std::string&) -> bool {
         throw std::runtime_error("Test exception");
     });
 
@@ -4462,7 +4462,7 @@ TEST_F(UpdateSchedulerEdgeCaseTest, ReentrantSchedule) {
     // 在回调中调度新任务
     // executePending() 会按顺序执行所有优先级：High -> Normal -> Low
     // 在回调中添加的 Low 优先级任务会在同一次 executePending() 中被执行
-    m_scheduler->setUpdateCallback([this](const String& path) -> bool {
+    m_scheduler->setUpdateCallback([this](const std::string& path) -> bool {
         if (path == "trigger") {
             m_scheduler->schedule("triggered", runtime::UpdateScheduler::Priority::Low);
         }
@@ -4499,7 +4499,7 @@ protected:
 
 TEST_F(CompiledTemplateEdgeCaseTest, VeryLargeTemplate) {
     // 非常大的模板
-    String source = "<screen>";
+    std::string source = "<screen>";
     for (int i = 0; i < 1000; ++i) {
         source += "<text id=\"text" + std::to_string(i) + "\" text=\"Content " + std::to_string(i) + "\"/>";
     }
@@ -4569,7 +4569,7 @@ TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithDuplicateIds) {
 
 TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithDeepNesting) {
     // 深度嵌套 - 使用有效标签 widget 而不是 container
-    String source = "<screen>";
+    std::string source = "<screen>";
     for (int i = 0; i < 100; ++i) {
         source += "<widget>";
     }
@@ -4731,7 +4731,7 @@ TEST_F(AstEdgeCaseTest, AttributeCreateEdgeCases) {
     // 空值静态属性
     auto attr1 = ast::Attribute::createStatic("name", "");
     EXPECT_EQ(attr1.rawValue, "");
-    EXPECT_TRUE(std::holds_alternative<String>(attr1.value));
+    EXPECT_TRUE(std::holds_alternative<std::string>(attr1.value));
 
     // 数字边界值
     auto attr2 = ast::Attribute::createStatic("max", "2147483647");
@@ -4741,11 +4741,11 @@ TEST_F(AstEdgeCaseTest, AttributeCreateEdgeCases) {
     // 负数
     auto attr3 = ast::Attribute::createStatic("neg", "-42");
     // 可能是字符串或整数
-    EXPECT_TRUE(std::holds_alternative<i32>(attr3.value) || std::holds_alternative<String>(attr3.value));
+    EXPECT_TRUE(std::holds_alternative<i32>(attr3.value) || std::holds_alternative<std::string>(attr3.value));
 
     // 浮点数
     auto attr4 = ast::Attribute::createStatic("pi", "3.14159");
-    EXPECT_TRUE(std::holds_alternative<f32>(attr4.value) || std::holds_alternative<String>(attr4.value));
+    EXPECT_TRUE(std::holds_alternative<f32>(attr4.value) || std::holds_alternative<std::string>(attr4.value));
 }
 
 TEST_F(AstEdgeCaseTest, ElementNodeAddAttributeOverride) {

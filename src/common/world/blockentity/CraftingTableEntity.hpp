@@ -187,7 +187,7 @@ public:
      * @brief 设置自定义名称
      * @param name 名称
      */
-    void setCustomName(const String& name) override {
+    void setCustomName(const std::string& name) override {
         m_customName = name;
     }
 
@@ -195,7 +195,7 @@ public:
      * @brief 获取自定义名称
      * @return 自定义名称
      */
-    [[nodiscard]] String getCustomName() const override {
+    [[nodiscard]] std::string getCustomName() const override {
         return m_customName;
     }
 
@@ -203,7 +203,7 @@ private:
     CraftingInventory m_craftingGrid;
     CraftResultInventory m_result;
     const crafting::CraftingRecipe* m_currentRecipe;
-    String m_customName;
+    std::string m_customName;
 };
 
 } // namespace mc

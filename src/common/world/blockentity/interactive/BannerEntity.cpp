@@ -55,11 +55,11 @@ void BannerEntity::setBaseColor(DyeColor color) {
     }
 }
 
-String BannerEntity::getTextureName() const {
+std::string BannerEntity::getTextureName() const {
     // 生成纹理名称，用于渲染
     // 格式: banner_<base_color>[_<pattern_hash>_<color>]*
     // 每个图案追加 "_<hash>_<color>"
-    String name = "banner_" + std::to_string(static_cast<i32>(m_baseColor));
+    std::string name = "banner_" + std::to_string(static_cast<i32>(m_baseColor));
 
     // 添加图案信息
     for (const auto& pattern : m_patterns) {
@@ -93,7 +93,7 @@ bool BannerEntity::load(const nlohmann::json& data) {
                 BannerPattern pattern;
                 if (patternJson.contains("pattern")) {
                     // 从哈希名解析图案类型
-                    String hashName = patternJson["pattern"].get<String>();
+                    std::string hashName = patternJson["pattern"].get<std::string>();
                     pattern.pattern = BannerPatterns::byHash(hashName);
                 }
                 if (patternJson.contains("color")) {

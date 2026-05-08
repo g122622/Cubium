@@ -9,7 +9,7 @@ namespace mc {
 
 namespace fs = std::filesystem;
 
-Result<RecipeLoader::LoadResult> RecipeLoader::loadFromDirectory(const String& directoryPath,
+Result<RecipeLoader::LoadResult> RecipeLoader::loadFromDirectory(const std::string& directoryPath,
                                                                    ProgressCallback callback) {
     LoadResult result;
     m_lastResult = LoadResult{};
@@ -58,7 +58,7 @@ Result<RecipeLoader::LoadResult> RecipeLoader::loadFromDirectory(const String& d
     return result;
 }
 
-Result<ResourceLocation> RecipeLoader::loadRecipeFile(const String& filePath) {
+Result<ResourceLocation> RecipeLoader::loadRecipeFile(const std::string& filePath) {
     // 推导配方ID
     ResourceLocation id = pathToRecipeId(filePath);
 
@@ -70,14 +70,14 @@ Result<ResourceLocation> RecipeLoader::loadRecipeFile(const String& filePath) {
 
     std::stringstream buffer;
     buffer << file.rdbuf();
-    String jsonString = buffer.str();
+    std::string jsonString = buffer.str();
     file.close();
 
     return loadRecipeJson(id, jsonString);
 }
 
 Result<ResourceLocation> RecipeLoader::loadRecipeJson(const ResourceLocation& id,
-                                                        const String& jsonString) {
+                                                        const std::string& jsonString) {
     // 解析JSON
     nlohmann::json json;
     try {
@@ -164,17 +164,17 @@ Result<RecipeLoader::LoadResult> RecipeLoader::loadVanillaRecipes() {
     return result;
 }
 
-ResourceLocation RecipeLoader::pathToRecipeId(const String& filePath) const {
+ResourceLocation RecipeLoader::pathToRecipeId(const std::string& filePath) const {
     // 将文件路径转换为配方ID
     // 例如: "data/minecraft/recipes/crafting_table.json" -> "minecraft:crafting_table"
 
     fs::path path(filePath);
-    String filename = path.stem().string();
+    std::string filename = path.stem().string();
 
     // 尝试从路径中提取命名空间
     // 假设路径格式为 .../data/<namespace>/recipes/<path>.json
-    String namespace_ = "minecraft";  // 默认命名空间
-    String recipePath = filename;
+    std::string namespace_ = "minecraft";  // 默认命名空间
+    std::string recipePath = filename;
 
     // 查找 "recipes" 目录
     fs::path current = path.parent_path();

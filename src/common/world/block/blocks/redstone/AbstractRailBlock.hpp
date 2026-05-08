@@ -170,10 +170,10 @@ protected:
  */
 class RailShapeProperty : public EnumProperty<RailShape> {
 public:
-    static std::unique_ptr<RailShapeProperty> create(const String& name);
+    static std::unique_ptr<RailShapeProperty> create(const std::string& name);
 
 private:
-    RailShapeProperty(const String& name);
+    RailShapeProperty(const std::string& name);
 };
 
 } // namespace blocks
@@ -183,7 +183,7 @@ private:
 namespace mc {
 template<>
 struct EnumProperty<blocks::RailShape>::Traits {
-    static String toString(const blocks::RailShape& value);
-    static std::optional<blocks::RailShape> fromName(StringView name);
+    static std::string toString(const blocks::RailShape& value);
+    static std::optional<blocks::RailShape> fromName(std::string_view name);
 };
 } // namespace mc

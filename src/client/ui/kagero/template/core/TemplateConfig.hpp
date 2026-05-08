@@ -5,7 +5,7 @@
 namespace mc::client::ui::kagero::tpl::core {
 
 // 引入基础类型
-using mc::String;
+using mc::std::string;
 using mc::i32;
 using mc::u8;
 using mc::u64;
@@ -109,7 +109,7 @@ struct SourceLocation {
     /**
      * @brief 转换为字符串
      */
-    [[nodiscard]] String toString() const {
+    [[nodiscard]] std::string toString() const {
         return "line " + std::to_string(line) + ", column " + std::to_string(column);
     }
 };

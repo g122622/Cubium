@@ -42,10 +42,10 @@ enum class ClientAppState : u8 {
  */
 struct WorldLaunchConfig {
     /// 世界目录名（如 "New World"）
-    String levelId;
+    std::string levelId;
 
     /// 显示名称
-    String displayName;
+    std::string displayName;
 
     /// 世界种子
     i64 seed = 0;
@@ -119,7 +119,7 @@ public:
     /**
      * @brief 世界加载进度回调类型
      */
-    using LoadingProgressCallback = std::function<void(const String& stage, f32 progress)>;
+    using LoadingProgressCallback = std::function<void(const std::string& stage, f32 progress)>;
 
     ClientAppStateMachine() = default;
     ~ClientAppStateMachine() = default;
@@ -405,7 +405,7 @@ public:
      * @param stage 当前加载阶段名称
      * @param progress 进度（0.0 - 1.0）
      */
-    void reportLoadingProgress(const String& stage, f32 progress) {
+    void reportLoadingProgress(const std::string& stage, f32 progress) {
         if (m_state == ClientAppState::LoadingWorld && m_onLoadingProgress) {
             m_onLoadingProgress(stage, progress);
         }

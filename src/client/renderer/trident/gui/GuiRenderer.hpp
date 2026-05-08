@@ -284,14 +284,14 @@ public:
      * @param sampler Vulkan 采样器
      * @return 分配的槽位ID（>=2），失败返回错误
      */
-    [[nodiscard]] Result<u32> registerAtlas(const String& name, VkImageView view, VkSampler sampler);
+    [[nodiscard]] Result<u32> registerAtlas(const std::string& name, VkImageView view, VkSampler sampler);
 
     /**
      * @brief 获取图集槽位ID
      * @param name 图集名称
      * @return 槽位ID，不存在返回 nullopt
      */
-    [[nodiscard]] std::optional<u32> getAtlasSlot(const String& name) const;
+    [[nodiscard]] std::optional<u32> getAtlasSlot(const std::string& name) const;
 
     /**
      * @brief 检查是否有GUI纹理图集
@@ -400,7 +400,7 @@ private:
     VkSampler m_guiSampler = VK_NULL_HANDLE;
 
     // 多图集支持
-    std::unordered_map<String, u32> m_atlasSlots;
+    std::unordered_map<std::string, u32> m_atlasSlots;
     u32 m_nextGuiSlot = DEFAULT_GUI_ATLAS_SLOT;
 
     VkSampler m_sampler = VK_NULL_HANDLE;

@@ -41,7 +41,7 @@ public:
     /**
      * @brief 命令发送回调类型
      */
-    using CommandCallback = std::function<void(const String&)>;
+    using CommandCallback = std::function<void(const std::string&)>;
 
     ChatWidget();
     ~ChatWidget() override = default;
@@ -130,7 +130,7 @@ public:
     /**
      * @brief 添加聊天消息
      */
-    void addMessage(const String& message, u32 color = 0xFFFFFFFF);
+    void addMessage(const std::string& message, u32 color = 0xFFFFFFFF);
 
     /**
      * @brief 添加富文本消息
@@ -141,7 +141,7 @@ public:
     /**
      * @brief 添加系统消息
      */
-    void addSystemMessage(const String& message);
+    void addSystemMessage(const std::string& message);
 
     /**
      * @brief 获取聊天历史
@@ -154,12 +154,12 @@ public:
     /**
      * @brief 获取当前输入
      */
-    [[nodiscard]] const String& input() const { return m_input; }
+    [[nodiscard]] const std::string& input() const { return m_input; }
 
     /**
      * @brief 设置输入文本
      */
-    void setInput(const String& text);
+    void setInput(const std::string& text);
 
     /**
      * @brief 清除输入
@@ -172,7 +172,7 @@ private:
     /**
      * @brief 插入文本到光标位置
      */
-    void insertText(const String& text);
+    void insertText(const std::string& text);
 
     /**
      * @brief 删除选中的文本
@@ -252,7 +252,7 @@ private:
     // ========== 成员变量 ==========
 
     ChatHistory m_history;
-    String m_input;
+    std::string m_input;
     size_t m_cursorPos = 0;
     size_t m_selectionStart = 0;
     size_t m_selectionEnd = 0;

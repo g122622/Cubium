@@ -10,7 +10,7 @@
 namespace mc {
 namespace blocks {
 
-RedstoneDiodeBlock::RedstoneDiodeBlock(const String& id, const BlockProperties& properties)
+RedstoneDiodeBlock::RedstoneDiodeBlock(const std::string& id, const BlockProperties& properties)
     : Block(properties)
     , m_id(id) {
 

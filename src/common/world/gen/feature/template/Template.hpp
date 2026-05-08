@@ -225,14 +225,14 @@ private:
  */
 struct TemplateJigsawBlockInfo {
     BlockPos pos;
-    String name;
-    String targetPool;
-    String targetName;
+    std::string name;
+    std::string targetPool;
+    std::string targetName;
     i32 jointType = 0;  // 0=rollable, 1=aligned
     u32 blockStateId = 0;  // 方块状态ID，用于读取 orientation 属性
 
     TemplateJigsawBlockInfo() = default;
-    TemplateJigsawBlockInfo(const BlockPos& p, const String& n, const String& pool, const String& tgt, i32 joint = 0, u32 stateId = 0)
+    TemplateJigsawBlockInfo(const BlockPos& p, const std::string& n, const std::string& pool, const std::string& tgt, i32 joint = 0, u32 stateId = 0)
         : pos(p), name(n), targetPool(pool), targetName(tgt), jointType(joint), blockStateId(stateId) {}
 };
 
@@ -245,7 +245,7 @@ struct TemplateJigsawBlockInfo {
  * - blockPos: 方块坐标（Int 列表），用于方块对齐
  */
 struct TemplateEntityInfo {
-    String typeId;
+    std::string typeId;
     f64 posx = 0.0;  // 精确位置 X
     f64 posy = 0.0;  // 精确位置 Y
     f64 posz = 0.0;  // 精确位置 Z
@@ -490,7 +490,7 @@ private:
      * @param stateStr 方块状态字符串，如 "minecraft:stone[axis=y]"
      * @return 方块状态 ID，失败返回 0（空气）
      */
-    [[nodiscard]] static u32 parseBlockStateString(const String& stateStr);
+    [[nodiscard]] static u32 parseBlockStateString(const std::string& stateStr);
 };
 
 /**

@@ -52,7 +52,7 @@ void RuinedPortalPiece::generate(IWorldWriter& world, math::Random& rng,
     }
 }
 
-const String RuinedPortalStructure::m_name = "ruined_portal";
+const std::string RuinedPortalStructure::m_name = "ruined_portal";
 
 const std::vector<BiomeId> RuinedPortalStructure::m_validBiomes = {
     Biomes::Plains,

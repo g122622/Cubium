@@ -113,7 +113,7 @@ public:
     static constexpr i32 JUMP_COOLDOWN = 10;          // 跳跃冷却(ticks)
     static constexpr f32 SNEAK_EDGE_DISTANCE = 0.05f; // 潜行边缘检测距离
 
-    Player(EntityId id, const String& username);
+    Player(EntityId id, const std::string& username);
     ~Player() override;
 
     // 禁止拷贝
@@ -126,7 +126,7 @@ public:
 
     // ========== 玩家特有属性 ==========
 
-    [[nodiscard]] const String& username() const { return m_username; }
+    [[nodiscard]] const std::string& username() const { return m_username; }
     [[nodiscard]] PlayerId playerId() const { return m_playerId; }
     void setPlayerId(PlayerId id) { m_playerId = id; }
 
@@ -1101,7 +1101,7 @@ private:
      */
     [[nodiscard]] bool canFitPose(EntityPose pose) const;
 
-    String m_username;
+    std::string m_username;
     PlayerId m_playerId = 0;
     GameMode m_gameMode = GameMode::Survival;
     ChatVisibility m_chatVisibility = ChatVisibility::Full;

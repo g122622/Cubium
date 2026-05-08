@@ -37,7 +37,7 @@ void BanCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) 
     });
 
     // /ban <player> <reason>
-    auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "reason",
         StringArgumentType::greedyString()
     );
@@ -55,9 +55,9 @@ i32 BanCommand::banPlayer(CommandContext<ServerCommandSource>& context) {
     EntitySelector selector = context.getArgument<EntitySelector>("player");
 
     // 获取可选原因
-    String reason = "Banned by an operator";
+    std::string reason = "Banned by an operator";
     if (context.hasArgument("reason")) {
-        reason = context.getArgument<String>("reason");
+        reason = context.getArgument<std::string>("reason");
     }
 
     // 解析目标玩家

@@ -142,12 +142,12 @@ void InputManager::setMouseLocked(bool locked)
     }
 }
 
-void InputManager::bindKeyAction(i32 key, const String& action)
+void InputManager::bindKeyAction(i32 key, const std::string& action)
 {
     m_keyBindings[key] = action;
 }
 
-void InputManager::bindActionCallback(const String& action, ActionCallback callback)
+void InputManager::bindActionCallback(const std::string& action, ActionCallback callback)
 {
     m_actionCallbacks[action] = std::move(callback);
 }

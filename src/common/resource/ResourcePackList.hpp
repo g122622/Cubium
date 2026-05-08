@@ -51,13 +51,13 @@ public:
      * @brief 资源包信息结构
      */
     struct PackInfo {
-        String path;                      ///< 资源包路径
+        std::string path;                      ///< 资源包路径
         ResourcePackPtr pack;             ///< 资源包实例
         bool enabled = true;              ///< 是否启用
         i32 priority = 0;                 ///< 优先级（越大越优先）
         bool isZip = false;               ///< 是否是 ZIP 文件
         bool initialized = false;         ///< 是否已初始化
-        String error;                     ///< 初始化错误信息
+        std::string error;                     ///< 初始化错误信息
     };
 
     /**
@@ -110,7 +110,7 @@ public:
      * @param path 资源包路径
      * @return 是否成功移除
      */
-    bool removePack(const String& path);
+    bool removePack(const std::string& path);
 
     /**
      * @brief 清空所有资源包
@@ -127,7 +127,7 @@ public:
      * @param enabled 是否启用
      * @return 是否成功更新
      */
-    bool setEnabled(const String& path, bool enabled);
+    bool setEnabled(const std::string& path, bool enabled);
 
     /**
      * @brief 设置资源包优先级
@@ -135,21 +135,21 @@ public:
      * @param priority 新优先级
      * @return 是否成功更新
      */
-    bool setPriority(const String& path, i32 priority);
+    bool setPriority(const std::string& path, i32 priority);
 
     /**
      * @brief 向上移动资源包（增加优先级）
      * @param path 资源包路径
      * @return 是否成功移动
      */
-    bool moveUp(const String& path);
+    bool moveUp(const std::string& path);
 
     /**
      * @brief 向下移动资源包（降低优先级）
      * @param path 资源包路径
      * @return 是否成功移动
      */
-    bool moveDown(const String& path);
+    bool moveDown(const std::string& path);
 
     // ========================================================================
     // 查询方法
@@ -186,7 +186,7 @@ public:
      * @param path 资源包路径
      * @return 找到则返回 PackInfo，否则返回空
      */
-    [[nodiscard]] std::optional<PackInfo> getPackInfo(const String& path) const;
+    [[nodiscard]] std::optional<PackInfo> getPackInfo(const std::string& path) const;
 
     /**
      * @brief 判断资源包是否存在
@@ -196,7 +196,7 @@ public:
      * @param path 资源包路径
      * @return 是否已存在
      */
-    [[nodiscard]] bool containsPack(const String& path) const;
+    [[nodiscard]] bool containsPack(const std::string& path) const;
 
     /**
      * @brief 获取资源包数量
@@ -220,7 +220,7 @@ public:
      * @param resourcePath 资源路径（如 "assets/minecraft/textures/block/stone.png"）
      * @return 是否存在
      */
-    [[nodiscard]] bool hasResource(StringView resourcePath) const;
+    [[nodiscard]] bool hasResource(std::string_view resourcePath) const;
 
     /**
      * @brief 读取资源
@@ -230,14 +230,14 @@ public:
      * @param resourcePath 资源路径
      * @return 资源数据，或错误
      */
-    [[nodiscard]] Result<std::vector<u8>> readResource(StringView resourcePath) const;
+    [[nodiscard]] Result<std::vector<u8>> readResource(std::string_view resourcePath) const;
 
     /**
      * @brief 读取文本资源
      * @param resourcePath 资源路径
      * @return 文本内容，或错误
      */
-    [[nodiscard]] Result<String> readTextResource(StringView resourcePath) const;
+    [[nodiscard]] Result<std::string> readTextResource(std::string_view resourcePath) const;
 
     /**
      * @brief 列出资源
@@ -248,9 +248,9 @@ public:
      * @param extension 文件扩展名过滤（可选）
      * @return 资源路径列表
      */
-    [[nodiscard]] Result<std::vector<String>> listResources(
-        StringView directory,
-        StringView extension = "") const;
+    [[nodiscard]] Result<std::vector<std::string>> listResources(
+        std::string_view directory,
+        std::string_view extension = "") const;
 
     // ========================================================================
     // 设置同步
@@ -298,7 +298,7 @@ private:
     /**
      * @brief 规范化路径
      */
-    [[nodiscard]] static String normalizePath(const std::filesystem::path& path);
+    [[nodiscard]] static std::string normalizePath(const std::filesystem::path& path);
 
     /**
      * @brief 检查是否是 ZIP 文件

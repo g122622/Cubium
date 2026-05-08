@@ -328,7 +328,7 @@ void EntitySoundHandler::removeEntityState(EntityId entityId) {
     m_entityTypes.erase(entityId);
 }
 
-void EntitySoundHandler::onEntitySpawn(SoundEngine& engine, EntityId entityId, const String& typeId) {
+void EntitySoundHandler::onEntitySpawn(SoundEngine& engine, EntityId entityId, const std::string& typeId) {
     // 记录实体类型
     m_entityTypes[entityId] = typeId;
 
@@ -416,7 +416,7 @@ void EntitySoundHandler::tick(SoundEngine& engine) {
 
             if (stateIt != m_entityStates.end() && typeIt != m_entityTypes.end()) {
                 const EntitySoundState& state = stateIt->second;
-                const String& typeId = typeIt->second;
+                const std::string& typeId = typeIt->second;
 
                 // 如果实体类型是蜜蜂，检查是否需要切换
                 if (typeId == "minecraft:bee" && !state.isRemoved) {
@@ -455,7 +455,7 @@ EntitySoundState* EntitySoundHandler::getMutableEntityState(EntityId entityId) {
     return it != m_entityStates.end() ? &it->second : nullptr;
 }
 
-void EntitySoundHandler::checkAndCreateSound(SoundEngine& engine, EntityId entityId, const String& typeId) {
+void EntitySoundHandler::checkAndCreateSound(SoundEngine& engine, EntityId entityId, const std::string& typeId) {
     std::shared_lock lock(m_stateMutex);
     auto stateIt = m_entityStates.find(entityId);
     if (stateIt == m_entityStates.end() || stateIt->second.isRemoved) {
@@ -482,7 +482,7 @@ void EntitySoundHandler::checkAndCreateSound(SoundEngine& engine, EntityId entit
     } else if (typeId == "minecraft:guardian" || typeId == "minecraft:elder_guardian") {
         // 守卫者声音通过 onGuardianAttack 动态创建
         // 这里不创建，因为声音只在攻击时播放
-    } else if (typeId.find("minecart") != String::npos) {
+    } else if (typeId.find("minecart") != std::string::npos) {
         // 矿车实体 - 创建矿车行驶声音
         auto sound = std::make_unique<MinecartSoundStateful>(state, this);
         SoundInstanceId soundId = engine.play(std::move(sound));
@@ -536,7 +536,7 @@ void EntitySoundHandler::onGuardianAttack(SoundEngine& engine, EntityId entityId
         return;
     }
 
-    const String& typeId = typeIt->second;
+    const std::string& typeId = typeIt->second;
     if (typeId != "minecraft:guardian" && typeId != "minecraft:elder_guardian") {
         return;
     }

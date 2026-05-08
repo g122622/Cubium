@@ -99,14 +99,14 @@ public:
      * @param hashName 哈希名（如 "bs", "ts", "cr"）
      * @return 图案类型，如果未找到返回 Base
      */
-    [[nodiscard]] static BannerPatternType byHash(const String& hashName);
+    [[nodiscard]] static BannerPatternType byHash(const std::string& hashName);
 
     /**
      * @brief 获取图案的哈希名
      * @param type 图案类型
      * @return 哈希名（如 "bs", "ts", "cr"）
      */
-    [[nodiscard]] static String getHashName(BannerPatternType type);
+    [[nodiscard]] static std::string getHashName(BannerPatternType type);
 
     /**
      * @brief 获取图案的文件名
@@ -116,7 +116,7 @@ public:
      * @param type 图案类型
      * @return 文件名（如 "stripe_bottom", "cross"）
      */
-    [[nodiscard]] static String getFileName(BannerPatternType type);
+    [[nodiscard]] static std::string getFileName(BannerPatternType type);
 
     /**
      * @brief 检查图案是否需要特殊图案卷

@@ -38,7 +38,7 @@ public:
      */
     [[nodiscard]] bool isRunning() const { return m_running; }
 
-    [[nodiscard]] String getTypeName() const override { return "PanicGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "PanicGoal"; }
 
 protected:
     /**

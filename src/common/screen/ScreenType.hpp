@@ -58,13 +58,13 @@ enum class ScreenType : u8 {
  * @param type 屏幕类型
  * @return 资源位置（如 "minecraft:crafting_table"）
  */
-String screenTypeToId(ScreenType type);
+std::string screenTypeToId(ScreenType type);
 
 /**
  * @brief 从资源位置ID解析屏幕类型
  * @param id 资源位置ID
  * @return 屏幕类型，如果未知返回 Unknown
  */
-ScreenType screenTypeFromId(const String& id);
+ScreenType screenTypeFromId(const std::string& id);
 
 } // namespace mc

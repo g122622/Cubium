@@ -61,10 +61,10 @@ enum class TokenType : u8 {
  */
 struct Token {
     TokenType type;              ///< Token类型
-    String value;                ///< Token值
+    std::string value;                ///< Token值
     SourceLocation location;     ///< 源码位置
 
-    Token(TokenType t = TokenType::Error, String v = "", SourceLocation loc = SourceLocation())
+    Token(TokenType t = TokenType::Error, std::string v = "", SourceLocation loc = SourceLocation())
         : type(t), value(std::move(v)), location(loc) {}
 
     /**
@@ -75,7 +75,7 @@ struct Token {
     /**
      * @brief 检查是否是特定类型和值的Token
      */
-    [[nodiscard]] bool is(TokenType t, const String& v) const {
+    [[nodiscard]] bool is(TokenType t, const std::string& v) const {
         return type == t && value == v;
     }
 
@@ -102,14 +102,14 @@ struct Token {
     /**
      * @brief 检查是否是关键字
      */
-    [[nodiscard]] bool isKeyword(const String& keyword) const {
+    [[nodiscard]] bool isKeyword(const std::string& keyword) const {
         return type == TokenType::Identifier && value == keyword;
     }
 
     /**
      * @brief 格式化为字符串（用于调试）
      */
-    [[nodiscard]] String format() const;
+    [[nodiscard]] std::string format() const;
 };
 
 /**
@@ -136,7 +136,7 @@ public:
      * @param source 模板源码
      * @param sourcePath 源文件路径（用于错误报告）
      */
-    explicit Lexer(String source, String sourcePath = "");
+    explicit Lexer(std::string source, std::string sourcePath = "");
 
     /**
      * @brief 执行词法分析
@@ -244,29 +244,29 @@ public:
     /**
      * @brief 期望特定类型和值的Token
      */
-    bool expect(TokenType type, const String& value);
+    bool expect(TokenType type, const std::string& value);
 
     // ========== 源码访问 ==========
 
     /**
      * @brief 获取源码
      */
-    [[nodiscard]] const String& source() const { return m_source; }
+    [[nodiscard]] const std::string& source() const { return m_source; }
 
     /**
      * @brief 获取源文件路径
      */
-    [[nodiscard]] const String& sourcePath() const { return m_sourcePath; }
+    [[nodiscard]] const std::string& sourcePath() const { return m_sourcePath; }
 
     /**
      * @brief 获取指定位置的行内容（用于错误上下文）
      */
-    [[nodiscard]] String getLineContent(size_t line) const;
+    [[nodiscard]] std::string getLineContent(size_t line) const;
 
     /**
      * @brief 获取指定位置的上下文（周围几行）
      */
-    [[nodiscard]] String getContext(const SourceLocation& loc, size_t contextLines = 2) const;
+    [[nodiscard]] std::string getContext(const SourceLocation& loc, size_t contextLines = 2) const;
 
     // ========== 静态工具方法 ==========
 
@@ -382,7 +382,7 @@ private:
     /**
      * @brief 添加错误
      */
-    void addError(TemplateErrorType type, const String& message);
+    void addError(TemplateErrorType type, const std::string& message);
 
     /**
      * @brief 更新位置
@@ -392,11 +392,11 @@ private:
     /**
      * @brief 创建Token
      */
-    [[nodiscard]] Token makeToken(TokenType type, const String& value) const;
+    [[nodiscard]] Token makeToken(TokenType type, const std::string& value) const;
 
 private:
-    String m_source;                        ///< 源码
-    String m_sourcePath;                    ///< 源文件路径
+    std::string m_source;                        ///< 源码
+    std::string m_sourcePath;                    ///< 源文件路径
 
     size_t m_pos = 0;                       ///< 当前位置（字符偏移）
     SourceLocation m_location;              ///< 当前位置（行列）

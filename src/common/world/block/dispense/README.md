@@ -77,11 +77,11 @@ public:
     static DispenseItemBehaviorRegistry& instance();
 
     // 注册发射行为
-    void registerBehavior(const String& itemId, std::unique_ptr<IDispenseItemBehavior> behavior);
+    void registerBehavior(const std::string& itemId, std::unique_ptr<IDispenseItemBehavior> behavior);
 
     // 获取发射行为
     [[nodiscard]] IDispenseItemBehavior* getBehavior(const ItemStack& stack) const;
-    [[nodiscard]] IDispenseItemBehavior* getBehavior(const String& itemId) const;
+    [[nodiscard]] IDispenseItemBehavior* getBehavior(const std::string& itemId) const;
 
     // 获取默认发射行为
     [[nodiscard]] IDispenseItemBehavior* getDefaultBehavior();

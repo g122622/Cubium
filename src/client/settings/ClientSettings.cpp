@@ -197,7 +197,7 @@ void ClientSettings::initializeKeyBindings()
     spdlog::info("Initialized {} key bindings", s_keyBindings.size());
 }
 
-KeyBinding* ClientSettings::getKeyBinding(const String& id)
+KeyBinding* ClientSettings::getKeyBinding(const std::string& id)
 {
     return KeyBinding::find(id);
 }

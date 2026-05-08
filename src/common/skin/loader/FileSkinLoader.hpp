@@ -29,19 +29,19 @@ public:
     Result<void> initialize() override;
     void shutdown() override;
 
-    [[nodiscard]] bool supportsUrl(const String& url) const override;
-    Result<SkinLoadResult> load(const String& url) override;
-    void loadAsync(const String& url, std::function<void(Result<SkinLoadResult>)> callback) override;
-    void cancel(const String& url) override;
+    [[nodiscard]] bool supportsUrl(const std::string& url) const override;
+    Result<SkinLoadResult> load(const std::string& url) override;
+    void loadAsync(const std::string& url, std::function<void(Result<SkinLoadResult>)> callback) override;
+    void cancel(const std::string& url) override;
     void cancelAll() override;
 
-    [[nodiscard]] String name() const override { return "FileSkinLoader"; }
+    [[nodiscard]] std::string name() const override { return "FileSkinLoader"; }
 
 private:
     /**
      * @brief 从文件系统加载
      */
-    Result<SkinLoadResult> loadFromFilesystem(const String& path);
+    Result<SkinLoadResult> loadFromFilesystem(const std::string& path);
 
     /**
      * @brief 从资源包加载
@@ -59,7 +59,7 @@ private:
     /**
      * @brief 计算 SHA1 哈希
      */
-    String calculateHash(const std::vector<u8>& data);
+    std::string calculateHash(const std::vector<u8>& data);
 
     IResourcePack* m_resourcePack = nullptr;
     bool m_initialized = false;

@@ -10,16 +10,16 @@ namespace {
     CommandTreeNodeSnapshot snapshot;
 
     snapshot.id = json.at("id").get<u32>();
-    snapshot.type = detail::parseNodeType(json.at("type").get<String>());
-    snapshot.name = json.value("name", String{});
+    snapshot.type = detail::parseNodeType(json.at("type").get<std::string>());
+    snapshot.name = json.value("name", std::string{});
     snapshot.typeName = json.value("typeName", snapshot.name);
     snapshot.metadata = json.value("metadata", nlohmann::json::object());
-    snapshot.examples = json.value("examples", std::vector<String>{});
+    snapshot.examples = json.value("examples", std::vector<std::string>{});
     snapshot.children = json.value("children", std::vector<u32>{});
-    snapshot.redirectModifier = detail::parseRedirectModifier(json.value("redirectModifier", String{"none"}));
+    snapshot.redirectModifier = detail::parseRedirectModifier(json.value("redirectModifier", std::string{"none"}));
     snapshot.executable = json.value("executable", false);
-    snapshot.suggestionKind = detail::parseSuggestionKind(json.value("suggestionKind", String{"none"}));
-    snapshot.suggestionCandidates = json.value("suggestionCandidates", std::vector<String>{});
+    snapshot.suggestionKind = detail::parseSuggestionKind(json.value("suggestionKind", std::string{"none"}));
+    snapshot.suggestionCandidates = json.value("suggestionCandidates", std::vector<std::string>{});
 
     if (json.contains("redirect") && !json.at("redirect").is_null()) {
         snapshot.redirect = json.at("redirect").get<u32>();
@@ -54,7 +54,7 @@ nlohmann::json CommandTreeSnapshot::toJson() const {
     return json;
 }
 
-String CommandTreeSnapshot::toJsonString() const {
+std::string CommandTreeSnapshot::toJsonString() const {
     return toJson().dump();
 }
 
@@ -96,7 +96,7 @@ Result<CommandTreeSnapshot> CommandTreeSnapshot::fromJson(const nlohmann::json& 
     return snapshot;
 }
 
-Result<CommandTreeSnapshot> CommandTreeSnapshot::fromJsonString(StringView jsonText) {
+Result<CommandTreeSnapshot> CommandTreeSnapshot::fromJsonString(std::string_view jsonText) {
     try {
         auto json = nlohmann::json::parse(jsonText.begin(), jsonText.end());
         return fromJson(json);

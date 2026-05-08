@@ -128,7 +128,7 @@ bool CreateWorldScreen::validateInput() {
 world::storage::CreateWorldRequest CreateWorldScreen::buildRequest() const {
     u64 seed = 0;
     if (m_seedField && !m_seedField->text().empty()) {
-        const String seedText = m_seedField->text();
+        const std::string seedText = m_seedField->text();
         if (util::isNumeric(seedText, true)) {
             try {
                 seed = std::stoull(seedText);
@@ -136,7 +136,7 @@ world::storage::CreateWorldRequest CreateWorldScreen::buildRequest() const {
                 seed = 0;
             }
         } else {
-            seed = std::hash<String>{}(seedText);
+            seed = std::hash<std::string>{}(seedText);
         }
     }
 

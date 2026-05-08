@@ -95,7 +95,7 @@ src/common/entity/damage/
 - `m_combatEndTime` - 战斗结束时间（`i32`）
 - `m_inCombat` - 是否在战斗中（`bool`）
 - `m_takingDamage` - 是否正在受到伤害（`bool`）
-- `m_fallSuffix` - 当前摔落后缀（`String`）
+- `m_fallSuffix` - 当前摔落后缀（`std::string`）
 
 **主要方法**:
 - `trackDamage(source, health, damage)` - 记录伤害事件
@@ -206,7 +206,7 @@ src/common/entity/damage/
 
 | 依赖项 | 用途 |
 |--------|------|
-| `core/Types.hpp` | 基础类型定义（`i8`, `u8`, `f32`, `String` 等） |
+| `core/Types.hpp` | 基础类型定义（`i8`, `u8`, `f32`, `std::string` 等） |
 | `Entity.hpp` | 实体前向声明 |
 | `LivingEntity.hpp` | 生物实体前向声明 |
 
@@ -244,7 +244,7 @@ void LivingEntity::hurt(DamageSource& source, f32 amount) {
 ```cpp
 // 实体死亡时
 void LivingEntity::die(DamageSource& cause) {
-    String message = m_combatTracker.getDeathMessage();
+    std::string message = m_combatTracker.getDeathMessage();
     // 广播死亡消息到聊天
 }
 ```

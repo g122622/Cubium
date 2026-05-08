@@ -98,7 +98,7 @@ public:
      *
      * 注意：当前版本标签系统尚未完全实现，此方法暂时返回空Ingredient
      */
-    static Ingredient fromTag(const String& tag);
+    static Ingredient fromTag(const std::string& tag);
 
     /**
      * @brief 从物品堆列表创建Ingredient
@@ -168,7 +168,7 @@ public:
      * @brief 获取物品标签（如果有）
      * @return 物品标签名，如果没有则返回空字符串
      */
-    [[nodiscard]] const String& getTag() const {
+    [[nodiscard]] const std::string& getTag() const {
         return m_tag;
     }
 
@@ -229,7 +229,7 @@ public:
 
 private:
     std::vector<ItemStack> m_matchingStacks;
-    String m_tag;
+    std::string m_tag;
     bool m_hasTag = false;
     bool m_isSimple = true;  ///< 是否为简单原料（不包含可损坏物品）
 

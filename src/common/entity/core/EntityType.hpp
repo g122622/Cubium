@@ -22,7 +22,7 @@ using mc::u16;
 using mc::u32;
 using mc::i32;
 using mc::f32;
-using mc::String;
+using mc::std::string;
 
 /**
  * @brief 实体类型ID
@@ -319,7 +319,7 @@ public:
     /**
      * @brief 获取名称
      */
-    [[nodiscard]] const String& name() const { return m_name; }
+    [[nodiscard]] const std::string& name() const { return m_name; }
 
     /**
      * @brief 检查是否有效
@@ -342,7 +342,7 @@ private:
     i32 m_updateInterval = 3;
     EntityFlags m_flags = EntityFlags::Serializable;
     EntityTypeId m_id = 0;
-    String m_name;
+    std::string m_name;
 };
 
 } // namespace entity

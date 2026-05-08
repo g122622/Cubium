@@ -38,7 +38,7 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     );
 
     // 效果类型节点 - 使用字符串参数
-    auto effectNameNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto effectNameNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "effect",
         StringArgumentType::word()
     );
@@ -90,7 +90,7 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
         return clearAllEffects(ctx);
     });
 
-    auto clearEffectNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto clearEffectNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "effect",
         StringArgumentType::word()
     );
@@ -117,7 +117,7 @@ i32 EffectCommand::giveEffect(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    const String& effectName = context.getArgument<String>("effect");
+    const std::string& effectName = context.getArgument<std::string>("effect");
 
     auto effectTypeOpt = support::tryParseEffectType(effectName);
     if (!effectTypeOpt.has_value()) {
@@ -209,7 +209,7 @@ i32 EffectCommand::clearSpecificEffect(CommandContext<ServerCommandSource>& cont
         return 0;
     }
 
-    const String& effectName = context.getArgument<String>("effect");
+    const std::string& effectName = context.getArgument<std::string>("effect");
 
     auto effectTypeOpt = support::tryParseEffectType(effectName);
     if (!effectTypeOpt.has_value()) {

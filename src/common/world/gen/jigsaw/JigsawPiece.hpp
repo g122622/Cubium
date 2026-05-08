@@ -45,11 +45,11 @@ enum class JigsawJointType : u8 {
  * - 自定义名称如 village/center, village/street 等
  */
 struct JigsawTarget {
-    String name;         ///< 连接点名称（如 "minecraft:bottom" 或 "village/center"）
+    std::string name;         ///< 连接点名称（如 "minecraft:bottom" 或 "village/center"）
     BlockPos offset;     ///< 相对于拼图块的偏移位置
 
     JigsawTarget() = default;
-    JigsawTarget(const String& n, const BlockPos& o) : name(n), offset(o) {}
+    JigsawTarget(const std::string& n, const BlockPos& o) : name(n), offset(o) {}
 };
 
 /**
@@ -59,16 +59,16 @@ struct JigsawTarget {
  */
 struct JigsawJoint {
     BlockPos sourcePos;                 ///< 源位置（在拼图块内）
-    String sourceName;                  ///< 源连接点名称（nbt中的"name"字段）
-    String targetPool;                  ///< 目标模板池名称（nbt中的"pool"字段）
-    String targetName;                  ///< 目标连接点名称（nbt中的"target"字段，可以是 "minecraft:empty" 表示终止）
+    std::string sourceName;                  ///< 源连接点名称（nbt中的"name"字段）
+    std::string targetPool;                  ///< 目标模板池名称（nbt中的"pool"字段）
+    std::string targetName;                  ///< 目标连接点名称（nbt中的"target"字段，可以是 "minecraft:empty" 表示终止）
     JigsawPlacementBehaviour projection = JigsawPlacementBehaviour::Rigid;
     JigsawJointType jointType = JigsawJointType::Rollable;  ///< 连接类型
     JigsawOrientation orientation = JigsawOrientation::NorthUp;  ///< Jigsaw 方块朝向
     i32 sourceGroundY = 0;              ///< 源地面高度
 
     JigsawJoint() = default;
-    JigsawJoint(const BlockPos& src, const String& srcName, const String& pool, const String& tgtName,
+    JigsawJoint(const BlockPos& src, const std::string& srcName, const std::string& pool, const std::string& tgtName,
                 JigsawPlacementBehaviour proj = JigsawPlacementBehaviour::Rigid)
         : sourcePos(src), sourceName(srcName), targetPool(pool), targetName(tgtName), projection(proj) {}
 };
@@ -81,7 +81,7 @@ struct JigsawJoint {
 class JigsawPiece {
 public:
     virtual ~JigsawPiece() = default;
-    virtual const String& getTypeName() const = 0;
+    virtual const std::string& getTypeName() const = 0;
     virtual std::unique_ptr<JigsawPiece> clone() const = 0;
 
     JigsawPlacementBehaviour getPlacementBehaviour() const { return m_placementBehaviour; }
@@ -109,8 +109,8 @@ public:
         return shuffled;
     }
 
-    const String& getName() const { return m_name; }
-    void setName(const String& name) { m_name = name; }
+    const std::string& getName() const { return m_name; }
+    void setName(const std::string& name) { m_name = name; }
 
     virtual bool isEmpty() const { return false; }
 
@@ -130,7 +130,7 @@ public:
      * @param size 输出的模板大小
      * @return 是否成功加载
      */
-    virtual bool loadJointsFromTemplate(const String& templateName,
+    virtual bool loadJointsFromTemplate(const std::string& templateName,
                                          std::vector<JigsawJoint>& joints,
                                          BlockPos& size);
 
@@ -141,7 +141,7 @@ protected:
     JigsawPlacementBehaviour m_placementBehaviour = JigsawPlacementBehaviour::Rigid;
     i32 m_groundLevelDelta = 1;  // MC 1.16.5 默认值为 1
     std::vector<JigsawJoint> m_joints;
-    String m_name;
+    std::string m_name;
 };
 
 /**
@@ -151,7 +151,7 @@ class EmptyJigsawPiece : public JigsawPiece {
 public:
     static EmptyJigsawPiece& instance();
 
-    const String& getTypeName() const override { return s_typeName; }
+    const std::string& getTypeName() const override { return s_typeName; }
     std::unique_ptr<JigsawPiece> clone() const override;
     bool isEmpty() const override { return true; }
     BlockPos getSize() const override { return BlockPos(0, 0, 0); }
@@ -161,7 +161,7 @@ public:
     EmptyJigsawPiece() : JigsawPiece(JigsawPlacementBehaviour::Rigid) {}
 
 private:
-    static String s_typeName;
+    static std::string s_typeName;
 };
 
 /**
@@ -169,11 +169,11 @@ private:
  */
 class SingleJigsawPiece : public JigsawPiece {
 public:
-    explicit SingleJigsawPiece(const String& templateName,
+    explicit SingleJigsawPiece(const std::string& templateName,
                                JigsawPlacementBehaviour behaviour = JigsawPlacementBehaviour::Rigid);
 
-    const String& getTypeName() const override { return s_typeName; }
-    const String& getTemplateName() const { return m_templateName; }
+    const std::string& getTypeName() const override { return s_typeName; }
+    const std::string& getTemplateName() const { return m_templateName; }
     std::unique_ptr<JigsawPiece> clone() const override {
         auto piece = std::make_unique<SingleJigsawPiece>(m_templateName, getPlacementBehaviour());
         piece->setGroundLevelDelta(getGroundLevelDelta());
@@ -187,9 +187,9 @@ public:
     void setSize(const BlockPos& size) { m_size = size; }
 
 private:
-    String m_templateName;
+    std::string m_templateName;
     BlockPos m_size;
-    static String s_typeName;
+    static std::string s_typeName;
 };
 
 /**
@@ -199,7 +199,7 @@ class ListJigsawPiece : public JigsawPiece {
 public:
     explicit ListJigsawPiece(JigsawPlacementBehaviour behaviour = JigsawPlacementBehaviour::Rigid);
 
-    const String& getTypeName() const override { return s_typeName; }
+    const std::string& getTypeName() const override { return s_typeName; }
     std::unique_ptr<JigsawPiece> clone() const override;
 
     void addPiece(std::unique_ptr<JigsawPiece> piece);
@@ -208,7 +208,7 @@ public:
 
 private:
     std::vector<std::unique_ptr<JigsawPiece>> m_pieces;
-    static String s_typeName;
+    static std::string s_typeName;
 };
 
 /**
@@ -226,7 +226,7 @@ public:
      * @param targetName 目标连接点的名称（name字段）
      * @return 是否可以连接
      */
-    static bool canMatchByName(const String& sourceTarget, const String& targetName) {
+    static bool canMatchByName(const std::string& sourceTarget, const std::string& targetName) {
         // 空连接点永远不匹配
         if (sourceTarget.empty() || targetName.empty()) {
             return false;
@@ -287,8 +287,8 @@ public:
      * @param sourceJointType 源连接类型
      * @return 是否可以连接
      */
-    static bool canMatch(const String& sourceTarget,
-                         const String& targetName,
+    static bool canMatch(const std::string& sourceTarget,
+                         const std::string& targetName,
                          JigsawOrientation sourceOrientation,
                          JigsawOrientation targetOrientation,
                          JigsawJointType sourceJointType) {
@@ -327,7 +327,7 @@ public:
      * @param jointStr 连接类型字符串 ("rollable" 或 "aligned")
      * @return 连接类型，如果无效则返回 nullopt
      */
-    static std::optional<JigsawJointType> jointTypeFromString(const String& jointStr) {
+    static std::optional<JigsawJointType> jointTypeFromString(const std::string& jointStr) {
         if (jointStr == "rollable") {
             return JigsawJointType::Rollable;
         } else if (jointStr == "aligned") {
@@ -339,7 +339,7 @@ public:
     /**
      * @brief 连接类型转字符串
      */
-    static String jointTypeToString(JigsawJointType type) {
+    static std::string jointTypeToString(JigsawJointType type) {
         return type == JigsawJointType::Rollable ? "rollable" : "aligned";
     }
 
@@ -350,7 +350,7 @@ public:
      * @param rotation 旋转角度 (0, 90, 180, 270)
      * @return 旋转后的名称
      */
-    static String rotateName(const String& name, i32 rotation) {
+    static std::string rotateName(const std::string& name, i32 rotation) {
         if (rotation == 0 || name.empty()) {
             return name;
         }

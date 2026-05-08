@@ -44,7 +44,7 @@ std::unique_ptr<DocumentNode> Parser::parse() {
         } else {
             // 意外的Token
             addError(TemplateErrorType::UnexpectedToken,
-                     "Expected element or comment, got " + String(tokenTypeName(current().type)));
+                     "Expected element or comment, got " + std::string(tokenTypeName(current().type)));
             synchronize();
         }
 
@@ -86,7 +86,7 @@ bool Parser::check(TokenType type) const {
     return current().type == type;
 }
 
-bool Parser::check(TokenType type, const String& value) const {
+bool Parser::check(TokenType type, const std::string& value) const {
     return current().is(type, value);
 }
 
@@ -98,7 +98,7 @@ bool Parser::match(TokenType type) {
     return false;
 }
 
-bool Parser::match(TokenType type, const String& value) {
+bool Parser::match(TokenType type, const std::string& value) {
     if (check(type, value)) {
         consume();
         return true;
@@ -112,13 +112,13 @@ bool Parser::expect(TokenType type) {
         return true;
     }
     addError(TemplateErrorType::UnexpectedToken,
-             "Expected " + String(tokenTypeName(type)) +
-             ", got " + String(tokenTypeName(current().type)),
+             "Expected " + std::string(tokenTypeName(type)) +
+             ", got " + std::string(tokenTypeName(current().type)),
              current());
     return false;
 }
 
-bool Parser::expect(TokenType type, const String& value) {
+bool Parser::expect(TokenType type, const std::string& value) {
     if (check(type, value)) {
         consume();
         return true;
@@ -129,9 +129,9 @@ bool Parser::expect(TokenType type, const String& value) {
     return false;
 }
 
-Token Parser::expectIdentifier(const String& context) {
+Token Parser::expectIdentifier(const std::string& context) {
     if (!check(TokenType::Identifier)) {
-        String msg = "Expected identifier";
+        std::string msg = "Expected identifier";
         if (!context.empty()) {
             msg += " " + context;
         }
@@ -141,9 +141,9 @@ Token Parser::expectIdentifier(const String& context) {
     return consume();
 }
 
-Token Parser::expectStringLiteral(const String& context) {
+Token Parser::expectStringLiteral(const std::string& context) {
     if (!check(TokenType::StringLiteral)) {
-        String msg = "Expected string literal";
+        std::string msg = "Expected string literal";
         if (!context.empty()) {
             msg += " " + context;
         }
@@ -192,7 +192,7 @@ std::unique_ptr<ElementNode> Parser::parseElement() {
         return nullptr;
     }
 
-    String tagName = nameToken.value;
+    std::string tagName = nameToken.value;
 
     // 验证标签名
     if (!isValidTagName(tagName)) {
@@ -245,7 +245,7 @@ std::unique_ptr<ElementNode> Parser::parseElement() {
     return element;
 }
 
-String Parser::parseStartTag(bool isOpenTag) {
+std::string Parser::parseStartTag(bool isOpenTag) {
     (void)isOpenTag; // 未使用
 
     if (!expect(TokenType::OpenTag)) {
@@ -294,19 +294,19 @@ Attribute Parser::parseAttribute() {
         return Attribute();
     }
 
-    String attrName = nameToken.value;
+    std::string attrName = nameToken.value;
 
     // 检查是否是特殊前缀
     bool isBinding = false;
     bool isEvent = false;
     bool isLoop = false;
     bool isCondition = false;
-    String baseName = attrName;
+    std::string baseName = attrName;
 
-    static const String BIND_PREFIX = "bind:";
-    static const String ON_PREFIX = "on:";
-    static const String FOR_PREFIX = "for:";
-    static const String IF_PREFIX = "if:";
+    static const std::string BIND_PREFIX = "bind:";
+    static const std::string ON_PREFIX = "on:";
+    static const std::string FOR_PREFIX = "for:";
+    static const std::string IF_PREFIX = "if:";
 
     if (attrName.size() > BIND_PREFIX.size() &&
         attrName.substr(0, BIND_PREFIX.size()) == BIND_PREFIX) {
@@ -367,7 +367,7 @@ Token Parser::parseAttributeName() {
         return firstPart;
     }
 
-    String name = firstPart.value;
+    std::string name = firstPart.value;
 
     // 检查冒号
     if (check(TokenType::Colon)) {
@@ -441,7 +441,7 @@ void Parser::parseContent(ElementNode& parent) {
         } else {
             // 意外的Token，尝试恢复
             addError(TemplateErrorType::UnexpectedToken,
-                     "Unexpected token in element content: " + String(tokenTypeName(current().type)),
+                     "Unexpected token in element content: " + std::string(tokenTypeName(current().type)),
                      current());
             consume();
         }
@@ -474,7 +474,7 @@ std::unique_ptr<CommentNode> Parser::parseComment() {
     }
 
     // 获取注释内容
-    String content;
+    std::string content;
     if (check(TokenType::Comment)) {
         Token commentToken = consume();
         content = commentToken.value;
@@ -490,7 +490,7 @@ std::unique_ptr<CommentNode> Parser::parseComment() {
     return node;
 }
 
-bool Parser::parseEndTag(const String& expectedTagName) {
+bool Parser::parseEndTag(const std::string& expectedTagName) {
     if (!check(TokenType::OpenCloseTag)) {
         addError(TemplateErrorType::MissingClosingTag,
                  "Expected closing tag </" + expectedTagName + ">",
@@ -562,15 +562,15 @@ void Parser::validateAttribute(const Attribute& attr, const ElementNode& element
         // 检查绑定值中是否有表达式
         if (attr.isBinding() && !attr.rawValue.empty()) {
             // 检测常见的表达式模式
-            static const String forbiddenPatterns[] = {
+            static const std::string forbiddenPatterns[] = {
                 "{{", "}}", "{%", "%}", "${", "+", "-", "*", "/", "==",
                 "!=", "<=", ">=", "&&", "||", "?:", "=>"
             };
 
             for (const auto& pattern : forbiddenPatterns) {
-                if (attr.rawValue.find(pattern) != String::npos) {
+                if (attr.rawValue.find(pattern) != std::string::npos) {
                     addError(TemplateErrorType::InlineExpressionNotAllowed,
-                             String("Inline expressions are not allowed in strict mode. ") +
+                             std::string("Inline expressions are not allowed in strict mode. ") +
                              "Found pattern '" + pattern + "' in binding: " + attr.rawValue,
                              attr.location);
                     break;
@@ -580,7 +580,7 @@ void Parser::validateAttribute(const Attribute& attr, const ElementNode& element
     }
 }
 
-void Parser::validateBindingPath(const String& path, const SourceLocation& loc) {
+void Parser::validateBindingPath(const std::string& path, const SourceLocation& loc) {
     if (!ast::isValidBindingPath(path)) {
         addError(TemplateErrorType::InvalidBindingPath,
                  "Invalid binding path: '" + path + "'",
@@ -588,7 +588,7 @@ void Parser::validateBindingPath(const String& path, const SourceLocation& loc) 
     }
 }
 
-void Parser::validateCallbackName(const String& name, const SourceLocation& loc) {
+void Parser::validateCallbackName(const std::string& name, const SourceLocation& loc) {
     if (!ast::isValidCallbackName(name)) {
         addError(TemplateErrorType::InvalidCallbackName,
                  "Invalid callback name: '" + name + "'. Must be a valid identifier.",
@@ -609,8 +609,8 @@ std::optional<LoopInfo> Parser::extractLoopInfo(const ElementNode& element) {
     // 1. for:item="item in collection" - 简单循环
     // 2. for:(item, index)="(item, index) in collection" - 带索引循环
 
-    String forAttrName;
-    String forAttrValue;
+    std::string forAttrName;
+    std::string forAttrValue;
     SourceLocation forAttrLoc;
 
     // 查找任何以 "for:" 开头的属性
@@ -634,18 +634,18 @@ std::optional<LoopInfo> Parser::extractLoopInfo(const ElementNode& element) {
 
     // 解析循环表达式
     // 格式: "item in collection" 或 "(item, index) in collection"
-    String expr = forAttrValue;
+    std::string expr = forAttrValue;
 
     // 查找 " in " 关键字
-    const String IN_KEYWORD = " in ";
+    const std::string IN_KEYWORD = " in ";
     size_t inPos = expr.find(IN_KEYWORD);
-    if (inPos == String::npos) {
+    if (inPos == std::string::npos) {
         // 尝试小写的 " in "
-        String lowerExpr = expr;
+        std::string lowerExpr = expr;
         std::transform(lowerExpr.begin(), lowerExpr.end(), lowerExpr.begin(),
                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         inPos = lowerExpr.find(" in ");
-        if (inPos == String::npos) {
+        if (inPos == std::string::npos) {
             addError(TemplateErrorType::SemanticError,
                      "Invalid loop syntax: expected 'item in collection' or '(item, index) in collection'",
                      forAttrLoc);
@@ -653,19 +653,19 @@ std::optional<LoopInfo> Parser::extractLoopInfo(const ElementNode& element) {
         }
     }
 
-    String varsPart = expr.substr(0, inPos);
-    String collectionPart = expr.substr(inPos + 4); // " in " 长度为4
+    std::string varsPart = expr.substr(0, inPos);
+    std::string collectionPart = expr.substr(inPos + 4); // " in " 长度为4
 
     // 去除空白
     size_t varsStart = varsPart.find_first_not_of(" \t");
     size_t varsEnd = varsPart.find_last_not_of(" \t");
-    if (varsStart != String::npos && varsEnd != String::npos) {
+    if (varsStart != std::string::npos && varsEnd != std::string::npos) {
         varsPart = varsPart.substr(varsStart, varsEnd - varsStart + 1);
     }
 
     size_t collStart = collectionPart.find_first_not_of(" \t");
     size_t collEnd = collectionPart.find_last_not_of(" \t");
-    if (collStart != String::npos && collEnd != String::npos) {
+    if (collStart != std::string::npos && collEnd != std::string::npos) {
         collectionPart = collectionPart.substr(collStart, collEnd - collStart + 1);
     }
 
@@ -675,23 +675,23 @@ std::optional<LoopInfo> Parser::extractLoopInfo(const ElementNode& element) {
     // 检查是否是 "(item, index)" 格式
     if (!varsPart.empty() && varsPart[0] == '(' && varsPart.back() == ')') {
         // 解析 "(item, index)" 格式
-        String inner = varsPart.substr(1, varsPart.size() - 2);
+        std::string inner = varsPart.substr(1, varsPart.size() - 2);
         size_t commaPos = inner.find(',');
 
-        if (commaPos != String::npos) {
-            String itemVar = inner.substr(0, commaPos);
-            String indexVar = inner.substr(commaPos + 1);
+        if (commaPos != std::string::npos) {
+            std::string itemVar = inner.substr(0, commaPos);
+            std::string indexVar = inner.substr(commaPos + 1);
 
             // 去除空白
             size_t itemStart = itemVar.find_first_not_of(" \t");
             size_t itemEnd = itemVar.find_last_not_of(" \t");
-            if (itemStart != String::npos && itemEnd != String::npos) {
+            if (itemStart != std::string::npos && itemEnd != std::string::npos) {
                 itemVar = itemVar.substr(itemStart, itemEnd - itemStart + 1);
             }
 
             size_t indexStart = indexVar.find_first_not_of(" \t");
             size_t indexEnd = indexVar.find_last_not_of(" \t");
-            if (indexStart != String::npos && indexEnd != String::npos) {
+            if (indexStart != std::string::npos && indexEnd != std::string::npos) {
                 indexVar = indexVar.substr(indexStart, indexEnd - indexStart + 1);
             }
 
@@ -702,7 +702,7 @@ std::optional<LoopInfo> Parser::extractLoopInfo(const ElementNode& element) {
             // 单个变量在括号内: "(item)"
             size_t innerStart = inner.find_first_not_of(" \t");
             size_t innerEnd = inner.find_last_not_of(" \t");
-            if (innerStart != String::npos && innerEnd != String::npos) {
+            if (innerStart != std::string::npos && innerEnd != std::string::npos) {
                 info.itemVarName = inner.substr(innerStart, innerEnd - innerStart + 1);
             }
         }
@@ -731,7 +731,7 @@ std::optional<ConditionInfo> Parser::extractConditionInfo(const ElementNode& ele
     // 1. if:condition="booleanPath" - 条件为真时显示
     // 2. if:condition="!booleanPath" - 条件为假时显示（取反）
 
-    String ifAttrValue;
+    std::string ifAttrValue;
     SourceLocation ifAttrLoc;
 
     // 查找任何以 "if:" 开头的属性
@@ -763,7 +763,7 @@ std::optional<ConditionInfo> Parser::extractConditionInfo(const ElementNode& ele
     }
 
     ConditionInfo info;
-    String path = ifAttrValue;
+    std::string path = ifAttrValue;
 
     // 检查是否有取反
     if (!path.empty() && path[0] == '!') {
@@ -771,7 +771,7 @@ std::optional<ConditionInfo> Parser::extractConditionInfo(const ElementNode& ele
         path = path.substr(1);
         // 去除可能的空格
         size_t start = path.find_first_not_of(" \t");
-        if (start != String::npos) {
+        if (start != std::string::npos) {
             path = path.substr(start);
         }
     }
@@ -782,12 +782,12 @@ std::optional<ConditionInfo> Parser::extractConditionInfo(const ElementNode& ele
     return info;
 }
 
-void Parser::addError(TemplateErrorType type, const String& message,
+void Parser::addError(TemplateErrorType type, const std::string& message,
                       const SourceLocation& loc) {
     m_errors.emplace_back(type, message, loc);
 }
 
-void Parser::addError(TemplateErrorType type, const String& message, const Token& token) {
+void Parser::addError(TemplateErrorType type, const std::string& message, const Token& token) {
     m_errors.emplace_back(type, message, token.location);
 }
 
@@ -799,7 +799,7 @@ SourceLocation Parser::currentLocation() const {
     return current().location;
 }
 
-bool Parser::isValidTagName(const String& name) const {
+bool Parser::isValidTagName(const std::string& name) const {
     return ast::isValidWidgetTag(name);
 }
 

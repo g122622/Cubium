@@ -42,7 +42,7 @@ public:
      * @param stack 物品堆
      * @return 带药水类型的翻译键
      */
-    [[nodiscard]] String getTranslationKey(const ItemStack& stack) const override;
+    [[nodiscard]] std::string getTranslationKey(const ItemStack& stack) const override;
 
     // ========== ThrowableItem 接口重写 ==========
 
@@ -69,13 +69,13 @@ protected:
      * @brief 获取基础翻译键（不含药水效果后缀）
      * @return 基础翻译键，如 "item.minecraft.splash_potion"
      */
-    [[nodiscard]] virtual String getBaseTranslationKey() const = 0;
+    [[nodiscard]] virtual std::string getBaseTranslationKey() const = 0;
 
     /**
      * @brief 获取带效果后缀的翻译键前缀
      * @return 翻译键前缀，如 "item.minecraft.splash_potion.effect."
      */
-    [[nodiscard]] virtual String getEffectTranslationKeyPrefix() const = 0;
+    [[nodiscard]] virtual std::string getEffectTranslationKeyPrefix() const = 0;
 };
 
 } // namespace item

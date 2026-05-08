@@ -32,7 +32,7 @@ public:
      * @brief 构造纯文本组件
      * @param text 文本内容
      */
-    explicit StringTextComponent(String text)
+    explicit StringTextComponent(std::string text)
         : m_text(std::move(text)) {}
 
     /**
@@ -44,16 +44,16 @@ public:
 
     // ========== ITextComponent 接口 ==========
 
-    [[nodiscard]] String getUnformattedText() const override {
-        String result = m_text;
+    [[nodiscard]] std::string getUnformattedText() const override {
+        std::string result = m_text;
         for (const auto& sibling : m_siblings) {
             result += sibling->getUnformattedText();
         }
         return result;
     }
 
-    [[nodiscard]] String getFormattedText() const override {
-        String result = getStyleCodes(m_style);
+    [[nodiscard]] std::string getFormattedText() const override {
+        std::string result = getStyleCodes(m_style);
         result += m_text;
 
         for (const auto& sibling : m_siblings) {
@@ -96,16 +96,16 @@ public:
      * @brief 获取文本内容
      * @return 文本字符串
      */
-    [[nodiscard]] const String& getText() const noexcept { return m_text; }
+    [[nodiscard]] const std::string& getText() const noexcept { return m_text; }
 
     /**
      * @brief 设置文本内容
      * @param text 新文本
      */
-    void setText(String text) { m_text = std::move(text); }
+    void setText(std::string text) { m_text = std::move(text); }
 
 private:
-    String m_text;
+    std::string m_text;
 };
 
 /**
@@ -117,11 +117,11 @@ private:
  * @return 文本组件
  */
 inline std::unique_ptr<StringTextComponent> createStringFromJson(const nlohmann::json& json) {
-    String text;
+    std::string text;
     if (json.is_string()) {
-        text = json.get<String>();
+        text = json.get<std::string>();
     } else if (json.is_object() && json.contains("text")) {
-        text = json["text"].get<String>();
+        text = json["text"].get<std::string>();
     } else {
         text = "";
     }

@@ -21,24 +21,24 @@ public:
         return m_metadata;
     }
 
-    [[nodiscard]] bool hasResource(StringView resourcePath) const override {
-        return m_resources.find(String(resourcePath)) != m_resources.end();
+    [[nodiscard]] bool hasResource(std::string_view resourcePath) const override {
+        return m_resources.find(std::string(resourcePath)) != m_resources.end();
     }
 
-    [[nodiscard]] Result<std::vector<u8>> readResource(StringView resourcePath) const override {
-        auto it = m_resources.find(String(resourcePath));
+    [[nodiscard]] Result<std::vector<u8>> readResource(std::string_view resourcePath) const override {
+        auto it = m_resources.find(std::string(resourcePath));
         if (it == m_resources.end()) {
             return Error(ErrorCode::NotFound, "Resource not found");
         }
         return it->second;
     }
 
-    [[nodiscard]] Result<std::vector<String>> listResources(
-        StringView directory,
-        StringView extension) const override {
-        std::vector<String> result;
-        const String dirPrefix(directory);
-        const String ext(extension);
+    [[nodiscard]] Result<std::vector<std::string>> listResources(
+        std::string_view directory,
+        std::string_view extension) const override {
+        std::vector<std::string> result;
+        const std::string dirPrefix(directory);
+        const std::string ext(extension);
         for (const auto& [path, _] : m_resources) {
             const bool inDir = dirPrefix.empty() || path.rfind(dirPrefix, 0) == 0;
             const bool extMatch = ext.empty() || (path.size() >= ext.size() && path.substr(path.size() - ext.size()) == ext);
@@ -49,17 +49,17 @@ public:
         return result;
     }
 
-    [[nodiscard]] String name() const override {
+    [[nodiscard]] std::string name() const override {
         return "InMemoryResourcePack";
     }
 
-    void add(String path, std::vector<u8> bytes) {
+    void add(std::string path, std::vector<u8> bytes) {
         m_resources.emplace(std::move(path), std::move(bytes));
     }
 
 private:
     PackMetadata m_metadata{6, "test-pack"};
-    std::unordered_map<String, std::vector<u8>> m_resources;
+    std::unordered_map<std::string, std::vector<u8>> m_resources;
 };
 
 std::vector<u8> makeValid1x1Png() {
@@ -76,7 +76,7 @@ std::vector<u8> makeValid1x1Png() {
     };
 }
 
-std::vector<u8> toBytes(StringView content) {
+std::vector<u8> toBytes(std::string_view content) {
     return std::vector<u8>(content.begin(), content.end());
 }
 

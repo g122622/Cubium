@@ -38,7 +38,7 @@ void MessageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         EntityArgumentType::player()
     );
 
-    auto messageNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto messageNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "message",
         StringArgumentType::greedyString()
     );
@@ -65,12 +65,12 @@ i32 MessageCommand::sendMessage(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    const String& message = context.getArgument<String>("message");
+    const std::string& message = context.getArgument<std::string>("message");
     auto* server = source.server();
     auto& playerManager = server->playerManager();
 
     // 获取发送者名称
-    String senderName = source.name();
+    std::string senderName = source.name();
 
     i32 successCount = 0;
 

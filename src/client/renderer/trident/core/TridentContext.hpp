@@ -16,16 +16,16 @@ namespace mc::client::renderer::trident {
  * @brief Trident 渲染引擎配置
  */
 struct TridentConfig {
-    String appName = "Trident";
-    String engineName = "Trident Engine";
+    std::string appName = "Trident";
+    std::string engineName = "Trident Engine";
     bool enableValidation = true;
     bool enableVSync = true;
     u32 maxFramesInFlight = 2;
 
     // 扩展和层配置
-    std::vector<String> requiredDeviceExtensions;
-    std::vector<String> optionalDeviceExtensions;
-    std::vector<String> requiredLayers;
+    std::vector<std::string> requiredDeviceExtensions;
+    std::vector<std::string> optionalDeviceExtensions;
+    std::vector<std::string> requiredLayers;
 
     TridentConfig() {
         // 默认必需的设备扩展
@@ -49,7 +49,7 @@ struct VulkanVersion {
     u32 minor;
     u32 patch;
 
-    String toString() const {
+    std::string toString() const {
         return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(patch);
     }
 };

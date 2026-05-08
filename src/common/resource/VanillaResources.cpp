@@ -666,12 +666,12 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack) {
 
     const char* planksTypes[] = {"spruce", "birch", "jungle", "acacia", "dark_oak"};
     for (const auto& type : planksTypes) {
-        String model = String(planksTemplate);
+        std::string model = std::string(planksTemplate);
         size_t pos = model.find("%s");
-        if (pos != String::npos) {
+        if (pos != std::string::npos) {
             model.replace(pos, 2, type);
         }
-        pack.addResource("assets/minecraft/models/block/" + String(type) + "_planks.json", model);
+        pack.addResource("assets/minecraft/models/block/" + std::string(type) + "_planks.json", model);
     }
 
     // 羊毛
@@ -686,12 +686,12 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack) {
                                  "lime", "pink", "gray", "light_gray", "cyan",
                                  "purple", "blue", "brown", "green", "red", "black"};
     for (const auto& color : woolColors) {
-        String model = String(woolTemplate);
+        std::string model = std::string(woolTemplate);
         size_t pos = model.find("%s");
-        if (pos != String::npos) {
+        if (pos != std::string::npos) {
             model.replace(pos, 2, color);
         }
-        pack.addResource("assets/minecraft/models/block/" + String(color) + "_wool.json", model);
+        pack.addResource("assets/minecraft/models/block/" + std::string(color) + "_wool.json", model);
     }
 
     // 泥土变种
@@ -726,13 +726,13 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack) {
 
     const char* logTypes[] = {"spruce", "birch", "jungle", "acacia", "dark_oak"};
     for (const auto& type : logTypes) {
-        String model = String(logTemplate);
+        std::string model = std::string(logTemplate);
         size_t pos = model.find("%s");
-        while (pos != String::npos) {
+        while (pos != std::string::npos) {
             model.replace(pos, 2, type);
             pos = model.find("%s", pos + strlen(type));
         }
-        pack.addResource("assets/minecraft/models/block/" + String(type) + "_log.json", model);
+        pack.addResource("assets/minecraft/models/block/" + std::string(type) + "_log.json", model);
     }
 
     // Leaves variants
@@ -745,12 +745,12 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack) {
 
     const char* leavesTypes[] = {"spruce", "birch", "jungle", "acacia", "dark_oak"};
     for (const auto& type : leavesTypes) {
-        String model = String(leavesTemplate);
+        std::string model = std::string(leavesTemplate);
         size_t pos = model.find("%s");
-        if (pos != String::npos) {
+        if (pos != std::string::npos) {
             model.replace(pos, 2, type);
         }
-        pack.addResource("assets/minecraft/models/block/" + String(type) + "_leaves.json", model);
+        pack.addResource("assets/minecraft/models/block/" + std::string(type) + "_leaves.json", model);
     }
 
     // Saplings
@@ -763,12 +763,12 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack) {
 
     const char* saplingTypes[] = {"oak", "spruce", "birch", "jungle", "acacia", "dark_oak"};
     for (const auto& type : saplingTypes) {
-        String model = String(saplingTemplate);
+        std::string model = std::string(saplingTemplate);
         size_t pos = model.find("%s");
-        if (pos != String::npos) {
+        if (pos != std::string::npos) {
             model.replace(pos, 2, type);
         }
-        pack.addResource("assets/minecraft/models/block/" + String(type) + "_sapling.json", model);
+        pack.addResource("assets/minecraft/models/block/" + std::string(type) + "_sapling.json", model);
     }
 
     // Flowers
@@ -783,12 +783,12 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack) {
                              "red_tulip", "orange_tulip", "white_tulip", "pink_tulip", "oxeye_daisy",
                              "brown_mushroom", "red_mushroom"};
     for (const auto& flower : flowers) {
-        String model = String(flowerTemplate);
+        std::string model = std::string(flowerTemplate);
         size_t pos = model.find("%s");
-        if (pos != String::npos) {
+        if (pos != std::string::npos) {
             model.replace(pos, 2, flower);
         }
-        pack.addResource("assets/minecraft/models/block/" + String(flower) + ".json", model);
+        pack.addResource("assets/minecraft/models/block/" + std::string(flower) + ".json", model);
     }
 
     // 草与蕨类（需要生物群系着色）
@@ -801,12 +801,12 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack) {
 
     const char* tintedCrossPlants[] = {"short_grass", "fern"};
     for (const auto& plant : tintedCrossPlants) {
-        String model = String(tintedCrossTemplate);
+        std::string model = std::string(tintedCrossTemplate);
         size_t pos = model.find("%s");
-        if (pos != String::npos) {
+        if (pos != std::string::npos) {
             model.replace(pos, 2, plant);
         }
-        pack.addResource("assets/minecraft/models/block/" + String(plant) + ".json", model);
+        pack.addResource("assets/minecraft/models/block/" + std::string(plant) + ".json", model);
     }
 
     // Tall grass
@@ -864,12 +864,12 @@ void VanillaResources::registerBlockStates(InMemoryResourcePack& pack) {
     };
 
     for (const auto& block : simpleBlocks) {
-        String json = String(simpleBlockstate);
+        std::string json = std::string(simpleBlockstate);
         size_t pos = json.find("%s");
-        if (pos != String::npos) {
+        if (pos != std::string::npos) {
             json.replace(pos, 2, block);
         }
-        pack.addResource("assets/minecraft/blockstates/" + String(block) + ".json", json);
+        pack.addResource("assets/minecraft/blockstates/" + std::string(block) + ".json", json);
     }
 
     // Oak log (has axis property)
@@ -906,13 +906,13 @@ void VanillaResources::registerBlockStates(InMemoryResourcePack& pack) {
 
     const char* logBlockstateTypes[] = {"spruce", "birch", "jungle", "acacia", "dark_oak"};
     for (const auto& type : logBlockstateTypes) {
-        String json = String(logBlockstateTemplate);
+        std::string json = std::string(logBlockstateTemplate);
         size_t pos = json.find("%s");
-        while (pos != String::npos) {
+        while (pos != std::string::npos) {
             json.replace(pos, 2, type);
             pos = json.find("%s", pos + strlen(type));
         }
-        pack.addResource("assets/minecraft/blockstates/" + String(type) + "_log.json", json);
+        pack.addResource("assets/minecraft/blockstates/" + std::string(type) + "_log.json", json);
     }
 
     // Leaves blockstates
@@ -924,12 +924,12 @@ void VanillaResources::registerBlockStates(InMemoryResourcePack& pack) {
 
     const char* leavesBlockstateTypes[] = {"spruce", "birch", "jungle", "acacia", "dark_oak"};
     for (const auto& type : leavesBlockstateTypes) {
-        String json = String(leavesBlockstateTemplate);
+        std::string json = std::string(leavesBlockstateTemplate);
         size_t pos = json.find("%s");
-        if (pos != String::npos) {
+        if (pos != std::string::npos) {
             json.replace(pos, 2, type);
         }
-        pack.addResource("assets/minecraft/blockstates/" + String(type) + "_leaves.json", json);
+        pack.addResource("assets/minecraft/blockstates/" + std::string(type) + "_leaves.json", json);
     }
 
     // Sapling blockstates
@@ -941,12 +941,12 @@ void VanillaResources::registerBlockStates(InMemoryResourcePack& pack) {
 
     const char* saplingBlockstateTypes[] = {"oak", "spruce", "birch", "jungle", "acacia", "dark_oak"};
     for (const auto& type : saplingBlockstateTypes) {
-        String json = String(saplingBlockstateTemplate);
+        std::string json = std::string(saplingBlockstateTemplate);
         size_t pos = json.find("%s");
-        if (pos != String::npos) {
+        if (pos != std::string::npos) {
             json.replace(pos, 2, type);
         }
-        pack.addResource("assets/minecraft/blockstates/" + String(type) + "_sapling.json", json);
+        pack.addResource("assets/minecraft/blockstates/" + std::string(type) + "_sapling.json", json);
     }
 
     // Flower and vegetation blockstates
@@ -960,12 +960,12 @@ void VanillaResources::registerBlockStates(InMemoryResourcePack& pack) {
                                         "red_tulip", "orange_tulip", "white_tulip", "pink_tulip", "oxeye_daisy",
                                         "brown_mushroom", "red_mushroom", "short_grass", "fern", "tall_grass"};
     for (const auto& flower : flowerBlockstates) {
-        String json = String(flowerBlockstateTemplate);
+        std::string json = std::string(flowerBlockstateTemplate);
         size_t pos = json.find("%s");
-        if (pos != String::npos) {
+        if (pos != std::string::npos) {
             json.replace(pos, 2, flower);
         }
-        pack.addResource("assets/minecraft/blockstates/" + String(flower) + ".json", json);
+        pack.addResource("assets/minecraft/blockstates/" + std::string(flower) + ".json", json);
     }
 
     // Crafting table

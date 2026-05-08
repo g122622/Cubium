@@ -255,7 +255,7 @@ void Raid::setLoss() {
  *
  * @return 标题文本。
  */
-String Raid::getBossBarTitle() const {
+std::string Raid::getBossBarTitle() const {
     switch (m_status) {
         case RaidStatus::Victory:
             return "Raid - Victory";

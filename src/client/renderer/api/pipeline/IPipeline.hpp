@@ -28,7 +28,7 @@ enum class ShaderStage : u8 {
  */
 struct ShaderModuleDesc {
     ShaderStage stage;
-    String entryPoint = "main";
+    std::string entryPoint = "main";
     std::vector<u8> bytecode;  // SPIR-V 字节码
 };
 
@@ -36,7 +36,7 @@ struct ShaderModuleDesc {
  * @brief 管线描述
  */
 struct PipelineDesc {
-    String name;
+    std::string name;
     std::vector<ShaderModuleDesc> shaders;
     RenderState renderState;
 
@@ -73,7 +73,7 @@ public:
     /**
      * @brief 获取管线名称
      */
-    [[nodiscard]] virtual const String& name() const = 0;
+    [[nodiscard]] virtual const std::string& name() const = 0;
 
     /**
      * @brief 获取渲染状态

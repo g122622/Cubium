@@ -14,7 +14,7 @@ void TcpConnection::send(const u8* data, size_t size) {
     }
 }
 
-void TcpConnection::disconnect(const String& reason) {
+void TcpConnection::disconnect(const std::string& reason) {
     if (m_session) {
         m_session->disconnect(reason);
     }
@@ -24,7 +24,7 @@ bool TcpConnection::isConnected() const {
     return m_session && m_session->state() == SessionState::Playing;
 }
 
-String TcpConnection::identifier() const {
+std::string TcpConnection::identifier() const {
     if (m_session) {
         return "TCP:" + m_session->address() + ":" + std::to_string(m_session->port());
     }

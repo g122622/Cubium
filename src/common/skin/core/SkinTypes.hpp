@@ -28,7 +28,7 @@ enum class SkinType : u8 {
  *
  * @note MC 1.16.5 中皮肤元数据 JSON 的 "model" 字段使用此格式
  */
-[[nodiscard]] SkinType parseSkinType(const String& typeStr);
+[[nodiscard]] SkinType parseSkinType(const std::string& typeStr);
 
 /**
  * @brief 将皮肤类型转换为字符串
@@ -36,7 +36,7 @@ enum class SkinType : u8 {
  * @param type 皮肤类型
  * @return "default" 或 "slim"
  */
-[[nodiscard]] String skinTypeToString(SkinType type);
+[[nodiscard]] std::string skinTypeToString(SkinType type);
 
 /**
  * @brief 根据UUID确定默认皮肤类型

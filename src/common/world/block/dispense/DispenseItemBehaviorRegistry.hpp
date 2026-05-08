@@ -48,7 +48,7 @@ public:
      * @param itemId 物品ID
      * @param behavior 发射行为（所有权转移）
      */
-    void registerBehavior(const String& itemId, std::unique_ptr<IDispenseItemBehavior> behavior);
+    void registerBehavior(const std::string& itemId, std::unique_ptr<IDispenseItemBehavior> behavior);
 
     /**
      * @brief 注册发射行为（模板版本）
@@ -59,7 +59,7 @@ public:
      * @param args 构造函数参数
      */
     template<typename T, typename... Args>
-    void registerBehavior(const String& itemId, Args&&... args) {
+    void registerBehavior(const std::string& itemId, Args&&... args) {
         registerBehavior(itemId, std::make_unique<T>(std::forward<Args>(args)...));
     }
 
@@ -77,7 +77,7 @@ public:
      * @param itemId 物品ID
      * @return 发射行为指针，如果未注册则返回 nullptr
      */
-    [[nodiscard]] IDispenseItemBehavior* getBehavior(const String& itemId) const;
+    [[nodiscard]] IDispenseItemBehavior* getBehavior(const std::string& itemId) const;
 
     /**
      * @brief 检查是否有注册的行为
@@ -85,7 +85,7 @@ public:
      * @param itemId 物品ID
      * @return true 如果已注册
      */
-    [[nodiscard]] bool hasBehavior(const String& itemId) const;
+    [[nodiscard]] bool hasBehavior(const std::string& itemId) const;
 
     /**
      * @brief 获取默认发射行为
@@ -108,7 +108,7 @@ private:
     DispenseItemBehaviorRegistry();
 
     /// 物品ID -> 发射行为映射
-    std::unordered_map<String, std::unique_ptr<IDispenseItemBehavior>> m_behaviors;
+    std::unordered_map<std::string, std::unique_ptr<IDispenseItemBehavior>> m_behaviors;
 
     /// 默认发射行为
     std::unique_ptr<IDispenseItemBehavior> m_defaultBehavior;
@@ -120,7 +120,7 @@ private:
  * @param itemId 物品ID
  * @param behavior 发射行为
  */
-inline void registerDispenseBehavior(const String& itemId, std::unique_ptr<IDispenseItemBehavior> behavior) {
+inline void registerDispenseBehavior(const std::string& itemId, std::unique_ptr<IDispenseItemBehavior> behavior) {
     DispenseItemBehaviorRegistry::instance().registerBehavior(itemId, std::move(behavior));
 }
 
@@ -133,7 +133,7 @@ inline void registerDispenseBehavior(const String& itemId, std::unique_ptr<IDisp
  * @param args 构造函数参数
  */
 template<typename T, typename... Args>
-inline void registerDispenseBehavior(const String& itemId, Args&&... args) {
+inline void registerDispenseBehavior(const std::string& itemId, Args&&... args) {
     DispenseItemBehaviorRegistry::instance().registerBehavior<T>(itemId, std::forward<Args>(args)...);
 }
 

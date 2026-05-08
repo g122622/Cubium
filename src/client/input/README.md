@@ -61,8 +61,8 @@ void setKeyEventCallback(KeyEventCallback callback);
 void clearKeyEventCallback();
 
 // 按键动作绑定系统
-void bindKeyAction(i32 key, const String& action);
-void bindActionCallback(const String& action, ActionCallback callback);
+void bindKeyAction(i32 key, const std::string& action);
+void bindActionCallback(const std::string& action, ActionCallback callback);
 ```
 
 **状态数据成员**:
@@ -88,8 +88,8 @@ f64 m_mouseDeltaX, m_mouseDeltaY; // 本帧增量
 f64 m_scrollDeltaX, m_scrollDeltaY;
 
 // 按键绑定系统
-std::unordered_map<i32, String> m_keyBindings;           // 按键->动作映射
-std::unordered_map<String, ActionCallback> m_actionCallbacks; // 动作->回调映射
+std::unordered_map<i32, std::string> m_keyBindings;           // 按键->动作映射
+std::unordered_map<std::string, ActionCallback> m_actionCallbacks; // 动作->回调映射
 ```
 
 ---

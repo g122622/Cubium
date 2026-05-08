@@ -216,11 +216,11 @@ TEST_F(TextureMapperTest, GetNameVariants) {
 // 路径转换
 TEST_F(TextureMapperTest, PathTransformation) {
     // 现代到旧版
-    String legacy = mapper.toLegacyPath("textures/block/jungle_log.png");
+    std::string legacy = mapper.toLegacyPath("textures/block/jungle_log.png");
     EXPECT_EQ(legacy, "textures/blocks/log_jungle.png");
 
     // 旧版到现代
-    String modern = mapper.toModernPath("textures/blocks/log_jungle.png");
+    std::string modern = mapper.toModernPath("textures/blocks/log_jungle.png");
     EXPECT_EQ(modern, "textures/block/jungle_log.png");
 
     // 物品路径
@@ -241,8 +241,8 @@ TEST_F(TextureMapperTest, GetPathVariants) {
     // 检查现代和旧版路径都存在
     bool hasModern = false, hasLegacy = false;
     for (const auto& v : variants) {
-        if (v.find("textures/block/jungle_log") != String::npos) hasModern = true;
-        if (v.find("textures/blocks/log_jungle") != String::npos) hasLegacy = true;
+        if (v.find("textures/block/jungle_log") != std::string::npos) hasModern = true;
+        if (v.find("textures/blocks/log_jungle") != std::string::npos) hasLegacy = true;
     }
     EXPECT_TRUE(hasModern);
     EXPECT_TRUE(hasLegacy);
@@ -297,7 +297,7 @@ protected:
 
 TEST_F(ResourceMapperV112Test, ToUnifiedTexturePath) {
     // 将旧版路径转换为现代路径
-    String unified = mapper->toUnifiedTexturePath("textures/blocks/log_jungle.png");
+    std::string unified = mapper->toUnifiedTexturePath("textures/blocks/log_jungle.png");
     EXPECT_EQ(unified, "textures/block/jungle_log.png");
 
     unified = mapper->toUnifiedTexturePath("textures/blocks/stone.png");
@@ -323,7 +323,7 @@ TEST_F(ResourceMapperV112Test, GetTexturePathVariants) {
     // 应该包含旧版路径配旧版名称
     bool hasLegacyPath = false;
     for (const auto& v : variants) {
-        if (v.find("textures/blocks/log_jungle") != String::npos) {
+        if (v.find("textures/blocks/log_jungle") != std::string::npos) {
             hasLegacyPath = true;
             break;
         }

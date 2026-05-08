@@ -6,11 +6,11 @@
 namespace mc {
 
 // 静态成员初始化
-std::map<String, KeyBinding*> KeyBinding::s_bindings;
-std::map<String, std::vector<KeyBinding*>> KeyBinding::s_categoryBindings;
+std::map<std::string, KeyBinding*> KeyBinding::s_bindings;
+std::map<std::string, std::vector<KeyBinding*>> KeyBinding::s_categoryBindings;
 KeyBinding::StateCallback KeyBinding::s_stateCallback;
 
-KeyBinding::KeyBinding(String id, i32 defaultKey, String category)
+KeyBinding::KeyBinding(std::string id, i32 defaultKey, std::string category)
     : m_id(std::move(id))
     , m_defaultKey(defaultKey)
     , m_currentKey(defaultKey)
@@ -90,13 +90,13 @@ bool KeyBinding::isJustReleased() const noexcept
     return m_justReleased;
 }
 
-KeyBinding* KeyBinding::find(const String& id)
+KeyBinding* KeyBinding::find(const std::string& id)
 {
     auto it = s_bindings.find(id);
     return (it != s_bindings.end()) ? it->second : nullptr;
 }
 
-std::vector<KeyBinding*> KeyBinding::getByCategory(const String& category)
+std::vector<KeyBinding*> KeyBinding::getByCategory(const std::string& category)
 {
     auto it = s_categoryBindings.find(category);
     if (it != s_categoryBindings.end()) {
@@ -105,9 +105,9 @@ std::vector<KeyBinding*> KeyBinding::getByCategory(const String& category)
     return {};
 }
 
-std::vector<String> KeyBinding::getCategories()
+std::vector<std::string> KeyBinding::getCategories()
 {
-    std::vector<String> categories;
+    std::vector<std::string> categories;
     categories.reserve(s_categoryBindings.size());
     for (const auto& [category, bindings] : s_categoryBindings) {
         categories.push_back(category);

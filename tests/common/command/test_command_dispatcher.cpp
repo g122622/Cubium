@@ -61,7 +61,7 @@ TEST_F(StringReaderTest, BasicRead) {
 TEST_F(StringReaderTest, ReadUnquotedString) {
     StringReader reader("hello world");
 
-    String word = reader.readUnquotedString();
+    std::string word = reader.readUnquotedString();
     EXPECT_EQ(word, "hello");
     EXPECT_EQ(reader.getRemaining(), " world");
 
@@ -73,7 +73,7 @@ TEST_F(StringReaderTest, ReadUnquotedString) {
 TEST_F(StringReaderTest, ReadQuotedString) {
     StringReader reader("\"hello world\" rest");
 
-    String str = reader.readQuotedString();
+    std::string str = reader.readQuotedString();
     EXPECT_EQ(str, "hello world");
     EXPECT_EQ(reader.getRemaining(), " rest");
 }
@@ -81,7 +81,7 @@ TEST_F(StringReaderTest, ReadQuotedString) {
 TEST_F(StringReaderTest, ReadQuotedStringWithEscape) {
     StringReader reader("\"hello \\\"world\\\"\" rest");
 
-    String str = reader.readQuotedString();
+    std::string str = reader.readQuotedString();
     EXPECT_EQ(str, "hello \"world\"");
 }
 
@@ -363,7 +363,7 @@ TEST_F(SuggestionsTest, BuildSuggestions) {
 TEST_F(SuggestionsTest, ApplySuggestion) {
     Suggestion suggestion(6, "world");
 
-    String result = suggestion.apply("hello ");
+    std::string result = suggestion.apply("hello ");
     EXPECT_EQ(result, "hello world");
 }
 
@@ -387,14 +387,14 @@ TEST_F(SuggestionsTest, SuggestionComparison) {
 TEST_F(SuggestionsTest, RequiredArgumentBuilderSuggestsCustomProvider) {
     CommandDispatcher<int> dispatcher;
 
-    auto destination = argument<int, String>(
+    auto destination = argument<int, std::string>(
         "destination",
-        std::make_shared<ArgumentCommandNode<int, String>>(
+        std::make_shared<ArgumentCommandNode<int, std::string>>(
             "destination",
             StringArgumentType::word()
         )
     ).suggests(std::make_shared<CandidateSuggestionProvider<int>>(
-        std::vector<String>{"spawn", "home", "mine"}
+        std::vector<std::string>{"spawn", "home", "mine"}
     ));
     auto root = std::static_pointer_cast<LiteralCommandNode<int>>(
         literal<int>("warp").then(destination).build()

@@ -44,7 +44,7 @@ SoundLoader::SoundLoader(ResourcePackList& resourcePacks)
 
 Result<AudioData> SoundLoader::load(const ResourceLocation& location) {
     // 构建音频文件路径
-    String audioPath = toAudioPath(location);
+    std::string audioPath = toAudioPath(location);
 
     // 从资源包加载
     auto result = m_resourcePacks.readResource(audioPath);
@@ -146,7 +146,7 @@ Result<AudioData> SoundLoader::decode(const u8* data, size_t size) {
     return audioData;
 }
 
-String SoundLoader::toAudioPath(const ResourceLocation& location) {
+std::string SoundLoader::toAudioPath(const ResourceLocation& location) {
     // minecraft:sounds/dig/stone1 -> assets/minecraft/sounds/dig/stone1.ogg
     return fmt::format("assets/{}/sounds/{}.ogg",
                        location.namespace_(), location.path());

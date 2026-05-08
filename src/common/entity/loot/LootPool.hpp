@@ -88,12 +88,12 @@ public:
     /**
      * @brief 获取名称
      */
-    [[nodiscard]] const String& getName() const { return m_name; }
+    [[nodiscard]] const std::string& getName() const { return m_name; }
 
     /**
      * @brief 设置名称
      */
-    void setName(const String& name) { m_name = name; }
+    void setName(const std::string& name) { m_name = name; }
 
     // ========== 生成 ==========
 
@@ -112,7 +112,7 @@ private:
     void generateRoll(std::function<void(const ItemStack&)> consumer, LootContext& context) const;
 
 private:
-    String m_name;
+    std::string m_name;
     std::vector<std::unique_ptr<LootEntry>> m_entries;
     RandomValueRange m_rolls{1.0f, 1.0f};
     RandomValueRange m_bonusRolls{0.0f, 0.0f};
@@ -154,7 +154,7 @@ public:
     /**
      * @brief 设置名称
      */
-    LootPoolBuilder& name(const String& name) {
+    LootPoolBuilder& name(const std::string& name) {
         m_name = name;
         return *this;
     }
@@ -170,7 +170,7 @@ public:
     /**
      * @brief 添加物品条目
      */
-    LootPoolBuilder& item(const String& itemId, i32 count = 1, i32 weight = 1);
+    LootPoolBuilder& item(const std::string& itemId, i32 count = 1, i32 weight = 1);
 
     /**
      * @brief 构建掉落池
@@ -178,7 +178,7 @@ public:
     [[nodiscard]] std::unique_ptr<LootPool> build() const;
 
 private:
-    String m_name;
+    std::string m_name;
     RandomValueRange m_rolls{1.0f, 1.0f};
     RandomValueRange m_bonusRolls{0.0f, 0.0f};
     std::vector<std::unique_ptr<LootEntry>> m_entries;

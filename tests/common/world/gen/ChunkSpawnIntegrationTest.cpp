@@ -241,7 +241,7 @@ TEST_F(ChunkSpawnIntegrationTest, SpawnEntryWeightSelection) {
 
     // 模拟多次选择，验证分布
     math::Random rng(12345);
-    std::map<String, i32> selectionCounts;
+    std::map<std::string, i32> selectionCounts;
 
     const i32 iterations = 1000;
     for (i32 i = 0; i < iterations; ++i) {

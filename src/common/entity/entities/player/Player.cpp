@@ -76,7 +76,7 @@ constexpr f32 PLAYER_POSE_FIT_EPSILON = 1.0e-4f;
 // Player 实现
 // ============================================================================
 
-Player::Player(EntityId id, const String& username)
+Player::Player(EntityId id, const std::string& username)
     : LivingEntity(LegacyEntityType::Player, id)
     , m_username(username)
     , m_experienceManager(std::make_unique<entity::experience::ExperienceManager>(*this))
@@ -988,7 +988,7 @@ Result<std::unique_ptr<Player>> Player::deserialize(network::PacketDeserializer&
 
     auto usernameResult = deser.readString();
     if (usernameResult.failed()) return usernameResult.error();
-    String username = usernameResult.value();
+    std::string username = usernameResult.value();
 
     auto player = std::make_unique<Player>(static_cast<EntityId>(playerId), username);
     player->m_playerId = playerId;

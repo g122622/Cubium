@@ -215,14 +215,14 @@ public:
      * @param name 属性名称
      * @param defaultValue 默认值
      */
-    [[nodiscard]] f64 getAttributeValue(const String& name, f64 defaultValue = 0.0) const;
+    [[nodiscard]] f64 getAttributeValue(const std::string& name, f64 defaultValue = 0.0) const;
 
     /**
      * @brief 设置属性基础值
      * @param name 属性名称
      * @param value 新值
      */
-    void setAttributeBaseValue(const String& name, f64 value);
+    void setAttributeBaseValue(const std::string& name, f64 value);
 
     // ========== 装备 ==========
 

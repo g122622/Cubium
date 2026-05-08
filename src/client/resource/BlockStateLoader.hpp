@@ -30,12 +30,12 @@ public:
     // stateStr格式: "axis=y,facing=north" 或 "normal"
     [[nodiscard]] const BlockStateVariant* getVariant(
         const ResourceLocation& blockId,
-        StringView stateStr) const;
+        std::string_view stateStr) const;
 
     // 根据方块属性获取模型变体
     [[nodiscard]] const BlockStateVariant* getVariant(
         const ResourceLocation& blockId,
-        const std::map<String, String>& properties) const;
+        const std::map<std::string, std::string>& properties) const;
 
     // 清除缓存
     void clearCache();
@@ -48,7 +48,7 @@ private:
     IResourcePack* m_resourcePack = nullptr;
 
     // 将属性映射转换为状态字符串
-    [[nodiscard]] static String propertiesToStateStr(const std::map<String, String>& properties);
+    [[nodiscard]] static std::string propertiesToStateStr(const std::map<std::string, std::string>& properties);
 };
 
 } // namespace mc

@@ -35,10 +35,6 @@ using char8 = char;
 using char16 = char16_t;
 using char32 = char32_t;
 
-// 字符串类型
-using String = std::string;
-using StringView = std::string_view;
-
 // 尺寸类型
 using Size = std::size_t;
 using PtrDiff = std::ptrdiff_t;

@@ -26,7 +26,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /data get
     auto getNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
-    auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "target",
         StringArgumentType::string());
     targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -37,10 +37,10 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /data set
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
-    auto setTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto setTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "target",
         StringArgumentType::string());
-    auto setValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto setValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "value",
         StringArgumentType::greedyString());
     setValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -52,10 +52,10 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /data merge
     auto mergeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("merge");
-    auto mergeTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto mergeTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "target",
         StringArgumentType::string());
-    auto mergeValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto mergeValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "value",
         StringArgumentType::greedyString());
     mergeValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -67,7 +67,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /data remove
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
-    auto removeTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto removeTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "target",
         StringArgumentType::string());
     removeTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -82,7 +82,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 i32 DataCommand::getData(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String target = context.getArgument<String>("target");
+    const std::string target = context.getArgument<std::string>("target");
 
     // TODO: 实现 NBT 数据获取
     source.sendMessage("Data get: " + target + " (NBT system not yet implemented)");
@@ -92,8 +92,8 @@ i32 DataCommand::getData(CommandContext<ServerCommandSource>& context)
 i32 DataCommand::setData(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String target = context.getArgument<String>("target");
-    const String value = context.getArgument<String>("value");
+    const std::string target = context.getArgument<std::string>("target");
+    const std::string value = context.getArgument<std::string>("value");
 
     // TODO: 实现 NBT 数据设置
     source.sendMessage("Data set: " + target + " = " + value + " (NBT system not yet implemented)");
@@ -103,8 +103,8 @@ i32 DataCommand::setData(CommandContext<ServerCommandSource>& context)
 i32 DataCommand::mergeData(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String target = context.getArgument<String>("target");
-    const String value = context.getArgument<String>("value");
+    const std::string target = context.getArgument<std::string>("target");
+    const std::string value = context.getArgument<std::string>("value");
 
     // TODO: 实现 NBT 数据合并
     source.sendMessage("Data merge: " + target + " (NBT system not yet implemented)");
@@ -114,7 +114,7 @@ i32 DataCommand::mergeData(CommandContext<ServerCommandSource>& context)
 i32 DataCommand::removeData(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String target = context.getArgument<String>("target");
+    const std::string target = context.getArgument<std::string>("target");
 
     // TODO: 实现 NBT 数据删除
     source.sendMessage("Data remove: " + target + " (NBT system not yet implemented)");

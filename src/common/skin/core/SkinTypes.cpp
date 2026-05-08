@@ -4,9 +4,9 @@
 
 namespace mc::skin {
 
-SkinType parseSkinType(const String& typeStr) {
+SkinType parseSkinType(const std::string& typeStr) {
     // 转换为小写进行比较
-    String lower;
+    std::string lower;
     lower.reserve(typeStr.size());
     for (char c : typeStr) {
         lower.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
@@ -19,7 +19,7 @@ SkinType parseSkinType(const String& typeStr) {
     return SkinType::Default;
 }
 
-String skinTypeToString(SkinType type) {
+std::string skinTypeToString(SkinType type) {
     switch (type) {
         case SkinType::Slim:
             return "slim";

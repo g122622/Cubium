@@ -28,10 +28,10 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // /bossbar add <id> <name>
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto idArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto idArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "id",
         StringArgumentType::string());
-    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "name",
         StringArgumentType::greedyString());
     nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -43,7 +43,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // /bossbar remove <id>
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
-    auto removeIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto removeIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "id",
         StringArgumentType::string());
     removeIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -61,13 +61,13 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // /bossbar set <id> <property> <value>
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
-    auto setIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto setIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "id",
         StringArgumentType::string());
 
     // set name
     auto nameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("name");
-    auto nameValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto nameValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "name",
         StringArgumentType::greedyString());
     nameValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -78,7 +78,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // set color
     auto colorNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("color");
-    auto colorValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto colorValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "color",
         StringArgumentType::string());
     colorValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -125,7 +125,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // /bossbar get <id> <property>
     auto getNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
-    auto getIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto getIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "id",
         StringArgumentType::string());
 
@@ -162,8 +162,8 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 i32 BossBarCommand::addBossBar(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String id = context.getArgument<String>("id");
-    const String name = context.getArgument<String>("name");
+    const std::string id = context.getArgument<std::string>("id");
+    const std::string name = context.getArgument<std::string>("name");
 
     std::ostringstream ss;
     ss << "Created custom bossbar '" << id << "' with name '" << name << "'";
@@ -177,7 +177,7 @@ i32 BossBarCommand::addBossBar(CommandContext<ServerCommandSource>& context)
 i32 BossBarCommand::removeBossBar(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String id = context.getArgument<String>("id");
+    const std::string id = context.getArgument<std::string>("id");
 
     std::ostringstream ss;
     ss << "Removed custom bossbar '" << id << "'";
@@ -201,7 +201,7 @@ i32 BossBarCommand::listBossBars(CommandContext<ServerCommandSource>& context)
 i32 BossBarCommand::setBossBar(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String id = context.getArgument<String>("id");
+    const std::string id = context.getArgument<std::string>("id");
 
     std::ostringstream ss;
     ss << "Modified bossbar '" << id << "'";
@@ -215,7 +215,7 @@ i32 BossBarCommand::setBossBar(CommandContext<ServerCommandSource>& context)
 i32 BossBarCommand::getBossBar(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String id = context.getArgument<String>("id");
+    const std::string id = context.getArgument<std::string>("id");
 
     std::ostringstream ss;
     ss << "Bossbar '" << id << "' value: 0";

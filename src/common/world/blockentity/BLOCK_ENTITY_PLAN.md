@@ -231,13 +231,13 @@ public:
      * @brief 获取锁定钥匙名称
      * @return 钥匙名称（物品显示名）
      */
-    [[nodiscard]] const String& getLockKey() const { return m_lockKey; }
+    [[nodiscard]] const std::string& getLockKey() const { return m_lockKey; }
     
     /**
      * @brief 设置锁定钥匙名称
      * @param key 钥匙名称
      */
-    void setLockKey(const String& key) { 
+    void setLockKey(const std::string& key) { 
         m_lockKey = key; 
         setChanged(); 
     }
@@ -248,12 +248,12 @@ public:
      * @param heldItem 手持物品（可能是钥匙）
      * @return 如果可以打开返回true
      */
-    [[nodiscard]] bool canOpen(const String& playerName, 
+    [[nodiscard]] bool canOpen(const std::string& playerName, 
                                 const ItemStack& heldItem) const;
     
     // 重写自定义名称方法
-    [[nodiscard]] String getCustomName() const override { return m_customName; }
-    void setCustomName(const String& name) override { 
+    [[nodiscard]] std::string getCustomName() const override { return m_customName; }
+    void setCustomName(const std::string& name) override { 
         m_customName = name; 
         setChanged(); 
     }
@@ -262,7 +262,7 @@ public:
      * @brief 获取显示名称
      * @return 如果有自定义名称返回自定义名称，否则返回默认名称
      */
-    [[nodiscard]] virtual String getDisplayName() const;
+    [[nodiscard]] virtual std::string getDisplayName() const;
     
     // 序列化
     bool load(const nlohmann::json& data) override;
@@ -276,12 +276,12 @@ protected:
      * @brief 获取默认显示名称（子类重写）
      * @return 默认名称（如"箱子"、"熔炉"等）
      */
-    [[nodiscard]] virtual String getDefaultName() const = 0;
+    [[nodiscard]] virtual std::string getDefaultName() const = 0;
     
 private:
     bool m_locked = false;
-    String m_lockKey;
-    String m_customName;
+    std::string m_lockKey;
+    std::string m_customName;
 };
 
 } // namespace mc
@@ -583,7 +583,7 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
 protected:
-    [[nodiscard]] String getDefaultName() const override { return "container.chest"; }
+    [[nodiscard]] std::string getDefaultName() const override { return "container.chest"; }
     
     /**
      * @brief 广播打开/关闭事件
@@ -639,7 +639,7 @@ public:
     void closeContainer() override;
 
 protected:
-    [[nodiscard]] String getDefaultName() const override { return "container.chestTrapped"; }
+    [[nodiscard]] std::string getDefaultName() const override { return "container.chestTrapped"; }
 };
 
 } // namespace mc
@@ -734,7 +734,7 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
 protected:
-    [[nodiscard]] String getDefaultName() const override { return "container.hopper"; }
+    [[nodiscard]] std::string getDefaultName() const override { return "container.hopper"; }
 
 private:
     // ========== 内部方法 ==========

@@ -42,7 +42,7 @@ public:
      * @param path 原始纹理路径
      * @return 统一的纹理路径 (MC 1.13+ 风格)
      */
-    [[nodiscard]] virtual String toUnifiedTexturePath(StringView path) const = 0;
+    [[nodiscard]] virtual std::string toUnifiedTexturePath(std::string_view path) const = 0;
 
     /**
      * @brief 获取统一纹理路径的所有可能路径变体
@@ -54,8 +54,8 @@ public:
      * @param unifiedPath 统一纹理路径
      * @return 可能的文件路径向量（按优先级排序）
      */
-    [[nodiscard]] virtual std::vector<String> getTexturePathVariants(
-        StringView unifiedPath) const = 0;
+    [[nodiscard]] virtual std::vector<std::string> getTexturePathVariants(
+        std::string_view unifiedPath) const = 0;
 
     /**
      * @brief 将纹理名称从旧版格式转换为现代格式
@@ -68,7 +68,7 @@ public:
      * @param name 纹理基本名称（不含路径和扩展名）
      * @return 现代纹理名称，如果不存在映射则返回原名称
      */
-    [[nodiscard]] virtual String toModernTextureName(StringView name) const = 0;
+    [[nodiscard]] virtual std::string toModernTextureName(std::string_view name) const = 0;
 
     /**
      * @brief 将纹理名称从现代格式转换为旧版格式
@@ -76,7 +76,7 @@ public:
      * @param name 现代纹理名称
      * @return 旧版纹理名称，如果不存在映射则返回原名称
      */
-    [[nodiscard]] virtual String toLegacyTextureName(StringView name) const = 0;
+    [[nodiscard]] virtual std::string toLegacyTextureName(std::string_view name) const = 0;
 
     // -------------------------------------------------------------------------
     // 模型路径转换
@@ -93,7 +93,7 @@ public:
      * @param path 原始模型路径
      * @return 统一的模型路径
      */
-    [[nodiscard]] virtual String toUnifiedModelPath(StringView path) const = 0;
+    [[nodiscard]] virtual std::string toUnifiedModelPath(std::string_view path) const = 0;
 
     /**
      * @brief 获取统一模型路径的所有可能路径变体
@@ -101,8 +101,8 @@ public:
      * @param unifiedPath 统一模型路径
      * @return 可能的文件路径向量
      */
-    [[nodiscard]] virtual std::vector<String> getModelPathVariants(
-        StringView unifiedPath) const = 0;
+    [[nodiscard]] virtual std::vector<std::string> getModelPathVariants(
+        std::string_view unifiedPath) const = 0;
 
     // -------------------------------------------------------------------------
     // 方块状态路径转换
@@ -120,7 +120,7 @@ public:
      * @param path 原始方块状态路径
      * @return 统一的方块状态路径
      */
-    [[nodiscard]] virtual String toUnifiedBlockStatePath(StringView path) const = 0;
+    [[nodiscard]] virtual std::string toUnifiedBlockStatePath(std::string_view path) const = 0;
 
     // -------------------------------------------------------------------------
     // 工具方法
@@ -144,7 +144,7 @@ public:
      */
     [[nodiscard]] virtual bool hasResourceVariant(
         const IResourcePack& pack,
-        StringView unifiedPath) const = 0;
+        std::string_view unifiedPath) const = 0;
 
     /**
      * @brief 从第一个匹配的变体路径读取资源
@@ -157,7 +157,7 @@ public:
      */
     [[nodiscard]] virtual Result<std::vector<u8>> readResourceVariant(
         const IResourcePack& pack,
-        StringView unifiedPath) const = 0;
+        std::string_view unifiedPath) const = 0;
 
     // -------------------------------------------------------------------------
     // 工厂方法
@@ -181,11 +181,11 @@ class BaseResourceMapper : public ResourceMapper {
 public:
     bool hasResourceVariant(
         const IResourcePack& pack,
-        StringView unifiedPath) const override;
+        std::string_view unifiedPath) const override;
 
     Result<std::vector<u8>> readResourceVariant(
         const IResourcePack& pack,
-        StringView unifiedPath) const override;
+        std::string_view unifiedPath) const override;
 
 protected:
     /**
@@ -197,7 +197,7 @@ protected:
      */
     Result<std::vector<u8>> tryReadFromPaths(
         const IResourcePack& pack,
-        const std::vector<String>& paths) const;
+        const std::vector<std::string>& paths) const;
 };
 
 } // namespace compat

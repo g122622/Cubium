@@ -1162,7 +1162,7 @@ void GuiRenderer::setGuiTextureAtlas(VkImageView guiView, VkSampler guiSampler) 
     vkUpdateDescriptorSets(m_device, 1, &descriptorWrite, 0, nullptr);
 }
 
-Result<u32> GuiRenderer::registerAtlas(const String& name, VkImageView view, VkSampler sampler) {
+Result<u32> GuiRenderer::registerAtlas(const std::string& name, VkImageView view, VkSampler sampler) {
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "GuiRenderer not initialized");
     }
@@ -1196,7 +1196,7 @@ Result<u32> GuiRenderer::registerAtlas(const String& name, VkImageView view, VkS
     return slot;
 }
 
-std::optional<u32> GuiRenderer::getAtlasSlot(const String& name) const {
+std::optional<u32> GuiRenderer::getAtlasSlot(const std::string& name) const {
     auto it = m_atlasSlots.find(name);
     if (it != m_atlasSlots.end()) {
         return it->second;

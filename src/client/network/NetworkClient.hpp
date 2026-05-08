@@ -45,9 +45,9 @@ enum class ClientState : u8 {
 // ============================================================================
 
 struct NetworkClientConfig {
-    String serverAddress = "127.0.0.1";
+    std::string serverAddress = "127.0.0.1";
     u16 serverPort = 25565;
-    String username = "Player";
+    std::string username = "Player";
     u32 connectTimeoutMs = 5000;
     u32 keepAliveIntervalMs = 15000;  // 心跳间隔
     u32 reconnectDelayMs = 1000;       // 重连延迟
@@ -61,22 +61,22 @@ struct NetworkClientConfig {
 struct NetworkClientCallbacks {
     // 连接事件
     std::function<void()> onConnected;
-    std::function<void(const String& reason)> onDisconnected;
-    std::function<void(const String& error)> onError;
+    std::function<void(const std::string& reason)> onDisconnected;
+    std::function<void(const std::string& error)> onError;
 
     // 登录事件
-    std::function<void(PlayerId playerId, EntityId entityId, const String& username)> onLoginSuccess;
-    std::function<void(const String& reason)> onLoginFailed;
-    std::function<void(const String& treeJson)> onCommandTree;
+    std::function<void(PlayerId playerId, EntityId entityId, const std::string& username)> onLoginSuccess;
+    std::function<void(const std::string& reason)> onLoginFailed;
+    std::function<void(const std::string& treeJson)> onCommandTree;
 
     // 游戏事件
     std::function<void(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId)> onTeleport;
     std::function<void(ChunkCoord x, ChunkCoord z, DimensionId dimension, const std::vector<u8>& data)> onChunkData;
     std::function<void(ChunkCoord x, ChunkCoord z, DimensionId dimension)> onChunkUnload;
-    std::function<void(PlayerId playerId, const String& username, f64 x, f64 y, f64 z)> onPlayerSpawn;
+    std::function<void(PlayerId playerId, const std::string& username, f64 x, f64 y, f64 z)> onPlayerSpawn;
     std::function<void(PlayerId playerId)> onPlayerDespawn;
     std::function<void(i32 x, i32 y, i32 z, u32 blockStateId)> onBlockUpdate;
-    std::function<void(const String& message, PlayerId senderId)> onChatMessage;
+    std::function<void(const std::string& message, PlayerId senderId)> onChatMessage;
     std::function<void(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch)> onPlayerMove;
     std::function<void(i64 gameTime, i64 dayTime, bool daylightCycleEnabled)> onTimeUpdate;
     std::function<void(i32 selectedSlot, const std::vector<ItemStack>& items)> onPlayerInventory;
@@ -86,8 +86,8 @@ struct NetworkClientCallbacks {
     std::function<void(ContainerId containerId)> onCloseContainer;
 
     // 实体事件
-    std::function<void(u32 entityId, const String& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 headYaw)> onSpawnMob;
-    std::function<void(u32 entityId, const String& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 vx, f32 vy, f32 vz, const ItemStack* itemStack)> onSpawnEntity;
+    std::function<void(u32 entityId, const std::string& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 headYaw)> onSpawnMob;
+    std::function<void(u32 entityId, const std::string& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 vx, f32 vy, f32 vz, const ItemStack* itemStack)> onSpawnEntity;
     std::function<void(u32 entityId, f32 deltaX, f32 deltaY, f32 deltaZ)> onEntityMove;
     std::function<void(u32 entityId, i16 vx, i16 vy, i16 vz)> onEntityVelocity;
     std::function<void(u32 entityId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch)> onEntityTeleport;
@@ -149,7 +149,7 @@ struct NetworkClientCallbacks {
     std::function<void(const std::vector<std::array<u8, 16>>& uuids)> onPlayerListRemove;
     std::function<void(const skin::PlayerListEntry& entry)> onPlayerListUpdateGameMode;
     std::function<void(const std::array<u8, 16>& uuid, i32 ping)> onPlayerListUpdateLatency;
-    std::function<void(const std::array<u8, 16>& uuid, const std::optional<String>& displayName)> onPlayerListUpdateDisplayName;
+    std::function<void(const std::array<u8, 16>& uuid, const std::optional<std::string>& displayName)> onPlayerListUpdateDisplayName;
 
     // 粒子事件
     std::function<void(client::renderer::trident::particle::ParticleTypeId type,
@@ -167,7 +167,7 @@ struct NetworkClientCallbacks {
                        bool isDebug, bool isFlat, bool keepData)> onRespawn;
 
     // 维度信息事件
-    std::function<void(const std::vector<std::tuple<DimensionId, String, bool, bool, f32>>& dimensions)> onDimensionInfo;
+    std::function<void(const std::vector<std::tuple<DimensionId, std::string, bool, bool, f32>>& dimensions)> onDimensionInfo;
 
     // 世界出生点事件（包含偏航角，用于指南针指向）
     std::function<void(i32 x, i32 y, i32 z, f32 angle)> onSpawnPosition;
@@ -183,7 +183,7 @@ struct NetworkClientCallbacks {
 
     // 标题显示事件
     std::function<void(network::TitleAction action,
-                       const std::optional<String>& text,
+                       const std::optional<std::string>& text,
                        i32 fadeIn, i32 stay, i32 fadeOut)> onTitle;
 };
 
@@ -204,7 +204,7 @@ public:
     [[nodiscard]] Result<void> connect(const NetworkClientConfig& config);
     [[nodiscard]] Result<void> connectLocal(network::LocalEndpoint* endpoint,
                                             const NetworkClientConfig& config = {});
-    void disconnect(const String& reason = "Client disconnect");
+    void disconnect(const std::string& reason = "Client disconnect");
     [[nodiscard]] bool isConnected() const;
     [[nodiscard]] ClientState state() const;
     [[nodiscard]] bool isLocalConnection() const { return m_localEndpoint != nullptr; }
@@ -223,7 +223,7 @@ public:
     void sendHotbarSelect(i32 slot);
     void sendTeleportConfirm(u32 teleportId);
     void sendKeepAlive(u64 id);
-    void sendChatMessage(const String& message);
+    void sendChatMessage(const std::string& message);
     void sendCreativeInventoryAction(const CreativeInventoryActionPacket& packet);
     void sendContainerClick(const ContainerClickPacket& packet);
     void sendCloseContainer(ContainerId containerId);
@@ -267,7 +267,7 @@ public:
 
     // 玩家信息
     [[nodiscard]] PlayerId playerId() const { return m_playerId; }
-    [[nodiscard]] const String& username() const { return m_username; }
+    [[nodiscard]] const std::string& username() const { return m_username; }
     [[nodiscard]] bool isLoggedIn() const { return m_state == ClientState::Playing; }
 
 private:
@@ -392,7 +392,7 @@ private:
 
     // 玩家信息
     PlayerId m_playerId = 0;
-    String m_username;
+    std::string m_username;
 
     // 心跳
     u64 m_lastKeepAliveSent = 0;

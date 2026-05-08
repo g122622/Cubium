@@ -15,9 +15,9 @@ namespace mc {
 
 namespace {
 
-[[nodiscard]] String buildSearchKey(const ItemStack& stack)
+[[nodiscard]] std::string buildSearchKey(const ItemStack& stack)
 {
-    String searchKey = util::toLowerAscii(stack.getDisplayName()->getUnformattedText());
+    std::string searchKey = util::toLowerAscii(stack.getDisplayName()->getUnformattedText());
 
     if (const auto* item = stack.getItem(); item != nullptr) {
         searchKey.push_back(' ');
@@ -53,16 +53,16 @@ std::vector<CreativeInventoryEntry> buildCreativePaletteEntries()
             return leftIsBlock > rightIsBlock;
         }
 
-        const String leftId = leftItem != nullptr ? leftItem->itemLocation().toString() : String();
-        const String rightId = rightItem != nullptr ? rightItem->itemLocation().toString() : String();
+        const std::string leftId = leftItem != nullptr ? leftItem->itemLocation().toString() : std::string();
+        const std::string rightId = rightItem != nullptr ? rightItem->itemLocation().toString() : std::string();
         if (leftId != rightId) {
             return leftId < rightId;
         }
 
         auto leftName = left.stack.getDisplayName();
         auto rightName = right.stack.getDisplayName();
-        return (leftName ? leftName->getUnformattedText() : String())
-             < (rightName ? rightName->getUnformattedText() : String());
+        return (leftName ? leftName->getUnformattedText() : std::string())
+             < (rightName ? rightName->getUnformattedText() : std::string());
     });
 
     return entries;

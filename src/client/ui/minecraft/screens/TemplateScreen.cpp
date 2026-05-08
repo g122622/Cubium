@@ -9,7 +9,7 @@
 namespace mc::client::ui::minecraft {
 namespace {
 
-std::filesystem::path resolveTemplatePath(const String& path) {
+std::filesystem::path resolveTemplatePath(const std::string& path) {
     const std::filesystem::path requested(path);
     if (std::filesystem::exists(requested)) {
         return requested;
@@ -34,23 +34,23 @@ std::filesystem::path resolveTemplatePath(const String& path) {
 
 } // namespace
 
-TemplateScreen::TemplateScreen(const String& templateSource,
+TemplateScreen::TemplateScreen(const std::string& templateSource,
                                kagero::tpl::binder::BindingContext& context,
-                               const String& screenId)
+                               const std::string& screenId)
     : Screen(screenId)
     , m_context(&context) {
     loadTemplate(templateSource);
 }
 
 TemplateScreen::TemplateScreen(std::unique_ptr<kagero::tpl::binder::BindingContext> context,
-                               const String& screenId)
+                               const std::string& screenId)
     : Screen(screenId)
     , m_ownedContext(std::move(context))
     , m_context(m_ownedContext.get()) {
 }
 
 TemplateScreen::TemplateScreen(kagero::tpl::binder::BindingContext& context,
-                               const String& screenId)
+                               const std::string& screenId)
     : Screen(screenId)
     , m_context(&context) {
 }
@@ -81,9 +81,9 @@ TemplateScreen& TemplateScreen::operator=(TemplateScreen&& other) noexcept {
 }
 
 std::unique_ptr<TemplateScreen> TemplateScreen::fromFile(
-    const String& templatePath,
+    const std::string& templatePath,
     kagero::tpl::binder::BindingContext& context,
-    const String& screenId) {
+    const std::string& screenId) {
     auto screen = std::make_unique<TemplateScreen>(context, screenId);
     if (!screen->loadTemplateFile(templatePath)) {
         spdlog::error("[TemplateScreen] Failed to load template from: {}", templatePath);
@@ -126,27 +126,27 @@ void TemplateScreen::refresh() {
     }
 }
 
-void TemplateScreen::refreshBinding(const String& path) {
+void TemplateScreen::refreshBinding(const std::string& path) {
     if (m_instance) {
         m_instance->notifyStateChange(path);
     }
 }
 
-kagero::widget::Widget* TemplateScreen::findWidget(const String& id) {
+kagero::widget::Widget* TemplateScreen::findWidget(const std::string& id) {
     if (m_instance) {
         return m_instance->findWidgetById(id);
     }
     return nullptr;
 }
 
-const kagero::widget::Widget* TemplateScreen::findWidget(const String& id) const {
+const kagero::widget::Widget* TemplateScreen::findWidget(const std::string& id) const {
     if (m_instance) {
         return m_instance->findWidgetById(id);
     }
     return nullptr;
 }
 
-bool TemplateScreen::loadTemplate(const String& source) {
+bool TemplateScreen::loadTemplate(const std::string& source) {
     if (m_context == nullptr) {
         spdlog::error("[TemplateScreen] Missing binding context for screen: {}", id());
         m_templateLoaded = false;
@@ -179,7 +179,7 @@ bool TemplateScreen::loadTemplate(const String& source) {
     return true;
 }
 
-bool TemplateScreen::loadTemplateFile(const String& path) {
+bool TemplateScreen::loadTemplateFile(const std::string& path) {
     const auto resolvedPath = resolveTemplatePath(path);
     std::ifstream file(resolvedPath);
     if (!file.is_open()) {

@@ -53,7 +53,7 @@ public:
                             VkPhysicalDevice physicalDevice,
                             VkCommandPool commandPool,
                             VkQueue graphicsQueue,
-                            const String& cacheDir = "./cache/skins");
+                            const std::string& cacheDir = "./cache/skins");
 
     /**
      * @brief 关闭客户端皮肤管理器
@@ -178,7 +178,7 @@ private:
     /**
      * @brief UUID 转字符串键
      */
-    [[nodiscard]] static String uuidToKey(const std::array<u8, 16>& uuid);
+    [[nodiscard]] static std::string uuidToKey(const std::array<u8, 16>& uuid);
 
     std::unique_ptr<::mc::skin::SkinManager> m_skinManager;
     std::unique_ptr<renderer::entity::pipeline::EntityTextureAtlas> m_textureAtlas;
@@ -189,9 +189,9 @@ private:
 
     // UUID -> 纹理区域映射
     mutable std::mutex m_regionMutex;
-    std::unordered_map<String, const TextureRegion*> m_skinRegions;
-    std::unordered_map<String, const TextureRegion*> m_capeRegions;
-    std::unordered_map<String, const TextureRegion*> m_elytraRegions;
+    std::unordered_map<std::string, const TextureRegion*> m_skinRegions;
+    std::unordered_map<std::string, const TextureRegion*> m_capeRegions;
+    std::unordered_map<std::string, const TextureRegion*> m_elytraRegions;
 
     // 待重建的皮肤数据
     std::vector<std::pair<ResourceLocation, std::vector<u8>>> m_pendingSkins;

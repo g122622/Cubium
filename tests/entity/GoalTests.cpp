@@ -124,7 +124,7 @@ public:
         m_tickCount++;
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         return "TestGoal";
     }
 

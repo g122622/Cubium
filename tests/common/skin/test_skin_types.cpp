@@ -115,11 +115,11 @@ TEST_F(SkinTexturesTest, URLsAndHashes) {
 }
 
 TEST_F(SkinTexturesTest, ExtractHashFromUrl) {
-    mc::String url = "http://textures.minecraft.net/texture/abc123def456";
-    mc::String hash = SkinTextures::extractHashFromUrl(url);
+    mc::std::string url = "http://textures.minecraft.net/texture/abc123def456";
+    mc::std::string hash = SkinTextures::extractHashFromUrl(url);
     EXPECT_EQ("abc123def456", hash);
 
-    mc::String urlWithQuery = "http://textures.minecraft.net/texture/abc123?param=value";
-    mc::String hashWithQuery = SkinTextures::extractHashFromUrl(urlWithQuery);
+    mc::std::string urlWithQuery = "http://textures.minecraft.net/texture/abc123?param=value";
+    mc::std::string hashWithQuery = SkinTextures::extractHashFromUrl(urlWithQuery);
     EXPECT_EQ("abc123", hashWithQuery);
 }

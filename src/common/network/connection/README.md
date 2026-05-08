@@ -51,13 +51,13 @@ public:
     virtual void send(const u8* data, size_t size) = 0;
     
     // 断开连接
-    virtual void disconnect(const String& reason = "") = 0;
+    virtual void disconnect(const std::string& reason = "") = 0;
     
     // 检查连接状态
     [[nodiscard]] virtual bool isConnected() const = 0;
     
     // 获取连接标识符（用于日志和调试）
-    [[nodiscard]] virtual String identifier() const = 0;
+    [[nodiscard]] virtual std::string identifier() const = 0;
     
     // 获取连接类型
     [[nodiscard]] virtual ConnectionType type() const = 0;
@@ -152,9 +152,9 @@ public:
     
     // IServerConnection 接口实现
     void send(const u8* data, size_t) override;
-    void disconnect(const String& reason = "") override;
+    void disconnect(const std::string& reason = "") override;
     bool isConnected() const override;
-    String identifier() const override;
+    std::string identifier() const override;
     ConnectionType type() const override;
     
     // 本地连接特有方法
@@ -246,7 +246,7 @@ public:
 
 | 模块 | 用途 |
 |------|------|
-| `common/core/Types.hpp` | 基础类型定义（u8, String 等） |
+| `common/core/Types.hpp` | 基础类型定义（u8, std::string 等） |
 
 ### 外部依赖
 
@@ -462,9 +462,9 @@ for (int i = 0; i < 1000000; i++) {
 class TcpServerConnection : public IServerConnection {
 public:
     void send(const u8* data, size_t size) override;
-    void disconnect(const String& reason = "") override;
+    void disconnect(const std::string& reason = "") override;
     bool isConnected() const override;
-    String identifier() const override;
+    std::string identifier() const override;
     ConnectionType type() const override { return ConnectionType::Tcp; }
     
 private:

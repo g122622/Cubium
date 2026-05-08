@@ -11,7 +11,7 @@ namespace blocks {
 // RailShapeProperty
 // ============================================================================
 
-RailShapeProperty::RailShapeProperty(const String& name)
+RailShapeProperty::RailShapeProperty(const std::string& name)
     : EnumProperty<RailShape>(name, {
         RailShape::NorthSouth,
         RailShape::EastWest,
@@ -27,7 +27,7 @@ RailShapeProperty::RailShapeProperty(const String& name)
 {
 }
 
-std::unique_ptr<RailShapeProperty> RailShapeProperty::create(const String& name) {
+std::unique_ptr<RailShapeProperty> RailShapeProperty::create(const std::string& name) {
     return std::unique_ptr<RailShapeProperty>(new RailShapeProperty(name));
 }
 
@@ -252,7 +252,7 @@ bool AbstractRailBlock::canAscendTo(IBlockReader& world, const BlockPos& pos, Di
 
 namespace mc {
 
-String EnumProperty<blocks::RailShape>::Traits::toString(const blocks::RailShape& value) {
+std::string EnumProperty<blocks::RailShape>::Traits::toString(const blocks::RailShape& value) {
     static const char* names[] = {
         "north_south",
         "east_west",
@@ -268,8 +268,8 @@ String EnumProperty<blocks::RailShape>::Traits::toString(const blocks::RailShape
     return names[static_cast<size_t>(value)];
 }
 
-std::optional<blocks::RailShape> EnumProperty<blocks::RailShape>::Traits::fromName(StringView name) {
-    static const std::unordered_map<String, blocks::RailShape> map = {
+std::optional<blocks::RailShape> EnumProperty<blocks::RailShape>::Traits::fromName(std::string_view name) {
+    static const std::unordered_map<std::string, blocks::RailShape> map = {
         {"north_south", blocks::RailShape::NorthSouth},
         {"east_west", blocks::RailShape::EastWest},
         {"ascending_east", blocks::RailShape::AscendingEast},
@@ -281,7 +281,7 @@ std::optional<blocks::RailShape> EnumProperty<blocks::RailShape>::Traits::fromNa
         {"north_west", blocks::RailShape::NorthWest},
         {"north_east", blocks::RailShape::NorthEast}
     };
-    auto it = map.find(String(name));
+    auto it = map.find(std::string(name));
     return it != map.end() ? std::optional<blocks::RailShape>(it->second) : std::nullopt;
 }
 

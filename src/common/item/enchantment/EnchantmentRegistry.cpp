@@ -7,8 +7,8 @@ namespace item {
 namespace enchant {
 
 // 静态成员定义
-std::unordered_map<String, std::unique_ptr<Enchantment>> EnchantmentRegistry::s_enchantments;
-std::unordered_map<String, const Enchantment*> s_enchantmentRefs;
+std::unordered_map<std::string, std::unique_ptr<Enchantment>> EnchantmentRegistry::s_enchantments;
+std::unordered_map<std::string, const Enchantment*> s_enchantmentRefs;
 bool EnchantmentRegistry::s_initialized = false;
 std::recursive_mutex EnchantmentRegistry::s_mutex;
 
@@ -46,7 +46,7 @@ bool EnchantmentRegistry::registerEnchantment(std::unique_ptr<Enchantment> encha
 bool EnchantmentRegistry::registerEnchantment(const Enchantment& enchantment) {
     std::lock_guard<std::recursive_mutex> lock(s_mutex);
 
-    String id = enchantment.id();
+    std::string id = enchantment.id();
 
     if (s_enchantments.find(id) != s_enchantments.end() ||
         s_enchantmentRefs.find(id) != s_enchantmentRefs.end()) {
@@ -65,7 +65,7 @@ bool EnchantmentRegistry::registerEnchantmentInternal(std::unique_ptr<Enchantmen
         return false;
     }
 
-    String id = enchantment->id();
+    std::string id = enchantment->id();
 
     if (s_enchantments.find(id) != s_enchantments.end() ||
         s_enchantmentRefs.find(id) != s_enchantmentRefs.end()) {
@@ -78,7 +78,7 @@ bool EnchantmentRegistry::registerEnchantmentInternal(std::unique_ptr<Enchantmen
     return true;
 }
 
-const Enchantment* EnchantmentRegistry::get(const String& id) {
+const Enchantment* EnchantmentRegistry::get(const std::string& id) {
     std::lock_guard<std::recursive_mutex> lock(s_mutex);
 
     auto it = s_enchantments.find(id);
@@ -93,13 +93,13 @@ const Enchantment* EnchantmentRegistry::get(const String& id) {
     return nullptr;
 }
 
-bool EnchantmentRegistry::has(const String& id) {
+bool EnchantmentRegistry::has(const std::string& id) {
     std::lock_guard<std::recursive_mutex> lock(s_mutex);
     return s_enchantments.find(id) != s_enchantments.end() ||
            s_enchantmentRefs.find(id) != s_enchantmentRefs.end();
 }
 
-const std::unordered_map<String, std::unique_ptr<Enchantment>>& EnchantmentRegistry::all() {
+const std::unordered_map<std::string, std::unique_ptr<Enchantment>>& EnchantmentRegistry::all() {
     return s_enchantments;
 }
 

@@ -32,13 +32,13 @@ Chat 模块负责管理客户端的聊天消息历史和输入历史，为聊天
 
 ```cpp
 struct ChatMessage {
-    String text;                              ///< 消息文本
+    std::string text;                              ///< 消息文本
     u32 color = 0xFFFFFFFF;                   ///< ARGB颜色
     std::chrono::steady_clock::time_point timestamp;  ///< 时间戳
     bool permanent = false;                   ///< 是否永久显示
 
     ChatMessage() = default;
-    ChatMessage(const String& t, u32 c = 0xFFFFFFFF, bool perm = false);
+    ChatMessage(const std::string& t, u32 c = 0xFFFFFFFF, bool perm = false);
 };
 ```
 
@@ -59,16 +59,16 @@ public:
     static constexpr float MESSAGE_FADE_TIME = 5.0f; ///< 消息淡出时间（秒）
 
     // 消息管理接口
-    void addMessage(const String& message, u32 color = 0xFFFFFFFF, bool permanent = false);
-    void addSystemMessage(const String& message);
+    void addMessage(const std::string& message, u32 color = 0xFFFFFFFF, bool permanent = false);
+    void addSystemMessage(const std::string& message);
     void clear();
     std::vector<ChatMessage> getVisibleMessages(bool includeFading = true) const;
     const std::deque<ChatMessage>& allMessages() const;
 
     // 输入历史接口
-    void addToInputHistory(const String& input);
-    String getPreviousInput();
-    String getNextInput();
+    void addToInputHistory(const std::string& input);
+    std::string getPreviousInput();
+    std::string getNextInput();
     void resetInputNavigation();
     void clearInputHistory();
 };
@@ -94,7 +94,7 @@ public:
 #### 消息添加与限制
 
 ```cpp
-void ChatHistory::addMessage(const String& message, u32 color, bool permanent) {
+void ChatHistory::addMessage(const std::string& message, u32 color, bool permanent) {
     m_messages.emplace_front(message, color, permanent);
 
     // 限制消息数量
@@ -142,7 +142,7 @@ std::vector<ChatMessage> ChatHistory::getVisibleMessages(bool includeFading) con
 #### 输入历史导航
 
 ```cpp
-String ChatHistory::getPreviousInput() {
+std::string ChatHistory::getPreviousInput() {
     if (m_inputHistory.empty()) return "";
 
     if (m_historyIndex == m_inputHistory.size()) {
@@ -157,7 +157,7 @@ String ChatHistory::getPreviousInput() {
     return m_inputHistory[0];
 }
 
-String ChatHistory::getNextInput() {
+std::string ChatHistory::getNextInput() {
     if (m_inputHistory.empty()) return "";
 
     if (m_historyIndex < m_inputHistory.size() - 1) {
@@ -215,17 +215,17 @@ graph TB
 
 | 输入项 | 类型 | 来源 | 说明 |
 |--------|------|------|------|
-| 聊天消息 | `String` | 网络/本地 | 其他玩家发送或系统生成的消息 |
+| 聊天消息 | `std::string` | 网络/本地 | 其他玩家发送或系统生成的消息 |
 | 消息颜色 | `u32` (ARGB) | 消息类型 | 不同类型消息有不同颜色 |
 | 永久标记 | `bool` | 系统设置 | 系统公告等不淡出的消息 |
-| 用户输入 | `String` | UI 输入框 | 用户输入的聊天内容或命令 |
+| 用户输入 | `std::string` | UI 输入框 | 用户输入的聊天内容或命令 |
 
 ### 输出
 
 | 输出项 | 类型 | 目标 | 说明 |
 |--------|------|------|------|
 | 可见消息列表 | `std::vector<ChatMessage>` | ChatWidget | 用于渲染聊天框的消息 |
-| 历史输入 | `String` | ChatWidget | 用户浏览历史命令时获取 |
+| 历史输入 | `std::string` | ChatWidget | 用户浏览历史命令时获取 |
 
 ---
 
@@ -234,7 +234,7 @@ graph TB
 ### 外部依赖
 
 ```cpp
-#include "common/core/Types.hpp"    // String, u32 等基础类型
+#include "common/core/Types.hpp"    // std::string, u32 等基础类型
 #include <string>                   // std::string
 #include <vector>                   // std::vector
 #include <deque>                    // std::deque
@@ -286,9 +286,9 @@ history.addToInputHistory("/gamemode survival");
 history.addToInputHistory("/time set day");
 
 // 浏览历史
-String prev = history.getPreviousInput();  // "/time set day"
-String prev2 = history.getPreviousInput(); // "/gamemode survival"
-String next = history.getNextInput();       // "/time set day"
+std::string prev = history.getPreviousInput();  // "/time set day"
+std::string prev2 = history.getPreviousInput(); // "/gamemode survival"
+std::string next = history.getNextInput();       // "/time set day"
 
 // 重置导航状态
 history.resetInputNavigation();
@@ -300,7 +300,7 @@ history.resetInputNavigation();
 // ChatWidget 内部使用示例
 class ChatWidget : public ContainerWidget {
 public:
-    void addMessage(const String& message, u32 color = 0xFFFFFFFF) {
+    void addMessage(const std::string& message, u32 color = 0xFFFFFFFF) {
         m_history.addMessage(message, color);
     }
 

@@ -46,7 +46,7 @@ public:
     void drawImageRect(const paint::IImage&, const Rect&, const Rect&) override {}
     void drawImageNine(const paint::IImage&, const Rect&, const Rect&, const paint::IPaint*) override {}
 
-    void drawText(const String& text, f32 x, f32 y, const paint::IPaint& paint) override {
+    void drawText(const std::string& text, f32 x, f32 y, const paint::IPaint& paint) override {
         textCalled = true;
         lastText = text;
         lastTextX = x;
@@ -74,14 +74,14 @@ public:
     i32 saveLayerAlpha(const Rect*, u8) override { return 0; }
     [[nodiscard]] i32 width() const override { return 0; }
     [[nodiscard]] i32 height() const override { return 0; }
-    [[nodiscard]] f32 getTextWidth(const String& text) const override { return static_cast<f32>(text.size()) * 6.0f; }
+    [[nodiscard]] f32 getTextWidth(const std::string& text) const override { return static_cast<f32>(text.size()) * 6.0f; }
     [[nodiscard]] u32 getFontHeight() const override { return 12; }
 
     bool filledRectCalled = false;
     bool textCalled = false;
     Rect lastFilledRect{};
     u32 lastFilledColor = 0;
-    String lastText;
+    std::string lastText;
     f32 lastTextX = 0.0f;
     f32 lastTextY = 0.0f;
     u32 lastTextColor = 0;

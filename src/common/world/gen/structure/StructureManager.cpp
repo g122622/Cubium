@@ -19,8 +19,8 @@ namespace mc::world::gen::structure {
 // StructureRegistry 实现
 bool StructureRegistry::s_initialized = false;
 
-std::unordered_map<String, std::unique_ptr<Structure>>& StructureRegistry::getStructures() {
-    static std::unordered_map<String, std::unique_ptr<Structure>> structures;
+std::unordered_map<std::string, std::unique_ptr<Structure>>& StructureRegistry::getStructures() {
+    static std::unordered_map<std::string, std::unique_ptr<Structure>> structures;
     return structures;
 }
 
@@ -366,7 +366,7 @@ void StructureRegistry::registerFortressPatterns(mc::world::gen::jigsaw::JigsawP
 void StructureRegistry::registerStructure(std::unique_ptr<Structure> structure) {
     if (!structure) return;
 
-    const String name = structure->name();
+    const std::string name = structure->name();
     auto& structures = getStructures();
     auto& list = getStructureList();
 
@@ -376,7 +376,7 @@ void StructureRegistry::registerStructure(std::unique_ptr<Structure> structure) 
     }
 }
 
-const Structure* StructureRegistry::get(const String& name) {
+const Structure* StructureRegistry::get(const std::string& name) {
     auto& structures = getStructures();
     auto it = structures.find(name);
     return it != structures.end() ? it->second.get() : nullptr;

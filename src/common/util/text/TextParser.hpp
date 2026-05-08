@@ -29,7 +29,7 @@ namespace mc::text {
  * //        + StringTextComponent("World!", 红色+粗体)
  *
  * // 转换回 § 格式
- * String legacy = TextParser::toLegacyFormat(*text);
+ * std::string legacy = TextParser::toLegacyFormat(*text);
  * // 结果: "§cHello §lWorld!"
  * ```
  */
@@ -43,7 +43,7 @@ public:
      * @param text 带格式的文本
      * @return 文本组件的所有权
      */
-    [[nodiscard]] static std::unique_ptr<ITextComponent> parse(StringView text);
+    [[nodiscard]] static std::unique_ptr<ITextComponent> parse(std::string_view text);
 
     /**
      * @brief 将 ITextComponent 转换为 § 代码格式
@@ -53,7 +53,7 @@ public:
      * @param component 文本组件
      * @return 带 § 代码的文本
      */
-    [[nodiscard]] static String toLegacyFormat(const ITextComponent& component);
+    [[nodiscard]] static std::string toLegacyFormat(const ITextComponent& component);
 
 private:
     /**
@@ -61,7 +61,7 @@ private:
      */
     struct ParseState {
         Style currentStyle;                // 当前样式
-        String currentText;                 // 当前累积文本
+        std::string currentText;                 // 当前累积文本
         std::unique_ptr<StringTextComponent> root;  // 根组件
         StringTextComponent* currentComponent;       // 当前组件（非拥有指针）
 

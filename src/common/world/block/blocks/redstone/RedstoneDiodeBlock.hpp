@@ -31,7 +31,7 @@ class RedstoneDiodeBlock : public Block {
 public:
     // ========== 构造函数 ==========
 
-    RedstoneDiodeBlock(const String& id, const BlockProperties& behaviour);
+    RedstoneDiodeBlock(const std::string& id, const BlockProperties& behaviour);
 
     // ========== Block 接口实现 ==========
 
@@ -223,7 +223,7 @@ protected:
     [[nodiscard]] bool isDiode(const BlockState& state) const;
 
     /// 方块ID（用于日志和调试）
-    String m_id;
+    std::string m_id;
 };
 
 } // namespace blocks

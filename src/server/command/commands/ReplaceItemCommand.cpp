@@ -33,10 +33,10 @@ void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets",
         EntityArgumentType::entities());
-    auto slotArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto slotArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "slot",
         StringArgumentType::string());
-    auto itemArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto itemArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "item",
         StringArgumentType::string());
     auto countArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
@@ -59,10 +59,10 @@ void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>(
         "pos",
         Vec3ArgumentType::vec3());
-    auto blockSlotArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto blockSlotArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "slot",
         StringArgumentType::string());
-    auto blockItemArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto blockItemArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "item",
         StringArgumentType::string());
     auto blockCountArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
@@ -87,8 +87,8 @@ i32 ReplaceItemCommand::replaceEntityItem(CommandContext<ServerCommandSource>& c
 {
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
-    const String slot = context.getArgument<String>("slot");
-    const String item = context.getArgument<String>("item");
+    const std::string slot = context.getArgument<std::string>("slot");
+    const std::string item = context.getArgument<std::string>("item");
 
     i32 count = 1;
     if (context.hasArgument("count")) {
@@ -121,8 +121,8 @@ i32 ReplaceItemCommand::replaceBlockItem(CommandContext<ServerCommandSource>& co
 {
     auto& source = context.getSource();
     const Vector3d& pos = context.getArgument<Vector3d>("pos");
-    const String slot = context.getArgument<String>("slot");
-    const String item = context.getArgument<String>("item");
+    const std::string slot = context.getArgument<std::string>("slot");
+    const std::string item = context.getArgument<std::string>("item");
 
     i32 count = 1;
     if (context.hasArgument("count")) {

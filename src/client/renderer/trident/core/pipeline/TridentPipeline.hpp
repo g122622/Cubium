@@ -16,7 +16,7 @@ class TridentContext;
 struct TridentShaderModule {
     VkShaderModule module = VK_NULL_HANDLE;
     VkShaderStageFlagBits stage;
-    String entryPoint = "main";
+    std::string entryPoint = "main";
 };
 
 /**
@@ -24,8 +24,8 @@ struct TridentShaderModule {
  */
 struct TridentPipelineConfig {
     // 着色器路径
-    String vertexShaderPath;
-    String fragmentShaderPath;
+    std::string vertexShaderPath;
+    std::string fragmentShaderPath;
 
     // 顶点输入
     std::vector<VkVertexInputBindingDescription> vertexBindings;
@@ -118,7 +118,7 @@ public:
 
     // IPipeline 接口实现
     void destroy() override;
-    [[nodiscard]] const String& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override { return m_name; }
     [[nodiscard]] const api::RenderState& renderState() const override { return m_renderState; }
     [[nodiscard]] bool isValid() const override { return m_pipeline != VK_NULL_HANDLE; }
     void bind(void* commandBuffer) override;
@@ -138,14 +138,14 @@ private:
     TridentContext* m_context = nullptr;
     VkPipeline m_pipeline = VK_NULL_HANDLE;
     VkPipelineLayout m_layout = VK_NULL_HANDLE;
-    String m_name;
+    std::string m_name;
     api::RenderState m_renderState;
     std::vector<TridentShaderModule> m_shaders;
 
     /**
      * @brief 加载着色器模块
      */
-    [[nodiscard]] Result<TridentShaderModule> loadShader(const String& path, api::ShaderStage stage);
+    [[nodiscard]] Result<TridentShaderModule> loadShader(const std::string& path, api::ShaderStage stage);
 };
 
 /**
@@ -172,7 +172,7 @@ public:
      * @param cachePath 缓存文件路径（可选）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> create(TridentContext* context, const String& cachePath = "");
+    [[nodiscard]] Result<void> create(TridentContext* context, const std::string& cachePath = "");
 
     void destroy();
 
@@ -182,7 +182,7 @@ public:
 private:
     TridentContext* m_context = nullptr;
     VkPipelineCache m_cache = VK_NULL_HANDLE;
-    String m_cachePath;
+    std::string m_cachePath;
 };
 
 } // namespace mc::client::renderer::trident

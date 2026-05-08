@@ -28,12 +28,12 @@ class StructureRegistry {
 public:
     static void initialize();
     static void registerStructure(std::unique_ptr<Structure> structure);
-    [[nodiscard]] static const Structure* get(const String& name);
+    [[nodiscard]] static const Structure* get(const std::string& name);
     [[nodiscard]] static const std::vector<const Structure*>& getAll();
     [[nodiscard]] static bool isInitialized() { return s_initialized; }
 
 private:
-    static std::unordered_map<String, std::unique_ptr<Structure>>& getStructures();
+    static std::unordered_map<std::string, std::unique_ptr<Structure>>& getStructures();
     static std::vector<const Structure*>& getStructureList();
     static bool s_initialized;
 

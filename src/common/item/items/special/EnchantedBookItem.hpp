@@ -21,7 +21,7 @@ namespace item::items {
  *
  * NBT结构:
  * - StoredEnchantments: JSON数组 附魔列表
- *   - id: String 附魔ID
+ *   - id: std::string 附魔ID
  *   - lvl: Int 附魔等级
  */
 class EnchantedBookItem : public Item {

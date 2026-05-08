@@ -64,7 +64,7 @@ const paint::ICanvas& PaintContext::canvas() const {
     return m_canvas;
 }
 
-void PaintContext::drawTextCentered(const String& text, const Rect& bounds, u32 color) {
+void PaintContext::drawTextCentered(const std::string& text, const Rect& bounds, u32 color) {
     // 使用缓存的画笔
     m_fillPaint->setColor(paint::Color::fromARGB(color));
     m_canvas.drawText(text, static_cast<f32>(bounds.centerX()), static_cast<f32>(bounds.centerY()), *m_fillPaint);
@@ -86,7 +86,7 @@ void PaintContext::drawNinePatch(const paint::IImage& image, const Rect& center,
     m_canvas.drawImageNine(image, center, dst, m_fillPaint.get());
 }
 
-void PaintContext::drawText(const String& text, i32 x, i32 y, u32 color) {
+void PaintContext::drawText(const std::string& text, i32 x, i32 y, u32 color) {
     m_fillPaint->setColor(paint::Color::fromARGB(color));
     m_canvas.drawText(text, static_cast<f32>(x), static_cast<f32>(y), *m_fillPaint);
 }
@@ -112,7 +112,7 @@ void PaintContext::drawGradientRect(const Rect& bounds, u32 startColor, u32 endC
     m_canvas.drawGradientRect(bounds, startColor, endColor, vertical);
 }
 
-f32 PaintContext::getTextWidth(const String& text) const {
+f32 PaintContext::getTextWidth(const std::string& text) const {
     return m_canvas.getTextWidth(text);
 }
 

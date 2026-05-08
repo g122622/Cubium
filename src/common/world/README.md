@@ -493,7 +493,7 @@ See `storage/README.md` for detailed documentation.
 ## Dependencies
 
 ### Internal Dependencies
-- `common/core/Types.hpp` - Primitive types (i8, i16, i32, String, etc.)
+- `common/core/Types.hpp` - Primitive types (i8, i16, i32, std::string, etc.)
 - `common/core/Result.hpp` - Error handling
 - `common/core/Constants.hpp` - Game constants
 - `common/util/math/` - Math utilities, random, vectors

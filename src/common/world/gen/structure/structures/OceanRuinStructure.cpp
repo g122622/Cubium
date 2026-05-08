@@ -19,7 +19,7 @@ namespace mc::world::gen::structure {
 // 静态模板名称
 // ============================================================================
 
-const std::vector<String> OceanRuinStructure::s_warmTemplates = {
+const std::vector<std::string> OceanRuinStructure::s_warmTemplates = {
     "underwater_ruin/warm_1",
     "underwater_ruin/warm_2",
     "underwater_ruin/warm_3",
@@ -30,14 +30,14 @@ const std::vector<String> OceanRuinStructure::s_warmTemplates = {
     "underwater_ruin/warm_8"
 };
 
-const std::vector<String> OceanRuinStructure::s_warmBigTemplates = {
+const std::vector<std::string> OceanRuinStructure::s_warmBigTemplates = {
     "underwater_ruin/big_warm_4",
     "underwater_ruin/big_warm_5",
     "underwater_ruin/big_warm_6",
     "underwater_ruin/big_warm_7"
 };
 
-const std::vector<String> OceanRuinStructure::s_brickTemplates = {
+const std::vector<std::string> OceanRuinStructure::s_brickTemplates = {
     "underwater_ruin/brick_1",
     "underwater_ruin/brick_2",
     "underwater_ruin/brick_3",
@@ -48,14 +48,14 @@ const std::vector<String> OceanRuinStructure::s_brickTemplates = {
     "underwater_ruin/brick_8"
 };
 
-const std::vector<String> OceanRuinStructure::s_brickBigTemplates = {
+const std::vector<std::string> OceanRuinStructure::s_brickBigTemplates = {
     "underwater_ruin/big_brick_1",
     "underwater_ruin/big_brick_2",
     "underwater_ruin/big_brick_3",
     "underwater_ruin/big_brick_8"
 };
 
-const std::vector<String> OceanRuinStructure::s_crackedTemplates = {
+const std::vector<std::string> OceanRuinStructure::s_crackedTemplates = {
     "underwater_ruin/cracked_1",
     "underwater_ruin/cracked_2",
     "underwater_ruin/cracked_3",
@@ -66,14 +66,14 @@ const std::vector<String> OceanRuinStructure::s_crackedTemplates = {
     "underwater_ruin/cracked_8"
 };
 
-const std::vector<String> OceanRuinStructure::s_crackedBigTemplates = {
+const std::vector<std::string> OceanRuinStructure::s_crackedBigTemplates = {
     "underwater_ruin/big_cracked_1",
     "underwater_ruin/big_cracked_2",
     "underwater_ruin/big_cracked_3",
     "underwater_ruin/big_cracked_8"
 };
 
-const std::vector<String> OceanRuinStructure::s_mossyTemplates = {
+const std::vector<std::string> OceanRuinStructure::s_mossyTemplates = {
     "underwater_ruin/mossy_1",
     "underwater_ruin/mossy_2",
     "underwater_ruin/mossy_3",
@@ -84,7 +84,7 @@ const std::vector<String> OceanRuinStructure::s_mossyTemplates = {
     "underwater_ruin/mossy_8"
 };
 
-const std::vector<String> OceanRuinStructure::s_mossyBigTemplates = {
+const std::vector<std::string> OceanRuinStructure::s_mossyBigTemplates = {
     "underwater_ruin/big_mossy_1",
     "underwater_ruin/big_mossy_2",
     "underwater_ruin/big_mossy_3",
@@ -95,14 +95,14 @@ const std::vector<String> OceanRuinStructure::s_mossyBigTemplates = {
 // 常量
 // ============================================================================
 
-const String OceanRuinStructure::m_name = "ocean_ruin";
+const std::string OceanRuinStructure::m_name = "ocean_ruin";
 
 // ============================================================================
 // OceanRuinPiece
 // ============================================================================
 
 OceanRuinPiece::OceanRuinPiece(
-    const String& templateName,
+    const std::string& templateName,
     const BlockPos& position,
     Rotation rotation,
     f32 integrity,
@@ -294,7 +294,7 @@ void OceanRuinStructure::generatePiece(
     f32 integrity) const
 {
     // 根据类型选择模板
-    String templateName;
+    std::string templateName;
 
     if (config.biomeType == OceanRuinType::Warm) {
         // 暖海废墟
@@ -314,7 +314,7 @@ void OceanRuinStructure::generatePiece(
         // 冷海废墟 - 生成三层叠加（砖、裂纹、苔藓）
         const i32 index = rng.nextInt(static_cast<i32>(s_brickTemplates.size()));
 
-        String brickTemplate, crackedTemplate, mossyTemplate;
+        std::string brickTemplate, crackedTemplate, mossyTemplate;
         if (isLarge) {
             brickTemplate = s_brickBigTemplates[static_cast<size_t>(index) % s_brickBigTemplates.size()];
             crackedTemplate = s_crackedBigTemplates[static_cast<size_t>(index) % s_crackedBigTemplates.size()];

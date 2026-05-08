@@ -755,7 +755,7 @@ TEST_F(LootSerializersTest, ParseLootTable_ComplexExample) {
 }
 
 TEST_F(LootSerializersTest, ParseLootTable_FromString) {
-    String jsonStr = R"({
+    std::string jsonStr = R"({
         "pools": [
             {
                 "rolls": 1,
@@ -774,7 +774,7 @@ TEST_F(LootSerializersTest, ParseLootTable_FromString) {
 }
 
 TEST_F(LootSerializersTest, ParseLootTable_InvalidJson) {
-    String jsonStr = "{ invalid json }";
+    std::string jsonStr = "{ invalid json }";
 
     auto result = LootSerializers::parseLootTable(jsonStr);
     EXPECT_FALSE(result.success());
@@ -813,7 +813,7 @@ TEST_F(LootSerializersTest, ToJson_BinomialRange) {
     nlohmann::json json = LootSerializers::toJson(range);
 
     EXPECT_TRUE(json.is_object());
-    EXPECT_EQ("minecraft:binomial", json["type"].get<String>());
+    EXPECT_EQ("minecraft:binomial", json["type"].get<std::string>());
     EXPECT_EQ(10, json["n"].get<i32>());
     EXPECT_FLOAT_EQ(0.5f, json["p"].get<f32>());
 }
@@ -846,11 +846,11 @@ TEST_F(LootSerializersTest, ToJsonString_Pretty) {
     pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0));
     table->addPool(std::move(pool));
 
-    String jsonStr = LootSerializers::toJsonString(*table, 2);
+    std::string jsonStr = LootSerializers::toJsonString(*table, 2);
 
-    EXPECT_TRUE(jsonStr.find("\"pools\"") != String::npos);
-    EXPECT_TRUE(jsonStr.find("\"entries\"") != String::npos);
-    EXPECT_TRUE(jsonStr.find("\"minecraft:diamond\"") != String::npos);
+    EXPECT_TRUE(jsonStr.find("\"pools\"") != std::string::npos);
+    EXPECT_TRUE(jsonStr.find("\"entries\"") != std::string::npos);
+    EXPECT_TRUE(jsonStr.find("\"minecraft:diamond\"") != std::string::npos);
 }
 
 TEST_F(LootSerializersTest, ToJsonString_Compact) {
@@ -859,11 +859,11 @@ TEST_F(LootSerializersTest, ToJsonString_Compact) {
     pool->addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0));
     table->addPool(std::move(pool));
 
-    String jsonStr = LootSerializers::toJsonString(*table);  // 默认紧凑格式
+    std::string jsonStr = LootSerializers::toJsonString(*table);  // 默认紧凑格式
 
-    EXPECT_TRUE(jsonStr.find("\"pools\"") != String::npos);
+    EXPECT_TRUE(jsonStr.find("\"pools\"") != std::string::npos);
     // 紧凑格式不应该有缩进
-    EXPECT_TRUE(jsonStr.find("\n  ") == String::npos);
+    EXPECT_TRUE(jsonStr.find("\n  ") == std::string::npos);
 }
 
 // ============================================================================
@@ -879,7 +879,7 @@ TEST_F(LootSerializersTest, RoundTrip_SimpleTable) {
     originalTable->addPool(std::move(pool));
 
     // 序列化
-    String jsonStr = LootSerializers::toJsonString(*originalTable, 2);
+    std::string jsonStr = LootSerializers::toJsonString(*originalTable, 2);
 
     // 反序列化
     auto parseResult = LootSerializers::parseLootTable(jsonStr);
@@ -906,7 +906,7 @@ TEST_F(LootSerializersTest, RoundTrip_TableWithConditions) {
     originalTable->addPool(std::move(pool));
 
     // 序列化
-    String jsonStr = LootSerializers::toJsonString(*originalTable, 2);
+    std::string jsonStr = LootSerializers::toJsonString(*originalTable, 2);
 
     // 反序列化
     auto parseResult = LootSerializers::parseLootTable(jsonStr);

@@ -147,11 +147,11 @@ StateStore& store = StateStore::instance();
 
 // 设置状态
 store.set<i32>("player.health", 100);
-store.set<String>("player.name", "Steve");
+store.set<std::string>("player.name", "Steve");
 
 // 获取状态
 i32 health = store.get<i32>("player.health", 0);
-String name = store.get<String>("player.name", "Unknown");
+std::string name = store.get<std::string>("player.name", "Unknown");
 
 // 订阅状态变化
 u64 subId = store.subscribe("player.health", []() {
@@ -172,7 +172,7 @@ using namespace mc::client::ui::kagero::state;
 
 // 创建响应式状态
 Reactive<i32> health(100);
-Reactive<String> name("Steve");
+Reactive<std::string> name("Steve");
 
 // 观察变化
 health.observe([](i32 oldValue, i32 newValue) {

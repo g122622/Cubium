@@ -57,7 +57,7 @@ classDiagram
     class Structure {
         <<abstract>>
         -StructureType m_type
-        +name() const String&
+        +name() const std::string&
         +separationSettings() const StructureSeparationSettings
         +validBiomes() const vector~BiomeId~&
         +canGenerate(world, generator, rng, chunkX, chunkZ) bool
@@ -175,7 +175,7 @@ struct JigsawConfig {
 ```mermaid
 classDiagram
     class StructureRegistry {
-        -static unordered_map~String,unique_ptr~Structure~~ s_structures
+        -static unordered_map~std::string,unique_ptr~Structure~~ s_structures
         -static vector~const Structure*~ s_structureList
         -static bool s_initialized
         +static initialize() void
@@ -706,7 +706,7 @@ class MyStructure : public mc::world::gen::structure::Structure {
 public:
     MyStructure() : Structure(StructureType::Temple) {}
     
-    const String& name() const override { return m_name; }
+    const std::string& name() const override { return m_name; }
     StructureSeparationSettings separationSettings() const override { return m_settings; }
     const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
     
@@ -725,7 +725,7 @@ public:
     }
 
 private:
-    static const String m_name;
+    static const std::string m_name;
     static constexpr StructureSeparationSettings m_settings{50, 10, 12345678};
     static const std::vector<BiomeId> m_validBiomes;
 };

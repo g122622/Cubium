@@ -155,7 +155,7 @@ public:
                                     const Fluid& fluid, Direction dir) const;
 
 protected:
-    [[nodiscard]] String ownerName() const override;
+    [[nodiscard]] std::string ownerName() const override;
 
 private:
     friend class Fluid;
@@ -378,7 +378,7 @@ public:
     /**
      * @brief 转换为字符串
      */
-    [[nodiscard]] virtual String toString() const {
+    [[nodiscard]] virtual std::string toString() const {
         return m_fluidLocation.toString();
     }
 

@@ -32,14 +32,14 @@ namespace loot {
 template<typename T>
 class LootParameter {
 public:
-    explicit LootParameter(const String& id) : m_id(id) {}
+    explicit LootParameter(const std::string& id) : m_id(id) {}
 
-    [[nodiscard]] const String& getId() const { return m_id; }
+    [[nodiscard]] const std::string& getId() const { return m_id; }
 
     bool operator==(const LootParameter& other) const { return m_id == other.m_id; }
 
 private:
-    String m_id;
+    std::string m_id;
 };
 
 /**
@@ -73,7 +73,7 @@ public:
     /**
      * @brief 获取参数集合名称
      */
-    [[nodiscard]] String getName() const {
+    [[nodiscard]] std::string getName() const {
         switch (m_type) {
             case Type::Empty:   return "minecraft:empty";
             case Type::Generic: return "minecraft:generic";
@@ -104,17 +104,17 @@ public:
     /**
      * @brief 检查参数是否在集合中
      */
-    [[nodiscard]] bool contains(const String& paramId) const;
+    [[nodiscard]] bool contains(const std::string& paramId) const;
 
     /**
      * @brief 验证上下文是否包含所有必需参数
      */
-    [[nodiscard]] bool validate(const std::vector<String>& providedParams) const;
+    [[nodiscard]] bool validate(const std::vector<std::string>& providedParams) const;
 
 private:
     Type m_type = Type::Generic;
-    std::vector<String> m_requiredParams;
-    std::vector<String> m_optionalParams;
+    std::vector<std::string> m_requiredParams;
+    std::vector<std::string> m_optionalParams;
 };
 
 // 预定义掉落参数
@@ -148,7 +148,7 @@ namespace LootParams {
  */
 class LootContext {
 public:
-    using LootTableResolver = std::function<const class LootTable*(const String&)>;
+    using LootTableResolver = std::function<const class LootTable*(const std::string&)>;
 
     LootContext(IWorld& world, math::Random& random);
     ~LootContext() = default;
@@ -262,7 +262,7 @@ public:
     /**
      * @brief 获取掉落表
      */
-    [[nodiscard]] const LootTable* getLootTable(const String& id) const;
+    [[nodiscard]] const LootTable* getLootTable(const std::string& id) const;
 
     // ========== 循环检测 ==========
 
@@ -284,7 +284,7 @@ private:
     math::Random& m_random;
     f32 m_luck = 0.0f;
     i32 m_lootingModifier = 0;
-    std::unordered_map<String, void*> m_params;
+    std::unordered_map<std::string, void*> m_params;
     std::vector<std::shared_ptr<void>> m_ownedValues;  // 拥有所有权的值存储
     LootTableResolver m_lootTableResolver;
     std::vector<const LootTable*> m_visitedTables;  // 用于检测循环引用
@@ -379,7 +379,7 @@ private:
     bool m_hasSeed = false;
     f32 m_luck = 0.0f;
     i32 m_lootingModifier = 0;
-    std::unordered_map<String, void*> m_params;
+    std::unordered_map<std::string, void*> m_params;
     std::vector<std::shared_ptr<void>> m_ownedValues;  // 拥有所有权的值存储
     LootContext::LootTableResolver m_lootTableResolver;
 };

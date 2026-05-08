@@ -6,7 +6,7 @@
 
 namespace mc::client {
 
-ClientEntity::ClientEntity(EntityId id, const String& typeId)
+ClientEntity::ClientEntity(EntityId id, const std::string& typeId)
     : m_id(id)
     , m_typeId(typeId)
 {

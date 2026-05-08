@@ -154,7 +154,7 @@ PlayerId resolveFirstPlayer(ServerCommandSource& source, const EntitySelector& s
 /**
  * @brief 获取玩家名称用于命令反馈
  */
-String getPlayerName(ServerCommandSource& source, PlayerId playerId, ServerPlayer* player)
+std::string getPlayerName(ServerCommandSource& source, PlayerId playerId, ServerPlayer* player)
 {
     if (source.server() != nullptr) {
         mc::server::core::PlayerManager& pm = source.server()->playerManager();

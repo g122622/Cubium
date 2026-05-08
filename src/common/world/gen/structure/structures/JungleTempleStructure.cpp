@@ -13,7 +13,7 @@ namespace structure {
 
 using namespace mc::Biomes;
 
-const String JungleTempleStructure::m_name = "jungle_temple";
+const std::string JungleTempleStructure::m_name = "jungle_temple";
 
 JungleTempleStructure::JungleTempleStructure()
     : Structure(StructureType::Temple)

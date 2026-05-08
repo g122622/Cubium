@@ -75,7 +75,7 @@ public:
     /**
      * @brief 获取Widget ID
      */
-    [[nodiscard]] const String& id() const;
+    [[nodiscard]] const std::string& id() const;
 
     /**
      * @brief 检查Widget是否有效

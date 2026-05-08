@@ -176,7 +176,7 @@ ModelBox::ModelBox(i32 texOffX, i32 texOffY,
 // ModelRenderer
 // ============================================================================
 
-ModelRenderer::ModelRenderer(const String& name)
+ModelRenderer::ModelRenderer(const std::string& name)
     : m_name(name)
 {
 }
@@ -235,7 +235,7 @@ ModelRenderer& ModelRenderer::addBox(f64 x, f64 y, f64 z,
     return *this;
 }
 
-std::shared_ptr<ModelRenderer> ModelRenderer::createChild(const String& name) {
+std::shared_ptr<ModelRenderer> ModelRenderer::createChild(const std::string& name) {
     auto child = std::make_shared<ModelRenderer>(name);
     child->setTextureSize(static_cast<i32>(m_textureWidth), static_cast<i32>(m_textureHeight));
     addChild(child);

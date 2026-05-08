@@ -10,7 +10,7 @@ namespace mc::client::resource {
 // 辅助函数
 // ============================================================================
 
-ItemDisplayContext parseDisplayContext(StringView str) {
+ItemDisplayContext parseDisplayContext(std::string_view str) {
     if (str == "thirdperson_righthand") return ItemDisplayContext::ThirdPersonRightHand;
     if (str == "thirdperson_lefthand") return ItemDisplayContext::ThirdPersonLeftHand;
     if (str == "firstperson_righthand") return ItemDisplayContext::FirstPersonRightHand;
@@ -22,7 +22,7 @@ ItemDisplayContext parseDisplayContext(StringView str) {
     return ItemDisplayContext::Gui;  // 默认
 }
 
-String displayContextToString(ItemDisplayContext ctx) {
+std::string displayContextToString(ItemDisplayContext ctx) {
     switch (ctx) {
         case ItemDisplayContext::ThirdPersonRightHand: return "thirdperson_righthand";
         case ItemDisplayContext::ThirdPersonLeftHand: return "thirdperson_lefthand";
@@ -107,7 +107,7 @@ ItemModelOverride ItemModelOverride::fromJson(const nlohmann::json& json) {
     }
 
     if (json.contains("model") && json["model"].is_string()) {
-        override.model = ResourceLocation(json["model"].get<String>());
+        override.model = ResourceLocation(json["model"].get<std::string>());
     }
 
     return override;
@@ -127,15 +127,15 @@ const ItemTransform& BakedItemModel::getTransform(ItemDisplayContext ctx) const 
     return identity;
 }
 
-ResourceLocation BakedItemModel::resolveTexture(StringView textureRef) const {
-    String ref(textureRef);
+ResourceLocation BakedItemModel::resolveTexture(std::string_view textureRef) const {
+    std::string ref(textureRef);
     if (ref.empty() || ref[0] != '#') {
         // 直接路径
         return ResourceLocation(ref);
     }
 
     // 去掉 # 前缀
-    String varName = ref.substr(1);
+    std::string varName = ref.substr(1);
 
     // 查找纹理变量
     auto it = textures.find(varName);
@@ -241,7 +241,7 @@ Result<void> ItemModelLoader::loadAllModels() {
     return Result<void>::ok();
 }
 
-Result<String> ItemModelLoader::readModelFromResourcePacks(const String& filePath) {
+Result<std::string> ItemModelLoader::readModelFromResourcePacks(const std::string& filePath) {
     // 按优先级从高到低遍历资源包
     for (auto* pack : m_resourcePacks) {
         if (pack == nullptr) continue;
@@ -264,7 +264,7 @@ Result<UnbakedItemModel> ItemModelLoader::loadModel(const ResourceLocation& loca
     }
 
     // 构建文件路径
-    String filePath = "assets/" + location.namespace_() + "/models/" + location.path() + ".json";
+    std::string filePath = "assets/" + location.namespace_() + "/models/" + location.path() + ".json";
 
     // 从资源包读取
     auto readResult = readModelFromResourcePacks(filePath);
@@ -284,7 +284,7 @@ Result<UnbakedItemModel> ItemModelLoader::loadModel(const ResourceLocation& loca
     return model;
 }
 
-Result<UnbakedItemModel> ItemModelLoader::parseModel(const ResourceLocation& location, StringView jsonContent) {
+Result<UnbakedItemModel> ItemModelLoader::parseModel(const ResourceLocation& location, std::string_view jsonContent) {
     UnbakedItemModel model;
     model.location = location;
     model.name = location.path();
@@ -294,7 +294,7 @@ Result<UnbakedItemModel> ItemModelLoader::parseModel(const ResourceLocation& loc
 
         // 解析父模型
         if (json.contains("parent") && json["parent"].is_string()) {
-            String parent = json["parent"].get<String>();
+            std::string parent = json["parent"].get<std::string>();
             model.parentLocation = ResourceLocation(parent);
         }
 
@@ -340,7 +340,7 @@ Result<UnbakedItemModel> ItemModelLoader::parseModel(const ResourceLocation& loc
 void ItemModelLoader::parseTextures(UnbakedItemModel& model, const nlohmann::json& textures) {
     for (auto& [key, value] : textures.items()) {
         if (value.is_string()) {
-            model.textures[key] = value.get<String>();
+            model.textures[key] = value.get<std::string>();
         }
     }
 }
@@ -406,7 +406,7 @@ Result<void> ItemModelLoader::parseElements(UnbakedItemModel& model, const nlohm
                 );
             }
             if (rotJson.contains("axis") && rotJson["axis"].is_string()) {
-                elem.rotation.axis = rotJson["axis"].get<String>();
+                elem.rotation.axis = rotJson["axis"].get<std::string>();
             }
             if (rotJson.contains("angle") && rotJson["angle"].is_number()) {
                 elem.rotation.angle = rotJson["angle"].get<f32>();
@@ -426,11 +426,11 @@ Result<void> ItemModelLoader::parseElements(UnbakedItemModel& model, const nlohm
                 ModelFace face;
 
                 if (faceJson.contains("texture") && faceJson["texture"].is_string()) {
-                    face.texture = faceJson["texture"].get<String>();
+                    face.texture = faceJson["texture"].get<std::string>();
                 }
 
                 if (faceJson.contains("cullface") && faceJson["cullface"].is_string()) {
-                    face.cullFace = parseDirection(faceJson["cullface"].get<String>());
+                    face.cullFace = parseDirection(faceJson["cullface"].get<std::string>());
                 }
 
                 if (faceJson.contains("tintindex") && faceJson["tintindex"].is_number()) {
@@ -461,20 +461,20 @@ Result<void> ItemModelLoader::parseElements(UnbakedItemModel& model, const nlohm
 }
 
 ItemModelType ItemModelLoader::determineModelType(const ResourceLocation& parent, bool hasElements) const {
-    String parentPath = parent.path();
+    std::string parentPath = parent.path();
 
     // 检查父模型类型
-    if (parentPath == "item/generated" || parentPath.find("generated") != String::npos) {
+    if (parentPath == "item/generated" || parentPath.find("generated") != std::string::npos) {
         return ItemModelType::Generated;
     }
 
     if (parentPath == "item/handheld" || parentPath == "item/handheld_rod" ||
-        parentPath.find("handheld") != String::npos) {
+        parentPath.find("handheld") != std::string::npos) {
         return ItemModelType::Handheld;
     }
 
     // 方块物品
-    if (parentPath.find("block/") == 0 || parentPath.find("block/") != String::npos) {
+    if (parentPath.find("block/") == 0 || parentPath.find("block/") != std::string::npos) {
         return ItemModelType::Block;
     }
 
@@ -557,7 +557,7 @@ Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& locati
     bool hasHandheldParent = false;
     for (auto it = modelChain.rbegin(); it != modelChain.rend(); ++it) {
         auto& model = *it;
-        if (model->parentLocation.path().find("handheld") != String::npos) {
+        if (model->parentLocation.path().find("handheld") != std::string::npos) {
             hasHandheldParent = true;
             break;
         }
@@ -598,7 +598,7 @@ Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& locati
 
     // 提取纹理层（layer0, layer1, ...）
     for (u32 i = 0; ; ++i) {
-        String layerKey = "layer" + std::to_string(i);
+        std::string layerKey = "layer" + std::to_string(i);
         auto texIt = baked.textures.find(layerKey);
         if (texIt != baked.textures.end()) {
             baked.textureLayers.push_back(texIt->second);
@@ -624,9 +624,9 @@ void ItemModelLoader::resolveTextureReferences(BakedItemModel& baked) {
     while (changed && maxIterations-- > 0) {
         changed = false;
         for (auto& [name, texLoc] : baked.textures) {
-            String path = texLoc.path();
+            std::string path = texLoc.path();
             if (!path.empty() && path[0] == '#') {
-                String varName = path.substr(1);
+                std::string varName = path.substr(1);
                 auto varIt = baked.textures.find(varName);
                 if (varIt != baked.textures.end()) {
                     texLoc = varIt->second;

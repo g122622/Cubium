@@ -40,7 +40,7 @@ public:
      * @param eventName 事件名（如 "click", "hover"）
      * @param handler 处理函数
      */
-    void registerHandler(const String& eventName, EventHandler handler);
+    void registerHandler(const std::string& eventName, EventHandler handler);
 
     /**
      * @brief 处理事件
@@ -50,17 +50,17 @@ public:
      * @param event 事件对象
      * @return 是否处理成功
      */
-    bool handle(widget::Widget* widget, const String& eventName, const event::Event& event);
+    bool handle(widget::Widget* widget, const std::string& eventName, const event::Event& event);
 
     /**
      * @brief 检查事件名是否注册
      */
-    [[nodiscard]] bool hasEvent(const String& eventName) const;
+    [[nodiscard]] bool hasEvent(const std::string& eventName) const;
 
     /**
      * @brief 获取所有注册的事件名
      */
-    [[nodiscard]] std::vector<String> registeredEvents() const;
+    [[nodiscard]] std::vector<std::string> registeredEvents() const;
 
     /**
      * @brief 获取事件类型
@@ -68,7 +68,7 @@ public:
      * @param eventName 事件名
      * @return 事件类型，未知事件返回 EventType::Custom
      */
-    [[nodiscard]] event::EventType getEventType(const String& eventName) const;
+    [[nodiscard]] event::EventType getEventType(const std::string& eventName) const;
 
 private:
     BuiltinEvents() = default;
@@ -86,8 +86,8 @@ private:
     void registerDragEvents();
     void registerScrollEvents();
 
-    std::unordered_map<String, EventHandler> m_handlers;
-    std::unordered_map<String, event::EventType> m_eventTypes;
+    std::unordered_map<std::string, EventHandler> m_handlers;
+    std::unordered_map<std::string, event::EventType> m_eventTypes;
     bool m_initialized = false;
 };
 
@@ -143,7 +143,7 @@ namespace event_utils {
 /**
  * @brief 从事件名推断事件类型
  */
-[[nodiscard]] event::EventType inferEventType(const String& eventName);
+[[nodiscard]] event::EventType inferEventType(const std::string& eventName);
 
 /**
  * @brief 创建鼠标点击事件
@@ -184,17 +184,17 @@ template<typename T>
 /**
  * @brief 从字符串解析键码
  */
-[[nodiscard]] i32 parseKeyCode(const String& keyName);
+[[nodiscard]] i32 parseKeyCode(const std::string& keyName);
 
 /**
  * @brief 从字符串解析鼠标按钮
  */
-[[nodiscard]] i32 parseMouseButton(const String& buttonName);
+[[nodiscard]] i32 parseMouseButton(const std::string& buttonName);
 
 /**
  * @brief 从字符串解析修饰键
  */
-[[nodiscard]] i32 parseKeyMods(const String& mods);
+[[nodiscard]] i32 parseKeyMods(const std::string& mods);
 
 } // namespace event_utils
 

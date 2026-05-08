@@ -43,7 +43,7 @@ public:
                  i32 width, i32 height,
                  f32 u0 = 0.0f, f32 v0 = 0.0f, f32 u1 = 1.0f, f32 v1 = 1.0f,
                  u8 atlasSlot = 1,
-                 String debugName = String());
+                 std::string debugName = std::string());
 
     ~TextureImage() override = default;
 
@@ -60,7 +60,7 @@ public:
     [[nodiscard]] i32 width() const override { return m_width; }
     [[nodiscard]] i32 height() const override { return m_height; }
     [[nodiscard]] ImageFormat format() const override { return m_format; }
-    [[nodiscard]] const String& debugName() const override { return m_debugName; }
+    [[nodiscard]] const std::string& debugName() const override { return m_debugName; }
 
     // ==================== 纹理访问 ====================
 
@@ -121,7 +121,7 @@ private:
     f32 m_v1 = 1.0f;
     u8 m_atlasSlot = 1;  ///< 默认使用物品图集槽位
     ImageFormat m_format = ImageFormat::RGBA8;
-    String m_debugName;
+    std::string m_debugName;
 };
 
 } // namespace mc::client::ui::kagero::paint

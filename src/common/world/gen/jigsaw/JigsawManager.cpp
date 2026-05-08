@@ -139,7 +139,7 @@ void JigsawManager::placePieceRecursive(
     // 尝试加载模板（如果是 SingleJigsawPiece）
     const SingleJigsawPiece* singlePiece = dynamic_cast<const SingleJigsawPiece*>(placed.piece.get());
     if (singlePiece) {
-        const String& templateName = singlePiece->getTemplateName();
+        const std::string& templateName = singlePiece->getTemplateName();
         if (!templateName.empty()) {
             ResourceLocation templateLoc(templateName);
             const Template* templ = s_templateManager.getTemplate(templateLoc);

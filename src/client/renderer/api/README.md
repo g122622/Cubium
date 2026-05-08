@@ -526,7 +526,7 @@ graph TB
 | 依赖 | 用途 |
 |------|------|
 | `glm` | 数学库（vec3, mat4, quaternion） |
-| `common/core/Types.hpp` | 基础类型定义（u8, u32, f64, String 等） |
+| `common/core/Types.hpp` | 基础类型定义（u8, u32, f64, std::string 等） |
 | `common/core/Result.hpp` | 错误处理 |
 | `common/resource/ResourceLocation.hpp` | 资源定位符 |
 | `common/util/math/MathUtils.hpp` | 数学工具 |

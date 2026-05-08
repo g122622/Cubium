@@ -146,16 +146,16 @@ TEST_F(ShipwreckStructureTest, Structure_BeachedTemplateList) {
     bool hasDegraded = false;
 
     for (const auto& name : templates) {
-        if (name.find("with_mast") != String::npos && name.find("degraded") == String::npos) {
+        if (name.find("with_mast") != std::string::npos && name.find("degraded") == std::string::npos) {
             hasWithMast = true;
         }
-        if (name.find("sideways_full") != String::npos) {
+        if (name.find("sideways_full") != std::string::npos) {
             hasSidewaysFull = true;
         }
-        if (name.find("rightsideup_full") != String::npos && name.find("degraded") == String::npos) {
+        if (name.find("rightsideup_full") != std::string::npos && name.find("degraded") == std::string::npos) {
             hasRightsideupFull = true;
         }
-        if (name.find("degraded") != String::npos) {
+        if (name.find("degraded") != std::string::npos) {
             hasDegraded = true;
         }
     }
@@ -177,10 +177,10 @@ TEST_F(ShipwreckStructureTest, Structure_AllTemplateList) {
     bool hasWithMast = false;
 
     for (const auto& name : templates) {
-        if (name.find("upsidedown") != String::npos) hasUpsidedown = true;
-        if (name.find("sideways") != String::npos) hasSideways = true;
-        if (name.find("rightsideup") != String::npos) hasRightsideup = true;
-        if (name.find("with_mast") != String::npos) hasWithMast = true;
+        if (name.find("upsidedown") != std::string::npos) hasUpsidedown = true;
+        if (name.find("sideways") != std::string::npos) hasSideways = true;
+        if (name.find("rightsideup") != std::string::npos) hasRightsideup = true;
+        if (name.find("with_mast") != std::string::npos) hasWithMast = true;
     }
 
     EXPECT_TRUE(hasUpsidedown) << "Missing upsidedown template";
@@ -192,12 +192,12 @@ TEST_F(ShipwreckStructureTest, Structure_AllTemplateList) {
 TEST_F(ShipwreckStructureTest, Structure_TemplateNameFormats) {
     // 验证模板名称格式符合 MC 1.16.5
     for (const auto& name : ShipwreckStructure::s_beachedTemplates) {
-        EXPECT_TRUE(name.find("shipwreck/") != String::npos)
+        EXPECT_TRUE(name.find("shipwreck/") != std::string::npos)
             << "Invalid beached template name: " << name;
     }
 
     for (const auto& name : ShipwreckStructure::s_allTemplates) {
-        EXPECT_TRUE(name.find("shipwreck/") != String::npos)
+        EXPECT_TRUE(name.find("shipwreck/") != std::string::npos)
             << "Invalid template name: " << name;
     }
 }
@@ -266,7 +266,7 @@ TEST_F(ShipwreckStructureTest, TemplateVariants_Full) {
     // 验证完整变体
     bool hasFull = false;
     for (const auto& name : all) {
-        if (name.find("_full") != String::npos && name.find("fronthalf") == String::npos && name.find("backhalf") == String::npos) {
+        if (name.find("_full") != std::string::npos && name.find("fronthalf") == std::string::npos && name.find("backhalf") == std::string::npos) {
             hasFull = true;
             break;
         }
@@ -282,8 +282,8 @@ TEST_F(ShipwreckStructureTest, TemplateVariants_Half) {
     bool hasBackHalf = false;
 
     for (const auto& name : all) {
-        if (name.find("fronthalf") != String::npos) hasFrontHalf = true;
-        if (name.find("backhalf") != String::npos) hasBackHalf = true;
+        if (name.find("fronthalf") != std::string::npos) hasFrontHalf = true;
+        if (name.find("backhalf") != std::string::npos) hasBackHalf = true;
     }
 
     EXPECT_TRUE(hasFrontHalf) << "Missing fronthalf template variant";
@@ -296,7 +296,7 @@ TEST_F(ShipwreckStructureTest, TemplateVariants_Degraded) {
     // 验证破损变体
     int degradedCount = 0;
     for (const auto& name : all) {
-        if (name.find("degraded") != String::npos) {
+        if (name.find("degraded") != std::string::npos) {
             ++degradedCount;
         }
     }

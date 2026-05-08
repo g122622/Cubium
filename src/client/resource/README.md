@@ -30,7 +30,7 @@ src/client/resource/
 // 方块外观信息（渲染所需的所有数据）
 struct BlockAppearance {
     std::vector<ModelElement> elements;           // 模型元素列表
-    std::map<String, TextureRegion> faceTextures; // 方向 -> 纹理区域映射
+    std::map<std::string, TextureRegion> faceTextures; // 方向 -> 纹理区域映射
     i32 xRotation = 0;                            // X轴旋转角度
     i32 yRotation = 0;                            // Y轴旋转角度
     bool uvLock = false;                          // UV锁定
@@ -77,7 +77,7 @@ struct ModelFaceUV {
 
 // 模型面数据
 struct ModelFace {
-    String texture;                     // "#all" 或纹理路径
+    std::string texture;                     // "#all" 或纹理路径
     Direction cullFace = Direction::None;
     i32 tintIndex = -1;
     ModelFaceUV uv;
@@ -96,17 +96,17 @@ struct ModelElement {
 struct UnbakedBlockModel {
     ResourceLocation parentLocation;    // 父模型
     std::vector<ModelElement> elements;
-    std::map<String, String> textures;  // 纹理变量 -> 路径
+    std::map<std::string, std::string> textures;  // 纹理变量 -> 路径
     bool ambientOcclusion = true;
 };
 
 // 已烘焙的方块模型（所有纹理路径已解析）
 struct BakedBlockModel {
     std::vector<ModelElement> elements;
-    std::map<String, ResourceLocation> textures;
+    std::map<std::string, ResourceLocation> textures;
     bool ambientOcclusion = true;
 
-    ResourceLocation resolveTexture(StringView textureRef) const;
+    ResourceLocation resolveTexture(std::string_view textureRef) const;
 };
 ```
 
@@ -157,10 +157,10 @@ struct VariantList {
 // 方块状态定义
 class BlockStateDefinition {
     // 从JSON解析
-    static Result<BlockStateDefinition> parse(StringView jsonContent);
+    static Result<BlockStateDefinition> parse(std::string_view jsonContent);
 
     // 获取变体：stateStr格式为 "axis=y,facing=north" 或 "normal"
-    const VariantList* getVariants(StringView stateStr) const;
+    const VariantList* getVariants(std::string_view stateStr) const;
 };
 ```
 

@@ -27,7 +27,7 @@ public:
      * @param id 实体ID。
      * @param name 玩家名称。
      */
-    ServerPlayer(EntityId id, const String& name);
+    ServerPlayer(EntityId id, const std::string& name);
     ~ServerPlayer() override = default;
 
     // ========== 网络相关 ==========
@@ -36,13 +36,13 @@ public:
      * @brief 发送聊天消息给玩家。
      * @param message 聊天内容。
      */
-    void sendChatMessage(const String& message);
+    void sendChatMessage(const std::string& message);
 
     /**
      * @brief 发送系统消息给玩家。
      * @param message 系统消息内容。
      */
-    void sendSystemMessage(const String& message);
+    void sendSystemMessage(const std::string& message);
 
     /**
      * @brief 同步经验状态到客户端。

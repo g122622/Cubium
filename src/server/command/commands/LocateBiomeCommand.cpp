@@ -25,7 +25,7 @@ void LocateBiomeCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
             {},
             true));
 
-    auto biomeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto biomeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "biome",
         StringArgumentType::string());
     biomeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -45,7 +45,7 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
-    const String biomeName = context.getArgument<String>("biome");
+    const std::string biomeName = context.getArgument<std::string>("biome");
     const Vector3d& playerPos = source.position();
 
     // 解析生物群系
@@ -76,16 +76,16 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
     return 1;
 }
 
-std::optional<BiomeId> LocateBiomeCommand::parseBiomeId(const String& name) noexcept
+std::optional<BiomeId> LocateBiomeCommand::parseBiomeId(const std::string& name) noexcept
 {
     // 规范化名称
-    String normalized = name;
+    std::string normalized = name;
     if (normalized.find("minecraft:") == 0) {
         normalized = normalized.substr(10);
     }
 
     // 常见生物群系别名映射
-    static const std::unordered_map<String, BiomeId> biomeAliases = {
+    static const std::unordered_map<std::string, BiomeId> biomeAliases = {
         {"plains", Biomes::Plains},
         {"sunflower_plains", Biomes::SunflowerPlains},
         {"forest", Biomes::Forest},

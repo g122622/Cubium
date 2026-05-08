@@ -23,14 +23,14 @@ namespace {
  * @param input 输入字符串
  * @return 方块指针，失败返回nullptr
  */
-Block* parseBlockId(const String& input) {
+Block* parseBlockId(const std::string& input) {
     auto& registry = BlockRegistry::instance();
 
     // 解析资源位置
-    String namespace_;
-    String path;
+    std::string namespace_;
+    std::string path;
     size_t colonPos = input.find(':');
-    if (colonPos != String::npos) {
+    if (colonPos != std::string::npos) {
         namespace_ = input.substr(0, colonPos);
         path = input.substr(colonPos + 1);
     } else {
@@ -40,7 +40,7 @@ Block* parseBlockId(const String& input) {
 
     // 去除状态属性部分
     size_t bracketPos = path.find('[');
-    if (bracketPos != String::npos) {
+    if (bracketPos != std::string::npos) {
         path = path.substr(0, bracketPos);
     }
 
@@ -54,7 +54,7 @@ Block* parseBlockId(const String& input) {
  * @param blockId 方块ID字符串
  * @return 方块状态指针，失败返回nullptr
  */
-const BlockState* resolveBlockState(const String& blockId) {
+const BlockState* resolveBlockState(const std::string& blockId) {
     Block* block = parseBlockId(blockId);
     if (block == nullptr) {
         return nullptr;
@@ -68,7 +68,7 @@ const BlockState* resolveBlockState(const String& blockId) {
 i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir, bool doDrop) {
     auto& source = context.getSource();
     Vector3i position = context.getArgument<Vector3i>("pos");
-    String blockInput = context.getArgument<String>("block");
+    std::string blockInput = context.getArgument<std::string>("block");
 
     // 获取世界
     server::ServerWorld* world = source.world();
@@ -134,7 +134,7 @@ void SetBlockCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
         BlockPosArgumentType::blockPos()
     );
 
-    auto blockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto blockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "block",
         StringArgumentType::string()
     );

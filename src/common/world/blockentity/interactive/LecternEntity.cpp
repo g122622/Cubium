@@ -21,7 +21,7 @@ namespace {
         return false;
     }
 
-    const String& path = item->itemLocation().path();
+    const std::string& path = item->itemLocation().path();
     return path == "book" ||
            path == "written_book" ||
            path == "writable_book" ||
@@ -74,7 +74,7 @@ i32 LecternEntity::getTotalPages() const {
         return 0;
     }
 
-    const String& path = item->itemLocation().path();
+    const std::string& path = item->itemLocation().path();
     if (path == "writable_book") {
         return 100;
     }

@@ -86,7 +86,7 @@ public:
      * @param entityId 实体ID
      * @param typeId 实体类型ID
      */
-    void onEntitySpawn(SoundEngine& engine, EntityId entityId, const String& typeId);
+    void onEntitySpawn(SoundEngine& engine, EntityId entityId, const std::string& typeId);
 
     /**
      * @brief 处理实体移除事件
@@ -184,7 +184,7 @@ private:
     /**
      * @brief 检查并创建声音
      */
-    void checkAndCreateSound(SoundEngine& engine, EntityId entityId, const String& typeId);
+    void checkAndCreateSound(SoundEngine& engine, EntityId entityId, const std::string& typeId);
 
     // 实体状态快照（从主线程更新，在音频线程读取）
     // 使用读写锁保护跨线程访问
@@ -195,7 +195,7 @@ private:
     std::unordered_map<EntityId, SoundInstanceId> m_activeSounds;
 
     // 已生成的实体类型（用于跟踪哪些实体需要声音）- 仅在音频线程访问
-    std::unordered_map<EntityId, String> m_entityTypes;
+    std::unordered_map<EntityId, std::string> m_entityTypes;
 };
 
 } // namespace mc::client::sound

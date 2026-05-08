@@ -17,7 +17,7 @@ MinecraftUIContext::MinecraftUIContext(
     setupDefaultResources();
 }
 
-std::unique_ptr<kagero::tpl::runtime::TemplateInstance> MinecraftUIContext::createScreen(const String& templatePath) {
+std::unique_ptr<kagero::tpl::runtime::TemplateInstance> MinecraftUIContext::createScreen(const std::string& templatePath) {
     kagero::tpl::compiler::TemplateCompiler compiler;
     auto compiled = compiler.compileFile(templatePath);
     if (!compiled) {

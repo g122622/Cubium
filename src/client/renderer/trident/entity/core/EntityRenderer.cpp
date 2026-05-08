@@ -22,7 +22,7 @@ void EntityRenderer::renderShadow(Entity& entity, f64 partialTicks) {
 
 void EntityRenderer::renderNameTag(Entity& entity) {
     // 获取实体显示名称
-    const String displayName = entity.customNameText();
+    const std::string displayName = entity.customNameText();
     if (displayName.empty()) {
         return;
     }
@@ -107,9 +107,9 @@ f64 EntityRenderer::getShadowScale(Entity& entity, f64 partialTicks) const {
 }
 
 // EntityRendererFactory 实现
-std::unordered_map<String, EntityRendererFactory::CreatorFunc> EntityRendererFactory::s_creators;
+std::unordered_map<std::string, EntityRendererFactory::CreatorFunc> EntityRendererFactory::s_creators;
 
-std::unique_ptr<EntityRenderer> EntityRendererFactory::createRenderer(const String& typeId) {
+std::unique_ptr<EntityRenderer> EntityRendererFactory::createRenderer(const std::string& typeId) {
     auto it = s_creators.find(typeId);
     if (it != s_creators.end()) {
         return it->second();
@@ -117,7 +117,7 @@ std::unique_ptr<EntityRenderer> EntityRendererFactory::createRenderer(const Stri
     return nullptr;
 }
 
-void EntityRendererFactory::registerRenderer(const String& typeId, CreatorFunc creator) {
+void EntityRendererFactory::registerRenderer(const std::string& typeId, CreatorFunc creator) {
     s_creators[typeId] = creator;
 }
 

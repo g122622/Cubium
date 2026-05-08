@@ -35,7 +35,7 @@ dimension/
 | 属性 | 类型 | 说明 |
 |------|------|------|
 | `m_id` | `DimensionId` | 维度ID |
-| `m_name` | `String` | 维度名称 |
+| `m_name` | `std::string` | 维度名称 |
 | `m_hasCeiling` | `bool` | 是否有天花板（下界） |
 | `m_hasSkyLight` | `bool` | 是否有天空光照 |
 | `m_ultraWarm` | `bool` | 是否超热（水蒸发） |

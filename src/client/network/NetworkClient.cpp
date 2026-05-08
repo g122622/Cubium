@@ -120,7 +120,7 @@ Result<void> NetworkClient::connectLocal(network::LocalEndpoint* endpoint,
     return Result<void>::ok();
 }
 
-void NetworkClient::disconnect(const String& reason) {
+void NetworkClient::disconnect(const std::string& reason) {
     if (m_state == ClientState::Disconnected) {
         return;
     }
@@ -294,7 +294,7 @@ void NetworkClient::sendKeepAlive(u64 id) {
     ).count();
 }
 
-void NetworkClient::sendChatMessage(const String& message) {
+void NetworkClient::sendChatMessage(const std::string& message) {
     network::ChatMessagePacket packet(message, m_playerId);
 
     network::PacketSerializer ser;
@@ -440,7 +440,7 @@ void NetworkClient::receiveLoop() {
         } catch (const asio::system_error& e) {
             if (m_running) {
                 spdlog::error("Receive error: {}", e.what());
-                disconnect("Connection error: " + String(e.what()));
+                disconnect("Connection error: " + std::string(e.what()));
             }
             break;
         }
@@ -1765,7 +1765,7 @@ void NetworkClient::handleDimensionInfo(network::PacketDeserializer& deser) {
 
     if (m_callbacks.onDimensionInfo) {
         // 转换为 tuple 格式
-        std::vector<std::tuple<DimensionId, String, bool, bool, f32>> dimensions;
+        std::vector<std::tuple<DimensionId, std::string, bool, bool, f32>> dimensions;
         dimensions.reserve(packet.dimensions().size());
         for (const auto& dim : packet.dimensions()) {
             dimensions.emplace_back(dim.id, dim.name, dim.hasSkyLight, dim.hasCeiling, dim.ambientLight);

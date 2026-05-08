@@ -107,7 +107,7 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     addValueNode->addChild(addArg);
 
     auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("query");
-    auto queryArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto queryArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "type",
         StringArgumentType::word()
     );
@@ -189,7 +189,7 @@ i32 TimeCommand::queryTime(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    const String type = context.getArgument<String>("type");
+    const std::string type = context.getArgument<std::string>("type");
     const auto& timeManager = server->timeManager();
 
     i32 value = 0;

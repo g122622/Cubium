@@ -20,18 +20,18 @@ class CommandContext;
  */
 class Suggestion {
 public:
-    Suggestion(i32 start, String text)
+    Suggestion(i32 start, std::string text)
         : m_start(start)
         , m_text(std::move(text)) {}
 
-    Suggestion(i32 start, String text, String tooltip)
+    Suggestion(i32 start, std::string text, std::string tooltip)
         : m_start(start)
         , m_text(std::move(text))
         , m_tooltip(std::move(tooltip)) {}
 
     [[nodiscard]] i32 getStart() const noexcept { return m_start; }
-    [[nodiscard]] const String& getText() const noexcept { return m_text; }
-    [[nodiscard]] const String& getTooltip() const noexcept { return m_tooltip; }
+    [[nodiscard]] const std::string& getText() const noexcept { return m_text; }
+    [[nodiscard]] const std::string& getTooltip() const noexcept { return m_tooltip; }
     [[nodiscard]] bool hasTooltip() const noexcept { return !m_tooltip.empty(); }
 
     /**
@@ -39,8 +39,8 @@ public:
      * @param input 原始输入
      * @return 应用建议后的完整字符串
      */
-    [[nodiscard]] String apply(StringView input) const {
-        String result;
+    [[nodiscard]] std::string apply(std::string_view input) const {
+        std::string result;
         if (m_start > 0) {
             result += input.substr(0, static_cast<size_t>(m_start));
         }
@@ -58,8 +58,8 @@ public:
 
 private:
     i32 m_start;
-    String m_text;
-    String m_tooltip;
+    std::string m_text;
+    std::string m_tooltip;
 };
 
 /**
@@ -110,7 +110,7 @@ private:
  */
 class SuggestionsBuilder {
 public:
-    explicit SuggestionsBuilder(StringView input, i32 start = 0)
+    explicit SuggestionsBuilder(std::string_view input, i32 start = 0)
         : SuggestionsBuilder(input, start, static_cast<i32>(input.size())) {}
 
     /**
@@ -119,7 +119,7 @@ public:
      * @param start 建议起始位置
      * @param end 建议结束位置（开区间）
      */
-    SuggestionsBuilder(StringView input, i32 start, i32 end)
+    SuggestionsBuilder(std::string_view input, i32 start, i32 end)
         : m_input(input)
         , m_start(start)
         , m_remaining(input.substr(
@@ -129,7 +129,7 @@ public:
     /**
      * @brief 添加建议
      */
-    SuggestionsBuilder& suggest(const String& text) {
+    SuggestionsBuilder& suggest(const std::string& text) {
         m_suggestions.emplace_back(m_start, text);
         return *this;
     }
@@ -137,7 +137,7 @@ public:
     /**
      * @brief 添加带工具提示的建议
      */
-    SuggestionsBuilder& suggest(const String& text, const String& tooltip) {
+    SuggestionsBuilder& suggest(const std::string& text, const std::string& tooltip) {
         m_suggestions.emplace_back(m_start, text, tooltip);
         return *this;
     }
@@ -145,7 +145,7 @@ public:
     /**
      * @brief 添加建议（指定起始位置）
      */
-    SuggestionsBuilder& suggest(i32 start, const String& text) {
+    SuggestionsBuilder& suggest(i32 start, const std::string& text) {
         m_suggestions.emplace_back(start, text);
         return *this;
     }
@@ -157,7 +157,7 @@ public:
     SuggestionsBuilder& suggestAll(const Container& candidates) {
         for (const auto& candidate : candidates) {
             if (startsWith(candidate, m_remaining)) {
-                suggest(String(candidate));
+                suggest(std::string(candidate));
             }
         }
         return *this;
@@ -179,8 +179,8 @@ public:
         return promise.get_future();
     }
 
-    [[nodiscard]] StringView getInput() const noexcept { return m_input; }
-    [[nodiscard]] StringView getRemaining() const noexcept { return m_remaining; }
+    [[nodiscard]] std::string_view getInput() const noexcept { return m_input; }
+    [[nodiscard]] std::string_view getRemaining() const noexcept { return m_remaining; }
     [[nodiscard]] i32 getStart() const noexcept { return m_start; }
 
     /**
@@ -191,7 +191,7 @@ public:
     }
 
 private:
-    static bool startsWith(StringView str, StringView prefix) {
+    static bool startsWith(std::string_view str, std::string_view prefix) {
         if (prefix.length() > str.length()) return false;
         for (size_t i = 0; i < prefix.length(); ++i) {
             const unsigned char left = static_cast<unsigned char>(str[i]);
@@ -203,9 +203,9 @@ private:
         return true;
     }
 
-    StringView m_input;
+    std::string_view m_input;
     i32 m_start;
-    StringView m_remaining;
+    std::string_view m_remaining;
     std::vector<Suggestion> m_suggestions;
 };
 
@@ -237,7 +237,7 @@ public:
 template<typename S>
 class CandidateSuggestionProvider : public ISuggestionProvider<S> {
 public:
-    explicit CandidateSuggestionProvider(std::vector<String> candidates)
+    explicit CandidateSuggestionProvider(std::vector<std::string> candidates)
         : m_candidates(std::move(candidates)) {}
 
     std::future<Suggestions> getSuggestions(
@@ -249,7 +249,7 @@ public:
     }
 
 private:
-    std::vector<String> m_candidates;
+    std::vector<std::string> m_candidates;
 };
 
 } // namespace mc::command

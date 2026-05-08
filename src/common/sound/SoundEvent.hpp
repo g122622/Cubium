@@ -53,7 +53,7 @@ public:
      *
      * @param idString 声音事件 ID 字符串（如 "minecraft:block.stone.break"）
      */
-    explicit SoundEvent(StringView idString);
+    explicit SoundEvent(std::string_view idString);
 
     // 拷贝和移动
     SoundEvent(const SoundEvent&) = default;
@@ -115,7 +115,7 @@ public:
      *
      * @return 声音事件 ID 的字符串表示
      */
-    [[nodiscard]] String toString() const { return m_id.toString(); }
+    [[nodiscard]] std::string toString() const { return m_id.toString(); }
 
     // ========================================================================
     // 预定义的声音事件工厂方法

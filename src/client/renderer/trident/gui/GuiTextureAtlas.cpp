@@ -257,7 +257,7 @@ Result<void> GuiTextureAtlas::loadDefaultTextures() {
 // 渲染
 // ============================================================================
 
-void GuiTextureAtlas::drawTexture(GuiRenderer& gui, const String& textureId,
+void GuiTextureAtlas::drawTexture(GuiRenderer& gui, const std::string& textureId,
                                    f64 x, f64 y, f64 width, f64 height) {
     const GuiTextureRegion* region = getRegion(textureId);
     if (region == nullptr) {
@@ -272,7 +272,7 @@ void GuiTextureAtlas::drawTexture(GuiRenderer& gui, const String& textureId,
     gui.drawRect(x, y, width, height, GuiColors::CONTAINER_BORDER);
 }
 
-void GuiTextureAtlas::drawTextureRegion(GuiRenderer& gui, const String& textureId,
+void GuiTextureAtlas::drawTextureRegion(GuiRenderer& gui, const std::string& textureId,
                                           f64 x, f64 y,
                                           i32 regionX, i32 regionY,
                                           i32 regionWidth, i32 regionHeight,
@@ -296,11 +296,11 @@ void GuiTextureAtlas::drawTextureRegion(GuiRenderer& gui, const String& textureI
 // 查询
 // ============================================================================
 
-bool GuiTextureAtlas::hasTexture(const String& textureId) const {
+bool GuiTextureAtlas::hasTexture(const std::string& textureId) const {
     return m_regions.find(textureId) != m_regions.end();
 }
 
-const GuiTextureRegion* GuiTextureAtlas::getRegion(const String& textureId) const {
+const GuiTextureRegion* GuiTextureAtlas::getRegion(const std::string& textureId) const {
     auto it = m_regions.find(textureId);
     if (it != m_regions.end()) {
         return &it->second;
@@ -319,7 +319,7 @@ void GuiTextureAtlas::registerSprite(const GuiSprite& sprite) {
     m_sprites[sprite.id] = sprite;
 }
 
-void GuiTextureAtlas::registerSprite(const String& id, i32 x, i32 y,
+void GuiTextureAtlas::registerSprite(const std::string& id, i32 x, i32 y,
                                       i32 width, i32 height,
                                       i32 atlasWidth, i32 atlasHeight) {
     GuiSprite sprite(id, x, y, width, height, atlasWidth, atlasHeight);
@@ -332,7 +332,7 @@ void GuiTextureAtlas::registerSprites(const std::vector<GuiSprite>& sprites) {
     }
 }
 
-const GuiSprite* GuiTextureAtlas::getSprite(const String& id) const {
+const GuiSprite* GuiTextureAtlas::getSprite(const std::string& id) const {
     auto it = m_sprites.find(id);
     if (it != m_sprites.end()) {
         return &it->second;
@@ -340,7 +340,7 @@ const GuiSprite* GuiTextureAtlas::getSprite(const String& id) const {
     return nullptr;
 }
 
-bool GuiTextureAtlas::hasSprite(const String& id) const {
+bool GuiTextureAtlas::hasSprite(const std::string& id) const {
     return m_sprites.find(id) != m_sprites.end();
 }
 

@@ -469,7 +469,7 @@ settings.saveSettings("options.json");
 classDiagram
     class IOption {
         <<interface>>
-        +getKey() String
+        +getKey() std::string
         +getValue() SettingsValue
         +setValue(SettingsValue) bool
         +serialize(json) void
@@ -479,7 +479,7 @@ classDiagram
     }
 
     class BooleanOption {
-        -m_key: String
+        -m_key: std::string
         -m_value: bool
         -m_default: bool
         -m_callback: SettingsCallback~bool~
@@ -489,7 +489,7 @@ classDiagram
     }
 
     class RangeOption {
-        -m_key: String
+        -m_key: std::string
         -m_min: i32
         -m_max: i32
         -m_value: i32
@@ -501,7 +501,7 @@ classDiagram
     }
 
     class FloatOption {
-        -m_key: String
+        -m_key: std::string
         -m_min: f32
         -m_max: f32
         -m_value: f32
@@ -511,29 +511,29 @@ classDiagram
     }
 
     class EnumOption~T~ {
-        -m_key: String
+        -m_key: std::string
         -m_values: vector~T~
-        -m_names: vector~String~
+        -m_names: vector~std::string~
         -m_value: T
         +get() T
-        +setByName(String) bool
-        +getName() String
+        +setByName(std::string) bool
+        +getName() std::string
     }
 
     class StringOption {
-        -m_key: String
-        -m_value: String
-        -m_default: String
-        +get() const String&
-        +set(String) void
+        -m_key: std::string
+        -m_value: std::string
+        -m_default: std::string
+        +get() const std::string&
+        +set(std::string) void
     }
 
     class ResourcePackListOption {
-        -m_key: String
+        -m_key: std::string
         -m_entries: vector~ResourcePackEntry~
         +add(ResourcePackEntry) void
-        +remove(String) bool
-        +find(String) ResourcePackEntry*
+        +remove(std::string) bool
+        +find(std::string) ResourcePackEntry*
         +getSortedEntries() vector
     }
 
@@ -550,7 +550,7 @@ classDiagram
 ```mermaid
 classDiagram
     class SettingsBase {
-        #m_options: map~String,vector~IOption*~~
+        #m_options: map~std::string,vector~IOption*~~
         #m_version: i32
         #m_autoSave: bool
         #m_autoSavePath: path

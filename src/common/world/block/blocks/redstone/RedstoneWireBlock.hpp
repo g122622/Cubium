@@ -28,8 +28,8 @@ enum class RedstoneSide : u8 {
 // 特化 EnumProperty::Traits for RedstoneSide
 template<>
 struct EnumProperty<blocks::RedstoneSide>::Traits {
-    static String toString(const blocks::RedstoneSide& value);
-    static std::optional<blocks::RedstoneSide> fromName(StringView name);
+    static std::string toString(const blocks::RedstoneSide& value);
+    static std::optional<blocks::RedstoneSide> fromName(std::string_view name);
 };
 
 namespace blocks {

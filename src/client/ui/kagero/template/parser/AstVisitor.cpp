@@ -108,7 +108,7 @@ std::vector<const Node*> findAll(const Node& root, const std::function<bool(cons
     return results;
 }
 
-ElementNode* findById(Node& root, const String& id) {
+ElementNode* findById(Node& root, const std::string& id) {
     Node* found = findFirst(root, [&id](const Node& node) {
         if (auto* elem = dynamic_cast<const ElementNode*>(&node)) {
             return elem->id == id;
@@ -119,7 +119,7 @@ ElementNode* findById(Node& root, const String& id) {
     return dynamic_cast<ElementNode*>(found);
 }
 
-const ElementNode* findById(const Node& root, const String& id) {
+const ElementNode* findById(const Node& root, const std::string& id) {
     const Node* found = findFirst(root, [&id](const Node& node) {
         if (auto* elem = dynamic_cast<const ElementNode*>(&node)) {
             return elem->id == id;
@@ -130,7 +130,7 @@ const ElementNode* findById(const Node& root, const String& id) {
     return dynamic_cast<const ElementNode*>(found);
 }
 
-std::vector<ElementNode*> findByTagName(Node& root, const String& tagName) {
+std::vector<ElementNode*> findByTagName(Node& root, const std::string& tagName) {
     auto nodes = findAll(root, [&tagName](const Node& node) {
         if (auto* elem = dynamic_cast<const ElementNode*>(&node)) {
             return elem->tagName == tagName;
@@ -147,7 +147,7 @@ std::vector<ElementNode*> findByTagName(Node& root, const String& tagName) {
     return results;
 }
 
-std::vector<const ElementNode*> findByTagName(const Node& root, const String& tagName) {
+std::vector<const ElementNode*> findByTagName(const Node& root, const std::string& tagName) {
     auto nodes = findAll(root, [&tagName](const Node& node) {
         if (auto* elem = dynamic_cast<const ElementNode*>(&node)) {
             return elem->tagName == tagName;

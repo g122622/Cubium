@@ -111,7 +111,7 @@ bool AssertManager::handleRecoverableFailure(
     return m_config.continueExecution;
 }
 
-String AssertManager::captureStackTrace() const {
+std::string AssertManager::captureStackTrace() const {
     std::ostringstream oss;
     oss << "Stack trace:\n";
 
@@ -163,15 +163,15 @@ String AssertManager::captureStackTrace() const {
             oss << "  [" << std::setw(2) << (i - 2) << "] ";
 
             // 尝试解码 C++ 符号
-            String sym(symbols[i]);
+            std::string sym(symbols[i]);
 
 #ifdef __GNUC__
             // 尝试使用 abi::__cxa_demangle 解码
             size_t start = sym.find('(');
             size_t end = sym.find('+', start);
 
-            if (start != String::npos && end != String::npos) {
-                String mangled = sym.substr(start + 1, end - start - 1);
+            if (start != std::string::npos && end != std::string::npos) {
+                std::string mangled = sym.substr(start + 1, end - start - 1);
                 int status = 0;
                 char* demangled = abi::__cxa_demangle(mangled.c_str(), nullptr, nullptr, &status);
 
@@ -282,7 +282,7 @@ AssertException::AssertException(const AssertFailure& failure)
 
 namespace detail {
 
-String formatFailureMessage(
+std::string formatFailureMessage(
     const char* expression,
     const char* message,
     const char* file,

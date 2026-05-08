@@ -67,7 +67,7 @@ public:
      * @param id 附魔ID（如 "minecraft:fortune"）
      * @return 附魔指针，如果不存在返回nullptr
      */
-    [[nodiscard]] static const Enchantment* get(const String& id);
+    [[nodiscard]] static const Enchantment* get(const std::string& id);
 
     /**
      * @brief 检查附魔是否存在
@@ -75,14 +75,14 @@ public:
      * @param id 附魔ID
      * @return 如果存在返回true
      */
-    [[nodiscard]] static bool has(const String& id);
+    [[nodiscard]] static bool has(const std::string& id);
 
     /**
      * @brief 获取所有已注册的附魔
      *
      * @return 附魔映射（ID -> 附魔）
      */
-    [[nodiscard]] static const std::unordered_map<String, std::unique_ptr<Enchantment>>& all();
+    [[nodiscard]] static const std::unordered_map<std::string, std::unique_ptr<Enchantment>>& all();
 
     /**
      * @brief 按类型获取附魔列表
@@ -121,7 +121,7 @@ private:
      */
     static bool registerEnchantmentInternal(std::unique_ptr<Enchantment> enchantment);
 
-    static std::unordered_map<String, std::unique_ptr<Enchantment>> s_enchantments;
+    static std::unordered_map<std::string, std::unique_ptr<Enchantment>> s_enchantments;
     static bool s_initialized;
     // 使用递归互斥锁以支持 initialize() 内部批量注册时的同线程重入
     static std::recursive_mutex s_mutex;

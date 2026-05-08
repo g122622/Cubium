@@ -20,7 +20,7 @@ namespace mc::skin {
  */
 struct CacheEntry {
     ResourceLocation location;                                  // 纹理资源位置
-    String hash;                                                // 文件哈希
+    std::string hash;                                                // 文件哈希
     std::filesystem::file_time_type lastAccess;                 // 最后访问时间
     std::filesystem::file_time_type lastModified;               // 最后修改时间
     size_t fileSize = 0;                                        // 文件大小（字节）
@@ -52,7 +52,7 @@ public:
      * @brief 构造缓存管理器
      * @param cacheDir 缓存目录路径
      */
-    explicit SkinCache(const String& cacheDir);
+    explicit SkinCache(const std::string& cacheDir);
 
     /**
      * @brief 析构函数
@@ -90,14 +90,14 @@ public:
      * @param hash 皮肤哈希（SHA1）
      * @return 是否已缓存
      */
-    [[nodiscard]] bool hasSkin(const String& hash) const;
+    [[nodiscard]] bool hasSkin(const std::string& hash) const;
 
     /**
      * @brief 获取缓存的皮肤路径
      * @param hash 皮肤哈希
      * @return 文件路径，不存在返回空
      */
-    [[nodiscard]] std::optional<std::filesystem::path> getSkinPath(const String& hash) const;
+    [[nodiscard]] std::optional<std::filesystem::path> getSkinPath(const std::string& hash) const;
 
     /**
      * @brief 保存皮肤到缓存
@@ -105,27 +105,27 @@ public:
      * @param data PNG 数据
      * @return 缓存文件路径
      */
-    Result<std::filesystem::path> saveSkin(const String& hash, const std::vector<u8>& data);
+    Result<std::filesystem::path> saveSkin(const std::string& hash, const std::vector<u8>& data);
 
     /**
      * @brief 读取缓存的皮肤数据
      * @param hash 皮肤哈希
      * @return PNG 数据
      */
-    Result<std::vector<u8>> readSkin(const String& hash) const;
+    Result<std::vector<u8>> readSkin(const std::string& hash) const;
 
     /**
      * @brief 删除缓存的皮肤
      * @param hash 皮肤哈希
      * @return 是否成功删除
      */
-    bool removeSkin(const String& hash);
+    bool removeSkin(const std::string& hash);
 
     // ========== 披风缓存操作 ==========
 
-    [[nodiscard]] bool hasCape(const String& hash) const;
-    Result<std::filesystem::path> saveCape(const String& hash, const std::vector<u8>& data);
-    Result<std::vector<u8>> readCape(const String& hash) const;
+    [[nodiscard]] bool hasCape(const std::string& hash) const;
+    Result<std::filesystem::path> saveCape(const std::string& hash, const std::vector<u8>& data);
+    Result<std::vector<u8>> readCape(const std::string& hash) const;
 
     // ========== ResourceLocation 生成 ==========
 
@@ -134,14 +134,14 @@ public:
      * @param hash 皮肤哈希
      * @return ResourceLocation（如 minecraft:skins/ab/abcdef...）
      */
-    [[nodiscard]] ResourceLocation generateSkinLocation(const String& hash) const;
+    [[nodiscard]] ResourceLocation generateSkinLocation(const std::string& hash) const;
 
     /**
      * @brief 生成披风的 ResourceLocation
      * @param hash 披风哈希
      * @return ResourceLocation
      */
-    [[nodiscard]] ResourceLocation generateCapeLocation(const String& hash) const;
+    [[nodiscard]] ResourceLocation generateCapeLocation(const std::string& hash) const;
 
     // ========== 缓存维护 ==========
 
@@ -178,7 +178,7 @@ private:
      * @param hash 哈希值
      * @return 文件路径
      */
-    std::filesystem::path getCacheFilePath(const String& type, const String& hash) const;
+    std::filesystem::path getCacheFilePath(const std::string& type, const std::string& hash) const;
 
     /**
      * @brief 从缓存目录扫描已有文件
@@ -199,7 +199,7 @@ private:
      * @brief 更新访问时间
      * @param hash 哈希值
      */
-    void updateAccessTime(const String& hash);
+    void updateAccessTime(const std::string& hash);
 
     /**
      * @brief 确保目录存在
@@ -209,28 +209,28 @@ private:
     /**
      * @brief 通用保存方法
      */
-    Result<std::filesystem::path> saveTexture(const String& type, const String& hash,
+    Result<std::filesystem::path> saveTexture(const std::string& type, const std::string& hash,
                                                const std::vector<u8>& data);
 
     /**
      * @brief 通用读取方法
      */
-    Result<std::vector<u8>> readTexture(const String& type, const String& hash) const;
+    Result<std::vector<u8>> readTexture(const std::string& type, const std::string& hash) const;
 
     /**
      * @brief 通用检查方法
      */
-    [[nodiscard]] bool hasTexture(const String& type, const String& hash) const;
+    [[nodiscard]] bool hasTexture(const std::string& type, const std::string& hash) const;
 
-    String m_cacheDirStr;
+    std::string m_cacheDirStr;
     std::filesystem::path m_cacheDir;
     std::filesystem::path m_skinsDir;
     std::filesystem::path m_capesDir;
     std::filesystem::path m_metadataPath;
 
     mutable std::mutex m_entriesMutex;
-    std::unordered_map<String, CacheEntry> m_skinEntries;
-    std::unordered_map<String, CacheEntry> m_capeEntries;
+    std::unordered_map<std::string, CacheEntry> m_skinEntries;
+    std::unordered_map<std::string, CacheEntry> m_capeEntries;
 
     std::atomic<bool> m_initialized{false};
     size_t m_totalCacheSize = 0;

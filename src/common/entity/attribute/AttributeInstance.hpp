@@ -82,7 +82,7 @@ public:
      * @param id 修改器ID
      * @return 是否成功移除
      */
-    bool removeModifier(const String& id) {
+    bool removeModifier(const std::string& id) {
         std::lock_guard<std::mutex> lock(m_mutex);
         auto it = std::find_if(m_modifiers.begin(), m_modifiers.end(),
             [&id](const AttributeModifier& m) { return m.id() == id; });
@@ -114,7 +114,7 @@ public:
      * @brief 检查是否有修改器
      * @param id 修改器ID
      */
-    [[nodiscard]] bool hasModifier(const String& id) const {
+    [[nodiscard]] bool hasModifier(const std::string& id) const {
         return std::any_of(m_modifiers.begin(), m_modifiers.end(),
             [&id](const AttributeModifier& m) { return m.id() == id; });
     }
@@ -124,7 +124,7 @@ public:
      * @param id 修改器ID
      * @return 修改器指针，不存在返回nullptr
      */
-    [[nodiscard]] const AttributeModifier* getModifier(const String& id) const {
+    [[nodiscard]] const AttributeModifier* getModifier(const std::string& id) const {
         auto it = std::find_if(m_modifiers.begin(), m_modifiers.end(),
             [&id](const AttributeModifier& m) { return m.id() == id; });
         return it != m_modifiers.end() ? &(*it) : nullptr;

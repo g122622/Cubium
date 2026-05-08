@@ -10,7 +10,7 @@ using namespace mc::crafting;
 // 测试用的模拟Item类
 class TestItem : public Item {
 public:
-    explicit TestItem(const String& name)
+    explicit TestItem(const std::string& name)
         : Item(ItemProperties().maxStackSize(64)) {
         // 使用反射或友元来设置名称，这里简化处理
     }

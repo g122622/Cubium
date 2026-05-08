@@ -13,7 +13,7 @@ namespace structure {
 
 using namespace mc::Biomes;
 
-const String OceanMonumentStructure::m_name = "ocean_monument";
+const std::string OceanMonumentStructure::m_name = "ocean_monument";
 
 OceanMonumentStructure::OceanMonumentStructure()
     : Structure(StructureType::Monument)

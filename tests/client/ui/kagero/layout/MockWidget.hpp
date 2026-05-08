@@ -30,7 +30,7 @@ public:
     using Ptr = std::unique_ptr<MockWidget>;
 
     MockWidget() = default;
-    explicit MockWidget(const String& id) : Widget(id) {}
+    explicit MockWidget(const std::string& id) : Widget(id) {}
 
     // 设置固定尺寸
     void setFixedSize(i32 width, i32 height) {
@@ -104,7 +104,7 @@ public:
     using Ptr = std::unique_ptr<MockContainerWidget>;
 
     MockContainerWidget() = default;
-    explicit MockContainerWidget(const String& id) : Widget(id) {}
+    explicit MockContainerWidget(const std::string& id) : Widget(id) {}
 
     // 使用 WidgetContainerMixin 的方法
     using WidgetContainerMixin<MockContainerWidget>::addWidget;
@@ -118,7 +118,7 @@ public:
     }
 
     // 添加 MockWidget 并返回指针
-    MockWidget* addMockWidget(const String& id, i32 width, i32 height) {
+    MockWidget* addMockWidget(const std::string& id, i32 width, i32 height) {
         auto widget = std::make_unique<MockWidget>(id);
         widget->setFixedSize(width, height);
         auto* ptr = widget.get();
@@ -147,7 +147,7 @@ public:
      * @return MockLayoutAdaptor 实例
      */
     static std::pair<std::unique_ptr<MockWidget>, std::unique_ptr<MockLayoutAdaptor>>
-    create(const String& id, i32 width, i32 height) {
+    create(const std::string& id, i32 width, i32 height) {
         auto widget = std::make_unique<MockWidget>(id);
         widget->setFixedSize(width, height);
         auto* widgetPtr = widget.get();
@@ -165,7 +165,7 @@ private:
  * @brief 测试辅助函数：创建 MockWidget 和其适配器
  */
 inline std::unique_ptr<WidgetLayoutAdaptor> createMockAdaptor(
-    const String& id,
+    const std::string& id,
     i32 width,
     i32 height,
     LayoutConstraints constraints = LayoutConstraints{}
@@ -192,7 +192,7 @@ public:
      * @param height 固定高度
      * @return WidgetLayoutAdaptor 指针
      */
-    WidgetLayoutAdaptor* addWidget(const String& id, i32 width, i32 height) {
+    WidgetLayoutAdaptor* addWidget(const std::string& id, i32 width, i32 height) {
         auto widget = std::make_unique<MockWidget>(id);
         widget->setFixedSize(width, height);
         auto* widgetPtr = widget.get();
@@ -209,7 +209,7 @@ public:
      * @brief 添加一个带约束的 MockWidget
      */
     WidgetLayoutAdaptor* addWidget(
-        const String& id,
+        const std::string& id,
         i32 width,
         i32 height,
         const LayoutConstraints& constraints
@@ -222,7 +222,7 @@ public:
     /**
      * @brief 添加一个容器 Widget
      */
-    MockContainerWidget* addContainer(const String& id) {
+    MockContainerWidget* addContainer(const std::string& id) {
         auto container = std::make_unique<MockContainerWidget>(id);
         auto* ptr = container.get();
         m_containers.push_back(std::move(container));

@@ -62,7 +62,7 @@ bool LootableContainerBlockEntity::load(const nlohmann::json& data) {
 
     // 加载战利品表
     if (data.contains("LootTable") && data["LootTable"].is_string()) {
-        m_lootTable = ResourceLocation(data["LootTable"].get<String>());
+        m_lootTable = ResourceLocation(data["LootTable"].get<std::string>());
         m_hasLootTable = true;
         m_lootFilled = false;
     }
@@ -140,7 +140,7 @@ bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager&
     }
 
     // 设置战利品表解析器（支持嵌套战利品表）
-    builder.withLootTableResolver([&lootTableManager](const String& id) -> const loot::LootTable* {
+    builder.withLootTableResolver([&lootTableManager](const std::string& id) -> const loot::LootTable* {
         return lootTableManager.getTable(id);
     });
 

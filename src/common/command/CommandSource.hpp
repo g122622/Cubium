@@ -64,7 +64,7 @@ public:
         const Vector2f& rotation,
         server::ServerWorld* world,
         i32 permissionLevel,
-        const String& name,
+        const std::string& name,
         class MinecraftServer* server,
         Entity* entity = nullptr
     );
@@ -85,7 +85,7 @@ public:
     // ========== 实体信息 ==========
 
     [[nodiscard]] Entity* entity() const noexcept { return m_entity; }
-    [[nodiscard]] const String& name() const noexcept { return m_name; }
+    [[nodiscard]] const std::string& name() const noexcept { return m_name; }
 
     /**
      * @brief 获取玩家实体
@@ -127,12 +127,12 @@ public:
      * @param message 消息
      * @param logToConsole 是否记录到控制台
      */
-    void sendFeedback(const String& message, bool logToConsole = true) const;
+    void sendFeedback(const std::string& message, bool logToConsole = true) const;
 
     /**
      * @brief 发送错误消息
      */
-    void sendError(const String& message) const;
+    void sendError(const std::string& message) const;
 
     // ========== 派生命令源 ==========
 
@@ -182,7 +182,7 @@ private:
     Vector2f m_rotation;    // (yaw, pitch)
     server::ServerWorld* m_world;
     i32 m_permissionLevel;
-    String m_name;
+    std::string m_name;
     MinecraftServer* m_server;
     Entity* m_entity;
     bool m_feedbackDisabled;

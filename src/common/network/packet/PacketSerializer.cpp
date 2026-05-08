@@ -120,7 +120,7 @@ void PacketSerializer::writeBool(bool value) {
     writeU8(value ? 1 : 0);
 }
 
-void PacketSerializer::writeString(const String& value) {
+void PacketSerializer::writeString(const std::string& value) {
     // 字符串格式: 长度(VarInt) + 数据
     // 使用 VarInt 编码，支持大字符串（如命令树JSON）
     if (value.size() > MAX_STRING_LENGTH) {
@@ -133,7 +133,7 @@ void PacketSerializer::writeString(const String& value) {
     }
 }
 
-void PacketSerializer::writeStringView(StringView value) {
+void PacketSerializer::writeStringView(std::string_view value) {
     // 直接写入，避免创建临时String对象
     // 使用 VarInt 编码，支持大字符串
     if (value.size() > MAX_STRING_LENGTH) {
@@ -291,7 +291,7 @@ Result<bool> PacketSerializer::readBool() {
     return result.value() != 0;
 }
 
-Result<String> PacketSerializer::readString() {
+Result<std::string> PacketSerializer::readString() {
     auto lengthResult = readVarInt();
     if (lengthResult.failed()) {
         return lengthResult.error();
@@ -302,13 +302,13 @@ Result<String> PacketSerializer::readString() {
         return Error(ErrorCode::InvalidData, "Negative string length");
     }
     if (static_cast<size_t>(length) > MAX_STRING_LENGTH) {
-        return Error(ErrorCode::InvalidData, "String length exceeds maximum");
+        return Error(ErrorCode::InvalidData, "std::string length exceeds maximum");
     }
     if (m_readPos + static_cast<size_t>(length) > m_buffer.size()) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read string");
     }
 
-    String str(reinterpret_cast<const char*>(m_buffer.data() + m_readPos), static_cast<size_t>(length));
+    std::string str(reinterpret_cast<const char*>(m_buffer.data() + m_readPos), static_cast<size_t>(length));
     m_readPos += static_cast<size_t>(length);
     return str;
 }
@@ -526,7 +526,7 @@ Result<bool> PacketDeserializer::readBool() {
     return result.value() != 0;
 }
 
-Result<String> PacketDeserializer::readString() {
+Result<std::string> PacketDeserializer::readString() {
     auto lengthResult = readVarInt();
     if (lengthResult.failed()) {
         return lengthResult.error();
@@ -537,13 +537,13 @@ Result<String> PacketDeserializer::readString() {
         return Error(ErrorCode::InvalidData, "Negative string length");
     }
     if (static_cast<size_t>(length) > MAX_STRING_LENGTH) {
-        return Error(ErrorCode::InvalidData, "String length exceeds maximum");
+        return Error(ErrorCode::InvalidData, "std::string length exceeds maximum");
     }
     if (m_readPos + static_cast<size_t>(length) > m_size) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read string");
     }
 
-    String str(reinterpret_cast<const char*>(m_data + m_readPos), static_cast<size_t>(length));
+    std::string str(reinterpret_cast<const char*>(m_data + m_readPos), static_cast<size_t>(length));
     m_readPos += static_cast<size_t>(length);
     return str;
 }

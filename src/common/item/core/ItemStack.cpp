@@ -119,15 +119,15 @@ i32 ItemStack::getMaxStackSize() const {
 // 附魔
 // ============================================================================
 
-i32 ItemStack::getEnchantmentLevel(const String& enchantmentId) const {
+i32 ItemStack::getEnchantmentLevel(const std::string& enchantmentId) const {
     return m_enchantments.getLevel(enchantmentId);
 }
 
-bool ItemStack::hasEnchantment(const String& enchantmentId) const {
+bool ItemStack::hasEnchantment(const std::string& enchantmentId) const {
     return m_enchantments.has(enchantmentId);
 }
 
-void ItemStack::addEnchantment(const String& enchantmentId, i32 level) {
+void ItemStack::addEnchantment(const std::string& enchantmentId, i32 level) {
     m_enchantments.set(enchantmentId, level);
 }
 
@@ -605,7 +605,7 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json) {
         return Error(ErrorCode::InvalidData, "ItemStack JSON missing 'id' field");
     }
 
-    String itemId = json["id"].get<String>();
+    std::string itemId = json["id"].get<std::string>();
     ResourceLocation itemLocation(itemId);
     const Item* item = ItemRegistry::instance().getItem(itemLocation);
     if (item == nullptr) {
@@ -634,7 +634,7 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json) {
         const auto& customNameJson = json["CustomName"];
         if (customNameJson.is_string()) {
             // 旧格式：纯字符串
-            stack.m_customName = text::TextParser::parse(customNameJson.get<String>());
+            stack.m_customName = text::TextParser::parse(customNameJson.get<std::string>());
         } else if (customNameJson.is_object()) {
             // 新格式：JSON 文本组件
             stack.m_customName = text::ITextComponent::fromJson(customNameJson);
@@ -644,7 +644,7 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json) {
     if (json.contains("Lore") && json["Lore"].is_array()) {
         for (const auto& lineJson : json["Lore"]) {
             if (lineJson.is_string()) {
-                stack.m_lore.push_back(text::TextParser::parse(lineJson.get<String>()));
+                stack.m_lore.push_back(text::TextParser::parse(lineJson.get<std::string>()));
             } else if (lineJson.is_object()) {
                 stack.m_lore.push_back(text::ITextComponent::fromJson(lineJson));
             }
@@ -652,7 +652,7 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json) {
     }
 
     if (json.contains("Potion") && json["Potion"].is_string()) {
-        stack.m_potionId = json["Potion"].get<String>();
+        stack.m_potionId = json["Potion"].get<std::string>();
     }
 
     if (json.contains("Tag") && json["Tag"].is_object()) {
@@ -750,11 +750,11 @@ void ItemStack::toNbt(nbt::tags::compound_tag& tag) const {
 Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag) {
     // 获取物品ID
     auto it = tag.value.find(nbt_keys::ID);
-    if (it == tag.value.end() || it->second->id() != nbt::TagId::String) {
+    if (it == tag.value.end() || it->second->id() != nbt::TagId::std::string) {
         return Error(ErrorCode::InvalidData, "ItemStack NBT missing 'id' field");
     }
 
-    String itemId = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
+    std::string itemId = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
 
     // 查找物品
     ResourceLocation itemLocation(itemId);
@@ -810,8 +810,8 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag) {
 
         // 自定义名称
         auto nameIt = display.value.find(nbt_keys::NAME);
-        if (nameIt != display.value.end() && nameIt->second->id() == nbt::TagId::String) {
-            String nameJson = dynamic_cast<const nbt::tags::string_tag&>(*nameIt->second).value;
+        if (nameIt != display.value.end() && nameIt->second->id() == nbt::TagId::std::string) {
+            std::string nameJson = dynamic_cast<const nbt::tags::string_tag&>(*nameIt->second).value;
             stack.m_customName = text::TextParser::parse(nameJson);
         }
 
@@ -819,7 +819,7 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag) {
         auto loreIt = display.value.find(nbt_keys::LORE);
         if (loreIt != display.value.end() && loreIt->second->id() == nbt::TagId::List) {
             auto& loreList = dynamic_cast<const nbt::tags::list_tag&>(*loreIt->second);
-            if (loreList.element_id() == nbt::TagId::String) {
+            if (loreList.element_id() == nbt::TagId::std::string) {
                 auto& stringList = dynamic_cast<const nbt::tags::string_list_tag&>(loreList);
                 for (const auto& lineJson : stringList.value) {
                     stack.m_lore.push_back(text::TextParser::parse(lineJson));
@@ -838,14 +838,14 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag) {
 
     // 药水ID
     it = tagCompound.value.find(nbt_keys::POTION);
-    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::String) {
+    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::std::string) {
         stack.m_potionId = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
     }
 
     // 自定义数据
     it = tagCompound.value.find("custom_data");
-    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::String) {
-        String customDataStr = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
+    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::std::string) {
+        std::string customDataStr = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
         auto parsed = nlohmann::json::parse(customDataStr, nullptr, false);
         if (!parsed.is_discarded() && parsed.is_object()) {
             stack.m_customData = parsed;
@@ -956,7 +956,7 @@ nlohmann::json& ItemStack::getOrCreateTag() {
     return m_customData;
 }
 
-const nlohmann::json* ItemStack::getChildTag(const String& name) const {
+const nlohmann::json* ItemStack::getChildTag(const std::string& name) const {
     if (!m_customData.is_object()) {
         return nullptr;
     }
@@ -969,7 +969,7 @@ const nlohmann::json* ItemStack::getChildTag(const String& name) const {
     return &(*iter);
 }
 
-nlohmann::json& ItemStack::getOrCreateChildTag(const String& name) {
+nlohmann::json& ItemStack::getOrCreateChildTag(const std::string& name) {
     nlohmann::json& child = getOrCreateTag()[name];
     if (!child.is_object()) {
         child = nlohmann::json::object();
@@ -978,7 +978,7 @@ nlohmann::json& ItemStack::getOrCreateChildTag(const String& name) {
     return child;
 }
 
-void ItemStack::removeChildTag(const String& name) {
+void ItemStack::removeChildTag(const std::string& name) {
     if (!m_customData.is_object()) {
         return;
     }

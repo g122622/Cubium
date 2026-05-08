@@ -20,12 +20,12 @@ src/server/player/
 ```cpp
 class ServerPlayer : public Player {
 public:
-    ServerPlayer(EntityId id, const String& name);
+    ServerPlayer(EntityId id, const std::string& name);
     ~ServerPlayer() override = default;
 
     // 网络相关
-    void sendChatMessage(const String& message);
-    void sendSystemMessage(const String& message);
+    void sendChatMessage(const std::string& message);
+    void sendSystemMessage(const std::string& message);
 
     // 世界相关
     void setWorld(ServerWorld* world);
@@ -221,10 +221,10 @@ graph LR
 
 | 来源 | 数据类型 | 处理方式 |
 |------|----------|----------|
-| 实体系统 | `EntityId`, `String` | 构造函数初始化 |
+| 实体系统 | `EntityId`, `std::string` | 构造函数初始化 |
 | 服务端逻辑 | `ServerWorld*` | `setWorld()` 设置 |
-| 聊天系统 | `String` | `sendChatMessage()` |
-| 系统通知 | `String` | `sendSystemMessage()` |
+| 聊天系统 | `std::string` | `sendChatMessage()` |
+| 系统通知 | `std::string` | `sendSystemMessage()` |
 
 ### 输出
 
@@ -311,7 +311,7 @@ if (world) {
 **已实现**：`sendChatMessage()` 和 `sendSystemMessage()` 通过网络包发送。
 
 ```cpp
-void ServerPlayer::sendChatMessage(const String& message) {
+void ServerPlayer::sendChatMessage(const std::string& message) {
     network::ChatMessagePacket chatPacket(message, static_cast<PlayerId>(id()));
     network::PacketSerializer payload;
     chatPacket.serialize(payload);

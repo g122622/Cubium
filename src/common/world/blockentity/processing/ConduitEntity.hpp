@@ -165,7 +165,7 @@ private:
     // ========== 目标追踪 ==========
 
     LivingEntity* m_target = nullptr;   ///< 当前攻击目标
-    std::optional<String> m_targetUuid; ///< 目标的UUID（用于持久化）
+    std::optional<std::string> m_targetUuid; ///< 目标的UUID（用于持久化）
 };
 
 } // namespace blockentity

@@ -73,7 +73,7 @@ bool DespawnManager::shouldDespawn(MobEntity& mob, ::mc::server::ServerWorld& wo
 
     // MC 1.16.5: 获取实体类型信息
     auto& registry = entity::EntityRegistry::instance();
-    const String& typeId = mob.getTypeId();
+    const std::string& typeId = mob.getTypeId();
     const entity::EntityType* type = registry.getType(typeId);
 
     if (!type) {

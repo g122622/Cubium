@@ -61,7 +61,7 @@ ContainerSlotPacket ContainerPacketHandler::createSlotPacket(const AbstractConta
 }
 
 OpenContainerPacket ContainerPacketHandler::createOpenContainerPacket(ContainerId containerId, i32 type,
-                                                                       const String& title) {
+                                                                       const std::string& title) {
     return OpenContainerPacket(containerId, type, title);
 }
 
@@ -76,10 +76,10 @@ RecipeListSyncPacket ContainerPacketHandler::createRecipeListPacket() {
         if (recipe != nullptr) {
             // 配方ID和类型
             ResourceLocation id = recipe->getId();
-            String typeStr = recipeTypeToString(recipe->getType());
+            std::string typeStr = recipeTypeToString(recipe->getType());
 
             // TODO: 实现配方序列化
-            // String recipeData = recipe->serialize();
+            // std::string recipeData = recipe->serialize();
 
             recipes.emplace_back(
                 id,

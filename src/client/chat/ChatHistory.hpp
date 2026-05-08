@@ -41,7 +41,7 @@ struct ChatMessage {
      * @param msgType 消息类型
      * @param perm 是否永久显示
      */
-    explicit ChatMessage(const String& text, ChatMessageType msgType = ChatMessageType::Chat, bool perm = false)
+    explicit ChatMessage(const std::string& text, ChatMessageType msgType = ChatMessageType::Chat, bool perm = false)
         : content(std::make_unique<text::StringTextComponent>(text))
         , type(msgType)
         , timestamp(std::chrono::steady_clock::now())
@@ -65,7 +65,7 @@ struct ChatMessage {
      * @brief 获取纯文本内容
      * @return 纯文本字符串
      */
-    [[nodiscard]] String getPlainText() const {
+    [[nodiscard]] std::string getPlainText() const {
         return content ? content->getUnformattedText() : "";
     }
 
@@ -73,7 +73,7 @@ struct ChatMessage {
      * @brief 获取格式化文本（§ 代码格式）
      * @return 格式化文本字符串
      */
-    [[nodiscard]] String getFormattedText() const {
+    [[nodiscard]] std::string getFormattedText() const {
         return content ? content->getFormattedText() : "";
     }
 };
@@ -103,7 +103,7 @@ public:
      * @param type 消息类型
      * @param permanent 是否永久显示
      */
-    void addMessage(const String& message,
+    void addMessage(const std::string& message,
                     ChatMessageType type = ChatMessageType::Chat,
                     bool permanent = false);
 
@@ -121,7 +121,7 @@ public:
      * @brief 添加系统消息
      * @param message 消息文本
      */
-    void addSystemMessage(const String& message);
+    void addSystemMessage(const std::string& message);
 
     /**
      * @brief 清除所有消息
@@ -145,17 +145,17 @@ public:
      * @brief 添加到输入历史
      * @param input 输入文本
      */
-    void addToInputHistory(const String& input);
+    void addToInputHistory(const std::string& input);
 
     /**
      * @brief 获取上一个输入
      */
-    [[nodiscard]] String getPreviousInput();
+    [[nodiscard]] std::string getPreviousInput();
 
     /**
      * @brief 获取下一个输入
      */
-    [[nodiscard]] String getNextInput();
+    [[nodiscard]] std::string getNextInput();
 
     /**
      * @brief 重置输入历史导航
@@ -169,9 +169,9 @@ public:
 
 private:
     std::deque<ChatMessage> m_messages;
-    std::vector<String> m_inputHistory;
+    std::vector<std::string> m_inputHistory;
     size_t m_historyIndex = 0;
-    String m_savedInput;  ///< 导航时保存的当前输入
+    std::string m_savedInput;  ///< 导航时保存的当前输入
 };
 
 } // namespace mc::client::chat

@@ -28,10 +28,10 @@ class GameModeArgumentType : public ArgumentType<GameMode> {
 public:
     [[nodiscard]] GameMode parse(StringReader& reader) override {
         i32 start = reader.getCursor();
-        String name = reader.readUnquotedString();
+        std::string name = reader.readUnquotedString();
 
         // 转换为小写进行比较
-        String lower = toLower(name);
+        std::string lower = toLower(name);
 
         if (lower == "survival" || lower == "s" || lower == "0") {
             return GameMode::Survival;
@@ -51,11 +51,11 @@ public:
         );
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         return "gamemode";
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
         return {"survival", "creative", "adventure", "spectator"};
     }
 
@@ -68,11 +68,11 @@ public:
     // ========== 静态获取方法 ==========
 
     template<typename S>
-    static GameMode getGameMode(CommandContext<S>& context, const String& name) {
+    static GameMode getGameMode(CommandContext<S>& context, const std::string& name) {
         return context.template getArgument<GameMode>(name);
     }
 
-    static String toString(GameMode mode) {
+    static std::string toString(GameMode mode) {
         switch (mode) {
             case GameMode::Survival: return "survival";
             case GameMode::Creative: return "creative";
@@ -84,8 +84,8 @@ public:
     }
 
 private:
-    static String toLower(const String& str) {
-        String result = str;
+    static std::string toLower(const std::string& str) {
+        std::string result = str;
         for (char& c : result) {
             if (c >= 'A' && c <= 'Z') {
                 c = c - 'A' + 'a';
@@ -103,13 +103,13 @@ private:
 class ResourceLocationArgumentType : public ArgumentType<ResourceLocation> {
 public:
     [[nodiscard]] ResourceLocation parse(StringReader& reader) override {
-        String str = reader.readString();
+        std::string str = reader.readString();
 
         // 解析命名空间
         size_t colonPos = str.find(':');
-        if (colonPos != String::npos) {
-            String namespace_ = str.substr(0, colonPos);
-            String path = str.substr(colonPos + 1);
+        if (colonPos != std::string::npos) {
+            std::string namespace_ = str.substr(0, colonPos);
+            std::string path = str.substr(colonPos + 1);
             return ResourceLocation(namespace_, path);
         } else {
             // 默认命名空间
@@ -117,11 +117,11 @@ public:
         }
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         return "resource_location";
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
         return {"minecraft:stone", "stone", "minecraft:diamond_sword"};
     }
 
@@ -134,7 +134,7 @@ public:
     // ========== 静态获取方法 ==========
 
     template<typename S>
-    static ResourceLocation getResourceLocation(CommandContext<S>& context, const String& name) {
+    static ResourceLocation getResourceLocation(CommandContext<S>& context, const std::string& name) {
         return context.template getArgument<ResourceLocation>(name);
     }
 };
@@ -160,11 +160,11 @@ public:
         return Vector3i(x, y, z);
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         return "block_pos";
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
         return {"0 0 0", "~ ~ ~", "^ ^ ^", "~1 ~-2 ~5"};
     }
 
@@ -175,7 +175,7 @@ public:
     }
 
     template<typename S>
-    static Vector3i getBlockPos(CommandContext<S>& context, const String& name) {
+    static Vector3i getBlockPos(CommandContext<S>& context, const std::string& name) {
         return context.template getArgument<Vector3i>(name);
     }
 
@@ -221,11 +221,11 @@ public:
         return Vector3d(x, y, z);
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         return "vec3";
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
         return {"0 0 0", "~ ~ ~", "^ ^ ^", "~1.5 ~-0.5 ~5"};
     }
 
@@ -236,7 +236,7 @@ public:
     }
 
     template<typename S>
-    static Vector3d getVec3(CommandContext<S>& context, const String& name) {
+    static Vector3d getVec3(CommandContext<S>& context, const std::string& name) {
         return context.template getArgument<Vector3d>(name);
     }
 
@@ -272,11 +272,11 @@ public:
         return Vector2f(yaw, pitch);
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         return "rotation";
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
         return {"0 0", "~ ~", "90 -45"};
     }
 
@@ -285,7 +285,7 @@ public:
     }
 
     template<typename S>
-    static Vector2f getRotation(CommandContext<S>& context, const String& name) {
+    static Vector2f getRotation(CommandContext<S>& context, const std::string& name) {
         return context.template getArgument<Vector2f>(name);
     }
 

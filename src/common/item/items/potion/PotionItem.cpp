@@ -98,10 +98,10 @@ bool PotionItem::hasEffect(const ItemStack& stack) const {
 /**
  * @brief 获取翻译键
  */
-String PotionItem::getTranslationKey(const ItemStack& stack) const {
+std::string PotionItem::getTranslationKey(const ItemStack& stack) const {
     const potion::Potion* potion = potion::PotionUtils::getPotion(stack);
     if (potion != nullptr && potion->hasEffects()) {
-        return String("item.minecraft.potion.effect.") + potion->baseName();
+        return std::string("item.minecraft.potion.effect.") + potion->baseName();
     }
     return Item::getTranslationKey(stack);
 }

@@ -21,13 +21,13 @@ src/common/command/suggestions/
 classDiagram
     class Suggestion {
         -i32 m_start
-        -String m_text
-        -String m_tooltip
+        -std::string m_text
+        -std::string m_tooltip
         +getStart() i32
-        +getText() const String&
-        +getTooltip() const String&
+        +getText() const std::string&
+        +getTooltip() const std::string&
         +hasTooltip() bool
-        +apply(input) String
+        +apply(input) std::string
     }
 
     class Suggestions {
@@ -40,9 +40,9 @@ classDiagram
     }
 
     class SuggestionsBuilder {
-        -StringView m_input
+        -std::string_view m_input
         -i32 m_start
-        -StringView m_remaining
+        -std::string_view m_remaining
         -vector~Suggestion~ m_suggestions
         +suggest(text) SuggestionsBuilder&
         +suggest(text, tooltip) SuggestionsBuilder&
@@ -50,8 +50,8 @@ classDiagram
         +suggestAll(candidates) SuggestionsBuilder&
         +build() Suggestions
         +buildFuture() future~Suggestions~
-        +getInput() StringView
-        +getRemaining() StringView
+        +getInput() std::string_view
+        +getRemaining() std::string_view
         +getStart() i32
         +createOffset(offset) SuggestionsBuilder
     }
@@ -62,7 +62,7 @@ classDiagram
     }
 
     class CandidateSuggestionProvider~S~ {
-        -vector~String~ m_candidates
+        -vector~std::string~ m_candidates
         +getSuggestions(context, builder) future~Suggestions~
     }
 
@@ -190,9 +190,9 @@ flowchart LR
 | 输入 | 类型 | 说明 |
 |------|------|------|
 | 命令上下文 | `CommandContext<S>` | 包含命令源、已解析参数等 |
-| 原始输入 | `StringView` | 用户输入的完整命令字符串 |
+| 原始输入 | `std::string_view` | 用户输入的完整命令字符串 |
 | 起始位置 | `i32` | 建议应该插入的位置 |
-| 候选词 | `vector<String>` | 可选的候选词列表 |
+| 候选词 | `vector<std::string>` | 可选的候选词列表 |
 
 ### 输出
 
@@ -218,7 +218,7 @@ graph TD
 
 ### 内部依赖
 
-- `common/core/Types.hpp` - 基础类型定义（i32, String, StringView 等）
+- `common/core/Types.hpp` - 基础类型定义（i32, std::string, std::string_view 等）
 
 ### 被依赖
 
@@ -268,7 +268,7 @@ Suggestions suggestions = builder.build();
 
 ```cpp
 SuggestionsBuilder builder("test ap", 5);
-std::vector<String> candidates = {"apple", "application", "apply", "banana", "cherry"};
+std::vector<std::string> candidates = {"apple", "application", "apply", "banana", "cherry"};
 
 builder.suggestAll(candidates);  // 自动过滤出以 "ap" 开头的词
 
@@ -307,7 +307,7 @@ public:
 
 ```cpp
 Suggestion suggestion(6, "world");
-String result = suggestion.apply("hello ");
+std::string result = suggestion.apply("hello ");
 // result == "hello world"
 ```
 
@@ -337,7 +337,7 @@ SuggestionsBuilder builder("gamemode survival", 18); // 错误（末尾）
 
 ```cpp
 // suggestAll 使用不区分大小写的前缀匹配
-std::vector<String> candidates = {"Apple", "APPLE", "apple"};
+std::vector<std::string> candidates = {"Apple", "APPLE", "apple"};
 SuggestionsBuilder builder("ap", 0);
 builder.suggestAll(candidates);
 // 会匹配所有三个，因为比较时使用 tolower()
@@ -410,7 +410,7 @@ TEST_F(SuggestionsTest, BuildSuggestions) {
 
 TEST_F(SuggestionsTest, ApplySuggestion) {
     Suggestion suggestion(6, "world");
-    String result = suggestion.apply("hello ");
+    std::string result = suggestion.apply("hello ");
     EXPECT_EQ(result, "hello world");
 }
 
@@ -486,7 +486,7 @@ public:
 
         // 遍历所有方块 ID
         for (const auto& [id, block] : registry.getAll()) {
-            String name = block->getName();
+            std::string name = block->getName();
             if (name.find(builder.getRemaining()) == 0) {
                 builder.suggest(name);
             }

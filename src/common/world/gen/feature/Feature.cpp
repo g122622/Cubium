@@ -93,7 +93,7 @@ std::unique_ptr<RuleTest> RandomBlockStateMatchRuleTest::clone() const {
 // TagMatchRuleTest 实现
 // ============================================================================
 
-TagMatchRuleTest::TagMatchRuleTest(const String& tagName)
+TagMatchRuleTest::TagMatchRuleTest(const std::string& tagName)
     : m_tagName(tagName) {}
 
 bool TagMatchRuleTest::test(const BlockState& state, math::Random& random) const {

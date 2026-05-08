@@ -48,7 +48,7 @@ public:
     /**
      * @brief 获取条件类型标识
      */
-    [[nodiscard]] virtual String getType() const = 0;
+    [[nodiscard]] virtual std::string getType() const = 0;
 };
 
 /**
@@ -67,7 +67,7 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
-    [[nodiscard]] String getType() const override { return "silk_touch"; }
+    [[nodiscard]] std::string getType() const override { return "silk_touch"; }
 };
 
 /**
@@ -89,7 +89,7 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
-    [[nodiscard]] String getType() const override { return "fortune"; }
+    [[nodiscard]] std::string getType() const override { return "fortune"; }
 
     /**
      * @brief 获取时运等级
@@ -141,7 +141,7 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
-    [[nodiscard]] String getType() const override { return "random_chance"; }
+    [[nodiscard]] std::string getType() const override { return "random_chance"; }
 
     [[nodiscard]] f32 getChance() const { return m_chance; }
     [[nodiscard]] bool isAffectedByLuck() const { return m_affectedByLuck; }
@@ -170,7 +170,7 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
-    [[nodiscard]] String getType() const override { return "random_chance_with_luck"; }
+    [[nodiscard]] std::string getType() const override { return "random_chance_with_luck"; }
 
     [[nodiscard]] f32 getBaseChance() const { return m_baseChance; }
     [[nodiscard]] f32 getLuckCoefficient() const { return m_luckCoefficient; }
@@ -199,7 +199,7 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
-    [[nodiscard]] String getType() const override { return "inverted"; }
+    [[nodiscard]] std::string getType() const override { return "inverted"; }
 
     [[nodiscard]] const LootCondition* getInnerCondition() const { return m_condition.get(); }
 
@@ -220,7 +220,7 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
-    [[nodiscard]] String getType() const override { return "alternative"; }
+    [[nodiscard]] std::string getType() const override { return "alternative"; }
 
     void addCondition(std::unique_ptr<LootCondition> condition);
     [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const { return m_conditions; }
@@ -242,7 +242,7 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
-    [[nodiscard]] String getType() const override { return "or"; }
+    [[nodiscard]] std::string getType() const override { return "or"; }
 
     void addCondition(std::unique_ptr<LootCondition> condition);
     [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const { return m_conditions; }
@@ -263,16 +263,16 @@ public:
      * @brief 构造方块状态条件
      * @param blockId 方块ID（如 "minecraft:diamond_ore"）
      */
-    explicit BlockStateCondition(const String& blockId);
+    explicit BlockStateCondition(const std::string& blockId);
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
-    [[nodiscard]] String getType() const override { return "block_state_property"; }
+    [[nodiscard]] std::string getType() const override { return "block_state_property"; }
 
-    [[nodiscard]] const String& getBlockId() const { return m_blockId; }
+    [[nodiscard]] const std::string& getBlockId() const { return m_blockId; }
 
 private:
-    String m_blockId;
+    std::string m_blockId;
 };
 
 /**
@@ -291,7 +291,7 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
-    [[nodiscard]] String getType() const override { return "match_tool"; }
+    [[nodiscard]] std::string getType() const override { return "match_tool"; }
 
     [[nodiscard]] u8 getToolType() const { return m_toolType; }
 
@@ -364,7 +364,7 @@ public:
      * @brief 创建方块状态条件
      * @param blockId 方块ID
      */
-    [[nodiscard]] static std::unique_ptr<LootCondition> blockState(const String& blockId);
+    [[nodiscard]] static std::unique_ptr<LootCondition> blockState(const std::string& blockId);
 
     /**
      * @brief 创建工具类型条件

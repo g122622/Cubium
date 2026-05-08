@@ -119,7 +119,7 @@ std::unique_ptr<Template> TemplateManager::loadTemplate(const ResourceLocation& 
 }
 
 std::unique_ptr<Template> TemplateManager::createProceduralTemplate(
-    const String& name,
+    const std::string& name,
     i32 width,
     i32 height,
     i32 depth)

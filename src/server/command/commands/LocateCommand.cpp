@@ -25,7 +25,7 @@ void LocateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
             {},
             true));
 
-    auto structureArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto structureArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "structure",
         StringArgumentType::string());
     structureArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -45,11 +45,11 @@ i32 LocateCommand::locateStructure(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    const String structureName = context.getArgument<String>("structure");
+    const std::string structureName = context.getArgument<std::string>("structure");
     const Vector3d& playerPos = source.position();
 
     // 规范化结构名称
-    String normalizedName = normalizeStructureName(structureName);
+    std::string normalizedName = normalizeStructureName(structureName);
 
     BlockPos searchCenter(
         static_cast<BlockCoord>(playerPos.x),
@@ -73,16 +73,16 @@ i32 LocateCommand::locateStructure(CommandContext<ServerCommandSource>& context)
     return 1;
 }
 
-String LocateCommand::normalizeStructureName(const String& name)
+std::string LocateCommand::normalizeStructureName(const std::string& name)
 {
     // 移除 minecraft: 前缀
-    String normalized = name;
+    std::string normalized = name;
     if (normalized.find("minecraft:") == 0) {
         normalized = normalized.substr(10);
     }
 
     // 将常见别名转换为内部名称
-    static const std::unordered_map<String, String> aliases = {
+    static const std::unordered_map<std::string, std::string> aliases = {
         {"village", "village"},
         {"pillager_outpost", "pillager_outpost"},
         {"mansion", "mansion"},

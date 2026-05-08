@@ -47,7 +47,7 @@ public:
      */
     [[nodiscard]] bool isRunning() const { return m_isRunning; }
 
-    [[nodiscard]] String getTypeName() const override { return "TemptGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "TemptGoal"; }
 
 protected:
     /**

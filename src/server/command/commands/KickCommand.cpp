@@ -16,7 +16,7 @@
 namespace mc::command {
 namespace {
 
-inline constexpr StringView DEFAULT_KICK_REASON = "Kicked by an operator";
+inline constexpr std::string_view DEFAULT_KICK_REASON = "Kicked by an operator";
 
 } // namespace
 
@@ -42,7 +42,7 @@ void KickCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         return kickPlayers(ctx);
     });
 
-    auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "reason",
         StringArgumentType::greedyString());
     reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -69,9 +69,9 @@ i32 KickCommand::kickPlayers(CommandContext<ServerCommandSource>& context)
 
     const EntitySelector selector = context.getArgument<EntitySelector>("targets");
     const auto playerIds = support::resolvePlayerIds(source, selector);
-    const String reason = context.hasArgument("reason")
-        ? context.getArgument<String>("reason")
-        : String(DEFAULT_KICK_REASON);
+    const std::string reason = context.hasArgument("reason")
+        ? context.getArgument<std::string>("reason")
+        : std::string(DEFAULT_KICK_REASON);
 
     i32 kickedCount = 0;
     for (const PlayerId playerId : playerIds) {

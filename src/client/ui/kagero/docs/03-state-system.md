@@ -34,13 +34,13 @@ StateStore& store = StateStore::instance();
 
 // 设置值
 store.set<i32>("player.health", 100);
-store.set<String>("player.name", "Steve");
+store.set<std::string>("player.name", "Steve");
 store.set<f32>("settings.volume", 0.8f);
 store.set<bool>("ui.paused", false);
 
 // 获取值（带默认值）
 i32 health = store.get<i32>("player.health", 0);
-String name = store.get<String>("player.name", "Unknown");
+std::string name = store.get<std::string>("player.name", "Unknown");
 
 // 检查键是否存在
 bool exists = store.has("player.health");
@@ -52,7 +52,7 @@ store.remove("player.health");
 store.clear();
 
 // 获取所有键
-std::vector<String> keys = store.keys();
+std::vector<std::string> keys = store.keys();
 ```
 
 ### 订阅状态变化
@@ -90,7 +90,7 @@ store.dispatch(incrementHealth);
 
 ```cpp
 // 添加中间件
-store.addMiddleware([](const String& key, const std::any& value, StateStore& store) {
+store.addMiddleware([](const std::string& key, const std::any& value, StateStore& store) {
     // 记录状态变化
     std::cout << "State changed: " << key << std::endl;
 });
@@ -106,7 +106,7 @@ store.clearMiddlewares();
 store.batchUpdate([](StateStore& store) {
     store.set<i32>("player.health", 100);
     store.set<i32>("player.maxHealth", 100);
-    store.set<String>("player.name", "Alex");
+    store.set<std::string>("player.name", "Alex");
     // 所有订阅者在批量更新结束后才收到通知
 });
 ```
@@ -120,12 +120,12 @@ store.batchUpdate([](StateStore& store) {
 ```cpp
 // 创建响应式状态
 Reactive<i32> count(0);
-Reactive<String> name("Steve");
+Reactive<std::string> name("Steve");
 Reactive<bool> visible(true);
 
 // 获取值
 i32 value = count.get();
-const String& nameRef = name.get();
+const std::string& nameRef = name.get();
 
 // 设置值（自动通知观察者）
 count.set(10);
@@ -391,10 +391,10 @@ observer.clear();  // 清除所有观察
 延迟触发观察者，避免频繁更新：
 
 ```cpp
-Reactive<String> searchText("");
+Reactive<std::string> searchText("");
 
 // 300ms 延迟
-DebouncedObserver<String> observer(searchText, [](const String& text) {
+DebouncedObserver<std::string> observer(searchText, [](const std::string& text) {
     // 执行搜索
     performSearch(text);
 }, 300);
@@ -516,10 +516,10 @@ store.batchUpdate([](StateStore& store) {
 
 ```cpp
 // 搜索输入框
-Reactive<String> searchText;
-DebouncedObserver<String> searchObserver(
+Reactive<std::string> searchText;
+DebouncedObserver<std::string> searchObserver(
     searchText, 
-    [](const String& text) { performSearch(text); },
+    [](const std::string& text) { performSearch(text); },
     300  // 300ms 延迟
 );
 

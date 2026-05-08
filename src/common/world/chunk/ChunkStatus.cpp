@@ -209,7 +209,7 @@ std::vector<i32> computeRangeByStatus() {
 // ============================================================================
 
 ChunkStatus::ChunkStatus(
-    const String& name,
+    const std::string& name,
     i32 ordinal,
     const ChunkStatus* parent,
     i32 taskRange,
@@ -249,7 +249,7 @@ const std::vector<ChunkStatus>& ChunkStatus::getAll()
     return allStatuses;
 }
 
-const ChunkStatus* ChunkStatus::byName(const String& name)
+const ChunkStatus* ChunkStatus::byName(const std::string& name)
 {
     const auto& all = getAll();
     for (const auto& status : all) {

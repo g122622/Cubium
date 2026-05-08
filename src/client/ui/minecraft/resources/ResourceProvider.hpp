@@ -33,7 +33,7 @@ public:
      * @brief 加载GUI纹理图集
      * @param path 资源路径
      */
-    void loadGuiTextureAtlas(const String& path);
+    void loadGuiTextureAtlas(const std::string& path);
 
     /**
      * @brief 获取纹理图集（可变）

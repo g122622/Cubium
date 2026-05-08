@@ -11,15 +11,15 @@ BlockParticleData::BlockParticleData(ParticleTypeId type, BlockState blockState)
                   "BlockParticleData requires a block-type particle");
 }
 
-String BlockParticleData::getTypeName() const {
+std::string BlockParticleData::getTypeName() const {
     return ParticleRegistry::instance().getTypeName(m_type);
 }
 
-String BlockParticleData::getParameters() const {
+std::string BlockParticleData::getParameters() const {
     // 方块粒子参数格式: block_state
     // 例如: minecraft:stone
-    String result = m_blockState.blockLocation().toString();
-    const String modelKey = m_blockState.toModelKey();
+    std::string result = m_blockState.blockLocation().toString();
+    const std::string modelKey = m_blockState.toModelKey();
     if (!modelKey.empty()) {
         result += "[";
         result += modelKey;

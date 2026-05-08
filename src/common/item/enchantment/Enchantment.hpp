@@ -77,14 +77,14 @@ public:
      * @brief 获取附魔ID
      * @return 附魔ID（如 "minecraft:fortune"）
      */
-    [[nodiscard]] virtual String id() const = 0;
+    [[nodiscard]] virtual std::string id() const = 0;
 
     /**
      * @brief 获取附魔显示名称
      * @param level 附魔等级
      * @return 本地化名称键（如 "enchantment.minecraft.fortune"）
      */
-    [[nodiscard]] virtual String getNameKey(i32 level = 1) const;
+    [[nodiscard]] virtual std::string getNameKey(i32 level = 1) const;
 
     // ========== 等级 ==========
 

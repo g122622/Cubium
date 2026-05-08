@@ -24,7 +24,7 @@ class PlayerManager;
 struct ContainerClickResult {
     bool success = false;
     ItemStack cursorItem;
-    String message;
+    std::string message;
 };
 
 /**
@@ -127,7 +127,7 @@ public:
     /**
      * @brief 设置容器打开回调
      */
-    void setOnContainerOpen(std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const String&, i32)> callback);
+    void setOnContainerOpen(std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const std::string&, i32)> callback);
 
     /**
      * @brief 设置容器关闭回调
@@ -154,7 +154,7 @@ private:
     std::unordered_map<PlayerId, mc::ContainerId> m_nextContainerIds;
 
     std::function<ContainerMenuCreateResult(mc::ContainerId, mc::ContainerType, const BlockPos&, PlayerInventory*)> m_menuFactory;
-    std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const String&, i32)> m_onContainerOpen;
+    std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const std::string&, i32)> m_onContainerOpen;
     std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const BlockPos&)> m_onContainerClose;
     std::function<void(PlayerId, const AbstractContainerMenu&)> m_onContainerUpdate;
 };

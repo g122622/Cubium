@@ -258,7 +258,7 @@ class MineshaftStructure : public Structure {
 public:
     explicit MineshaftStructure(MineshaftType type = MineshaftType::Normal);
 
-    [[nodiscard]] const String& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
@@ -293,7 +293,7 @@ public:
 private:
     // MC 1.16.5: spacing=1, separation=0, salt=0 (每个区块都可能生成)
     static constexpr StructureSeparationSettings m_settings{1, 0, 0};
-    static const String m_name;
+    static const std::string m_name;
     static const std::vector<BiomeId> m_validBiomes;
     static const std::vector<BiomeId> m_mesaBiomes;
 

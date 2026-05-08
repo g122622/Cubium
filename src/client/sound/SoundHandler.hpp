@@ -20,7 +20,7 @@ using ::mc::sound::DEFAULT_ATTENUATION_DISTANCE;
 struct SoundLoadProgress {
     size_t totalPacks = 0;      ///< 总资源包数量
     size_t currentPack = 0;     ///< 当前处理的资源包索引
-    String currentPackName;     ///< 当前资源包名称
+    std::string currentPackName;     ///< 当前资源包名称
     size_t totalEvents = 0;     ///< 总声音事件数量
     size_t loadedEvents = 0;    ///< 已加载的声音事件数量
 };
@@ -231,7 +231,7 @@ private:
      */
     [[nodiscard]] Result<size_t> loadSoundsJson(
         const IResourcePack& pack,
-        StringView namespace_
+        std::string_view namespace_
     );
 
     /**
@@ -242,8 +242,8 @@ private:
      * @return 解析的声音事件数量，或错误
      */
     [[nodiscard]] Result<size_t> parseSoundsJson(
-        StringView content,
-        StringView namespace_
+        std::string_view content,
+        std::string_view namespace_
     );
 
     /**

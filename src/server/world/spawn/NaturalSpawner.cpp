@@ -115,7 +115,7 @@ bool EntityDensityManager::canSpawn(entity::EntityClassification classification)
     return currentCount < adjustedMax;
 }
 
-bool EntityDensityManager::canSpawnWithDensity(const String& entityTypeId,
+bool EntityDensityManager::canSpawnWithDensity(const std::string& entityTypeId,
                                                 const Vector3& pos,
                                                 const SpawnCosts& spawnCosts) const {
     if (!spawnCosts.isValid()) {
@@ -127,7 +127,7 @@ bool EntityDensityManager::canSpawnWithDensity(const String& entityTypeId,
     return currentDensity < spawnCosts.energyBudget;
 }
 
-void EntityDensityManager::onSpawn(const String& entityTypeId,
+void EntityDensityManager::onSpawn(const std::string& entityTypeId,
                                     const Vector3& pos,
                                     const SpawnCosts& spawnCosts) {
     if (spawnCosts.isValid()) {

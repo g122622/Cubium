@@ -5,7 +5,7 @@
 
 using namespace mc::network;
 using namespace mc::text;
-using mc::String;
+using mc::std::string;
 using mc::i32;
 using mc::u8;
 using mc::u16;
@@ -18,7 +18,7 @@ protected:
         testText = R"({"text":"Hello World","color":"red"})";
     }
 
-    String testText;
+    std::string testText;
 };
 
 TEST_F(TitlePacketTest, DefaultConstruction) {
@@ -49,7 +49,7 @@ TEST_F(TitlePacketTest, CreateTitleFromComponent) {
     EXPECT_EQ(packet.action(), TitleAction::Title);
     EXPECT_TRUE(packet.text().has_value());
     // 验证JSON包含正确的文本
-    EXPECT_TRUE(packet.text()->find("Hello World") != String::npos);
+    EXPECT_TRUE(packet.text()->find("Hello World") != std::string::npos);
 }
 
 TEST_F(TitlePacketTest, CreateSubtitle) {
@@ -66,7 +66,7 @@ TEST_F(TitlePacketTest, CreateSubtitleFromComponent) {
 
     EXPECT_EQ(packet.action(), TitleAction::Subtitle);
     EXPECT_TRUE(packet.text().has_value());
-    EXPECT_TRUE(packet.text()->find("Subtitle Text") != String::npos);
+    EXPECT_TRUE(packet.text()->find("Subtitle Text") != std::string::npos);
 }
 
 TEST_F(TitlePacketTest, CreateActionbar) {
@@ -83,7 +83,7 @@ TEST_F(TitlePacketTest, CreateActionbarFromComponent) {
 
     EXPECT_EQ(packet.action(), TitleAction::Actionbar);
     EXPECT_TRUE(packet.text().has_value());
-    EXPECT_TRUE(packet.text()->find("Action Bar") != String::npos);
+    EXPECT_TRUE(packet.text()->find("Action Bar") != std::string::npos);
 }
 
 TEST_F(TitlePacketTest, CreateTimes) {
@@ -138,7 +138,7 @@ protected:
         testText = R"({"text":"Test Title","bold":true})";
     }
 
-    String testText;
+    std::string testText;
 };
 
 TEST_F(TitlePacketSerializeTest, SerializeDeserializeTitle) {
@@ -255,7 +255,7 @@ TEST_F(TitlePacketSerializeTest, SerializeDeserializeEmptyText) {
 
 TEST_F(TitlePacketSerializeTest, SerializeDeserializeLongText) {
     // 构造一个长JSON文本
-    String longText = R"({"text":")";
+    std::string longText = R"({"text":")";
     for (int i = 0; i < 100; ++i) {
         longText += "A";
     }
@@ -347,7 +347,7 @@ TEST(TitlePacketComponentTest, CreateFromSimpleText) {
 
     EXPECT_EQ(packet.action(), TitleAction::Title);
     EXPECT_TRUE(packet.text().has_value());
-    EXPECT_TRUE(packet.text()->find("Simple Text") != String::npos);
+    EXPECT_TRUE(packet.text()->find("Simple Text") != std::string::npos);
 }
 
 TEST(TitlePacketComponentTest, CreateFromStyledText) {
@@ -362,9 +362,9 @@ TEST(TitlePacketComponentTest, CreateFromStyledText) {
 
     EXPECT_TRUE(packet.text().has_value());
     // 验证JSON包含样式信息
-    EXPECT_TRUE(packet.text()->find("gold") != String::npos);
-    EXPECT_TRUE(packet.text()->find("bold") != String::npos);
-    EXPECT_TRUE(packet.text()->find("italic") != String::npos);
+    EXPECT_TRUE(packet.text()->find("gold") != std::string::npos);
+    EXPECT_TRUE(packet.text()->find("bold") != std::string::npos);
+    EXPECT_TRUE(packet.text()->find("italic") != std::string::npos);
 }
 
 TEST(TitlePacketComponentTest, CreateFromNestedText) {
@@ -383,8 +383,8 @@ TEST(TitlePacketComponentTest, CreateFromNestedText) {
 
     EXPECT_TRUE(packet.text().has_value());
     // 验证JSON包含嵌套组件
-    EXPECT_TRUE(packet.text()->find("Main") != String::npos);
-    EXPECT_TRUE(packet.text()->find("Extra") != String::npos);
+    EXPECT_TRUE(packet.text()->find("Main") != std::string::npos);
+    EXPECT_TRUE(packet.text()->find("Extra") != std::string::npos);
 }
 
 // ==================== TitlePacket 所有动作类型测试 ====================
@@ -478,7 +478,7 @@ TEST(TitlePacketPerfTest, AllActionTypesPerformance) {
 
 TEST(TitlePacketCommandTest, SimulateTitleCommand) {
     // 模拟 /title @a title {"text":"Welcome","color":"yellow"}
-    String jsonText = R"({"text":"Welcome","color":"yellow"})";
+    std::string jsonText = R"({"text":"Welcome","color":"yellow"})";
     auto packet = TitlePacket::createTitle(jsonText);
 
     EXPECT_EQ(packet.action(), TitleAction::Title);
@@ -530,7 +530,7 @@ TEST(TitlePacketCommandTest, SimulateResetCommand) {
 
 TEST(TitlePacketCommandTest, SimulateSubtitleCommand) {
     // 模拟 /title @a subtitle {"text":"A Subtitle","color":"gray"}
-    String jsonText = R"({"text":"A Subtitle","color":"gray"})";
+    std::string jsonText = R"({"text":"A Subtitle","color":"gray"})";
     auto packet = TitlePacket::createSubtitle(jsonText);
 
     EXPECT_EQ(packet.action(), TitleAction::Subtitle);
@@ -542,7 +542,7 @@ TEST(TitlePacketCommandTest, SimulateSubtitleCommand) {
 
 TEST(TitlePacketCommandTest, SimulateActionbarCommand) {
     // 模拟 /title @a actionbar {"text":"Action Bar Message"}
-    String jsonText = R"({"text":"Action Bar Message"})";
+    std::string jsonText = R"({"text":"Action Bar Message"})";
     auto packet = TitlePacket::createActionbar(jsonText);
 
     EXPECT_EQ(packet.action(), TitleAction::Actionbar);
@@ -556,7 +556,7 @@ TEST(TitlePacketCommandTest, SimulateActionbarCommand) {
 
 TEST(TitlePacketSpecialCharTest, UnicodeCharacters) {
     // 测试 Unicode 字符（中文、日文、表情符号等）
-    String unicodeText = R"({"text":"你好世界 🌍 Привет мир"})";
+    std::string unicodeText = R"({"text":"你好世界 🌍 Привет мир"})";
     auto packet = TitlePacket::createTitle(unicodeText);
 
     EXPECT_EQ(packet.action(), TitleAction::Title);
@@ -574,7 +574,7 @@ TEST(TitlePacketSpecialCharTest, UnicodeCharacters) {
 
 TEST(TitlePacketSpecialCharTest, JsonEscapeSequences) {
     // 测试 JSON 转义序列
-    String escapedText = R"({"text":"Line1\nLine2\tTabbed\"Quoted\""})";
+    std::string escapedText = R"({"text":"Line1\nLine2\tTabbed\"Quoted\""})";
     auto packet = TitlePacket::createTitle(escapedText);
 
     EXPECT_EQ(packet.action(), TitleAction::Title);
@@ -590,7 +590,7 @@ TEST(TitlePacketSpecialCharTest, JsonEscapeSequences) {
 
 TEST(TitlePacketSpecialCharTest, MinecraftFormattingCodes) {
     // 测试 Minecraft 格式代码（§ 符号）
-    String mcText = R"({"text":"§cRed Text §lBold§r Reset"})";
+    std::string mcText = R"({"text":"§cRed Text §lBold§r Reset"})";
     auto packet = TitlePacket::createTitle(mcText);
 
     EXPECT_EQ(packet.action(), TitleAction::Title);
@@ -606,7 +606,7 @@ TEST(TitlePacketSpecialCharTest, MinecraftFormattingCodes) {
 
 TEST(TitlePacketSpecialCharTest, ComplexJsonWithMultipleComponents) {
     // 测试复杂的 JSON 文本组件（带 extra 数组）
-    String complexText = R"({"text":"Main","color":"red","extra":[{"text":" ","color":"white"},{"text":"Extra","color":"gold","bold":true}]})";
+    std::string complexText = R"({"text":"Main","color":"red","extra":[{"text":" ","color":"white"},{"text":"Extra","color":"gold","bold":true}]})";
     auto packet = TitlePacket::createTitle(complexText);
 
     EXPECT_EQ(packet.action(), TitleAction::Title);
@@ -622,7 +622,7 @@ TEST(TitlePacketSpecialCharTest, ComplexJsonWithMultipleComponents) {
 
 TEST(TitlePacketSpecialCharTest, SpecialMinecraftText) {
     // 测试 Minecraft 特殊文本（如翻译键、记分板、选择器）
-    String specialText = R"({"translate":"death.attack.player","with":["Player1","Player2"]})";
+    std::string specialText = R"({"translate":"death.attack.player","with":["Player1","Player2"]})";
     auto packet = TitlePacket::createTitle(specialText);
 
     EXPECT_EQ(packet.action(), TitleAction::Title);

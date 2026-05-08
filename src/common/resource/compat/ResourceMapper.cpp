@@ -9,7 +9,7 @@ namespace compat {
 
 bool BaseResourceMapper::hasResourceVariant(
     const IResourcePack& pack,
-    StringView unifiedPath) const
+    std::string_view unifiedPath) const
 {
     // 先尝试纹理路径
     auto texPaths = getTexturePathVariants(unifiedPath);
@@ -28,13 +28,13 @@ bool BaseResourceMapper::hasResourceVariant(
     }
 
     // 尝试原样
-    String filePath = ResourceLocation(unifiedPath).toFilePath();
+    std::string filePath = ResourceLocation(unifiedPath).toFilePath();
     return pack.hasResource(filePath);
 }
 
 Result<std::vector<u8>> BaseResourceMapper::readResourceVariant(
     const IResourcePack& pack,
-    StringView unifiedPath) const
+    std::string_view unifiedPath) const
 {
     // 先尝试纹理路径
     auto texPaths = getTexturePathVariants(unifiedPath);
@@ -51,18 +51,18 @@ Result<std::vector<u8>> BaseResourceMapper::readResourceVariant(
     }
 
     // 尝试原样
-    String filePath = ResourceLocation(unifiedPath).toFilePath();
+    std::string filePath = ResourceLocation(unifiedPath).toFilePath();
     if (pack.hasResource(filePath)) {
         return pack.readResource(filePath);
     }
 
     return Error(ErrorCode::ResourceNotFound,
-                 "未找到资源: " + String(unifiedPath));
+                 "未找到资源: " + std::string(unifiedPath));
 }
 
 Result<std::vector<u8>> BaseResourceMapper::tryReadFromPaths(
     const IResourcePack& pack,
-    const std::vector<String>& paths) const
+    const std::vector<std::string>& paths) const
 {
     for (const auto& path : paths) {
         if (pack.hasResource(path)) {

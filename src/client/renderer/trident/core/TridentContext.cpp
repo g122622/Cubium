@@ -176,7 +176,7 @@ Result<void> TridentContext::createInstanceOnly(const TridentConfig& config) {
     // 验证层
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     if (m_validationEnabled && !config.requiredLayers.empty()) {
-        // 需要转换 String vector 到 const char* 数组
+        // 需要转换 std::string vector 到 const char* 数组
         std::vector<const char*> layers;
         layers.reserve(config.requiredLayers.size());
         for (const auto& layer : config.requiredLayers) {
@@ -562,7 +562,7 @@ bool TridentContext::checkDeviceExtensionSupport(VkPhysicalDevice device) {
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-    std::set<String> requiredExtensions(m_config.requiredDeviceExtensions.begin(),
+    std::set<std::string> requiredExtensions(m_config.requiredDeviceExtensions.begin(),
                                          m_config.requiredDeviceExtensions.end());
 
     for (const auto& extension : availableExtensions) {

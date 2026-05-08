@@ -167,11 +167,11 @@ public:
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
 
-    const String& reason() const { return m_reason; }
-    void setReason(const String& reason) { m_reason = reason; }
+    const std::string& reason() const { return m_reason; }
+    void setReason(const std::string& reason) { m_reason = reason; }
 
 private:
-    String m_reason;
+    std::string m_reason;
 };
 
 // 辅助函数

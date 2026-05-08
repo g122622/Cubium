@@ -7,7 +7,7 @@
 
 namespace mc::client::ui::minecraft::targetinfo {
 
-TargetInfoSnapshot::TargetInfoSnapshot(TargetInfoKind kind, String title, std::vector<String> details, u32 accentColor)
+TargetInfoSnapshot::TargetInfoSnapshot(TargetInfoKind kind, std::string title, std::vector<std::string> details, u32 accentColor)
     : m_kind(kind)
     , m_title(std::move(title))
     , m_details(std::move(details))
@@ -16,7 +16,7 @@ TargetInfoSnapshot::TargetInfoSnapshot(TargetInfoKind kind, String title, std::v
 }
 
 TargetInfoSnapshot TargetInfoSnapshot::none() {
-    return TargetInfoSnapshot(TargetInfoKind::None, String{}, {}, 0);
+    return TargetInfoSnapshot(TargetInfoKind::None, std::string{}, {}, 0);
 }
 
 namespace {
@@ -36,8 +36,8 @@ namespace {
 
 } // namespace
 
-String humanizeIdentifier(StringView identifier) {
-    String result;
+std::string humanizeIdentifier(std::string_view identifier) {
+    std::string result;
     result.reserve(identifier.size());
 
     bool capitalizeNext = true;
@@ -80,7 +80,7 @@ String humanizeIdentifier(StringView identifier) {
     return result;
 }
 
-String humanizeResourceLocation(const ResourceLocation& location) {
+std::string humanizeResourceLocation(const ResourceLocation& location) {
     if (!location.path().empty()) {
         return humanizeIdentifier(location.path());
     }
@@ -88,17 +88,17 @@ String humanizeResourceLocation(const ResourceLocation& location) {
     return humanizeIdentifier(location.namespace_());
 }
 
-String formatDistance(f32 distance) {
+std::string formatDistance(f32 distance) {
     std::ostringstream stream;
     stream << std::fixed << std::setprecision(2) << distance << " m";
     return stream.str();
 }
 
-String formatBlockPos(const BlockPos& pos) {
+std::string formatBlockPos(const BlockPos& pos) {
     return std::to_string(pos.x) + ", " + std::to_string(pos.y) + ", " + std::to_string(pos.z);
 }
 
-String formatDirection(Direction direction) {
+std::string formatDirection(Direction direction) {
     switch (direction) {
         case Direction::Down: return "Down";
         case Direction::Up: return "Up";

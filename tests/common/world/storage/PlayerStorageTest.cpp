@@ -557,9 +557,9 @@ TEST_F(PlayerDataManagerTest, FromServerPlayerDataConversion) {
 
 TEST_F(PlayerDataManagerTest, CallbackTest) {
     bool callbackCalled = false;
-    String savedUuid;
+    std::string savedUuid;
 
-    m_manager->setOnPlayerSaved([&](const String& uuid) {
+    m_manager->setOnPlayerSaved([&](const std::string& uuid) {
         callbackCalled = true;
         savedUuid = uuid;
     });

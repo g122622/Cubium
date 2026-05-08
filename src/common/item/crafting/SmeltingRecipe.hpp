@@ -33,7 +33,7 @@ public:
      */
     SmeltingRecipe(
         const ResourceLocation& id,
-        const String& group,
+        const std::string& group,
         const Ingredient& ingredient,
         const ItemStack& result,
         f32 experience,
@@ -48,7 +48,7 @@ public:
     [[nodiscard]] ItemStack assemble(const blockentity::FurnaceInventory& inventory) const override;
     [[nodiscard]] ItemStack getResultItem() const override { return m_result; }
     [[nodiscard]] const std::vector<Ingredient>& getIngredients() const override;
-    [[nodiscard]] const String& getGroup() const override { return m_group; }
+    [[nodiscard]] const std::string& getGroup() const override { return m_group; }
     [[nodiscard]] ResourceLocation getId() const override { return m_id; }
     [[nodiscard]] RecipeType getType() const override { return RecipeType::Smelting; }
 
@@ -90,7 +90,7 @@ public:
 
 protected:
     ResourceLocation m_id;
-    String m_group;
+    std::string m_group;
     Ingredient m_ingredient;
     ItemStack m_result;
     f32 m_experience;

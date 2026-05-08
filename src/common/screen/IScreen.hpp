@@ -129,7 +129,7 @@ public:
      * @brief 获取屏幕标题
      * @return 标题文本
      */
-    [[nodiscard]] virtual String getTitle() const { return ""; }
+    [[nodiscard]] virtual std::string getTitle() const { return ""; }
 
     /**
      * @brief 检查屏幕是否应该渲染背景

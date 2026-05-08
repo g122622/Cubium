@@ -32,7 +32,7 @@ void TellRawCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         EntityArgumentType::player()
     );
 
-    auto jsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto jsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "json",
         StringArgumentType::greedyString()
     );
@@ -56,7 +56,7 @@ i32 TellRawCommand::sendRawMessage(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    const String& jsonMessage = context.getArgument<String>("json");
+    const std::string& jsonMessage = context.getArgument<std::string>("json");
     auto* server = source.server();
     auto& playerManager = server->playerManager();
     i32 successCount = 0;

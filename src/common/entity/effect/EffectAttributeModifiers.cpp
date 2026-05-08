@@ -125,9 +125,9 @@ attribute::AttributeModifier createModifier(
     i32 amplifier
 ) {
     f64 amount = info.calculateAmount(amplifier);
-    String name = String("effect.") + getEffectName(EffectType::Speed) + "." + std::to_string(amplifier + 1);
+    std::string name = std::string("effect.") + getEffectName(EffectType::Speed) + "." + std::to_string(amplifier + 1);
     return attribute::AttributeModifier(
-        String(info.uuid),
+        std::string(info.uuid),
         name,
         amount,
         info.operation

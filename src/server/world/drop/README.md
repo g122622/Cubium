@@ -415,8 +415,8 @@ classDiagram
     class BlockDropHandler {
         <<static>>
         +generateDrops(IWorld, BlockPos, BlockState, Player, ItemStack, LootTableManager) vector~ItemStack~
-        +spawnDrops(ServerWorld, BlockPos, vector~ItemStack~, String) vector~EntityId~
-        +spawnDrops(EntityManager, PhysicsEngine, BlockPos, vector~ItemStack~, String) vector~EntityId~
+        +spawnDrops(ServerWorld, BlockPos, vector~ItemStack~, std::string) vector~EntityId~
+        +spawnDrops(EntityManager, PhysicsEngine, BlockPos, vector~ItemStack~, std::string) vector~EntityId~
         +canHarvestBlock(BlockState, Player, ItemStack) bool
         +getDefaultDrops(BlockState) vector~ItemStack~
         -buildLootContext(IWorld, BlockPos, BlockState, Player, ItemStack, Random) unique_ptr~LootContext~

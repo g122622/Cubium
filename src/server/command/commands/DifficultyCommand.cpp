@@ -82,12 +82,12 @@ i32 DifficultyCommand::setDifficulty(CommandContext<ServerCommandSource>& contex
 
     const Difficulty difficulty = context.getArgument<Difficulty>("difficulty");
     if (server->difficulty() == difficulty) {
-        source.sendMessage("Difficulty is already set to " + String(support::getDifficultyCommandName(difficulty)));
+        source.sendMessage("Difficulty is already set to " + std::string(support::getDifficultyCommandName(difficulty)));
         return 0;
     }
 
     server->setDifficulty(difficulty);
-    source.sendMessage("Set difficulty to " + String(support::getDifficultyCommandName(difficulty)));
+    source.sendMessage("Set difficulty to " + std::string(support::getDifficultyCommandName(difficulty)));
     return 1;
 }
 

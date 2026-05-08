@@ -15,7 +15,7 @@ namespace enchant {
 // EnchantmentHelper 实现
 // ============================================================================
 
-i32 EnchantmentHelper::getEnchantmentLevel(const ItemStack& stack, const String& enchantmentId) {
+i32 EnchantmentHelper::getEnchantmentLevel(const ItemStack& stack, const std::string& enchantmentId) {
     if (stack.isEmpty()) {
         return 0;
     }
@@ -29,7 +29,7 @@ i32 EnchantmentHelper::getEnchantmentLevel(const ItemStack& stack, const Enchant
     return getEnchantmentLevel(stack, enchantment->id());
 }
 
-bool EnchantmentHelper::hasEnchantment(const ItemStack& stack, const String& enchantmentId) {
+bool EnchantmentHelper::hasEnchantment(const ItemStack& stack, const std::string& enchantmentId) {
     return getEnchantmentLevel(stack, enchantmentId) > 0;
 }
 

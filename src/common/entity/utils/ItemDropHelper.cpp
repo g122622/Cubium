@@ -107,7 +107,7 @@ ItemEntity* ItemDropHelper::spawnItemEntity(
     f64 x, f64 y, f64 z,
     math::Random& rng,
     i32 pickupDelay,
-    const String& ownerUuid)
+    const std::string& ownerUuid)
 {
     if (world == nullptr || stack.isEmpty()) {
         return nullptr;
@@ -129,7 +129,7 @@ ItemEntity* ItemDropHelper::spawnItemEntity(
     f64 x, f64 y, f64 z,
     f32 vx, f32 vy, f32 vz,
     i32 pickupDelay,
-    const String& ownerUuid)
+    const std::string& ownerUuid)
 {
     if (world == nullptr || stack.isEmpty()) {
         return nullptr;
@@ -192,7 +192,7 @@ std::vector<EntityId> ItemDropHelper::spawnItemEntities(
     const BlockPos& pos,
     const std::vector<ItemStack>& drops,
     math::Random& rng,
-    const String& throwerUuid)
+    const std::string& throwerUuid)
 {
     std::vector<EntityId> spawnedEntities;
 

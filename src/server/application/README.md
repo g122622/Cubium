@@ -118,7 +118,7 @@ src/server/application/
 
 ```cpp
 struct IntegratedServerConfig {
-    String worldName = "singleplayer";
+    std::string worldName = "singleplayer";
     i64 seed = 0;
     GameMode defaultGameMode = GameMode::Survival;
     i32 viewDistance = 6;
@@ -164,11 +164,11 @@ struct IntegratedServerConfig {
 ```cpp
 struct StandaloneServerParams {
     std::optional<u16> port;
-    std::optional<String> bindAddress;
+    std::optional<std::string> bindAddress;
     std::optional<u32> maxPlayers;
-    std::optional<String> worldName;
+    std::optional<std::string> worldName;
     std::optional<i64> seed;
-    std::optional<String> settingsPath;
+    std::optional<std::string> settingsPath;
 };
 ```
 

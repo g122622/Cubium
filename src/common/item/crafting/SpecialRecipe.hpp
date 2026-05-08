@@ -79,8 +79,8 @@ public:
      * @brief 获取配方分组
      * @return 空字符串（特殊配方不使用分组）
      */
-    [[nodiscard]] const String& getGroup() const override {
-        static const String empty;
+    [[nodiscard]] const std::string& getGroup() const override {
+        static const std::string empty;
         return empty;
     }
 

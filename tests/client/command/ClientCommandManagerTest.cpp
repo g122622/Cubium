@@ -68,7 +68,7 @@ TEST(ClientCommandManagerTest, CommandTreePacketRoundTrip) {
         static_cast<u16>(serialized[1]));
     EXPECT_EQ(encodedLength, json.size());
 
-    const String encodedJson(reinterpret_cast<const char*>(serialized.data() + sizeof(u16)), encodedLength);
+    const std::string encodedJson(reinterpret_cast<const char*>(serialized.data() + sizeof(u16)), encodedLength);
     EXPECT_EQ(encodedJson, json);
 
     CommandTreePacket decodedPacket;
@@ -80,7 +80,7 @@ TEST(ClientCommandManagerTest, CommandTreePacketRoundTrip) {
 TEST(ClientCommandManagerTest, AppliesTreeAndBuildsSuggestions) {
     ClientCommandManager manager;
     manager.setPlayerNameProvider([]() {
-        return std::vector<String>{"Steve", "Alex"};
+        return std::vector<std::string>{"Steve", "Alex"};
     });
 
     const auto snapshot = buildSnapshot();

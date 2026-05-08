@@ -4,7 +4,7 @@
 
 namespace mc::client {
 
-ClientEntity* ClientEntityManager::spawnEntity(EntityId id, const String& typeId) {
+ClientEntity* ClientEntityManager::spawnEntity(EntityId id, const std::string& typeId) {
     // 检查是否已存在
     if (m_entities.find(id) != m_entities.end()) {
         return nullptr;
@@ -23,7 +23,7 @@ ClientEntity* ClientEntityManager::spawnEntity(EntityId id, const String& typeId
     return ptr;
 }
 
-ClientEntity* ClientEntityManager::spawnLocalPlayer(EntityId entityId, PlayerId playerId, const String& username) {
+ClientEntity* ClientEntityManager::spawnLocalPlayer(EntityId entityId, PlayerId playerId, const std::string& username) {
     // 如果已有本地玩家，先清除
     if (m_localPlayerEntityId != INVALID_ENTITY_ID) {
         m_entities.erase(m_localPlayerEntityId);
@@ -160,7 +160,7 @@ void ClientEntityManager::removeDeadEntities() {
     m_entitiesToRemove.clear();
 }
 
-std::vector<EntityId> ClientEntityManager::getEntitiesByType(const String& typeId) const {
+std::vector<EntityId> ClientEntityManager::getEntitiesByType(const std::string& typeId) const {
     std::vector<EntityId> result;
     for (const auto& [id, entity] : m_entities) {
         if (entity && entity->isAlive() && entity->typeId() == typeId) {

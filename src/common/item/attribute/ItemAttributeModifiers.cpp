@@ -8,8 +8,8 @@ namespace mc {
 namespace item {
 
 namespace {
-    // 将 u64 转换为 String UUID
-    String uuidToString(u64 uuid) {
+    // 将 u64 转换为 std::string UUID
+    std::string uuidToString(u64 uuid) {
         std::stringstream ss;
         ss << std::hex << uuid;
         return ss.str();
@@ -32,7 +32,7 @@ std::vector<ItemAttributeModifiers::Entry> ItemAttributeModifiers::getModifiersF
     return result;
 }
 
-u64 ItemAttributeModifiers::generateModifierUUID(u32 itemId, const String& attributeId) {
+u64 ItemAttributeModifiers::generateModifierUUID(u32 itemId, const std::string& attributeId) {
     // 使用简单的哈希生成UUID
     u64 hash = static_cast<u64>(itemId) * 31;
     for (char c : attributeId) {

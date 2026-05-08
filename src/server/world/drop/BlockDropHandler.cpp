@@ -47,7 +47,7 @@ std::vector<ItemStack> BlockDropHandler::generateDrops(
         auto context = buildLootContext(world, pos, state, player, tool, random);
         if (context) {
             // 设置掉落表解析器
-            context->setLootTableResolver([&lootTableManager](const String& id) -> const loot::LootTable* {
+            context->setLootTableResolver([&lootTableManager](const std::string& id) -> const loot::LootTable* {
                 return lootTableManager.getTable(id);
             });
 
@@ -65,7 +65,7 @@ std::vector<EntityId> BlockDropHandler::spawnDrops(
     server::ServerWorld& world,
     const BlockPos& pos,
     const std::vector<ItemStack>& drops,
-    const String& throwerUuid)
+    const std::string& throwerUuid)
 {
     std::vector<EntityId> spawnedEntities;
 
@@ -85,7 +85,7 @@ std::vector<EntityId> BlockDropHandler::spawnDrops(
     PhysicsEngine* physicsEngine,
     const BlockPos& pos,
     const std::vector<ItemStack>& drops,
-    const String& throwerUuid)
+    const std::string& throwerUuid)
 {
     std::vector<EntityId> spawnedEntities;
 

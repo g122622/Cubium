@@ -28,7 +28,7 @@ const BlockState* applyPropertiesToState(
     std::unordered_map<const IProperty*, size_t> wanted;
 
     for (const auto& [key, valueTag] : propsCompound.value) {
-        if (!valueTag || valueTag->id() != nbt::TagId::String) {
+        if (!valueTag || valueTag->id() != nbt::TagId::std::string) {
             continue;
         }
 
@@ -37,7 +37,7 @@ const BlockState* applyPropertiesToState(
             continue;
         }
 
-        const String& value = dynamic_cast<const nbt::StringTag&>(*valueTag).value;
+        const std::string& value = dynamic_cast<const nbt::StringTag&>(*valueTag).value;
         auto parsedValue = prop->parseValue(value);
         if (!parsedValue) {
             continue;

@@ -41,8 +41,8 @@ enum class PacketHandleResult {
 struct LoginResult {
     bool success = false;
     PlayerId playerId = 0;
-    String username;
-    String message;
+    std::string username;
+    std::string message;
 };
 
 /**
@@ -65,16 +65,16 @@ struct LoginResult {
 class PacketHandler {
 public:
     /// 登录成功回调类型
-    using LoginCallback = std::function<void(PlayerId, const String&)>;
+    using LoginCallback = std::function<void(PlayerId, const std::string&)>;
 
     /// 登录失败回调类型
-    using LoginFailCallback = std::function<void(u32, const String&)>;
+    using LoginFailCallback = std::function<void(u32, const std::string&)>;
 
     /// 断开连接回调类型
-    using DisconnectCallback = std::function<void(PlayerId, const String&)>;
+    using DisconnectCallback = std::function<void(PlayerId, const std::string&)>;
 
     /// 聊天消息回调类型
-    using ChatCallback = std::function<void(PlayerId, const String&, const String&)>;
+    using ChatCallback = std::function<void(PlayerId, const std::string&, const std::string&)>;
 
     /**
      * @brief 构造数据包处理器

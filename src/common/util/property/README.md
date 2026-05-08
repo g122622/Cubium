@@ -32,10 +32,10 @@ src/common/util/property/
 **核心方法**:
 ```cpp
 class IProperty {
-    virtual const String& name() const = 0;           // 属性名称
+    virtual const std::string& name() const = 0;           // 属性名称
     virtual size_t valueCount() const = 0;            // 允许值的数量
-    virtual String valueToString(size_t index) const; // 值索引转字符串
-    virtual std::optional<size_t> parseValue(StringView);  // 字符串解析为索引
+    virtual std::string valueToString(size_t index) const; // 值索引转字符串
+    virtual std::optional<size_t> parseValue(std::string_view);  // 字符串解析为索引
     virtual size_t hashCode() const = 0;              // 哈希值
     virtual bool equals(const IProperty&) const = 0;  // 相等比较
     virtual const char* typeName() const = 0;         // 类型名称
@@ -60,8 +60,8 @@ class Property : public IProperty {
     const std::vector<T>& allowedValues() const;  // 获取所有允许值
     std::optional<size_t> indexOf(const T& value) const; // 查找值索引
     ValueReturnType valueAt(size_t index) const;   // 获取索引处的值
-    virtual String valueToString(const T&) const;  // 值转字符串
-    virtual std::optional<T> parse(StringView) const;   // 字符串解析为值
+    virtual std::string valueToString(const T&) const;  // 值转字符串
+    virtual std::optional<T> parse(std::string_view) const;   // 字符串解析为值
 };
 ```
 
@@ -126,8 +126,8 @@ const BlockState& newState = state.with(*power, 10);
 // 为自定义枚举特化 Traits
 template<>
 struct EnumProperty<MyEnum>::Traits {
-    static String toString(const MyEnum& value) { ... }
-    static std::optional<MyEnum> fromName(StringView name) { ... }
+    static std::string toString(const MyEnum& value) { ... }
+    static std::optional<MyEnum> fromName(std::string_view name) { ... }
 };
 
 auto prop = EnumProperty<MyEnum>::create("my_enum", {MyEnum::A, MyEnum::B});
@@ -378,7 +378,7 @@ Property 模块实现了 Minecraft 的方块状态属性系统，用于：
 
 ```cpp
 // 核心类型
-#include "common/core/Types.hpp"        // String, StringView, Optional, i32, u32
+#include "common/core/Types.hpp"        // std::string, std::string_view, Optional, i32, u32
 #include "common/util/Direction.hpp"    // Direction, Axis, Directions, Axes
 
 // 标准库
@@ -450,7 +450,7 @@ if (state.hasProperty(BlockStateProperties::LIT())) {
 u32 id = state.stateId();
 
 // 转换为字符串
-String str = state.toString();  // "minecraft:torch[lit=true]"
+std::string str = state.toString();  // "minecraft:torch[lit=true]"
 ```
 
 ---

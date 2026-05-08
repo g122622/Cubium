@@ -66,14 +66,14 @@ public:
         i32 start = reader.getCursor();
 
         // 读取物品名称
-        String str = reader.readString();
+        std::string str = reader.readString();
 
         // 解析命名空间
-        String namespace_;
-        String path;
+        std::string namespace_;
+        std::string path;
 
         size_t colonPos = str.find(':');
-        if (colonPos != String::npos) {
+        if (colonPos != std::string::npos) {
             namespace_ = str.substr(0, colonPos);
             path = str.substr(colonPos + 1);
         } else {
@@ -97,11 +97,11 @@ public:
         return ItemInput(item->itemId());
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         return "item";
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
         return {"minecraft:stone", "stone", "minecraft:diamond_sword", "diamond_sword"};
     }
 
@@ -114,7 +114,7 @@ public:
     // ========== 静态获取方法 ==========
 
     template<typename S>
-    static ItemInput getItem(CommandContext<S>& context, const String& name) {
+    static ItemInput getItem(CommandContext<S>& context, const std::string& name) {
         return context.template getArgument<ItemInput>(name);
     }
 };
@@ -131,11 +131,11 @@ public:
         return ItemArgumentType().parse(reader);
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         return "item_predicate";
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
         return {"minecraft:stone", "stone", "#minecraft:logs"};
     }
 

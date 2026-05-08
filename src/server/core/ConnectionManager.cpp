@@ -51,7 +51,7 @@ void ConnectionManager::broadcastPacketExcept(PlayerId excludePlayerId, network:
     broadcastExcept(excludePlayerId, packet.data(), packet.size());
 }
 
-void ConnectionManager::disconnectPlayer(PlayerId playerId, const String& reason) {
+void ConnectionManager::disconnectPlayer(PlayerId playerId, const std::string& reason) {
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) return;
 
@@ -69,9 +69,9 @@ void ConnectionManager::disconnectPlayer(PlayerId playerId, const String& reason
     m_playerManager.removePlayer(playerId);
 }
 
-void ConnectionManager::disconnectAll(const String& reason) {
+void ConnectionManager::disconnectAll(const std::string& reason) {
     // 先收集所有需要断开的连接，避免在遍历时修改
-    std::vector<std::pair<PlayerId, String>> toDisconnect;
+    std::vector<std::pair<PlayerId, std::string>> toDisconnect;
     m_playerManager.forEachPlayer([&](ServerPlayerData& player) {
         toDisconnect.emplace_back(player.playerId, player.username);
     });

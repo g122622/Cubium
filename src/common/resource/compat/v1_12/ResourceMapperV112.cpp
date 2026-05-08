@@ -11,19 +11,19 @@ ResourceMapperV112::ResourceMapperV112()
 {
 }
 
-String ResourceMapperV112::toUnifiedTexturePath(StringView path) const {
-    String result(path);
+std::string ResourceMapperV112::toUnifiedTexturePath(std::string_view path) const {
+    std::string result(path);
 
     // 将 textures/blocks/ 替换为 textures/block/
-    const String oldPrefix = "textures/blocks/";
-    const String newPrefix = "textures/block/";
+    const std::string oldPrefix = "textures/blocks/";
+    const std::string newPrefix = "textures/block/";
     if (result.find(oldPrefix) == 0) {
         result = newPrefix + result.substr(oldPrefix.length());
     }
 
     // 将 textures/items/ 替换为 textures/item/
-    const String oldItemPrefix = "textures/items/";
-    const String newItemPrefix = "textures/item/";
+    const std::string oldItemPrefix = "textures/items/";
+    const std::string newItemPrefix = "textures/item/";
     if (result.find(oldItemPrefix) == 0) {
         result = newItemPrefix + result.substr(oldItemPrefix.length());
     }
@@ -31,12 +31,12 @@ String ResourceMapperV112::toUnifiedTexturePath(StringView path) const {
     // 将旧版名称转换为现代名称
     size_t lastSlash = result.find_last_of("/\\");
     size_t dotPos = result.find_last_of('.');
-    if (lastSlash != String::npos && dotPos != String::npos && dotPos > lastSlash) {
-        String dirPath = result.substr(0, lastSlash + 1);
-        String baseName = result.substr(lastSlash + 1, dotPos - lastSlash - 1);
-        String ext = result.substr(dotPos);
+    if (lastSlash != std::string::npos && dotPos != std::string::npos && dotPos > lastSlash) {
+        std::string dirPath = result.substr(0, lastSlash + 1);
+        std::string baseName = result.substr(lastSlash + 1, dotPos - lastSlash - 1);
+        std::string ext = result.substr(dotPos);
 
-        String modernName = m_textureMapper.getModernName(baseName);
+        std::string modernName = m_textureMapper.getModernName(baseName);
         if (!modernName.empty()) {
             result = dirPath + modernName + ext;
         }
@@ -45,14 +45,14 @@ String ResourceMapperV112::toUnifiedTexturePath(StringView path) const {
     return result;
 }
 
-std::vector<String> ResourceMapperV112::getTexturePathVariants(StringView unifiedPath) const {
-    std::vector<String> variants;
+std::vector<std::string> ResourceMapperV112::getTexturePathVariants(std::string_view unifiedPath) const {
+    std::vector<std::string> variants;
 
     // 首先，将统一（现代）路径转换为旧版格式
-    String legacyPath = m_textureMapper.toLegacyPath(unifiedPath);
+    std::string legacyPath = m_textureMapper.toLegacyPath(unifiedPath);
 
     // 始终先尝试统一路径（现代格式）
-    variants.push_back(String(unifiedPath));
+    variants.push_back(std::string(unifiedPath));
 
     // 然后尝试旧版路径（如果无映射可能与原路径相同）
     if (legacyPath != unifiedPath) {
@@ -60,24 +60,24 @@ std::vector<String> ResourceMapperV112::getTexturePathVariants(StringView unifie
     }
 
     // 还要尝试 textures/blocks/ 前缀变体
-    const String modernPrefix = "textures/block/";
-    const String legacyPrefix = "textures/blocks/";
+    const std::string modernPrefix = "textures/block/";
+    const std::string legacyPrefix = "textures/blocks/";
 
-    if (unifiedPath.find(modernPrefix) != String::npos) {
+    if (unifiedPath.find(modernPrefix) != std::string::npos) {
         // 找到现代路径，添加旧版目录变体
-        String altPath = String(unifiedPath);
+        std::string altPath = std::string(unifiedPath);
         size_t pos = altPath.find(modernPrefix);
-        if (pos != String::npos) {
+        if (pos != std::string::npos) {
             altPath.replace(pos, modernPrefix.length(), legacyPrefix);
             if (std::find(variants.begin(), variants.end(), altPath) == variants.end()) {
                 variants.push_back(altPath);
             }
         }
-    } else if (unifiedPath.find(legacyPrefix) != String::npos) {
+    } else if (unifiedPath.find(legacyPrefix) != std::string::npos) {
         // 找到旧版路径，添加现代目录变体
-        String altPath = String(unifiedPath);
+        std::string altPath = std::string(unifiedPath);
         size_t pos = altPath.find(legacyPrefix);
-        if (pos != String::npos) {
+        if (pos != std::string::npos) {
             altPath.replace(pos, legacyPrefix.length(), modernPrefix);
             if (std::find(variants.begin(), variants.end(), altPath) == variants.end()) {
                 variants.push_back(altPath);
@@ -86,29 +86,29 @@ std::vector<String> ResourceMapperV112::getTexturePathVariants(StringView unifie
     }
 
     // 提取基本名称并尝试名称变体
-    String pathStr(unifiedPath);
+    std::string pathStr(unifiedPath);
     size_t lastSlash = pathStr.find_last_of("/\\");
     size_t dotPos = pathStr.find_last_of('.');
-    if (lastSlash != String::npos && dotPos != String::npos && dotPos > lastSlash) {
-        String dirPath = pathStr.substr(0, lastSlash + 1);
-        String baseName = pathStr.substr(lastSlash + 1, dotPos - lastSlash - 1);
-        String ext = pathStr.substr(dotPos);
+    if (lastSlash != std::string::npos && dotPos != std::string::npos && dotPos > lastSlash) {
+        std::string dirPath = pathStr.substr(0, lastSlash + 1);
+        std::string baseName = pathStr.substr(lastSlash + 1, dotPos - lastSlash - 1);
+        std::string ext = pathStr.substr(dotPos);
 
         auto nameVariants = m_textureMapper.getNameVariants(baseName);
         for (const auto& name : nameVariants) {
             if (name != baseName) {
                 // 添加相同目录的变体
-                String variantPath = dirPath + name + ext;
+                std::string variantPath = dirPath + name + ext;
                 if (std::find(variants.begin(), variants.end(), variantPath) == variants.end()) {
                     variants.push_back(variantPath);
                 }
 
                 // 添加交换目录的变体 (block <-> blocks)
-                if (dirPath.find(modernPrefix) != String::npos) {
-                    String legacyDir = dirPath;
+                if (dirPath.find(modernPrefix) != std::string::npos) {
+                    std::string legacyDir = dirPath;
                     size_t pos = legacyDir.find(modernPrefix);
                     legacyDir.replace(pos, modernPrefix.length(), legacyPrefix);
-                    String legacyVariant = legacyDir + name + ext;
+                    std::string legacyVariant = legacyDir + name + ext;
                     if (std::find(variants.begin(), variants.end(), legacyVariant) == variants.end()) {
                         variants.push_back(legacyVariant);
                     }
@@ -120,30 +120,30 @@ std::vector<String> ResourceMapperV112::getTexturePathVariants(StringView unifie
     return variants;
 }
 
-String ResourceMapperV112::toModernTextureName(StringView name) const {
+std::string ResourceMapperV112::toModernTextureName(std::string_view name) const {
     return m_textureMapper.getModernName(name);
 }
 
-String ResourceMapperV112::toLegacyTextureName(StringView name) const {
+std::string ResourceMapperV112::toLegacyTextureName(std::string_view name) const {
     return m_textureMapper.getLegacyName(name);
 }
 
-String ResourceMapperV112::toUnifiedModelPath(StringView path) const {
+std::string ResourceMapperV112::toUnifiedModelPath(std::string_view path) const {
     // 模型路径在 1.12 和 1.13+ 之间通常是一致的
     // 大多数模型不需要转换
-    return String(path);
+    return std::string(path);
 }
 
-std::vector<String> ResourceMapperV112::getModelPathVariants(StringView unifiedPath) const {
+std::vector<std::string> ResourceMapperV112::getModelPathVariants(std::string_view unifiedPath) const {
     // 模型路径通常相同
     // 只返回统一路径
-    return { String(unifiedPath) };
+    return { std::string(unifiedPath) };
 }
 
-String ResourceMapperV112::toUnifiedBlockStatePath(StringView path) const {
+std::string ResourceMapperV112::toUnifiedBlockStatePath(std::string_view path) const {
     // 方块状态路径是一致的
     // 注意: 方块 ID 在 1.13 中有变化（扁平化），但文件路径相似
-    return String(path);
+    return std::string(path);
 }
 
 } // namespace v1_12

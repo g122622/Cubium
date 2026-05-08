@@ -1107,11 +1107,11 @@ std::optional<ProcessedBlockInfo> JigsawReplacementStructureProcessor::process(
         return std::nullopt;
     }
 
-    if (it->second->id() != nbt::TagId::String) {
+    if (it->second->id() != nbt::TagId::std::string) {
         return std::nullopt;
     }
 
-    const String& finalStateStr = dynamic_cast<const nbt::StringTag&>(*it->second).value;
+    const std::string& finalStateStr = dynamic_cast<const nbt::StringTag&>(*it->second).value;
 
     // 解析 final_state 字符串
     // 格式: "minecraft:stone[properties]" 或 "minecraft:stone"
@@ -1135,21 +1135,21 @@ std::optional<ProcessedBlockInfo> JigsawReplacementStructureProcessor::process(
     return result;
 }
 
-u32 JigsawReplacementStructureProcessor::parseBlockStateString(const String& stateStr) {
+u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string& stateStr) {
     // 解析方块状态字符串
     // 格式: "minecraft:stone[axis=y,facing=north]" 或 "minecraft:stone"
 
     size_t bracketPos = stateStr.find('[');
-    String blockName;
-    std::unordered_map<String, String> properties;
+    std::string blockName;
+    std::unordered_map<std::string, std::string> properties;
 
-    if (bracketPos == String::npos) {
+    if (bracketPos == std::string::npos) {
         // 没有属性
         blockName = stateStr;
     } else {
         // 有属性
         blockName = stateStr.substr(0, bracketPos);
-        String propsStr = stateStr.substr(bracketPos + 1);
+        std::string propsStr = stateStr.substr(bracketPos + 1);
         if (!propsStr.empty() && propsStr.back() == ']') {
             propsStr.pop_back();
         }
@@ -1158,14 +1158,14 @@ u32 JigsawReplacementStructureProcessor::parseBlockStateString(const String& sta
         size_t start = 0;
         size_t end = propsStr.find(',');
         while (start < propsStr.size()) {
-            String prop = (end == String::npos) ? propsStr.substr(start) : propsStr.substr(start, end - start);
+            std::string prop = (end == std::string::npos) ? propsStr.substr(start) : propsStr.substr(start, end - start);
             size_t eqPos = prop.find('=');
-            if (eqPos != String::npos) {
-                String key = prop.substr(0, eqPos);
-                String value = prop.substr(eqPos + 1);
+            if (eqPos != std::string::npos) {
+                std::string key = prop.substr(0, eqPos);
+                std::string value = prop.substr(eqPos + 1);
                 properties[key] = value;
             }
-            if (end == String::npos) break;
+            if (end == std::string::npos) break;
             start = end + 1;
             end = propsStr.find(',', start);
         }
@@ -1703,7 +1703,7 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(
                 if (valueIndexIt != state->values().end()) {
                     // 尝试在目标方块上设置相同属性值
                     size_t sourceIndex = valueIndexIt->second;
-                    String valueStr = facingProp->valueToString(sourceIndex);
+                    std::string valueStr = facingProp->valueToString(sourceIndex);
                     auto parsedValue = targetFacingProp->parseValue(valueStr);
                     if (parsedValue) {
                         // 遍历目标方块的所有状态，找到具有目标属性值的状态
@@ -1726,7 +1726,7 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(
                 auto valueIndexIt = state->values().find(halfProp);
                 if (valueIndexIt != state->values().end()) {
                     size_t sourceIndex = valueIndexIt->second;
-                    String valueStr = halfProp->valueToString(sourceIndex);
+                    std::string valueStr = halfProp->valueToString(sourceIndex);
                     auto parsedValue = targetHalfProp->parseValue(valueStr);
                     if (parsedValue) {
                         for (const auto& candidate : targetContainer.validStates()) {
@@ -1757,7 +1757,7 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(
                 auto valueIndexIt = state->values().find(typeProp);
                 if (valueIndexIt != state->values().end()) {
                     size_t sourceIndex = valueIndexIt->second;
-                    String valueStr = typeProp->valueToString(sourceIndex);
+                    std::string valueStr = typeProp->valueToString(sourceIndex);
                     auto parsedValue = targetTypeProp->parseValue(valueStr);
                     if (parsedValue) {
                         for (const auto& candidate : targetContainer.validStates()) {

@@ -9,7 +9,7 @@ namespace support {
 
 namespace {
 
-const std::unordered_map<String, entity::effect::EffectType> s_effectNameMap = {
+const std::unordered_map<std::string, entity::effect::EffectType> s_effectNameMap = {
     {"speed", entity::effect::EffectType::Speed},
     {"slowness", entity::effect::EffectType::Slowness},
     {"haste", entity::effect::EffectType::Haste},
@@ -45,8 +45,8 @@ const std::unordered_map<String, entity::effect::EffectType> s_effectNameMap = {
 
 }
 
-std::optional<entity::effect::EffectType> tryParseEffectType(StringView name) noexcept {
-    String lowerName(name.size(), '\0');
+std::optional<entity::effect::EffectType> tryParseEffectType(std::string_view name) noexcept {
+    std::string lowerName(name.size(), '\0');
     std::transform(name.begin(), name.end(), lowerName.begin(),
         [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
 

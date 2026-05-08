@@ -37,14 +37,14 @@ void BuiltinWidgets::initialize() {
     m_initialized = true;
 }
 
-void BuiltinWidgets::registerCreator(const String& tagName, WidgetCreator creator) {
+void BuiltinWidgets::registerCreator(const std::string& tagName, WidgetCreator creator) {
     m_creators[tagName] = std::move(creator);
 }
 
 std::unique_ptr<widget::Widget> BuiltinWidgets::create(
-    const String& tagName,
-    const String& id,
-    const std::map<String, String>& attrs) const {
+    const std::string& tagName,
+    const std::string& id,
+    const std::map<std::string, std::string>& attrs) const {
 
     auto it = m_creators.find(tagName);
     if (it == m_creators.end()) {
@@ -91,7 +91,7 @@ std::unique_ptr<widget::Widget> BuiltinWidgets::create(
 
         auto layoutIt = attrs.find("layout");
         if (layoutIt != attrs.end()) {
-            String layout = layoutIt->second;
+            std::string layout = layoutIt->second;
             std::transform(layout.begin(), layout.end(), layout.begin(),
                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
             if (auto* container = dynamic_cast<widget::ContainerWidget*>(widget.get())) {
@@ -109,12 +109,12 @@ std::unique_ptr<widget::Widget> BuiltinWidgets::create(
     return widget;
 }
 
-bool BuiltinWidgets::hasTag(const String& tagName) const {
+bool BuiltinWidgets::hasTag(const std::string& tagName) const {
     return m_creators.find(tagName) != m_creators.end();
 }
 
-std::vector<String> BuiltinWidgets::registeredTags() const {
-    std::vector<String> tags;
+std::vector<std::string> BuiltinWidgets::registeredTags() const {
+    std::vector<std::string> tags;
     tags.reserve(m_creators.size());
     for (const auto& [tag, creator] : m_creators) {
         tags.push_back(tag);
@@ -122,14 +122,14 @@ std::vector<String> BuiltinWidgets::registeredTags() const {
     return tags;
 }
 
-std::map<String, String> BuiltinWidgets::getDefaultAttributes(const String& tagName) const {
+std::map<std::string, std::string> BuiltinWidgets::getDefaultAttributes(const std::string& tagName) const {
     auto it = m_defaultAttributes.find(tagName);
-    return it != m_defaultAttributes.end() ? it->second : std::map<String, String>();
+    return it != m_defaultAttributes.end() ? it->second : std::map<std::string, std::string>();
 }
 
 void BuiltinWidgets::registerScreenWidget() {
-    m_creators["screen"] = [](const String& id,
-                               const std::map<String, String>& attrs) {
+    m_creators["screen"] = [](const std::string& id,
+                               const std::map<std::string, std::string>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "screen" : id);
         auto titleIt = attrs.find("title");
         if (titleIt != attrs.end()) {
@@ -148,13 +148,13 @@ void BuiltinWidgets::registerScreenWidget() {
 }
 
 void BuiltinWidgets::registerContainerWidget() {
-    m_creators["container"] = [](const String& id,
-                                   const std::map<String, String>& attrs) {
+    m_creators["container"] = [](const std::string& id,
+                                   const std::map<std::string, std::string>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "container" : id);
 
         auto layoutIt = attrs.find("layout");
         if (layoutIt != attrs.end()) {
-            String layout = layoutIt->second;
+            std::string layout = layoutIt->second;
             std::transform(layout.begin(), layout.end(), layout.begin(),
                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
             if (layout == "flex") {
@@ -175,8 +175,8 @@ void BuiltinWidgets::registerContainerWidget() {
 }
 
 void BuiltinWidgets::registerButtonWidget() {
-    m_creators["button"] = [](const String& id,
-                               const std::map<String, String>& attrs) {
+    m_creators["button"] = [](const std::string& id,
+                               const std::map<std::string, std::string>& attrs) {
         auto button = std::make_unique<widget::ButtonWidget>();
 
         if (!id.empty()) {
@@ -197,8 +197,8 @@ void BuiltinWidgets::registerButtonWidget() {
 }
 
 void BuiltinWidgets::registerTextWidget() {
-    m_creators["text"] = [](const String& id,
-                            const std::map<String, String>& attrs) {
+    m_creators["text"] = [](const std::string& id,
+                            const std::map<std::string, std::string>& attrs) {
         auto text = std::make_unique<widget::TextWidget>();
 
         if (!id.empty()) {
@@ -222,7 +222,7 @@ void BuiltinWidgets::registerTextWidget() {
 
         auto alignIt = attrs.find("align");
         if (alignIt != attrs.end()) {
-            String align = alignIt->second;
+            std::string align = alignIt->second;
             std::transform(align.begin(), align.end(), align.begin(),
                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
             if (align == "left") {
@@ -249,8 +249,8 @@ void BuiltinWidgets::registerTextWidget() {
 }
 
 void BuiltinWidgets::registerTextFieldWidget() {
-    m_creators["textfield"] = [](const String& id,
-                                  const std::map<String, String>& attrs) {
+    m_creators["textfield"] = [](const std::string& id,
+                                  const std::map<std::string, std::string>& attrs) {
         auto textField = std::make_unique<widget::TextFieldWidget>();
 
         if (!id.empty()) {
@@ -279,8 +279,8 @@ void BuiltinWidgets::registerTextFieldWidget() {
 }
 
 void BuiltinWidgets::registerSliderWidget() {
-    m_creators["slider"] = [](const String& id,
-                               const std::map<String, String>& attrs) {
+    m_creators["slider"] = [](const std::string& id,
+                               const std::map<std::string, std::string>& attrs) {
         auto slider = std::make_unique<widget::SliderWidget>();
 
         if (!id.empty()) {
@@ -308,8 +308,8 @@ void BuiltinWidgets::registerSliderWidget() {
 }
 
 void BuiltinWidgets::registerCheckboxWidget() {
-    m_creators["checkbox"] = [](const String& id,
-                                 const std::map<String, String>& attrs) {
+    m_creators["checkbox"] = [](const std::string& id,
+                                 const std::map<std::string, std::string>& attrs) {
         auto checkbox = std::make_unique<widget::CheckboxWidget>();
 
         if (!id.empty()) {
@@ -330,8 +330,8 @@ void BuiltinWidgets::registerCheckboxWidget() {
 }
 
 void BuiltinWidgets::registerImageWidget() {
-    m_creators["image"] = [](const String& id,
-                              const std::map<String, String>& attrs) {
+    m_creators["image"] = [](const std::string& id,
+                              const std::map<std::string, std::string>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "image" : id);
 
         auto srcIt = attrs.find("src");
@@ -348,8 +348,8 @@ void BuiltinWidgets::registerImageWidget() {
 }
 
 void BuiltinWidgets::registerGridWidget() {
-    m_creators["grid"] = [](const String& id,
-                             const std::map<String, String>& attrs) {
+    m_creators["grid"] = [](const std::string& id,
+                             const std::map<std::string, std::string>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "grid" : id);
         widget->setLayoutType(widget::ContainerLayoutType::Grid);
 
@@ -372,8 +372,8 @@ void BuiltinWidgets::registerGridWidget() {
 }
 
 void BuiltinWidgets::registerSlotWidget() {
-    m_creators["slot"] = [](const String& id,
-                             const std::map<String, String>& attrs) {
+    m_creators["slot"] = [](const std::string& id,
+                             const std::map<std::string, std::string>& attrs) {
         auto slot = std::make_unique<widget::SlotWidget>();
 
         if (!id.empty()) {
@@ -394,8 +394,8 @@ void BuiltinWidgets::registerSlotWidget() {
 }
 
 void BuiltinWidgets::registerScrollableWidget() {
-    m_creators["scrollable"] = [](const String& id,
-                                   const std::map<String, String>& attrs) {
+    m_creators["scrollable"] = [](const std::string& id,
+                                   const std::map<std::string, std::string>& attrs) {
         auto scrollable = std::make_unique<widget::ScrollableWidget>();
 
         if (!id.empty()) {
@@ -426,8 +426,8 @@ void BuiltinWidgets::registerScrollableWidget() {
 }
 
 void BuiltinWidgets::registerListWidget() {
-    m_creators["list"] = [](const String& id,
-                             const std::map<String, String>& attrs) {
+    m_creators["list"] = [](const std::string& id,
+                             const std::map<std::string, std::string>& attrs) {
         auto list = std::make_unique<widget::ListWidget>();
 
         if (!id.empty()) {
@@ -439,8 +439,8 @@ void BuiltinWidgets::registerListWidget() {
 }
 
 void BuiltinWidgets::registerViewport3DWidget() {
-    m_creators["viewport3d"] = [](const String& id,
-                                   const std::map<String, String>& attrs) {
+    m_creators["viewport3d"] = [](const std::string& id,
+                                   const std::map<std::string, std::string>& attrs) {
         auto viewport = std::make_unique<widget::Viewport3DWidget>();
 
         if (!id.empty()) {
@@ -459,9 +459,9 @@ void BuiltinWidgets::registerViewport3DWidget() {
 
 namespace widget_attrs {
 
-std::pair<i32, i32> parsePosition(const String& value) {
+std::pair<i32, i32> parsePosition(const std::string& value) {
     size_t comma = value.find(',');
-    if (comma == String::npos) {
+    if (comma == std::string::npos) {
         return {0, 0};
     }
 
@@ -474,34 +474,34 @@ std::pair<i32, i32> parsePosition(const String& value) {
     }
 }
 
-std::pair<i32, i32> parseSize(const String& value) {
+std::pair<i32, i32> parseSize(const std::string& value) {
     return parsePosition(value);
 }
 
-void applyPosition(widget::Widget* widget, const String& value) {
+void applyPosition(widget::Widget* widget, const std::string& value) {
     if (!widget) return;
     auto [x, y] = parsePosition(value);
     widget->setPosition(x, y);
 }
 
-void applySize(widget::Widget* widget, const String& value) {
+void applySize(widget::Widget* widget, const std::string& value) {
     if (!widget) return;
     auto [width, height] = parseSize(value);
     widget->setSize(width, height);
 }
 
-u32 parseColor(const String& value) {
+u32 parseColor(const std::string& value) {
     if (value.empty()) {
         return 0xFFFFFFFF;
     }
 
     if (value[0] == '#') {
-        String hex = value.substr(1);
+        std::string hex = value.substr(1);
 
         if (hex.size() == 3) {
-            hex = String(1, hex[0]) + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+            hex = std::string(1, hex[0]) + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
         } else if (hex.size() == 4) {
-            hex = String(1, hex[0]) + hex[0] + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+            hex = std::string(1, hex[0]) + hex[0] + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
         }
 
         try {
@@ -518,10 +518,10 @@ u32 parseColor(const String& value) {
     if (value.substr(0, 4) == "rgb(") {
         size_t start = 4;
         size_t end = value.find(')');
-        if (end != String::npos) {
-            String inner = value.substr(start, end - start);
+        if (end != std::string::npos) {
+            std::string inner = value.substr(start, end - start);
             std::istringstream iss(inner);
-            String token;
+            std::string token;
             std::vector<i32> values;
 
             while (std::getline(iss, token, ',')) {
@@ -542,10 +542,10 @@ u32 parseColor(const String& value) {
     if (value.substr(0, 5) == "rgba(") {
         size_t start = 5;
         size_t end = value.find(')');
-        if (end != String::npos) {
-            String inner = value.substr(start, end - start);
+        if (end != std::string::npos) {
+            std::string inner = value.substr(start, end - start);
             std::istringstream iss(inner);
-            String token;
+            std::string token;
             std::vector<f32> values;
 
             while (std::getline(iss, token, ',')) {
@@ -564,7 +564,7 @@ u32 parseColor(const String& value) {
         }
     }
 
-    static const std::unordered_map<String, u32> namedColors = {
+    static const std::unordered_map<std::string, u32> namedColors = {
         {"white", 0xFFFFFFFF},
         {"black", 0xFF000000},
         {"red", 0xFFFF0000},
@@ -586,7 +586,7 @@ u32 parseColor(const String& value) {
         {"brown", 0xFFA52A2A}
     };
 
-    String lowerValue = value;
+    std::string lowerValue = value;
     std::transform(lowerValue.begin(), lowerValue.end(), lowerValue.begin(),
                    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
@@ -598,18 +598,18 @@ u32 parseColor(const String& value) {
     return 0xFFFFFFFF;
 }
 
-String colorToString(u32 color) {
+std::string colorToString(u32 color) {
     std::ostringstream oss;
     oss << "#" << std::hex << std::setfill('0') << std::setw(8) << color;
     return oss.str();
 }
 
-Anchor parseAnchor(const String& value) {
-    String lower = value;
+Anchor parseAnchor(const std::string& value) {
+    std::string lower = value;
     std::transform(lower.begin(), lower.end(), lower.begin(),
                    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-    static const std::unordered_map<String, Anchor> anchors = {
+    static const std::unordered_map<std::string, Anchor> anchors = {
         {"topleft", Anchor::TopLeft},
         {"topcenter", Anchor::TopCenter},
         {"topright", Anchor::TopRight},
@@ -625,7 +625,7 @@ Anchor parseAnchor(const String& value) {
     return it != anchors.end() ? it->second : Anchor::TopLeft;
 }
 
-String anchorToString(Anchor anchor) {
+std::string anchorToString(Anchor anchor) {
     switch (anchor) {
         case Anchor::TopLeft: return "topLeft";
         case Anchor::TopCenter: return "topCenter";
@@ -640,15 +640,15 @@ String anchorToString(Anchor anchor) {
     }
 }
 
-bool parseBool(const String& value) {
-    String lower = value;
+bool parseBool(const std::string& value) {
+    std::string lower = value;
     std::transform(lower.begin(), lower.end(), lower.begin(),
                    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
     return lower == "true" || lower == "1" || lower == "yes" || lower == "on";
 }
 
-i32 parseInt(const String& value, i32 defaultValue) {
+i32 parseInt(const std::string& value, i32 defaultValue) {
     try {
         return std::stoi(value);
     } catch (...) {
@@ -656,7 +656,7 @@ i32 parseInt(const String& value, i32 defaultValue) {
     }
 }
 
-f32 parseFloat(const String& value, f32 defaultValue) {
+f32 parseFloat(const std::string& value, f32 defaultValue) {
     try {
         return std::stof(value);
     } catch (...) {
@@ -664,9 +664,9 @@ f32 parseFloat(const String& value, f32 defaultValue) {
     }
 }
 
-std::pair<f32, f32> parseRange(const String& value) {
+std::pair<f32, f32> parseRange(const std::string& value) {
     size_t comma = value.find(',');
-    if (comma == String::npos) {
+    if (comma == std::string::npos) {
         return {0.0f, 1.0f};
     }
 

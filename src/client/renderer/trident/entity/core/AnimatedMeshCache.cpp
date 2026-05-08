@@ -14,7 +14,7 @@ AnimatedMeshCache::~AnimatedMeshCache() {
 pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(
     EntityId entityId,
     model::EntityModel& model,
-    const String& typeId,
+    const std::string& typeId,
     const AnimationContext& state,
     pipeline::EntityPipeline& pipeline
 ) {

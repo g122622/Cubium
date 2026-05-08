@@ -20,7 +20,7 @@ namespace mc::world::gen::structure {
 // ============================================================================
 
 // 搁浅沉船变体（MC 1.16.5: STRUCTURE_VARIANT_A）
-const std::vector<String> ShipwreckStructure::s_beachedTemplates = {
+const std::vector<std::string> ShipwreckStructure::s_beachedTemplates = {
     "shipwreck/with_mast",
     "shipwreck/sideways_full",
     "shipwreck/sideways_fronthalf",
@@ -35,7 +35,7 @@ const std::vector<String> ShipwreckStructure::s_beachedTemplates = {
 };
 
 // 所有沉船变体（MC 1.16.5: field_204762_b）
-const std::vector<String> ShipwreckStructure::s_allTemplates = {
+const std::vector<std::string> ShipwreckStructure::s_allTemplates = {
     "shipwreck/with_mast",
     "shipwreck/upsidedown_full",
     "shipwreck/upsidedown_fronthalf",
@@ -62,7 +62,7 @@ const std::vector<String> ShipwreckStructure::s_allTemplates = {
 // 常量
 // ============================================================================
 
-const String ShipwreckStructure::m_name = "shipwreck";
+const std::string ShipwreckStructure::m_name = "shipwreck";
 const BlockPos ShipwreckPiece::STRUCTURE_OFFSET{4, 0, 15};
 
 // ============================================================================
@@ -70,7 +70,7 @@ const BlockPos ShipwreckPiece::STRUCTURE_OFFSET{4, 0, 15};
 // ============================================================================
 
 ShipwreckPiece::ShipwreckPiece(
-    const String& templateName,
+    const std::string& templateName,
     const BlockPos& position,
     Rotation rotation,
     bool isBeached)
@@ -189,7 +189,7 @@ bool ShipwreckStructure::canGenerate(
     return true;
 }
 
-String ShipwreckStructure::getRandomTemplateName(math::Random& rng, bool isBeached) const {
+std::string ShipwreckStructure::getRandomTemplateName(math::Random& rng, bool isBeached) const {
     if (isBeached) {
         const size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(s_beachedTemplates.size())));
         return s_beachedTemplates[index];
@@ -239,7 +239,7 @@ std::unique_ptr<StructureStart> ShipwreckStructure::generate(
     }
 
     // 选择随机模板
-    const String templateName = getRandomTemplateName(rng, isBeached);
+    const std::string templateName = getRandomTemplateName(rng, isBeached);
 
     // 创建片段
     auto piece = std::make_unique<ShipwreckPiece>(

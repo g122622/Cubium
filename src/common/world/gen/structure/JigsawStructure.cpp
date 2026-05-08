@@ -37,7 +37,7 @@ namespace world {
 namespace gen {
 namespace structure {
 
-const String JigsawStructure::m_name = "jigsaw";
+const std::string JigsawStructure::m_name = "jigsaw";
 const std::vector<BiomeId> JigsawStructure::m_validBiomes;
 
 JigsawStructure::JigsawStructure(

@@ -45,19 +45,19 @@ public:
      * @brief 设置主标题文本
      * @param text JSON 格式的文本组件
      */
-    void setTitle(const String& text);
+    void setTitle(const std::string& text);
 
     /**
      * @brief 设置副标题文本
      * @param text JSON 格式的文本组件
      */
-    void setSubtitle(const String& text);
+    void setSubtitle(const std::string& text);
 
     /**
      * @brief 设置动作栏文本
      * @param text JSON 格式的文本组件
      */
-    void setActionbar(const String& text);
+    void setActionbar(const std::string& text);
 
     /**
      * @brief 设置动画时间（以 tick 为单位，1 tick = 50ms）
@@ -86,7 +86,7 @@ public:
      * @param fadeOut 淡出时间
      */
     void handleTitlePacket(TitleAction action,
-                           const std::optional<String>& text,
+                           const std::optional<std::string>& text,
                            i32 fadeIn, i32 stay, i32 fadeOut);
 
     // ========== Widget 接口 ==========
@@ -101,7 +101,7 @@ private:
      * @brief 标题状态
      */
     struct TitleState {
-        std::optional<String> text;     // 文本（JSON格式）
+        std::optional<std::string> text;     // 文本（JSON格式）
         f32 remainingTime = 0.0f;        // 剩余显示时间（秒）
         f32 fadeInTime = 0.0f;           // 淡入时间（秒）
         f32 stayTime = 0.0f;             // 停留时间（秒）

@@ -5,7 +5,7 @@
 
 namespace mc::text {
 
-void ITextComponent::appendText(const String& text) {
+void ITextComponent::appendText(const std::string& text) {
     append(std::make_unique<StringTextComponent>(text));
 }
 
@@ -17,7 +17,7 @@ std::unique_ptr<ITextComponent> ITextComponent::fromJson(const nlohmann::json& j
 
     // 纯字符串 -> StringTextComponent
     if (json.is_string()) {
-        return std::make_unique<StringTextComponent>(json.get<String>());
+        return std::make_unique<StringTextComponent>(json.get<std::string>());
     }
 
     // 必须是对象
@@ -29,7 +29,7 @@ std::unique_ptr<ITextComponent> ITextComponent::fromJson(const nlohmann::json& j
 
     // 翻译组件
     if (json.contains("translate")) {
-        String key = json["translate"].get<String>();
+        std::string key = json["translate"].get<std::string>();
         auto component = std::make_unique<TranslationTextComponent>(std::move(key));
 
         // 解析参数

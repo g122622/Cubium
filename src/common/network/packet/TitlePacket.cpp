@@ -16,7 +16,7 @@ TitlePacket::TitlePacket(TitleAction action)
 }
 
 // static
-TitlePacket TitlePacket::createTitle(const String& text) {
+TitlePacket TitlePacket::createTitle(const std::string& text) {
     TitlePacket packet(TitleAction::Title);
     packet.m_text = text;
     return packet;
@@ -28,7 +28,7 @@ TitlePacket TitlePacket::createTitle(const text::ITextComponent& text) {
 }
 
 // static
-TitlePacket TitlePacket::createSubtitle(const String& text) {
+TitlePacket TitlePacket::createSubtitle(const std::string& text) {
     TitlePacket packet(TitleAction::Subtitle);
     packet.m_text = text;
     return packet;
@@ -40,7 +40,7 @@ TitlePacket TitlePacket::createSubtitle(const text::ITextComponent& text) {
 }
 
 // static
-TitlePacket TitlePacket::createActionbar(const String& text) {
+TitlePacket TitlePacket::createActionbar(const std::string& text) {
     TitlePacket packet(TitleAction::Actionbar);
     packet.m_text = text;
     return packet;
@@ -77,7 +77,7 @@ void TitlePacket::setTimes(i32 fadeIn, i32 stay, i32 fadeOut) {
 }
 
 // static
-String TitlePacket::serializeText(const text::ITextComponent& text) {
+std::string TitlePacket::serializeText(const text::ITextComponent& text) {
     return text.toJson().dump();
 }
 

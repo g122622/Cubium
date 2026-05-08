@@ -84,7 +84,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
 
     spdlog::info("Initializing vanilla block items...");
 
-    auto registerSimpleBlock = [this](Block* block, const String& name) {
+    auto registerSimpleBlock = [this](Block* block, const std::string& name) {
         if (block == nullptr) {
             spdlog::warn("Block '{}' is null, skipping", name);
             return;

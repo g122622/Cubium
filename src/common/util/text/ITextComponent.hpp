@@ -60,7 +60,7 @@ public:
      *
      * @return 纯文本字符串
      */
-    [[nodiscard]] virtual String getUnformattedText() const = 0;
+    [[nodiscard]] virtual std::string getUnformattedText() const = 0;
 
     /**
      * @brief 获取带样式文本
@@ -70,7 +70,7 @@ public:
      *
      * @return 带 § 代码的文本
      */
-    [[nodiscard]] virtual String getFormattedText() const = 0;
+    [[nodiscard]] virtual std::string getFormattedText() const = 0;
 
     // ========== 样式 ==========
 
@@ -113,7 +113,7 @@ public:
      * @brief 便捷方法：追加纯文本子组件
      * @param text 文本内容
      */
-    void appendText(const String& text);
+    void appendText(const std::string& text);
 
     /**
      * @brief 深拷贝

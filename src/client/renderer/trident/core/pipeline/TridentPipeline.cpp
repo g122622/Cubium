@@ -461,7 +461,7 @@ Result<VkShaderModule> TridentPipeline::createShaderModule(
 // 辅助函数：加载着色器
 static Result<TridentShaderModule> loadShaderFromFile(
     TridentContext* context,
-    const String& path,
+    const std::string& path,
     api::ShaderStage stage)
 {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
@@ -489,7 +489,7 @@ static Result<TridentShaderModule> loadShaderFromFile(
     return shader;
 }
 
-Result<TridentShaderModule> TridentPipeline::loadShader(const String& path, api::ShaderStage stage) {
+Result<TridentShaderModule> TridentPipeline::loadShader(const std::string& path, api::ShaderStage stage) {
     return loadShaderFromFile(m_context, path, stage);
 }
 
@@ -525,7 +525,7 @@ TridentPipelineCache& TridentPipelineCache::operator=(TridentPipelineCache&& oth
     return *this;
 }
 
-Result<void> TridentPipelineCache::create(TridentContext* context, const String& cachePath) {
+Result<void> TridentPipelineCache::create(TridentContext* context, const std::string& cachePath) {
     if (!context) {
         return Error(ErrorCode::NullPointer, "Context is null");
     }

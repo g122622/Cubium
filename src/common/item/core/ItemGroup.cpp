@@ -4,7 +4,7 @@
 
 namespace mc {
 
-ItemGroup::ItemGroup(Type type, String id)
+ItemGroup::ItemGroup(Type type, std::string id)
     : m_type(type)
     , m_id(std::move(id)) {
 }

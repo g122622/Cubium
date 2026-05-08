@@ -274,7 +274,7 @@ std::unique_ptr<LootFunction> SetDamageFunction::clone() const {
 // SetNameFunction
 // ============================================================================
 
-SetNameFunction::SetNameFunction(const String& name, bool replace)
+SetNameFunction::SetNameFunction(const std::string& name, bool replace)
     : m_name(name)
     , m_replace(replace)
 {
@@ -308,7 +308,7 @@ std::unique_ptr<LootFunction> SetNameFunction::clone() const {
 // SetLoreFunction
 // ============================================================================
 
-SetLoreFunction::SetLoreFunction(const std::vector<String>& lore, bool replace)
+SetLoreFunction::SetLoreFunction(const std::vector<std::string>& lore, bool replace)
     : m_lore(lore)
     , m_replace(replace)
 {
@@ -455,7 +455,7 @@ std::unique_ptr<LootFunction> EnchantWithLevelsFunction::clone() const {
 // EnchantRandomlyFunction
 // ============================================================================
 
-EnchantRandomlyFunction::EnchantRandomlyFunction(const std::vector<String>& enchantments, bool treasure)
+EnchantRandomlyFunction::EnchantRandomlyFunction(const std::vector<std::string>& enchantments, bool treasure)
     : m_enchantments(enchantments)
     , m_treasure(treasure)
 {
@@ -524,7 +524,7 @@ std::unique_ptr<LootFunction> ExplosionDecayFunction::clone() const {
 // SetNbtFunction
 // ============================================================================
 
-SetNbtFunction::SetNbtFunction(const String& nbtString)
+SetNbtFunction::SetNbtFunction(const std::string& nbtString)
     : m_nbtString(nbtString)
 {
 }
@@ -591,8 +591,8 @@ std::unique_ptr<LootFunction> CopyNameFunction::clone() const {
 // CopyBlockStateFunction
 // ============================================================================
 
-CopyBlockStateFunction::CopyBlockStateFunction(const String& blockId,
-                                               const std::vector<String>& properties)
+CopyBlockStateFunction::CopyBlockStateFunction(const std::string& blockId,
+                                               const std::vector<std::string>& properties)
     : m_blockId(blockId)
     , m_properties(properties)
 {
@@ -629,7 +629,7 @@ CopyNbtFunction::CopyNbtFunction(Source source)
 {
 }
 
-void CopyNbtFunction::addOperation(const String& sourcePath, const String& targetPath, Operation operation) {
+void CopyNbtFunction::addOperation(const std::string& sourcePath, const std::string& targetPath, Operation operation) {
     m_operations.push_back({sourcePath, targetPath, operation});
 }
 
@@ -744,7 +744,7 @@ std::unique_ptr<LootFunction> SetContentsFunction::clone() const {
 // SetLootTableFunction
 // ============================================================================
 
-SetLootTableFunction::SetLootTableFunction(const String& lootTableId, u64 seed)
+SetLootTableFunction::SetLootTableFunction(const std::string& lootTableId, u64 seed)
     : m_lootTableId(lootTableId)
     , m_seed(seed)
 {
@@ -805,7 +805,7 @@ std::unique_ptr<LootFunction> ExplorationMapFunction::clone() const {
 // SetStewEffectFunction
 // ============================================================================
 
-void SetStewEffectFunction::addEffect(const String& effectId, const RandomValueRange& duration) {
+void SetStewEffectFunction::addEffect(const std::string& effectId, const RandomValueRange& duration) {
     m_effects.push_back({effectId, duration});
 }
 
@@ -863,11 +863,11 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::setDamage(const RandomValueRa
     return std::make_unique<SetDamageFunction>(durability, add);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setName(const String& name, bool replace) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::setName(const std::string& name, bool replace) {
     return std::make_unique<SetNameFunction>(name, replace);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setLore(const std::vector<String>& lore, bool replace) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::setLore(const std::vector<std::string>& lore, bool replace) {
     return std::make_unique<SetLoreFunction>(lore, replace);
 }
 
@@ -887,7 +887,7 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::enchantWithLevels(
 }
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::enchantRandomly(
-    const std::vector<String>& enchantments,
+    const std::vector<std::string>& enchantments,
     bool treasure)
 {
     return std::make_unique<EnchantRandomlyFunction>(enchantments, treasure);
@@ -897,7 +897,7 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::explosionDecay() {
     return std::make_unique<ExplosionDecayFunction>();
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setNbt(const String& nbtString) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::setNbt(const std::string& nbtString) {
     return std::make_unique<SetNbtFunction>(nbtString);
 }
 
@@ -905,7 +905,7 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::copyName(CopyNameFunction::So
     return std::make_unique<CopyNameFunction>(source);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::copyBlockState(const String& blockId) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::copyBlockState(const std::string& blockId) {
     return std::make_unique<CopyBlockStateFunction>(blockId);
 }
 
@@ -925,7 +925,7 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::setContents() {
     return std::make_unique<SetContentsFunction>();
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setLootTable(const String& lootTableId) {
+std::unique_ptr<LootFunction> LootFunctionBuilder::setLootTable(const std::string& lootTableId) {
     return std::make_unique<SetLootTableFunction>(lootTableId);
 }
 

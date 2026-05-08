@@ -70,7 +70,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     }
 
     // 加载设置
-    String settingsPath = params.settingsPath.value_or(
+    std::string settingsPath = params.settingsPath.value_or(
         ServerSettings::getDefaultPath().string());
     auto settingsResult = loadSettings(settingsPath);
     if (settingsResult.failed()) {
@@ -303,11 +303,11 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     containerManager().setOnContainerOpen([this](PlayerId playerId,
                                                  ContainerId containerId,
                                                  mc::ContainerType type,
-                                                 const String& title,
+                                                 const std::string& title,
                                                  i32 slotCount) {
         (void)slotCount;  // slotCount is no longer sent in the packet (MC 1.16.5 protocol)
-        const String resolvedTitle = title.empty()
-            ? String(ContainerTypes::getDefaultTitle(type))
+        const std::string resolvedTitle = title.empty()
+            ? std::string(ContainerTypes::getDefaultTitle(type))
             : title;
 
         network::PacketSerializer ser;
@@ -388,7 +388,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         onClientConnect(session);
     });
 
-    m_tcpServer->setOnDisconnect([this](TcpSession* session, const String& reason) {
+    m_tcpServer->setOnDisconnect([this](TcpSession* session, const std::string& reason) {
         onClientDisconnect(session, reason);
     });
 
@@ -542,7 +542,7 @@ void StandaloneServer::mainLoop()
     }
 }
 
-Result<void> StandaloneServer::loadSettings(const String& path)
+Result<void> StandaloneServer::loadSettings(const std::string& path)
 {
     m_settingsPath = std::filesystem::path(path);
 
@@ -593,7 +593,7 @@ void StandaloneServer::applySettings()
         }
     });
 
-    m_settings.logLevel.onChange([this](const String& value) {
+    m_settings.logLevel.onChange([this](const std::string& value) {
         spdlog::info("Log level changed to: {}", value);
         if (value == "trace") {
             spdlog::set_level(spdlog::level::trace);
@@ -615,7 +615,7 @@ void StandaloneServer::onClientConnect(TcpSession* session)
                  session->address(), session->port());
 }
 
-void StandaloneServer::onClientDisconnect(TcpSession* session, const String& reason)
+void StandaloneServer::onClientDisconnect(TcpSession* session, const std::string& reason)
 {
     spdlog::info("Client disconnected: {}:{} - {}",
                  session->address(), session->port(), reason);
@@ -651,7 +651,7 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     }
 
     auto& packet = result.value();
-    String username = packet.username();
+    std::string username = packet.username();
 
     spdlog::info("Player '{}' attempting to join from {}:{}",
                  username, session->address(), session->port());
@@ -906,7 +906,7 @@ void StandaloneServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
 
 void StandaloneServer::sendLoginResponse(TcpSession* session, bool success,
                                           PlayerId playerId, EntityId entityId,
-                                          const String& username, const String& message)
+                                          const std::string& username, const std::string& message)
 {
     bool isDebugWorld = m_world && m_world->isDebugWorld();
     network::LoginResponsePacket response(success, playerId, entityId, username, message, isDebugWorld);

@@ -24,7 +24,7 @@ public:
      *
      * 参数为状态路径，返回是否更新成功
      */
-    using UpdateCallback = std::function<bool(const String& path)>;
+    using UpdateCallback = std::function<bool(const std::string& path)>;
 
     /**
      * @brief 更新优先级
@@ -39,12 +39,12 @@ public:
      * @brief 更新任务
      */
     struct UpdateTask {
-        String path;                ///< 状态路径
+        std::string path;                ///< 状态路径
         Priority priority;          ///< 优先级
         u64 timestamp;              ///< 创建时间戳
         bool cancelled = false;     ///< 是否取消
 
-        UpdateTask(String p, Priority pri, u64 ts)
+        UpdateTask(std::string p, Priority pri, u64 ts)
             : path(std::move(p)), priority(pri), timestamp(ts) {}
     };
 
@@ -80,7 +80,7 @@ public:
      * @param priority 优先级
      * @return 任务ID
      */
-    u64 schedule(const String& path, Priority priority = Priority::Normal);
+    u64 schedule(const std::string& path, Priority priority = Priority::Normal);
 
     /**
      * @brief 取消更新任务
@@ -90,7 +90,7 @@ public:
     /**
      * @brief 取消所有指定路径的任务
      */
-    void cancelByPath(const String& path);
+    void cancelByPath(const std::string& path);
 
     /**
      * @brief 取消所有任务
@@ -179,7 +179,7 @@ private:
 private:
     UpdateCallback m_updateCallback;
     std::vector<std::unique_ptr<UpdateTask>> m_tasks;
-    std::unordered_map<String, std::vector<u64>> m_pathToTasks;
+    std::unordered_map<std::string, std::vector<u64>> m_pathToTasks;
     u64 m_nextTaskId = 1;
     u64 m_nextTimestamp = 0;
 

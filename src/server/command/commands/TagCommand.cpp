@@ -32,7 +32,7 @@ void TagCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /tag <targets> add <tag>
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto tagArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto tagArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "tag",
         StringArgumentType::string());
     tagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -43,7 +43,7 @@ void TagCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /tag <targets> remove <tag>
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
-    auto removeTagArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto removeTagArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "tag",
         StringArgumentType::string());
     removeTagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -67,7 +67,7 @@ i32 TagCommand::addTag(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
-    const String tag = context.getArgument<String>("tag");
+    const std::string tag = context.getArgument<std::string>("tag");
 
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
@@ -95,7 +95,7 @@ i32 TagCommand::removeTag(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
-    const String tag = context.getArgument<String>("tag");
+    const std::string tag = context.getArgument<std::string>("tag");
 
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {

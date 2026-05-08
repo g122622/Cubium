@@ -9,7 +9,7 @@ namespace mc::client::ui::kagero::tpl::ast {
 
 // ========== BindingInfo ==========
 
-BindingInfo BindingInfo::parse(const String& value) {
+BindingInfo BindingInfo::parse(const std::string& value) {
     BindingInfo info;
 
     if (value.empty()) {
@@ -20,7 +20,7 @@ BindingInfo BindingInfo::parse(const String& value) {
         info.isLoopVariable = true;
 
         size_t dotPos = value.find('.');
-        if (dotPos != String::npos) {
+        if (dotPos != std::string::npos) {
             info.loopVarName = value.substr(1, dotPos - 1);
             info.property = value.substr(dotPos + 1);
             info.path = value;
@@ -39,7 +39,7 @@ BindingInfo BindingInfo::parse(const String& value) {
 
 // ========== Attribute ==========
 
-Attribute Attribute::createStatic(const String& name, const String& value,
+Attribute Attribute::createStatic(const std::string& name, const std::string& value,
                                    const SourceLocation& loc) {
     Attribute attr;
     attr.name = name;
@@ -78,7 +78,7 @@ Attribute Attribute::createStatic(const String& name, const String& value,
     return attr;
 }
 
-Attribute Attribute::createBinding(const String& name, const String& bindingPath,
+Attribute Attribute::createBinding(const std::string& name, const std::string& bindingPath,
                                     const SourceLocation& loc) {
     Attribute attr;
     attr.name = name;
@@ -90,7 +90,7 @@ Attribute Attribute::createBinding(const String& name, const String& bindingPath
     return attr;
 }
 
-Attribute Attribute::createEvent(const String& name, const String& callbackName,
+Attribute Attribute::createEvent(const std::string& name, const std::string& callbackName,
                                   const SourceLocation& loc) {
     Attribute attr;
     attr.name = name;
@@ -102,9 +102,9 @@ Attribute Attribute::createEvent(const String& name, const String& callbackName,
     return attr;
 }
 
-String Attribute::baseName() const {
-    static const String bindPrefix = "bind:";
-    static const String onPrefix = "on:";
+std::string Attribute::baseName() const {
+    static const std::string bindPrefix = "bind:";
+    static const std::string onPrefix = "on:";
 
     if (name.size() > bindPrefix.size() &&
         name.substr(0, bindPrefix.size()) == bindPrefix) {
@@ -125,12 +125,12 @@ void ElementNode::addAttribute(const Attribute& attr) {
     attributes[attr.name] = attr;
 }
 
-const Attribute* ElementNode::getAttribute(const String& name) const {
+const Attribute* ElementNode::getAttribute(const std::string& name) const {
     auto it = attributes.find(name);
     return it != attributes.end() ? &it->second : nullptr;
 }
 
-bool ElementNode::hasAttribute(const String& name) const {
+bool ElementNode::hasAttribute(const std::string& name) const {
     return attributes.find(name) != attributes.end();
 }
 
@@ -209,8 +209,8 @@ std::unique_ptr<Node> DocumentNode::clone() const {
 
 // ========== 工具函数 ==========
 
-NodeType getNodeTypeFromTagName(const String& tagName) {
-    static const std::map<String, NodeType> tagMap = {
+NodeType getNodeTypeFromTagName(const std::string& tagName) {
+    static const std::map<std::string, NodeType> tagMap = {
         {"screen", NodeType::Screen},
         {"widget", NodeType::Widget},
         {"button", NodeType::Button},
@@ -227,7 +227,7 @@ NodeType getNodeTypeFromTagName(const String& tagName) {
         {"style", NodeType::Style}
     };
 
-    String lowerName = tagName;
+    std::string lowerName = tagName;
     std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(),
                    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
@@ -235,28 +235,28 @@ NodeType getNodeTypeFromTagName(const String& tagName) {
     return it != tagMap.end() ? it->second : NodeType::Widget;
 }
 
-bool isValidWidgetTag(const String& tagName) {
-    static const std::set<String> validTags = {
+bool isValidWidgetTag(const std::string& tagName) {
+    static const std::set<std::string> validTags = {
         "screen", "widget", "button", "text", "textfield",
         "slider", "checkbox", "image", "grid", "slot",
         "viewport3d", "scrollable", "list", "style",
         "container"
     };
 
-    String lowerName = tagName;
+    std::string lowerName = tagName;
     std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(),
                    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
     return validTags.find(lowerName) != validTags.end();
 }
 
-bool isValidAttributeName(const String& name) {
+bool isValidAttributeName(const std::string& name) {
     if (name.empty()) {
         return false;
     }
 
     // 允许的属性前缀
-    static const std::vector<String> allowedPrefixes = {
+    static const std::vector<std::string> allowedPrefixes = {
         "bind:",
         "on:"
     };
@@ -266,7 +266,7 @@ bool isValidAttributeName(const String& name) {
         if (name.size() > prefix.size() &&
             name.substr(0, prefix.size()) == prefix) {
             // 前缀后面的部分必须是有效的标识符
-            String suffix = name.substr(prefix.size());
+            std::string suffix = name.substr(prefix.size());
             return isValidCallbackName(suffix);
         }
     }
@@ -283,7 +283,7 @@ bool isValidAttributeName(const String& name) {
     return true;
 }
 
-bool isValidBindingPath(const String& path) {
+bool isValidBindingPath(const std::string& path) {
     if (path.empty()) {
         return false;
     }
@@ -328,7 +328,7 @@ bool isValidBindingPath(const String& path) {
     return hasSegmentChar; // 必须以有效段结尾
 }
 
-bool isValidCallbackName(const String& name) {
+bool isValidCallbackName(const std::string& name) {
     if (name.empty()) {
         return false;
     }

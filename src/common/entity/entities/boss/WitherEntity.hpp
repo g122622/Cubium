@@ -113,7 +113,7 @@ public:
     /**
      * @brief 获取Boss名称
      */
-    [[nodiscard]] String getBossName() const;
+    [[nodiscard]] std::string getBossName() const;
 
     /**
      * @brief 是否显示生命条

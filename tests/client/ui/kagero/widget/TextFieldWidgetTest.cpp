@@ -237,7 +237,7 @@ TEST(TextFieldWidgetTest, OnCharInputControlChars) {
 
 TEST(TextFieldWidgetTest, ValidatorAcceptsValidInput) {
     TextFieldWidget textField("test", 0, 0, 100, 20);
-    textField.setValidator([](const String& text) {
+    textField.setValidator([](const std::string& text) {
         // 只允许数字
         for (char c : text) {
             if (!std::isdigit(c)) return false;
@@ -251,7 +251,7 @@ TEST(TextFieldWidgetTest, ValidatorAcceptsValidInput) {
 
 TEST(TextFieldWidgetTest, ValidatorRejectsInvalidInput) {
     TextFieldWidget textField("test", 0, 0, 100, 20);
-    textField.setValidator([](const String& text) {
+    textField.setValidator([](const std::string& text) {
         // 只允许数字
         for (char c : text) {
             if (!std::isdigit(c)) return false;
@@ -271,9 +271,9 @@ TEST(TextFieldWidgetTest, ValidatorRejectsInvalidInput) {
 TEST(TextFieldWidgetTest, TextChangedCallback) {
     TextFieldWidget textField("test", 0, 0, 100, 20);
 
-    String lastText;
+    std::string lastText;
     int callCount = 0;
-    textField.setTextChangedCallback([&lastText, &callCount](const String& text) {
+    textField.setTextChangedCallback([&lastText, &callCount](const std::string& text) {
         lastText = text;
         ++callCount;
     });

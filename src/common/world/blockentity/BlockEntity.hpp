@@ -162,13 +162,13 @@ public:
      *
      * 用于重命名的方块实体（如重命名箱子）。
      */
-    [[nodiscard]] virtual String getCustomName() const { return ""; }
+    [[nodiscard]] virtual std::string getCustomName() const { return ""; }
 
     /**
      * @brief 设置自定义名称
      * @param name 名称
      */
-    virtual void setCustomName(const String& name) {
+    virtual void setCustomName(const std::string& name) {
         (void)name;
     }
 

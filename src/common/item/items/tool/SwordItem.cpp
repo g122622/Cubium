@@ -82,7 +82,7 @@ item::ItemAttributeModifiers SwordItem::getAttributeModifiers(i32 equipmentSlot)
     // 参考: net.minecraft.item.SwordItem#getAttributeModifiers
     if (equipmentSlot == static_cast<i32>(EquipmentSlot::MainHand)) {
         item::ItemAttributeModifiers modifiers;
-        String uuid = entity::attribute::uuids::fromString(
+        std::string uuid = entity::attribute::uuids::fromString(
             entity::attribute::uuids::ATTACK_DAMAGE_MODIFIER_UUID);
 
         // 添加攻击伤害修饰符

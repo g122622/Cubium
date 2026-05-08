@@ -236,7 +236,7 @@ static std::vector<ItemStack> generateDrops(IWorld& world, const BlockPos& pos,
 
 // 在世界中生成掉落物实体
 static std::vector<EntityId> spawnDrops(ServerWorld& world, const BlockPos& pos,
-    const std::vector<ItemStack>& drops, const String& throwerUuid = "");
+    const std::vector<ItemStack>& drops, const std::string& throwerUuid = "");
 
 // 检查采集能力
 static bool canHarvestBlock(const BlockState& state, const Player* player, const ItemStack* tool);

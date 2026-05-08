@@ -333,7 +333,7 @@ private:
     );
 
     [[nodiscard]] static bool tryLoadColorMap(
-        StringView path,
+        std::string_view path,
         std::array<u32, 65536>& outColorMap
     );
 

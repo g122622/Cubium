@@ -37,7 +37,7 @@ struct ServerPlayerData {
     PlayerId playerId = 0;
 
     /// 用户名
-    String username;
+    std::string username;
 
     /// 连接接口（可以是 TcpConnection 或 LocalServerConnection）
     network::ConnectionWeakPtr connection;
@@ -90,7 +90,7 @@ struct ServerPlayerData {
      * @param id 玩家ID
      * @param name 用户名
      */
-    explicit ServerPlayerData(PlayerId id, const String& name)
+    explicit ServerPlayerData(PlayerId id, const std::string& name)
         : playerId(id), username(name) {}
 
     /**

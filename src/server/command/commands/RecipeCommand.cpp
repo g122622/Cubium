@@ -32,7 +32,7 @@ void RecipeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 
     // /recipe give <targets> <recipe|*>
     auto giveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("give");
-    auto giveRecipeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto giveRecipeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "recipe",
         StringArgumentType::string());
     giveRecipeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -49,7 +49,7 @@ void RecipeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 
     // /recipe take <targets> <recipe|*>
     auto takeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("take");
-    auto takeRecipeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto takeRecipeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "recipe",
         StringArgumentType::string());
     takeRecipeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -73,9 +73,9 @@ i32 RecipeCommand::giveRecipe(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
 
-    String recipe = "*";
+    std::string recipe = "*";
     if (context.hasArgument("recipe")) {
-        recipe = context.getArgument<String>("recipe");
+        recipe = context.getArgument<std::string>("recipe");
     }
 
     auto playerIds = support::resolvePlayerIds(source, selector);
@@ -111,9 +111,9 @@ i32 RecipeCommand::takeRecipe(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
 
-    String recipe = "*";
+    std::string recipe = "*";
     if (context.hasArgument("recipe")) {
-        recipe = context.getArgument<String>("recipe");
+        recipe = context.getArgument<std::string>("recipe");
     }
 
     auto playerIds = support::resolvePlayerIds(source, selector);

@@ -220,14 +220,14 @@ std::vector<const Node*> findAll(const Node& root, const std::function<bool(cons
 /**
  * @brief 通过ID查找元素
  */
-ElementNode* findById(Node& root, const String& id);
-const ElementNode* findById(const Node& root, const String& id);
+ElementNode* findById(Node& root, const std::string& id);
+const ElementNode* findById(const Node& root, const std::string& id);
 
 /**
  * @brief 通过标签名查找所有元素
  */
-std::vector<ElementNode*> findByTagName(Node& root, const String& tagName);
-std::vector<const ElementNode*> findByTagName(const Node& root, const String& tagName);
+std::vector<ElementNode*> findByTagName(Node& root, const std::string& tagName);
+std::vector<const ElementNode*> findByTagName(const Node& root, const std::string& tagName);
 
 /**
  * @brief 获取节点深度

@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 using namespace mc::assert;
-using mc::String;
+using mc::std::string;
 
 // ============================================================================
 // 测试夹具
@@ -79,7 +79,7 @@ TEST_F(AssertTest, AssertExceptionBasic) {
 
 TEST_F(AssertTest, CustomHandlerCalled) {
     bool handlerCalled = false;
-    String capturedExpression;
+    std::string capturedExpression;
 
     AssertConfig config;
     config.handler = [&](const AssertFailure& failure) {
@@ -133,12 +133,12 @@ TEST_F(AssertTest, FormatValueCString) {
 }
 
 TEST_F(AssertTest, FormatValueString) {
-    EXPECT_EQ("\"test string\"", detail::formatValue(String("test string")));
+    EXPECT_EQ("\"test string\"", detail::formatValue(std::string("test string")));
 }
 
 TEST_F(AssertTest, FormatValuePointer) {
     int x = 42;
-    String result = detail::formatValue(&x);
+    std::string result = detail::formatValue(&x);
     // 指针格式化结果不应该为空
     EXPECT_FALSE(result.empty());
     EXPECT_NE("nullptr", result);
@@ -148,7 +148,7 @@ TEST_F(AssertTest, FormatValuePointer) {
 }
 
 TEST_F(AssertTest, FormatComparisonMessage) {
-    String msg = detail::formatComparisonMessage("not equal", "a", 42, "b", 100);
+    std::string msg = detail::formatComparisonMessage("not equal", "a", 42, "b", 100);
 
     EXPECT_NE(msg.find("not equal"), std::string::npos);
     EXPECT_NE(msg.find("a = 42"), std::string::npos);
@@ -284,7 +284,7 @@ TEST_F(MacroTest, MC_ASSERT_EQ_Passes) {
         MC_ASSERT_EQ(42, 42);
     });
     EXPECT_NO_THROW({
-        MC_ASSERT_EQ(String("hello"), String("hello"));
+        MC_ASSERT_EQ(std::string("hello"), std::string("hello"));
     });
 }
 
@@ -458,7 +458,7 @@ TEST_F(AssertTest, CaptureStackTrace) {
     config.captureStackTrace = true;
     AssertManager::instance().setConfig(config);
 
-    String stackTrace = AssertManager::instance().captureStackTrace();
+    std::string stackTrace = AssertManager::instance().captureStackTrace();
 
     // 堆栈跟踪应该包含一些信息
     // 注意：具体内容取决于平台和编译器优化
@@ -550,7 +550,7 @@ TEST_F(MacroTest, AssertPerformance) {
 // ============================================================================
 
 TEST_F(AssertTest, DefaultHandlerFormat) {
-    String message = detail::formatFailureMessage(
+    std::string message = detail::formatFailureMessage(
         "x == 42",
         "Expected x to be 42",
         "test.cpp",

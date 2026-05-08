@@ -71,7 +71,7 @@ public:
      * @return 打开包
      */
     static OpenContainerPacket createOpenContainerPacket(ContainerId containerId, i32 type,
-                                                          const String& title);
+                                                          const std::string& title);
 
     /**
      * @brief 创建配方列表同步包

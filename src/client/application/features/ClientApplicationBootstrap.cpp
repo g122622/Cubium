@@ -670,7 +670,7 @@ void ClientApplication::initializeUi()
             chatWidget->setFont(guiFont);
             chatWidget->setGuiRenderer(&m_renderer->guiRenderer());
             chatWidget->setCommandManager(m_commandManager.get());
-            chatWidget->setCommandCallback([this](const String& input) {
+            chatWidget->setCommandCallback([this](const std::string& input) {
                 handleChatCommand(input);
             });
             m_chatLayerId = m_kageroEngine->addLayer(std::move(chatWidget), 20);

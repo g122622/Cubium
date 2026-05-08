@@ -207,7 +207,7 @@ void OrCondition::addCondition(std::unique_ptr<LootCondition> condition) {
 // BlockStateCondition
 // ============================================================================
 
-BlockStateCondition::BlockStateCondition(const String& blockId)
+BlockStateCondition::BlockStateCondition(const std::string& blockId)
     : m_blockId(blockId)
 {
 }
@@ -295,7 +295,7 @@ std::unique_ptr<LootCondition> LootConditionBuilder::or_(std::vector<std::unique
     return std::make_unique<OrCondition>(std::move(conditions));
 }
 
-std::unique_ptr<LootCondition> LootConditionBuilder::blockState(const String& blockId) {
+std::unique_ptr<LootCondition> LootConditionBuilder::blockState(const std::string& blockId) {
     return std::make_unique<BlockStateCondition>(blockId);
 }
 

@@ -19,7 +19,7 @@ public:
 
 private:
     static i32 locateBiome(CommandContext<ServerCommandSource>& context);
-    static std::optional<BiomeId> parseBiomeId(const String& name) noexcept;
+    static std::optional<BiomeId> parseBiomeId(const std::string& name) noexcept;
 };
 
 } // namespace command

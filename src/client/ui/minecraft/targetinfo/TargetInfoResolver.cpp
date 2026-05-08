@@ -96,16 +96,16 @@ struct SegmentAabbHit {
     return intersectSegmentAabb(start, end, entityBox);
 }
 
-[[nodiscard]] String makeEntityTitle(
+[[nodiscard]] std::string makeEntityTitle(
     const ClientEntity& entity,
     const TargetInfoResolver::PlayerNameLookup& playerNameLookup)
 {
     const ResourceLocation typeLocation = ResourceLocation::parse(entity.typeId());
-    const String typePath = typeLocation.path();
+    const std::string typePath = typeLocation.path();
 
     if (typePath == "player") {
         if (playerNameLookup) {
-            const String playerName = playerNameLookup(entity.id());
+            const std::string playerName = playerNameLookup(entity.id());
             if (!playerName.empty()) {
                 return playerName;
             }
@@ -120,7 +120,7 @@ struct SegmentAabbHit {
             }
 
             if (stack->getItem() != nullptr) {
-                String title = humanizeResourceLocation(stack->getItem()->itemLocation());
+                std::string title = humanizeResourceLocation(stack->getItem()->itemLocation());
                 if (stack->getCount() > 1) {
                     title += " x" + std::to_string(stack->getCount());
                 }
@@ -136,11 +136,11 @@ struct SegmentAabbHit {
     return humanizeResourceLocation(typeLocation);
 }
 
-[[nodiscard]] std::vector<String> makeEntityDetails(
+[[nodiscard]] std::vector<std::string> makeEntityDetails(
     const ClientEntity& entity,
     f32 distance)
 {
-    std::vector<String> details;
+    std::vector<std::string> details;
     details.reserve(4);
 
     details.emplace_back("Type: " + entity.typeId());
@@ -174,14 +174,14 @@ struct SegmentAabbHit {
         return TargetInfoSnapshot::none();
     }
 
-    std::vector<String> details;
+    std::vector<std::string> details;
     details.reserve(5);
     details.emplace_back("Type: " + state->blockLocation().toString());
     details.emplace_back("Pos: " + formatBlockPos(blockRaycast.blockPos()));
     details.emplace_back("Face: " + formatDirection(blockRaycast.face()));
     details.emplace_back("Distance: " + formatDistance(blockRaycast.distance()));
 
-    const String blockStateKey = state->toModelKey();
+    const std::string blockStateKey = state->toModelKey();
     if (!blockStateKey.empty()) {
         details.emplace_back("State: " + blockStateKey);
     }
@@ -199,10 +199,10 @@ struct SegmentAabbHit {
     const TargetInfoResolver::PlayerNameLookup& playerNameLookup)
 {
     const ResourceLocation typeLocation = ResourceLocation::parse(entity.typeId());
-    const String typePath = typeLocation.path();
+    const std::string typePath = typeLocation.path();
 
-    String title = makeEntityTitle(entity, playerNameLookup);
-    std::vector<String> details = makeEntityDetails(entity, distance);
+    std::string title = makeEntityTitle(entity, playerNameLookup);
+    std::vector<std::string> details = makeEntityDetails(entity, distance);
 
     u32 accentColor = ENTITY_ACCENT_COLOR;
     if (typePath == "player") {

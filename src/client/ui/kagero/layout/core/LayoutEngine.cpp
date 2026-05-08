@@ -56,18 +56,18 @@ LayoutEngine& LayoutEngine::instance() {
 }
 
 void LayoutEngine::registerAlgorithm(
-    const String& name,
+    const std::string& name,
     std::unique_ptr<ILayoutAlgorithm> algorithm
 ) {
     m_algorithms[name] = std::move(algorithm);
 }
 
-ILayoutAlgorithm* LayoutEngine::getAlgorithm(const String& name) const {
+ILayoutAlgorithm* LayoutEngine::getAlgorithm(const std::string& name) const {
     const auto it = m_algorithms.find(name);
     return it != m_algorithms.end() ? it->second.get() : nullptr;
 }
 
-bool LayoutEngine::hasAlgorithm(const String& name) const {
+bool LayoutEngine::hasAlgorithm(const std::string& name) const {
     return m_algorithms.find(name) != m_algorithms.end();
 }
 
@@ -134,7 +134,7 @@ void LayoutEngine::layoutDirty(WidgetLayoutAdaptor* root) {
 }
 
 void LayoutEngine::layoutWith(
-    const String& algorithmName,
+    const std::string& algorithmName,
     WidgetLayoutAdaptor* container,
     const Rect& availableSpace
 ) {
@@ -270,7 +270,7 @@ void LayoutEngine::collectDirtyNodes(
     }
 }
 
-ILayoutAlgorithm* LayoutEngine::selectAlgorithm(LayoutType type, const String& name) {
+ILayoutAlgorithm* LayoutEngine::selectAlgorithm(LayoutType type, const std::string& name) {
     if (!name.empty()) {
         if (auto* algorithm = getAlgorithm(name); algorithm != nullptr) {
             return algorithm;

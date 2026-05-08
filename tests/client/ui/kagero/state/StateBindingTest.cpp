@@ -23,7 +23,7 @@
 using namespace mc::client::ui::kagero::state;
 using namespace mc::client::ui::kagero::state::binding;
 using mc::i32;
-using mc::String;
+using mc::std::string;
 using mc::u64;
 
 // ============================================================================
@@ -298,8 +298,8 @@ TEST_F(StateBindingTest, StateContextGetSet) {
     ctx.set<i32>("health", 100);
     EXPECT_EQ(ctx.get<i32>("health"), 100);
 
-    ctx.set<String>("name", "Steve");
-    EXPECT_EQ(ctx.get<String>("name"), "Steve");
+    ctx.set<std::string>("name", "Steve");
+    EXPECT_EQ(ctx.get<std::string>("name"), "Steve");
 }
 
 TEST_F(StateBindingTest, StateContextReactive) {

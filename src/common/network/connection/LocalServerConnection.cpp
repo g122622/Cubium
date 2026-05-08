@@ -15,7 +15,7 @@ void LocalServerConnection::send(const u8* data, size_t size) {
     }
 }
 
-void LocalServerConnection::disconnect(const String& reason) {
+void LocalServerConnection::disconnect(const std::string& reason) {
     if (m_endpoint) {
         m_endpoint->disconnect();
         if (!reason.empty()) {
@@ -28,7 +28,7 @@ bool LocalServerConnection::isConnected() const {
     return m_endpoint && m_endpoint->isConnected();
 }
 
-String LocalServerConnection::identifier() const {
+std::string LocalServerConnection::identifier() const {
     return "Local:" + std::to_string(m_id);
 }
 

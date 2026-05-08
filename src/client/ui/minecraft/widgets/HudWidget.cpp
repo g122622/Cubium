@@ -138,8 +138,8 @@ void HudWidget::renderHotbar(kagero::widget::PaintContext& ctx,
             // 绘制物品数量
             if (stack.getCount() > 1) {
                 std::string countText = std::to_string(stack.getCount());
-                f32 textWidth = ctx.getTextWidth(String(countText.begin(), countText.end()));
-                ctx.drawText(String(countText.begin(), countText.end()),
+                f32 textWidth = ctx.getTextWidth(std::string(countText.begin(), countText.end()));
+                ctx.drawText(std::string(countText.begin(), countText.end()),
                             static_cast<i32>(slotX + SLOT_SIZE - textWidth - 1.0f),
                             static_cast<i32>(slotY + SLOT_SIZE - 8.0f),
                             HudColors::TOOLTIP_TEXT);
@@ -228,7 +228,7 @@ void HudWidget::renderExperience(kagero::widget::PaintContext& ctx) {
     // 绘制等级文字（在经验条上方居中）
     if (level > 0) {
         std::string levelText = std::to_string(level);
-        String levelStr(levelText.begin(), levelText.end());
+        std::string levelStr(levelText.begin(), levelText.end());
         f32 textWidth = ctx.getTextWidth(levelStr);
         ctx.drawText(levelStr,
                      static_cast<i32>((screenWidth - textWidth) / 2.0f),
@@ -244,7 +244,7 @@ void HudWidget::renderExperience(kagero::widget::PaintContext& ctx) {
 void HudWidget::drawHeart(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half, bool absorbing) {
     // 尝试使用纹理绘制（使用 iconsAtlas）
     if (m_iconsAtlas != nullptr) {
-        String spriteId;
+        std::string spriteId;
         if (absorbing) {
             // 吸收心（黄色）
             if (full) {
@@ -290,7 +290,7 @@ void HudWidget::drawHeart(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool 
 void HudWidget::drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half) {
     // 尝试使用纹理绘制（使用 iconsAtlas）
     if (m_iconsAtlas != nullptr) {
-        String spriteId;
+        std::string spriteId;
         if (full) {
             spriteId = "hunger_full";
         } else if (half) {
@@ -318,7 +318,7 @@ void HudWidget::drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool
 void HudWidget::drawArmor(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full) {
     // 尝试使用纹理绘制（使用 iconsAtlas）
     if (m_iconsAtlas != nullptr) {
-        String spriteId = full ? "armor_full" : "armor_empty";
+        std::string spriteId = full ? "armor_full" : "armor_empty";
 
         if (m_iconsAtlas->hasSprite(spriteId)) {
             auto image = m_iconsAtlas->createTextureImage(spriteId);

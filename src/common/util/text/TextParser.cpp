@@ -3,7 +3,7 @@
 
 namespace mc::text {
 
-std::unique_ptr<ITextComponent> TextParser::parse(StringView text) {
+std::unique_ptr<ITextComponent> TextParser::parse(std::string_view text) {
     ParseState state;
 
     size_t i = 0;
@@ -49,8 +49,8 @@ std::unique_ptr<ITextComponent> TextParser::parse(StringView text) {
     return std::move(state.root);
 }
 
-String TextParser::toLegacyFormat(const ITextComponent& component) {
-    String result;
+std::string TextParser::toLegacyFormat(const ITextComponent& component) {
+    std::string result;
 
     // 添加当前组件的样式代码
     Style currentStyle = component.getStyle();

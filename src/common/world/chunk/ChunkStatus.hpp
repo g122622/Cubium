@@ -135,7 +135,7 @@ public:
      * @param type 区块类型
      */
     ChunkStatus(
-        const String& name,
+        const std::string& name,
         i32 ordinal,
         const ChunkStatus* parent,
         i32 taskRange,
@@ -145,7 +145,7 @@ public:
 
     // === 属性访问 ===
 
-    [[nodiscard]] const String& name() const { return m_name; }
+    [[nodiscard]] const std::string& name() const { return m_name; }
     [[nodiscard]] i32 ordinal() const { return m_ordinal; }
     [[nodiscard]] const ChunkStatus* parent() const { return m_parent; }
     [[nodiscard]] i32 taskRange() const { return m_taskRange; }
@@ -178,7 +178,7 @@ public:
     /**
      * @brief 根据名称获取状态
      */
-    [[nodiscard]] static const ChunkStatus* byName(const String& name);
+    [[nodiscard]] static const ChunkStatus* byName(const std::string& name);
 
     /**
      * @brief 根据序号获取状态
@@ -233,7 +233,7 @@ public:
     }
 
 private:
-    String m_name;
+    std::string m_name;
     i32 m_ordinal = 0;
     const ChunkStatus* m_parent = nullptr;
     i32 m_taskRange = 0;

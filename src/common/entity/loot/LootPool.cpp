@@ -92,7 +92,7 @@ void LootPool::generateRoll(std::function<void(const ItemStack&)> consumer, Loot
 // LootPoolBuilder
 // ============================================================================
 
-LootPoolBuilder& LootPoolBuilder::item(const String& itemId, i32 count, i32 weight) {
+LootPoolBuilder& LootPoolBuilder::item(const std::string& itemId, i32 count, i32 weight) {
     auto entry = std::make_unique<ItemLootEntry>(
         itemId,
         RandomValueRange(static_cast<f32>(count), static_cast<f32>(count)),

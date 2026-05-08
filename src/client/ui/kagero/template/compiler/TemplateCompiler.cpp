@@ -55,11 +55,11 @@ void CompiledTemplate::addLoopPlan(LoopPlan plan) {
     m_loopPlans.push_back(std::move(plan));
 }
 
-void CompiledTemplate::addWatchedPath(const String& path) {
+void CompiledTemplate::addWatchedPath(const std::string& path) {
     m_watchedPaths.insert(path);
 }
 
-void CompiledTemplate::addRegisteredCallback(const String& name) {
+void CompiledTemplate::addRegisteredCallback(const std::string& name) {
     m_registeredCallbacks.insert(name);
 }
 
@@ -67,7 +67,7 @@ void CompiledTemplate::addError(TemplateErrorInfo error) {
     m_errors.push_back(std::move(error));
 }
 
-String CompiledTemplate::debugDump() const {
+std::string CompiledTemplate::debugDump() const {
     std::ostringstream oss;
 
     oss << "=== Compiled Template ===\n";
@@ -128,8 +128,8 @@ TemplateCompiler::TemplateCompiler(const TemplateConfig& config)
 }
 
 std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(
-    const String& source,
-    const String& sourcePath) {
+    const std::string& source,
+    const std::string& sourcePath) {
 
     m_lastErrors.clear();
 
@@ -209,7 +209,7 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(
     return result;
 }
 
-std::unique_ptr<CompiledTemplate> TemplateCompiler::compileFile(const String& filePath) {
+std::unique_ptr<CompiledTemplate> TemplateCompiler::compileFile(const std::string& filePath) {
     std::ifstream file(filePath);
     if (!file.is_open()) {
         auto result = std::make_unique<CompiledTemplate>();
@@ -225,14 +225,14 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compileFile(const String& fi
 
     std::ostringstream buffer;
     buffer << file.rdbuf();
-    String source = buffer.str();
+    std::string source = buffer.str();
 
     return compile(source, filePath);
 }
 
 std::unique_ptr<CompiledTemplate> TemplateCompiler::compileAst(
     std::unique_ptr<ast::DocumentNode> document,
-    const String& sourcePath) {
+    const std::string& sourcePath) {
 
     auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -276,7 +276,7 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compileAst(
     return result;
 }
 
-bool TemplateCompiler::tokenize(const String& source, const String& sourcePath) {
+bool TemplateCompiler::tokenize(const std::string& source, const std::string& sourcePath) {
     Lexer lexer(source, sourcePath);
 
     if (!lexer.tokenize()) {
@@ -288,7 +288,7 @@ bool TemplateCompiler::tokenize(const String& source, const String& sourcePath) 
     return true;
 }
 
-bool TemplateCompiler::parse(const String& sourcePath) {
+bool TemplateCompiler::parse(const std::string& sourcePath) {
     // 注意：parse方法会创建新的AST，这里只是为了检查错误
     // 实际的AST在compile()中重新创建
     (void)sourcePath;
@@ -391,7 +391,7 @@ bool TemplateCompiler::validateElement(const ast::ElementNode* element,
                 containsForbiddenPattern(attr.rawValue)) {
                 collector.addError(TemplateErrorType::InlineScriptNotAllowed,
                     "Inline scripts/expressions are not allowed in strict mode. " +
-                    String("Found in attribute '") + name + "'",
+                    std::string("Found in attribute '") + name + "'",
                     attr.location);
                 return false;
             }
@@ -439,9 +439,9 @@ bool TemplateCompiler::validateAttribute(const ast::Attribute& attr,
     return true;
 }
 
-bool TemplateCompiler::containsInlineScript(const String& value) const {
+bool TemplateCompiler::containsInlineScript(const std::string& value) const {
     // 检查常见的脚本标记
-    static const String scriptPatterns[] = {
+    static const std::string scriptPatterns[] = {
         "<script",
         "</script>",
         "{{",
@@ -454,7 +454,7 @@ bool TemplateCompiler::containsInlineScript(const String& value) const {
     };
 
     for (const auto& pattern : scriptPatterns) {
-        if (value.find(pattern) != String::npos) {
+        if (value.find(pattern) != std::string::npos) {
             return true;
         }
     }
@@ -462,15 +462,15 @@ bool TemplateCompiler::containsInlineScript(const String& value) const {
     return false;
 }
 
-bool TemplateCompiler::containsForbiddenPattern(const String& value) const {
+bool TemplateCompiler::containsForbiddenPattern(const std::string& value) const {
     // 检查禁止的表达式模式
-    static const String forbiddenPatterns[] = {
+    static const std::string forbiddenPatterns[] = {
         "==", "!=", "<=", ">=", "&&", "||", "?:", "=>",
         "function(", "lambda", "eval(", "exec("
     };
 
     for (const auto& pattern : forbiddenPatterns) {
-        if (value.find(pattern) != String::npos) {
+        if (value.find(pattern) != std::string::npos) {
             return true;
         }
     }
@@ -484,17 +484,17 @@ void TemplateCompiler::generateBindingPlans(ast::DocumentNode* document,
 
     // 遍历AST，为每个绑定属性生成计划
     for (const auto& child : document->children) {
-        String currentPath;
+        std::string currentPath;
         generateBindingPlansRecursive(child.get(), currentPath, result);
     }
 }
 
 void TemplateCompiler::generateBindingPlansRecursive(const ast::Node* node,
-                                                       const String& parentPath,
+                                                       const std::string& parentPath,
                                                        CompiledTemplate* result) {
     if (!node || !result) return;
 
-    String currentPath = parentPath;
+    std::string currentPath = parentPath;
 
     // 处理元素节点
     if (auto* element = dynamic_cast<const ast::ElementNode*>(node)) {
@@ -541,17 +541,17 @@ void TemplateCompiler::generateEventPlans(ast::DocumentNode* document,
 
     // 遍历AST，为每个事件属性生成计划
     for (const auto& child : document->children) {
-        String currentPath;
+        std::string currentPath;
         generateEventPlansRecursive(child.get(), currentPath, result);
     }
 }
 
 void TemplateCompiler::generateEventPlansRecursive(const ast::Node* node,
-                                                    const String& parentPath,
+                                                    const std::string& parentPath,
                                                     CompiledTemplate* result) {
     if (!node || !result) return;
 
-    String currentPath = parentPath;
+    std::string currentPath = parentPath;
 
     // 处理元素节点
     if (auto* element = dynamic_cast<const ast::ElementNode*>(node)) {
@@ -611,11 +611,11 @@ void TemplateCompiler::collectCallbacks(ast::DocumentNode* document,
     }
 }
 
-String TemplateCompiler::generateWidgetPath(const ast::ElementNode* element,
-                                             const String& parentPath) {
+std::string TemplateCompiler::generateWidgetPath(const ast::ElementNode* element,
+                                             const std::string& parentPath) {
     if (!element) return parentPath;
 
-    String path = parentPath;
+    std::string path = parentPath;
 
     // 如果元素有ID，使用ID作为路径
     if (!element->id.empty()) {
@@ -629,7 +629,7 @@ String TemplateCompiler::generateWidgetPath(const ast::ElementNode* element,
 }
 
 void TemplateCompiler::extractBindings(const ast::ElementNode* element,
-                                         const String& widgetPath,
+                                         const std::string& widgetPath,
                                          std::vector<BindingPlan>& plans,
                                          std::vector<LoopPlan>& loopPlans) {
     if (!element) return;

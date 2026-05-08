@@ -30,7 +30,7 @@ public:
      */
     CommandContext(
         S& source,
-        StringView input,
+        std::string_view input,
         NodePtr rootNode
     )
         : m_source(source)
@@ -45,14 +45,14 @@ public:
 
     // ========== 输入 ==========
 
-    [[nodiscard]] StringView getInput() const noexcept { return m_input; }
+    [[nodiscard]] std::string_view getInput() const noexcept { return m_input; }
 
     // ========== 参数获取 ==========
 
     /**
      * @brief 检查是否有指定参数
      */
-    [[nodiscard]] bool hasArgument(const String& name) const {
+    [[nodiscard]] bool hasArgument(const std::string& name) const {
         return m_arguments.find(name) != m_arguments.end();
     }
 
@@ -65,7 +65,7 @@ public:
      * @throws std::bad_any_cast 如果类型不匹配
      */
     template<typename T>
-    [[nodiscard]] T getArgument(const String& name) const {
+    [[nodiscard]] T getArgument(const std::string& name) const {
         auto it = m_arguments.find(name);
         if (it == m_arguments.end()) {
             throw std::out_of_range("Argument not found: " + name);
@@ -81,7 +81,7 @@ public:
      * @return 参数值或默认值
      */
     template<typename T>
-    [[nodiscard]] T getArgumentOr(const String& name, const T& defaultValue) const {
+    [[nodiscard]] T getArgumentOr(const std::string& name, const T& defaultValue) const {
         auto it = m_arguments.find(name);
         if (it == m_arguments.end()) {
             return defaultValue;
@@ -97,7 +97,7 @@ public:
      * @brief 设置参数值
      */
     template<typename T>
-    void setArgument(const String& name, const T& value, i32 cursor = -1) {
+    void setArgument(const std::string& name, const T& value, i32 cursor = -1) {
         Argument arg;
         arg.value = value;
         arg.cursor = cursor;
@@ -126,7 +126,7 @@ public:
     /**
      * @brief 获取参数的起始位置
      */
-    [[nodiscard]] i32 getArgumentCursor(const String& name) const {
+    [[nodiscard]] i32 getArgumentCursor(const std::string& name) const {
         auto it = m_arguments.find(name);
         return it != m_arguments.end() ? it->second.cursor : -1;
     }
@@ -150,10 +150,10 @@ private:
     };
 
     S& m_source;
-    StringView m_input;
+    std::string_view m_input;
     NodePtr m_rootNode;
     NodePtr m_currentNode;
-    std::unordered_map<String, Argument> m_arguments;
+    std::unordered_map<std::string, Argument> m_arguments;
 };
 
 /**
@@ -168,7 +168,7 @@ public:
 
     ParseResults(
         std::unique_ptr<CommandContext<S>> context,
-        StringView remaining
+        std::string_view remaining
     )
         : m_context(std::move(context))
         , m_remaining(remaining) {}
@@ -191,7 +191,7 @@ public:
     [[nodiscard]] CommandContext<S>* getContext() noexcept { return m_context.get(); }
     [[nodiscard]] const CommandContext<S>* getContext() const noexcept { return m_context.get(); }
 
-    [[nodiscard]] StringView getRemaining() const noexcept { return m_remaining; }
+    [[nodiscard]] std::string_view getRemaining() const noexcept { return m_remaining; }
 
     [[nodiscard]] const std::optional<CommandException>& getError() const noexcept { return m_error; }
     [[nodiscard]] i32 getErrorCursor() const noexcept { return m_errorCursor; }
@@ -219,7 +219,7 @@ public:
 
 private:
     std::unique_ptr<CommandContext<S>> m_context;
-    StringView m_remaining;
+    std::string_view m_remaining;
     std::optional<CommandException> m_error;
     i32 m_errorCursor = -1;
 };

@@ -101,7 +101,7 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
 protected:
-    [[nodiscard]] String getDefaultName() const override { return "container.barrel"; }
+    [[nodiscard]] std::string getDefaultName() const override { return "container.barrel"; }
 
 private:
     /**

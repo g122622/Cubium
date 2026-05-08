@@ -232,7 +232,7 @@ CompoundTag:
   - state: index (Int)
   - nbt: CompoundTag (可选，方块实体数据)
 - palette: ListTag
-  - Name: "minecraft:block_id" (String)
+  - Name: "minecraft:block_id" (std::string)
   - Properties: CompoundTag (可选)
 - entities: ListTag (可选)
   - pos: [x, y, z] (Double array)

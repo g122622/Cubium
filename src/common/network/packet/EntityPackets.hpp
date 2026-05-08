@@ -33,8 +33,8 @@ public:
     void setUuid(const std::array<u8, 16>& uuid) { m_uuid = uuid; }
 
     // 实体类型（字符串ID）
-    const String& entityTypeId() const { return m_entityTypeId; }
-    void setEntityTypeId(const String& typeId) { m_entityTypeId = typeId; }
+    const std::string& entityTypeId() const { return m_entityTypeId; }
+    void setEntityTypeId(const std::string& typeId) { m_entityTypeId = typeId; }
 
     // 位置
     f32 x() const { return m_x; }
@@ -87,7 +87,7 @@ public:
 private:
     u32 m_entityId = 0;
     std::array<u8, 16> m_uuid = {};
-    String m_entityTypeId;
+    std::string m_entityTypeId;
     f32 m_x = 0.0f;
     f32 m_y = 0.0f;
     f32 m_z = 0.0f;
@@ -123,8 +123,8 @@ public:
     void setUuid(const std::array<u8, 16>& uuid) { m_uuid = uuid; }
 
     // 实体类型
-    const String& entityTypeId() const { return m_entityTypeId; }
-    void setEntityTypeId(const String& typeId) { m_entityTypeId = typeId; }
+    const std::string& entityTypeId() const { return m_entityTypeId; }
+    void setEntityTypeId(const std::string& typeId) { m_entityTypeId = typeId; }
 
     // 位置
     f32 x() const { return m_x; }
@@ -157,7 +157,7 @@ public:
 private:
     u32 m_entityId = 0;
     std::array<u8, 16> m_uuid = {};
-    String m_entityTypeId;
+    std::string m_entityTypeId;
     f32 m_x = 0.0f;
     f32 m_y = 0.0f;
     f32 m_z = 0.0f;

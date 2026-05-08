@@ -147,17 +147,17 @@ TEST_F(OceanRuinStructureTest, Structure_TemplateNames) {
 TEST_F(OceanRuinStructureTest, Structure_TemplateNameFormats) {
     // 验证模板名称格式符合 MC 1.16.5
     for (const auto& name : OceanRuinStructure::s_warmTemplates) {
-        EXPECT_TRUE(name.find("underwater_ruin/warm_") != String::npos)
+        EXPECT_TRUE(name.find("underwater_ruin/warm_") != std::string::npos)
             << "Invalid warm template name: " << name;
     }
 
     for (const auto& name : OceanRuinStructure::s_brickTemplates) {
-        EXPECT_TRUE(name.find("underwater_ruin/brick_") != String::npos)
+        EXPECT_TRUE(name.find("underwater_ruin/brick_") != std::string::npos)
             << "Invalid brick template name: " << name;
     }
 
     for (const auto& name : OceanRuinStructure::s_brickBigTemplates) {
-        EXPECT_TRUE(name.find("underwater_ruin/big_brick_") != String::npos)
+        EXPECT_TRUE(name.find("underwater_ruin/big_brick_") != std::string::npos)
             << "Invalid big brick template name: " << name;
     }
 }

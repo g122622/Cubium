@@ -283,9 +283,9 @@ TEST(BlockEntityTodoTest, EnderChestOpenCloseAndTickAnimationBehavesCorrectly) {
 TEST(BlockEntityTodoTest, SignEntityRejectsControlCharactersAndTruncatesText) {
     blockentity::SignEntity sign(BlockPos(3, 4, 5));
 
-    EXPECT_FALSE(sign.setLineFromLegacy(0, String("bad") + static_cast<char>(1) + "text"));
+    EXPECT_FALSE(sign.setLineFromLegacy(0, std::string("bad") + static_cast<char>(1) + "text"));
 
-    const String longText = "0123456789abcdef";
+    const std::string longText = "0123456789abcdef";
     EXPECT_TRUE(sign.setLineFromLegacy(1, longText));
     EXPECT_EQ(sign.getLineText(1), "0123456789abcde");
 }
@@ -298,7 +298,7 @@ TEST(BlockEntityTodoTest, SignEntityLoadRejectsInvalidControlCharacters) {
     data["x"] = 3;
     data["y"] = 4;
     data["z"] = 5;
-    data["lines"] = nlohmann::json::array({String("ok"), String("x") + static_cast<char>(2)});
+    data["lines"] = nlohmann::json::array({std::string("ok"), std::string("x") + static_cast<char>(2)});
 
     // load 会清理无效控制字符而非失败，仍然返回 true
     EXPECT_TRUE(sign.load(data));

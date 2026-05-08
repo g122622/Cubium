@@ -23,7 +23,7 @@ public:
      * @brief 获取属性名称
      * @return 属性名称字符串
      */
-    [[nodiscard]] virtual const String& name() const = 0;
+    [[nodiscard]] virtual const std::string& name() const = 0;
 
     /**
      * @brief 获取允许的值的数量
@@ -36,14 +36,14 @@ public:
      * @param index 值索引（0到valueCount()-1）
      * @return 字符串表示
      */
-    [[nodiscard]] virtual String valueToString(size_t index) const = 0;
+    [[nodiscard]] virtual std::string valueToString(size_t index) const = 0;
 
     /**
      * @brief 解析字符串为值索引
      * @param str 字符串表示
      * @return 值索引，如果解析失败返回nullopt
      */
-    [[nodiscard]] virtual std::optional<size_t> parseValue(StringView str) const = 0;
+    [[nodiscard]] virtual std::optional<size_t> parseValue(std::string_view str) const = 0;
 
     /**
      * @brief 计算哈希值

@@ -61,15 +61,15 @@ classDiagram
     }
 
     class JigsawTarget {
-        +String name
+        +std::string name
         +BlockPos offset
     }
 
     class JigsawJoint {
         +BlockPos sourcePos
-        +String sourceName
-        +String targetPool
-        +String targetName
+        +std::string sourceName
+        +std::string targetPool
+        +std::string targetName
         +JigsawPlacementBehaviour projection
         +i32 sourceGroundY
     }
@@ -79,8 +79,8 @@ classDiagram
         #JigsawPlacementBehaviour m_placementBehaviour
         #i32 m_groundLevelDelta
         #vector~JigsawJoint~ m_joints
-        #String m_name
-        +getTypeName() const String&
+        #std::string m_name
+        +getTypeName() const std::string&
         +clone() unique_ptr~JigsawPiece~
         +getPlacementBehaviour() JigsawPlacementBehaviour
         +getGroundLevelDelta() i32
@@ -91,23 +91,23 @@ classDiagram
     }
 
     class EmptyJigsawPiece {
-        -static String s_typeName
+        -static std::string s_typeName
         +instance() EmptyJigsawPiece&
         +isEmpty() bool
         +clone() unique_ptr~JigsawPiece~
     }
 
     class SingleJigsawPiece {
-        -String m_templateName
+        -std::string m_templateName
         -BlockPos m_size
-        -static String s_typeName
-        +getTemplateName() const String&
+        -static std::string s_typeName
+        +getTemplateName() const std::string&
         +setSize(size) void
     }
 
     class ListJigsawPiece {
         -vector~unique_ptr~JigsawPiece~~ m_pieces
-        -static String s_typeName
+        -static std::string s_typeName
         +addPiece(piece) void
         +getPieces() const vector~unique_ptr~JigsawPiece~~&
         +getPieceCount() size_t
@@ -117,7 +117,7 @@ classDiagram
         <<static>>
         +canMatch(sourceName, targetName) bool
         +isOpposite(name1, name2) bool
-        +rotateName(name, rotation) String
+        +rotateName(name, rotation) std::string
     }
 
     JigsawPiece <|-- EmptyJigsawPiece
@@ -292,9 +292,9 @@ classDiagram
 
     class PendingJoint {
         +BlockPos position
-        +String sourceName
-        +String targetPool
-        +String targetType
+        +std::string sourceName
+        +std::string targetPool
+        +std::string targetType
         +i32 depth
         +JigsawPlacementBehaviour projection
     }

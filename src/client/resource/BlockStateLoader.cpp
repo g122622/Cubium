@@ -5,8 +5,8 @@
 
 namespace {
 
-std::vector<std::pair<mc::String, mc::String>> parseStateConditions(mc::StringView stateStr) {
-    std::vector<std::pair<mc::String, mc::String>> conditions;
+std::vector<std::pair<mc::std::string, mc::std::string>> parseStateConditions(mc::std::string_view stateStr) {
+    std::vector<std::pair<mc::std::string, mc::std::string>> conditions;
 
     if (stateStr.empty() || stateStr == "normal") {
         return conditions;
@@ -15,15 +15,15 @@ std::vector<std::pair<mc::String, mc::String>> parseStateConditions(mc::StringVi
     size_t start = 0;
     while (start < stateStr.size()) {
         size_t end = stateStr.find(',', start);
-        if (end == mc::StringView::npos) {
+        if (end == mc::std::string_view::npos) {
             end = stateStr.size();
         }
 
-        mc::StringView token(stateStr.data() + start, end - start);
+        mc::std::string_view token(stateStr.data() + start, end - start);
         size_t eq = token.find('=');
-        if (eq != mc::StringView::npos) {
-            mc::String key(token.substr(0, eq));
-            mc::String value(token.substr(eq + 1));
+        if (eq != mc::std::string_view::npos) {
+            mc::std::string key(token.substr(0, eq));
+            mc::std::string value(token.substr(eq + 1));
             if (!key.empty()) {
                 conditions.emplace_back(std::move(key), std::move(value));
             }
@@ -36,8 +36,8 @@ std::vector<std::pair<mc::String, mc::String>> parseStateConditions(mc::StringVi
 }
 
 bool matchesProperties(
-    const std::vector<std::pair<mc::String, mc::String>>& conditions,
-    const std::map<mc::String, mc::String>& properties)
+    const std::vector<std::pair<mc::std::string, mc::std::string>>& conditions,
+    const std::map<mc::std::string, mc::std::string>& properties)
 {
     for (const auto& [key, value] : conditions) {
         auto it = properties.find(key);
@@ -70,11 +70,11 @@ Result<void> BlockStateLoader::loadFromResourcePack(IResourcePack& resourcePack)
     for (const auto& file : files) {
         // 提取方块名称
         // assets/minecraft/blockstates/stone.json -> stone
-        String blockName;
+        std::string blockName;
         size_t lastSlash = file.find_last_of("/\\");
         size_t dotPos = file.find_last_of('.');
 
-        if (lastSlash != String::npos && dotPos != String::npos && dotPos > lastSlash) {
+        if (lastSlash != std::string::npos && dotPos != std::string::npos && dotPos > lastSlash) {
             blockName = file.substr(lastSlash + 1, dotPos - lastSlash - 1);
         } else {
             continue;
@@ -116,7 +116,7 @@ const BlockStateDefinition* BlockStateLoader::getBlockState(
 
 const BlockStateVariant* BlockStateLoader::getVariant(
     const ResourceLocation& blockId,
-    StringView stateStr) const
+    std::string_view stateStr) const
 {
     auto* def = getBlockState(blockId);
     if (!def) {
@@ -133,9 +133,9 @@ const BlockStateVariant* BlockStateLoader::getVariant(
 
 const BlockStateVariant* BlockStateLoader::getVariant(
     const ResourceLocation& blockId,
-    const std::map<String, String>& properties) const
+    const std::map<std::string, std::string>& properties) const
 {
-    String stateStr = propertiesToStateStr(properties);
+    std::string stateStr = propertiesToStateStr(properties);
 
     // 先尝试精确匹配
     if (const auto* variant = getVariant(blockId, stateStr)) {
@@ -188,15 +188,15 @@ std::vector<ResourceLocation> BlockStateLoader::getLoadedBlockStates() const {
     return result;
 }
 
-String BlockStateLoader::propertiesToStateStr(const std::map<String, String>& properties) {
+std::string BlockStateLoader::propertiesToStateStr(const std::map<std::string, std::string>& properties) {
     if (properties.empty()) {
         return "normal";
     }
 
-    String result;
+    std::string result;
 
     // 按键排序以保证一致性
-    std::vector<std::pair<String, String>> sortedProps(
+    std::vector<std::pair<std::string, std::string>> sortedProps(
         properties.begin(), properties.end());
     std::sort(sortedProps.begin(), sortedProps.end(),
         [](const auto& a, const auto& b) { return a.first < b.first; });

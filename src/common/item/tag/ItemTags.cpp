@@ -29,7 +29,7 @@ ItemTag* ItemTags::getTag(const ResourceLocation& id) {
     return it->second.get();
 }
 
-ItemTag* ItemTags::getTag(const String& id) {
+ItemTag* ItemTags::getTag(const std::string& id) {
     return getTag(ResourceLocation(id));
 }
 

@@ -292,7 +292,7 @@ const Potion* PotionUtils::getPotion(const ItemStack& stack) {
     }
 
     // 从NBT获取药水类型
-    const String& potionId = stack.m_potionId;
+    const std::string& potionId = stack.m_potionId;
     if (potionId.empty()) {
         return Potions::WATER;  // 默认为水瓶
     }

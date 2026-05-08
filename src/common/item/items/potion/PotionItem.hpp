@@ -49,7 +49,7 @@ public:
     /**
      * @brief 获取翻译键
      */
-    [[nodiscard]] String getTranslationKey(const ItemStack& stack) const override;
+    [[nodiscard]] std::string getTranslationKey(const ItemStack& stack) const override;
 
 private:
     /**

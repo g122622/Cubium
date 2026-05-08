@@ -366,13 +366,13 @@ public:
      * @brief 转换为模型键（用于查找模型变体）
      * @return 格式: "axis=y,facing=north" 或 "" (无属性时)
      */
-    [[nodiscard]] String toModelKey() const;
+    [[nodiscard]] std::string toModelKey() const;
 
 protected:
     /**
      * @brief 获取拥有者名称
      */
-    [[nodiscard]] String ownerName() const override;
+    [[nodiscard]] std::string ownerName() const override;
 
 private:
     friend class Block;
@@ -522,7 +522,7 @@ public:
      *
      * @param lootTableId 掉落表ID（如 "minecraft:blocks/diamond_ore"）
      */
-    BlockProperties& lootTableId(const String& id) {
+    BlockProperties& lootTableId(const std::string& id) {
         m_lootTableId = id;
         return *this;
     }
@@ -616,7 +616,7 @@ public:
     [[nodiscard]] bool doesPropagateSkylightDown() const { return m_propagatesSkylightDown; }
     [[nodiscard]] u8 harvestTool() const { return m_harvestTool; }
     [[nodiscard]] i32 harvestLevel() const { return m_harvestLevel; }
-    [[nodiscard]] const String& lootTableId() const { return m_lootTableId; }
+    [[nodiscard]] const std::string& lootTableId() const { return m_lootTableId; }
     [[nodiscard]] const BlockSoundType* soundType() const { return m_soundType; }
     [[nodiscard]] f32 slipperiness() const { return m_slipperiness; }
     [[nodiscard]] f32 speedFactor() const { return m_speedFactor; }
@@ -640,7 +640,7 @@ private:
     bool m_propagatesSkylightDown = false;
     u8 m_harvestTool = HarvestTool::None;
     i32 m_harvestLevel = 0;
-    String m_lootTableId;
+    std::string m_lootTableId;
     const BlockSoundType* m_soundType = &BlockSoundTypes::STONE;  // 默认使用石头声音
     f32 m_slipperiness = 0.6f;   // MC默认滑度
     f32 m_speedFactor = 1.0f;    // MC默认速度因子
@@ -839,7 +839,7 @@ public:
      *
      * @return 掉落表ID，如 "minecraft:blocks/stone"，空字符串表示无掉落表
      */
-    [[nodiscard]] virtual String getLootTableId() const { return m_lootTableId; }
+    [[nodiscard]] virtual std::string getLootTableId() const { return m_lootTableId; }
 
     /**
      * @brief 获取方块的掉落表
@@ -856,7 +856,7 @@ public:
      *
      * @param id 掉落表ID
      */
-    void setLootTableId(const String& id) { m_lootTableId = id; }
+    void setLootTableId(const std::string& id) { m_lootTableId = id; }
 
     // ========================================================================
     // 虚方法
@@ -1910,7 +1910,7 @@ public:
     /**
      * @brief 转换为字符串
      */
-    [[nodiscard]] virtual String toString() const {
+    [[nodiscard]] virtual std::string toString() const {
         return m_blockLocation.toString();
     }
 
@@ -1953,7 +1953,7 @@ protected:
     i32 m_harvestLevel = 0;
 
     // 掉落表ID（默认为空，表示无自定义掉落表）
-    String m_lootTableId;
+    std::string m_lootTableId;
 
     // 声音类型（默认为石头声音）
     const BlockSoundType* m_soundType = &BlockSoundTypes::STONE;

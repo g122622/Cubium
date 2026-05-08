@@ -52,14 +52,14 @@ public:
      * @param typeId 实体类型ID
      * @param creator 渲染器创建函数
      */
-    void registerRenderer(const String& typeId, RendererCreator creator);
+    void registerRenderer(const std::string& typeId, RendererCreator creator);
 
     /**
      * @brief 获取渲染器
      * @param typeId 实体类型ID
      * @return 渲染器指针，如果未注册返回nullptr
      */
-    [[nodiscard]] core::EntityRenderer* getRenderer(const String& typeId);
+    [[nodiscard]] core::EntityRenderer* getRenderer(const std::string& typeId);
 
     // ========== 实体网格缓存 ==========
 
@@ -207,8 +207,8 @@ public:
     void initializeDefaults();
 
 private:
-    std::unordered_map<String, std::unique_ptr<core::EntityRenderer>> m_renderers;
-    std::unordered_map<String, RendererCreator> m_creators;
+    std::unordered_map<std::string, std::unique_ptr<core::EntityRenderer>> m_renderers;
+    std::unordered_map<std::string, RendererCreator> m_creators;
 
     // 静态实体网格缓存（用于非动画实体，如 ItemEntity、ExperienceOrb）
     std::unordered_map<EntityId, pipeline::EntityMesh> m_meshes;
@@ -230,7 +230,7 @@ private:
     /**
      * @brief 创建或获取渲染器
      */
-    [[nodiscard]] core::EntityRenderer* getOrCreateRenderer(const String& typeId);
+    [[nodiscard]] core::EntityRenderer* getOrCreateRenderer(const std::string& typeId);
 
     /**
      * @brief 生成实体模型网格
@@ -239,7 +239,7 @@ private:
      * @param indices 输出索引
      * @return 是否成功生成
      */
-    bool generateModelMesh(const String& typeId,
+    bool generateModelMesh(const std::string& typeId,
                            std::vector<model::ModelVertex>& vertices,
                            std::vector<u32>& indices);
 
@@ -278,7 +278,7 @@ private:
     /**
      * @brief 将模型局部UV映射到图集区域
      */
-    void remapUvToAtlasRegion(const String& normalizedTypeId,
+    void remapUvToAtlasRegion(const std::string& normalizedTypeId,
                               std::vector<model::ModelVertex>& vertices) const;
 
     /**
@@ -311,7 +311,7 @@ private:
      * ItemEntity 和 ExperienceOrb 使用静态网格，
      * 其他实体使用动画网格。
      */
-    [[nodiscard]] bool usesAnimatedMesh(const String& normalizedTypeId) const;
+    [[nodiscard]] bool usesAnimatedMesh(const std::string& normalizedTypeId) const;
 
     /**
      * @brief 为实体创建模型并设置动画

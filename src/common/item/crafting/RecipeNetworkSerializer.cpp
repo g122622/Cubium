@@ -51,7 +51,7 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeNetworkSerializer::deserialize(net
     if (groupResult.failed()) {
         return groupResult.error();
     }
-    String group = groupResult.value();
+    std::string group = groupResult.value();
 
     // 根据配方类型读取特定数据
     switch (type) {
@@ -101,7 +101,7 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeNetworkSerializer::deserializeSmel
     if (groupResult.failed()) {
         return groupResult.error();
     }
-    String group = groupResult.value();
+    std::string group = groupResult.value();
 
     // 读取原料
     auto ingredientResult = Ingredient::deserialize(deser);
@@ -153,7 +153,7 @@ void RecipeNetworkSerializer::serializeShaped(const ShapedRecipe& recipe, networ
 }
 
 Result<std::unique_ptr<ShapedRecipe>> RecipeNetworkSerializer::deserializeShaped(
-    network::PacketDeserializer& deser, const ResourceLocation& id, const String& group) {
+    network::PacketDeserializer& deser, const ResourceLocation& id, const std::string& group) {
 
     // 读取宽度和高度
     auto widthResult = deser.readVarInt();
@@ -218,7 +218,7 @@ void RecipeNetworkSerializer::serializeShapeless(const ShapelessRecipe& recipe, 
 }
 
 Result<std::unique_ptr<ShapelessRecipe>> RecipeNetworkSerializer::deserializeShapeless(
-    network::PacketDeserializer& deser, const ResourceLocation& id, const String& group) {
+    network::PacketDeserializer& deser, const ResourceLocation& id, const std::string& group) {
 
     // 读取原料数量
     auto countResult = deser.readVarUInt();

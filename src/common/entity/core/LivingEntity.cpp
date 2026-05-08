@@ -318,11 +318,11 @@ void LivingEntity::registerAttributes() {
     // - LUCK: 由需要的实体注册
 }
 
-f64 LivingEntity::getAttributeValue(const String& name, f64 defaultValue) const {
+f64 LivingEntity::getAttributeValue(const std::string& name, f64 defaultValue) const {
     return m_attributes.getValue(name, defaultValue);
 }
 
-void LivingEntity::setAttributeBaseValue(const String& name, f64 value) {
+void LivingEntity::setAttributeBaseValue(const std::string& name, f64 value) {
     m_attributes.setBaseValue(name, value);
 }
 

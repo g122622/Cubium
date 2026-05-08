@@ -25,7 +25,7 @@ class OceanMonumentStructure : public Structure {
 public:
     OceanMonumentStructure();
 
-    [[nodiscard]] const String& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
@@ -73,7 +73,7 @@ private:
     [[nodiscard]] bool isOceanOrRiverBiome(BiomeId biomeId) const;
 
     static constexpr StructureSeparationSettings m_settings{32, 5, 10387313};
-    static const String m_name;
+    static const std::string m_name;
     std::vector<BiomeId> m_validBiomes;
 };
 

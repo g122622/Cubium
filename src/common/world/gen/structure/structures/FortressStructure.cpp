@@ -17,7 +17,7 @@ namespace structure {
 
 using namespace mc::Biomes;
 
-const String FortressStructure::m_name = "fortress";
+const std::string FortressStructure::m_name = "fortress";
 
 FortressStructure::FortressStructure()
     : Structure(StructureType::Fortress)

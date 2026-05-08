@@ -165,7 +165,7 @@ TEST(SliderWidgetTest, SetDisplayText) {
 TEST(SliderWidgetTest, FormatCallback) {
     SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
 
-    slider.setFormatCallback([](f64 value) -> String {
+    slider.setFormatCallback([](f64 value) -> std::string {
         return "Value: " + std::to_string(static_cast<i32>(value)) + "%";
     });
 

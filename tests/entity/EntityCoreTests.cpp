@@ -429,7 +429,7 @@ TEST(DataParameter, Type) {
     DataParameter<i32> intParam(1);
     DataParameter<i64> longParam(2);
     DataParameter<f32> floatParam(3);
-    DataParameter<String> stringParam(4);
+    DataParameter<std::string> stringParam(4);
     DataParameter<bool> boolParam(5);
     DataParameter<Vector3i> blockPosParam(6);
     DataParameter<Vector2f> rotationParam(7);
@@ -439,7 +439,7 @@ TEST(DataParameter, Type) {
     EXPECT_EQ(intParam.type(), DataSerializerType::Int);
     EXPECT_EQ(longParam.type(), DataSerializerType::Long);
     EXPECT_EQ(floatParam.type(), DataSerializerType::Float);
-    EXPECT_EQ(stringParam.type(), DataSerializerType::String);
+    EXPECT_EQ(stringParam.type(), DataSerializerType::std::string);
     EXPECT_EQ(boolParam.type(), DataSerializerType::Boolean);
     EXPECT_EQ(blockPosParam.type(), DataSerializerType::BlockPos);
     EXPECT_EQ(rotationParam.type(), DataSerializerType::Rotation);
@@ -464,11 +464,11 @@ TEST(EntityDataManager, RegisterAndSetGet) {
     EntityDataManager manager;
 
     auto healthParam = EntityDataManager::createKey<i32>();
-    auto nameParam = EntityDataManager::createKey<String>();
+    auto nameParam = EntityDataManager::createKey<std::string>();
     auto fireParam = EntityDataManager::createKey<bool>();
 
     manager.registerParam(healthParam, 20);
-    manager.registerParam(nameParam, String("test"));
+    manager.registerParam(nameParam, std::string("test"));
     manager.registerParam(fireParam, false);
 
     EXPECT_EQ(manager.get(healthParam), 20);
@@ -583,13 +583,13 @@ TEST(EntityDataManager, DifferentTypes) {
 
     auto intParam = EntityDataManager::createKey<i32>();
     auto floatParam = EntityDataManager::createKey<f32>();
-    auto stringParam = EntityDataManager::createKey<String>();
+    auto stringParam = EntityDataManager::createKey<std::string>();
     auto boolParam = EntityDataManager::createKey<bool>();
     auto vecParam = EntityDataManager::createKey<Vector3i>();
 
     manager.registerParam(intParam, 42);
     manager.registerParam(floatParam, 3.14f);
-    manager.registerParam(stringParam, String("hello"));
+    manager.registerParam(stringParam, std::string("hello"));
     manager.registerParam(boolParam, true);
     manager.registerParam(vecParam, Vector3i(1, 2, 3));
 

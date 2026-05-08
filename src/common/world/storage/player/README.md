@@ -28,8 +28,8 @@ player/
 
 | 字段 | 类型 | 描述 |
 |------|------|------|
-| uuid | String | 玩家唯一标识符 |
-| username | String | 用户名 |
+| uuid | std::string | 玩家唯一标识符 |
+| username | std::string | 用户名 |
 | posX/Y/Z | f64 | 世界坐标 |
 | yaw/pitch | f32 | 旋转角度 |
 | dimension | DimensionId | 当前维度 |

@@ -14,7 +14,7 @@
 ```
 src/common/
 ├── core/                    # 核心类型和工具
-│   ├── Types.hpp           # 基础类型定义 (i8, i16, i32, u8, String, etc.)
+│   ├── Types.hpp           # 基础类型定义 (i8, i16, i32, u8, std::string, etc.)
 │   ├── Result.hpp          # 错误处理 (Result<T>, Error, ErrorCode)
 │   ├── Constants.hpp       # 游戏常量
 │   ├── EnumSet.hpp         # 枚举集合工具
@@ -444,7 +444,7 @@ src/common/
 
 ### core/
 核心类型定义和基础工具：
-- **Types.hpp**: 基础类型别名 (i8, i16, i32, u8, String, Optional 等)
+- **Types.hpp**: 基础类型别名 (i8, i16, i32, u8, std::string, Optional 等)
 - **Result.hpp**: 错误处理系统 (Result<T>, Error, ErrorCode)
 - **EnumSet.hpp**: 类型安全的枚举集合
 - **settings/**: 设置系统基类和选项类型

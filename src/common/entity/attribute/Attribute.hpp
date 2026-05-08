@@ -26,7 +26,7 @@ public:
      * @param minValue 最小值
      * @param maxValue 最大值
      */
-    Attribute(const String& registryName, f64 defaultValue, f64 minValue, f64 maxValue)
+    Attribute(const std::string& registryName, f64 defaultValue, f64 minValue, f64 maxValue)
         : m_registryName(registryName)
         , m_defaultValue(defaultValue)
         , m_minValue(minValue)
@@ -38,7 +38,7 @@ public:
     /**
      * @brief 获取注册名称
      */
-    [[nodiscard]] const String& registryName() const { return m_registryName; }
+    [[nodiscard]] const std::string& registryName() const { return m_registryName; }
 
     /**
      * @brief 获取默认值
@@ -79,7 +79,7 @@ public:
     }
 
 private:
-    String m_registryName;
+    std::string m_registryName;
     f64 m_defaultValue;
     f64 m_minValue;
     f64 m_maxValue;

@@ -83,7 +83,7 @@ Result<mc::ContainerId> ContainerManager::openContainer(
 
     m_openContainers[playerId] = std::move(openContainer);
 
-    String title = String(ContainerTypes::getDefaultTitle(type));
+    std::string title = std::string(ContainerTypes::getDefaultTitle(type));
     i32 slotCount = ContainerTypes::getSlotCount(type);
 
     const auto& opened = m_openContainers[playerId];
@@ -117,7 +117,7 @@ void ContainerManager::closeContainer(PlayerId playerId)
         position = it->second.position;
 
         auto* playerData = m_playerManager.getPlayer(playerId);
-        const String username = (playerData != nullptr) ? playerData->username : String("ContainerPlayer");
+        const std::string username = (playerData != nullptr) ? playerData->username : std::string("ContainerPlayer");
         Player menuPlayer(playerId, username);
         it->second.menu->removed(menuPlayer);
     }
@@ -200,7 +200,7 @@ bool ContainerManager::hasOpenContainer(PlayerId playerId) const
 }
 
 void ContainerManager::setOnContainerOpen(
-    std::function<void(PlayerId, ContainerId, ContainerType, const String&, i32)> callback)
+    std::function<void(PlayerId, ContainerId, ContainerType, const std::string&, i32)> callback)
 {
     m_onContainerOpen = std::move(callback);
 }

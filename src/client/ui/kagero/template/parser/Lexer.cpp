@@ -30,7 +30,7 @@ const char* tokenTypeName(TokenType type) {
 
 // ========== Token ==========
 
-String Token::format() const {
+std::string Token::format() const {
     std::ostringstream oss;
     oss << tokenTypeName(type);
     if (!value.empty()) {
@@ -42,7 +42,7 @@ String Token::format() const {
 
 // ========== Lexer ==========
 
-Lexer::Lexer(String source, String sourcePath)
+Lexer::Lexer(std::string source, std::string sourcePath)
     : m_source(std::move(source))
     , m_sourcePath(std::move(sourcePath))
     , m_location(1, 1, 0) {
@@ -122,14 +122,14 @@ void Lexer::skipWhitespaceAndNewlines() {
 bool Lexer::expect(TokenType type) {
     if (!hasNext()) {
         addError(TemplateErrorType::UnexpectedEndOfInput,
-                 "Expected " + String(tokenTypeName(type)) + " but reached end of file");
+                 "Expected " + std::string(tokenTypeName(type)) + " but reached end of file");
         return false;
     }
 
     if (current().type != type) {
         addError(TemplateErrorType::UnexpectedToken,
-                 "Expected " + String(tokenTypeName(type)) +
-                 " but got " + String(tokenTypeName(current().type)));
+                 "Expected " + std::string(tokenTypeName(type)) +
+                 " but got " + std::string(tokenTypeName(current().type)));
         return false;
     }
 
@@ -137,7 +137,7 @@ bool Lexer::expect(TokenType type) {
     return true;
 }
 
-bool Lexer::expect(TokenType type, const String& value) {
+bool Lexer::expect(TokenType type, const std::string& value) {
     if (!hasNext()) {
         addError(TemplateErrorType::UnexpectedEndOfInput,
                  "Expected " + value + " but reached end of file");
@@ -154,7 +154,7 @@ bool Lexer::expect(TokenType type, const String& value) {
     return true;
 }
 
-String Lexer::getLineContent(size_t line) const {
+std::string Lexer::getLineContent(size_t line) const {
     if (line == 0) return "";
 
     size_t currentLine = 1;
@@ -170,27 +170,27 @@ String Lexer::getLineContent(size_t line) const {
 
     // 找到行结束位置
     size_t lineEnd = m_source.find('\n', lineStart);
-    if (lineEnd == String::npos) {
+    if (lineEnd == std::string::npos) {
         lineEnd = m_source.size();
     }
 
     return m_source.substr(lineStart, lineEnd - lineStart);
 }
 
-String Lexer::getContext(const SourceLocation& loc, size_t contextLines) const {
+std::string Lexer::getContext(const SourceLocation& loc, size_t contextLines) const {
     std::ostringstream oss;
 
     size_t startLine = loc.line > contextLines ? loc.line - contextLines : 1;
     size_t endLine = loc.line + contextLines;
 
     for (size_t line = startLine; line <= endLine; ++line) {
-        String content = getLineContent(line);
+        std::string content = getLineContent(line);
         oss << line << ": " << content << "\n";
 
         // 添加错误位置指示器
         if (line == loc.line) {
-            oss << String(std::to_string(line).size() + 2, ' ');
-            oss << String(loc.column - 1, ' ') << "^\n";
+            oss << std::string(std::to_string(line).size() + 2, ' ');
+            oss << std::string(loc.column - 1, ' ') << "^\n";
         }
     }
 
@@ -254,9 +254,9 @@ Token Lexer::scanToken() {
 
         // 未知字符在标签内
         addError(TemplateErrorType::UnexpectedCharacter,
-                 "Unexpected character '" + String(1, c) + "' in tag");
+                 "Unexpected character '" + std::string(1, c) + "' in tag");
         advance();
-        return makeToken(TokenType::Error, String(1, c));
+        return makeToken(TokenType::Error, std::string(1, c));
     }
 
     // 文本内容
@@ -304,7 +304,7 @@ Token Lexer::scanComment() {
     while (!isAtEnd()) {
         // 检查注释结束
         if (currentChar() == '-' && peekChar() == '-' && peekChar(2) == '>') {
-            String content = m_source.substr(contentStart, m_pos - contentStart);
+            std::string content = m_source.substr(contentStart, m_pos - contentStart);
 
             advance(); // '-'
             advance(); // '-'
@@ -334,7 +334,7 @@ Token Lexer::scanIdentifier() {
         advance();
     }
 
-    String value = m_source.substr(start, m_pos - start);
+    std::string value = m_source.substr(start, m_pos - start);
     Token token(TokenType::Identifier, value);
     token.location = startLoc;
     return token;
@@ -345,7 +345,7 @@ Token Lexer::scanStringLiteral() {
     advance(); // 跳过开始引号
 
     size_t start = m_pos;
-    String value;
+    std::string value;
 
     while (!isAtEnd() && currentChar() != quote) {
         if (currentChar() == '\\') {
@@ -407,7 +407,7 @@ Token Lexer::scanNumberLiteral() {
         }
     }
 
-    String value = m_source.substr(start, m_pos - start);
+    std::string value = m_source.substr(start, m_pos - start);
     Token token(TokenType::NumberLiteral, value);
     token.location = startLoc;
     return token;
@@ -416,7 +416,7 @@ Token Lexer::scanNumberLiteral() {
 Token Lexer::scanText() {
     size_t start = m_pos;
     SourceLocation startLoc = m_location;
-    String value;
+    std::string value;
 
     while (!isAtEnd() && currentChar() != '<') {
         value += currentChar();
@@ -506,7 +506,7 @@ bool Lexer::isIdentifierChar(char c) {
     return isAlphaNumeric(c) || c == '_' || c == '-' || c == ':';
 }
 
-void Lexer::addError(TemplateErrorType type, const String& message) {
+void Lexer::addError(TemplateErrorType type, const std::string& message) {
     m_errors.emplace_back(type, message, m_location, m_sourcePath);
 }
 
@@ -520,7 +520,7 @@ void Lexer::updatePosition(char c) {
     ++m_location.offset;
 }
 
-Token Lexer::makeToken(TokenType type, const String& value) const {
+Token Lexer::makeToken(TokenType type, const std::string& value) const {
     return Token(type, value, m_location);
 }
 

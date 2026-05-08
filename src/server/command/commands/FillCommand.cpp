@@ -30,13 +30,13 @@ enum class FillMode {
 /**
  * @brief 解析方块ID
  */
-Block* parseBlockId(const String& input) {
+Block* parseBlockId(const std::string& input) {
     auto& registry = BlockRegistry::instance();
 
-    String namespace_;
-    String path;
+    std::string namespace_;
+    std::string path;
     size_t colonPos = input.find(':');
-    if (colonPos != String::npos) {
+    if (colonPos != std::string::npos) {
         namespace_ = input.substr(0, colonPos);
         path = input.substr(colonPos + 1);
     } else {
@@ -46,7 +46,7 @@ Block* parseBlockId(const String& input) {
 
     // 去除状态属性部分
     size_t bracketPos = path.find('[');
-    if (bracketPos != String::npos) {
+    if (bracketPos != std::string::npos) {
         path = path.substr(0, bracketPos);
     }
 
@@ -57,7 +57,7 @@ Block* parseBlockId(const String& input) {
 /**
  * @brief 获取方块的默认状态
  */
-const BlockState* resolveBlockState(const String& blockId) {
+const BlockState* resolveBlockState(const std::string& blockId) {
     Block* block = parseBlockId(blockId);
     if (block == nullptr) {
         return nullptr;
@@ -82,11 +82,11 @@ i32 calculateBlockCount(const Vector3i& from, const Vector3i& to) {
 /**
  * @brief 执行填充操作
  */
-i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, const String& filterBlock = "") {
+i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, const std::string& filterBlock = "") {
     auto& source = context.getSource();
     Vector3i from = context.getArgument<Vector3i>("from");
     Vector3i to = context.getArgument<Vector3i>("to");
-    String blockInput = context.getArgument<String>("block");
+    std::string blockInput = context.getArgument<std::string>("block");
 
     // 获取世界
     server::ServerWorld* world = source.world();
@@ -241,7 +241,7 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         BlockPosArgumentType::blockPos()
     );
 
-    auto blockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto blockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "block",
         StringArgumentType::string()
     );
@@ -280,7 +280,7 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     });
 
     // /fill <from> <to> <block> replace <filter>
-    auto filterArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto filterArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "filter",
         StringArgumentType::string()
     );
@@ -288,8 +288,8 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         auto& source = ctx.getSource();
         Vector3i from = ctx.getArgument<Vector3i>("from");
         Vector3i to = ctx.getArgument<Vector3i>("to");
-        String blockInput = ctx.getArgument<String>("block");
-        String filterInput = ctx.getArgument<String>("filter");
+        std::string blockInput = ctx.getArgument<std::string>("block");
+        std::string filterInput = ctx.getArgument<std::string>("filter");
 
         server::ServerWorld* world = source.world();
         if (world == nullptr) {

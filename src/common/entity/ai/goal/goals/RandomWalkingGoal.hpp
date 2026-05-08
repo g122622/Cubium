@@ -61,7 +61,7 @@ public:
      */
     void setExecutionChance(i32 chance) { m_executionChance = chance; }
 
-    [[nodiscard]] String getTypeName() const override { return "RandomWalkingGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "RandomWalkingGoal"; }
 
 protected:
     /**

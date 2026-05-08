@@ -9,7 +9,7 @@ ShapedRecipe::ShapedRecipe(const ResourceLocation& id,
                            i32 height,
                            std::vector<Ingredient> ingredients,
                            ItemStack result,
-                           const String& group)
+                           const std::string& group)
     : m_id(id)
     , m_width(width)
     , m_height(height)

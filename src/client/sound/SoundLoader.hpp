@@ -97,7 +97,7 @@ public:
      * @param location 资源位置
      * @return 音频文件路径
      */
-    [[nodiscard]] static String toAudioPath(const ResourceLocation& location);
+    [[nodiscard]] static std::string toAudioPath(const ResourceLocation& location);
 
 private:
     ResourcePackList& m_resourcePacks;

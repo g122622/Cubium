@@ -491,7 +491,7 @@ callbacks.onConnected = []() { /* connected */ };
 callbacks.onChunkData = [](ChunkCoord x, ChunkCoord z, const std::vector<u8>& data) {
     // 处理区块数据
 };
-callbacks.onPlayerSpawn = [](PlayerId id, const String& name, f64 x, f64 y, f64 z) {
+callbacks.onPlayerSpawn = [](PlayerId id, const std::string& name, f64 x, f64 y, f64 z) {
     // 玩家生成
 };
 

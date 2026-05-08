@@ -29,10 +29,10 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /scoreboard objectives add <name> <criteria> [displayName]
     auto addObjectivesNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto objNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto objNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "name",
         StringArgumentType::string());
-    auto criteriaArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto criteriaArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "criteria",
         StringArgumentType::string());
     criteriaArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -43,7 +43,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /scoreboard objectives remove <name>
     auto removeObjectivesNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
-    auto removeNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto removeNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "name",
         StringArgumentType::string());
     removeNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -67,10 +67,10 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /scoreboard players set <target> <objective> <score>
     auto setPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
-    auto setTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto setTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "target",
         StringArgumentType::string());
-    auto setObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto setObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective",
         StringArgumentType::string());
     auto scoreArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
@@ -85,10 +85,10 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /scoreboard players add <target> <objective> <score>
     auto addPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto addTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto addTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "target",
         StringArgumentType::string());
-    auto addObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto addObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective",
         StringArgumentType::string());
     auto addScoreArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
@@ -103,10 +103,10 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /scoreboard players remove <target> <objective> <score>
     auto removePlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
-    auto removeTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto removeTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "target",
         StringArgumentType::string());
-    auto removeObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto removeObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective",
         StringArgumentType::string());
     auto removeScoreArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
@@ -121,7 +121,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /scoreboard players reset <target> [objective]
     auto resetPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("reset");
-    auto resetTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto resetTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "target",
         StringArgumentType::string());
     resetTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -131,10 +131,10 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /scoreboard players get <target> <objective>
     auto getPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
-    auto getTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto getTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "target",
         StringArgumentType::string());
-    auto getObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto getObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective",
         StringArgumentType::string());
     getObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -156,8 +156,8 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 i32 ScoreboardCommand::addObjective(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String name = context.getArgument<String>("name");
-    const String criteria = context.getArgument<String>("criteria");
+    const std::string name = context.getArgument<std::string>("name");
+    const std::string criteria = context.getArgument<std::string>("criteria");
 
     std::ostringstream ss;
     ss << "Created new scoreboard objective '" << name << "' with criteria '" << criteria << "'";
@@ -174,7 +174,7 @@ i32 ScoreboardCommand::addObjective(CommandContext<ServerCommandSource>& context
 i32 ScoreboardCommand::removeObjective(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String name = context.getArgument<String>("name");
+    const std::string name = context.getArgument<std::string>("name");
 
     std::ostringstream ss;
     ss << "Removed scoreboard objective '" << name << "'";
@@ -198,8 +198,8 @@ i32 ScoreboardCommand::listObjectives(CommandContext<ServerCommandSource>& conte
 i32 ScoreboardCommand::setScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String target = context.getArgument<String>("target");
-    const String objective = context.getArgument<String>("objective");
+    const std::string target = context.getArgument<std::string>("target");
+    const std::string objective = context.getArgument<std::string>("objective");
     const i32 score = context.getArgument<i32>("score");
 
     std::ostringstream ss;
@@ -214,8 +214,8 @@ i32 ScoreboardCommand::setScore(CommandContext<ServerCommandSource>& context)
 i32 ScoreboardCommand::addScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String target = context.getArgument<String>("target");
-    const String objective = context.getArgument<String>("objective");
+    const std::string target = context.getArgument<std::string>("target");
+    const std::string objective = context.getArgument<std::string>("objective");
     const i32 score = context.getArgument<i32>("score");
 
     std::ostringstream ss;
@@ -230,8 +230,8 @@ i32 ScoreboardCommand::addScore(CommandContext<ServerCommandSource>& context)
 i32 ScoreboardCommand::removeScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String target = context.getArgument<String>("target");
-    const String objective = context.getArgument<String>("objective");
+    const std::string target = context.getArgument<std::string>("target");
+    const std::string objective = context.getArgument<std::string>("objective");
     const i32 score = context.getArgument<i32>("score");
 
     std::ostringstream ss;
@@ -246,7 +246,7 @@ i32 ScoreboardCommand::removeScore(CommandContext<ServerCommandSource>& context)
 i32 ScoreboardCommand::resetScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String target = context.getArgument<String>("target");
+    const std::string target = context.getArgument<std::string>("target");
 
     std::ostringstream ss;
     ss << "Reset all scores for " << target;
@@ -260,8 +260,8 @@ i32 ScoreboardCommand::resetScore(CommandContext<ServerCommandSource>& context)
 i32 ScoreboardCommand::getScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String target = context.getArgument<String>("target");
-    const String objective = context.getArgument<String>("objective");
+    const std::string target = context.getArgument<std::string>("target");
+    const std::string objective = context.getArgument<std::string>("objective");
 
     // TODO: 实现记分板系统，获取分数
     std::ostringstream ss;

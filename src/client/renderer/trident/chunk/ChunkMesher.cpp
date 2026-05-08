@@ -160,13 +160,13 @@ struct FaceLayerRenderData {
 
 [[nodiscard]] std::vector<FaceLayerRenderData> collectFaceLayers(
     const BlockAppearance* appearance,
-    const String& faceName
+    const std::string& faceName
 ) {
     if (!appearance) {
         return {};
     }
 
-    const auto tryLayerKey = [&](const String& key) -> std::vector<FaceLayerRenderData> {
+    const auto tryLayerKey = [&](const std::string& key) -> std::vector<FaceLayerRenderData> {
         auto it = appearance->faceTextureLayers.find(key);
         if (it == appearance->faceTextureLayers.end() || it->second.empty()) {
             return {};
@@ -191,7 +191,7 @@ struct FaceLayerRenderData {
     }
 
     auto texIt = appearance->faceTextures.find(faceName);
-    String resolvedKey = faceName;
+    std::string resolvedKey = faceName;
     if (texIt == appearance->faceTextures.end()) {
         texIt = appearance->faceTextures.find("side");
         resolvedKey = "side";
@@ -237,10 +237,10 @@ struct FaceLayerRenderData {
     const bool isWater = blockLocation.namespace_() == "minecraft" && blockLocation.path() == "water";
     const bool isLava = blockLocation.namespace_() == "minecraft" && blockLocation.path() == "lava";
 
-    const String stillName = isWater ? "water_still"
+    const std::string stillName = isWater ? "water_still"
                            : isLava  ? "lava_still"
                                      : blockLocation.path() + "_still";
-    const String flowName = isWater ? "water_flow"
+    const std::string flowName = isWater ? "water_flow"
                           : isLava  ? "lava_flow"
                                     : blockLocation.path() + "_flow";
 
@@ -1011,13 +1011,13 @@ u32 ChunkMesher::resolveTintColorBlended(
     return packRgb(grassColor);
 }
 
-bool ChunkMesher::tryLoadColorMap(StringView path, std::array<u32, 65536>& outColorMap) {
+bool ChunkMesher::tryLoadColorMap(std::string_view path, std::array<u32, 65536>& outColorMap) {
     if (!s_modelCache || !s_modelCache->resourceManager()) {
         return false;
     }
 
     auto* resourceManager = s_modelCache->resourceManager();
-    auto colorMapResult = resourceManager->loadTextureRGBA(ResourceLocation(String(path)));
+    auto colorMapResult = resourceManager->loadTextureRGBA(ResourceLocation(std::string(path)));
     if (colorMapResult.failed()) {
         return false;
     }
@@ -1089,7 +1089,7 @@ void ChunkMesher::addFaceFromAppearance(
     }
 
     // 查找面的纹理
-    String faceName;
+    std::string faceName;
     switch (face) {
         case Face::Bottom: faceName = "down"; break;
         case Face::Top: faceName = "up"; break;
@@ -1209,7 +1209,7 @@ void ChunkMesher::addFaceFromAppearanceSmooth(
     }
 
     // 查找面的纹理
-    String faceName;
+    std::string faceName;
     switch (face) {
         case Face::Bottom: faceName = "down"; break;
         case Face::Top: faceName = "up"; break;
@@ -1540,7 +1540,7 @@ void ChunkMesher::addShapeGeometryFromAppearance(
             }
         }
 
-        String faceName;
+        std::string faceName;
         switch (face) {
             case Face::Bottom: faceName = "down"; break;
             case Face::Top: faceName = "up"; break;
@@ -2091,7 +2091,7 @@ void ChunkMesher::greedyMeshSection(
             return cell;
         }
 
-        String faceName;
+        std::string faceName;
         switch (face) {
             case Face::Bottom: faceName = "down"; break;
             case Face::Top: faceName = "up"; break;

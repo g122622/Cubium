@@ -14,7 +14,7 @@ namespace mc::command::support {
  *
  * @note 该解析层使用 Java 版常见蛇形命名，如 `night_vision`、`hero_of_the_village`。
  */
-[[nodiscard]] std::optional<entity::effect::EffectType> tryParseEffectType(StringView name) noexcept;
+[[nodiscard]] std::optional<entity::effect::EffectType> tryParseEffectType(std::string_view name) noexcept;
 
 /**
  * @brief 获取命令输出中使用的效果名称。

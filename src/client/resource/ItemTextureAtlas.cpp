@@ -30,7 +30,7 @@ namespace {
     }
 
     try {
-        const String jsonText(mcmetaData.begin(), mcmetaData.end());
+        const std::string jsonText(mcmetaData.begin(), mcmetaData.end());
         const auto json = nlohmann::json::parse(jsonText);
         if (!json.is_object() || !json.contains("animation") || !json["animation"].is_object()) {
             return false;
@@ -80,7 +80,7 @@ Result<void> loadTexturePixels(
     u32& outFrameWidth,
     u32& outFrameHeight)
 {
-    const String pngPath = location.toFilePath("png");
+    const std::string pngPath = location.toFilePath("png");
     const auto readResult = pack.readResource(pngPath);
     if (readResult.failed()) {
         return readResult.error();
@@ -110,7 +110,7 @@ Result<void> loadTexturePixels(
     outFrameWidth = outWidth;
     outFrameHeight = outHeight;
 
-    const String mcmetaPath = pngPath + ".mcmeta";
+    const std::string mcmetaPath = pngPath + ".mcmeta";
     if (pack.hasResource(mcmetaPath)) {
         const auto mcmetaResult = pack.readResource(mcmetaPath);
         if (mcmetaResult.success()) {

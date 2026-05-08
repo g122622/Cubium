@@ -75,7 +75,7 @@ Result<void> TextureAtlasBuilder::addTexture(
     }
 
     // 构建文件路径
-    String filePath = location.toFilePath("png");
+    std::string filePath = location.toFilePath("png");
 
     // 读取纹理数据
     auto readResult = resourcePack.readResource(filePath);
@@ -97,7 +97,7 @@ Result<void> TextureAtlasBuilder::addTexture(
 
     if (!pixels) {
         return Error(ErrorCode::TextureLoadFailed,
-                     String("Failed to decode PNG: ") + location.toString());
+                     std::string("Failed to decode PNG: ") + location.toString());
     }
 
     // 复制像素数据

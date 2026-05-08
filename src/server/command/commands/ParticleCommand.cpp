@@ -27,7 +27,7 @@ void ParticleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
             {},
             true));
 
-    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "name",
         StringArgumentType::string());
     nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -50,7 +50,7 @@ i32 ParticleCommand::spawnParticle(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
-    const String name = context.getArgument<String>("name");
+    const std::string name = context.getArgument<std::string>("name");
     Vector3d pos = source.position();
 
     // 如果提供了位置参数，使用它
@@ -93,18 +93,18 @@ i32 ParticleCommand::spawnParticle(CommandContext<ServerCommandSource>& context)
 }
 
 std::optional<client::renderer::trident::particle::ParticleTypeId>
-ParticleCommand::parseParticleType(const String& name) noexcept
+ParticleCommand::parseParticleType(const std::string& name) noexcept
 {
     using namespace client::renderer::trident::particle;
 
     // 支持简化名称（不带 minecraft: 前缀）
-    String normalizedName = name;
+    std::string normalizedName = name;
     if (normalizedName.find("minecraft:") == 0) {
         normalizedName = normalizedName.substr(10);
     }
 
     // 粒子名称映射
-    static const std::unordered_map<String, ParticleTypeId> particleMap = {
+    static const std::unordered_map<std::string, ParticleTypeId> particleMap = {
         {"flame", ParticleTypeId::Flame},
         {"smoke", ParticleTypeId::Smoke},
         {"large_smoke", ParticleTypeId::LargeSmoke},

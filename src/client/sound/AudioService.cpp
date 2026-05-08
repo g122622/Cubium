@@ -349,7 +349,7 @@ void AudioService::updateWeatherState(f32 rainStrength, f32 thunderStrength, f32
     enqueue(std::move(command));
 }
 
-void AudioService::onEntitySpawn(u32 entityId, const String& typeId, f32 x, f32 y, f32 z)
+void AudioService::onEntitySpawn(u32 entityId, const std::string& typeId, f32 x, f32 y, f32 z)
 {
     if (!m_loaded.load() || !m_entitySoundHandler) {
         return;

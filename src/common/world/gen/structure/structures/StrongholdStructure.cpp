@@ -17,7 +17,7 @@ namespace structure {
 
 using namespace mc::Biomes;
 
-const String StrongholdStructure::m_name = "stronghold";
+const std::string StrongholdStructure::m_name = "stronghold";
 
 StrongholdStructure::StrongholdStructure()
     : Structure(StructureType::Stronghold)

@@ -226,7 +226,7 @@ TEST_F(SettingsTypesTest, EnumOption_Serialize) {
     option.serialize(j);
 
     EXPECT_TRUE(j.contains("test_enum"));
-    EXPECT_EQ(j["test_enum"].get<String>(), "high");
+    EXPECT_EQ(j["test_enum"].get<std::string>(), "high");
 }
 
 TEST_F(SettingsTypesTest, EnumOption_Deserialize) {
@@ -258,7 +258,7 @@ TEST_F(SettingsTypesTest, StringOption_Serialize) {
     option.serialize(j);
 
     EXPECT_TRUE(j.contains("test_string"));
-    EXPECT_EQ(j["test_string"].get<String>(), "custom");
+    EXPECT_EQ(j["test_string"].get<std::string>(), "custom");
 }
 
 // ============================================================================
@@ -609,7 +609,7 @@ TEST_F(ServerSettingsTest, EnumOptionSerialize) {
     settings.difficulty.serialize(j);
 
     EXPECT_TRUE(j.contains("difficulty"));
-    EXPECT_EQ(j["difficulty"].get<String>(), "hard");
+    EXPECT_EQ(j["difficulty"].get<std::string>(), "hard");
 }
 
 TEST_F(ServerSettingsTest, EnumOptionDeserialize) {

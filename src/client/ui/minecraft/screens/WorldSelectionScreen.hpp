@@ -36,7 +36,7 @@ private:
 
     world::storage::WorldListService m_worldListService;
     std::vector<world::storage::WorldListEntry> m_worlds;
-    std::vector<String> m_worldNames;
+    std::vector<std::string> m_worldNames;
     const world::storage::WorldListEntry* m_selectedWorld = nullptr;
     i32 m_selectedIndex = -1;
     bool m_worldsEmpty = true;

@@ -12,7 +12,7 @@
 namespace mc {
 
 // EnumProperty Traits 实现 - 必须在 mc 命名空间
-String EnumProperty<blocks::ComparatorMode>::Traits::toString(const blocks::ComparatorMode& value) {
+std::string EnumProperty<blocks::ComparatorMode>::Traits::toString(const blocks::ComparatorMode& value) {
     switch (value) {
         case blocks::ComparatorMode::Compare: return "compare";
         case blocks::ComparatorMode::Subtract: return "subtract";
@@ -20,7 +20,7 @@ String EnumProperty<blocks::ComparatorMode>::Traits::toString(const blocks::Comp
     }
 }
 
-std::optional<blocks::ComparatorMode> EnumProperty<blocks::ComparatorMode>::Traits::fromName(StringView name) {
+std::optional<blocks::ComparatorMode> EnumProperty<blocks::ComparatorMode>::Traits::fromName(std::string_view name) {
     if (name == "compare") return blocks::ComparatorMode::Compare;
     if (name == "subtract") return blocks::ComparatorMode::Subtract;
     return std::nullopt;

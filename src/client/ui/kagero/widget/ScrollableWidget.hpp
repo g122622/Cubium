@@ -50,7 +50,7 @@ public:
      * @param width 宽度
      * @param height 高度
      */
-    ScrollableWidget(String id, i32 x, i32 y, i32 width, i32 height)
+    ScrollableWidget(std::string id, i32 x, i32 y, i32 width, i32 height)
         : Widget(std::move(id)) {
         setBounds(Rect(x, y, width, height));
     }

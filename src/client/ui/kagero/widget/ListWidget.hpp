@@ -104,7 +104,7 @@ public:
      * @brief 构造函数（仅ID）
      * @param id 组件ID
      */
-    explicit ListWidget(String id)
+    explicit ListWidget(std::string id)
         : ScrollableWidget(std::move(id), 0, 0, 0, 0) {
     }
 
@@ -116,7 +116,7 @@ public:
      * @param width 宽度
      * @param height 高度
      */
-    ListWidget(String id, i32 x, i32 y, i32 width, i32 height)
+    ListWidget(std::string id, i32 x, i32 y, i32 width, i32 height)
         : ScrollableWidget(std::move(id), x, y, width, height) {
     }
 
@@ -619,7 +619,7 @@ protected:
  */
 class TextListItem : public IListItem {
 public:
-    TextListItem(String text, i32 height = 20)
+    TextListItem(std::string text, i32 height = 20)
         : m_text(std::move(text))
         , m_height(height) {}
 
@@ -639,8 +639,8 @@ public:
         ctx.drawText(m_text, x + 4, textY, m_textColor);
     }
 
-    void setText(const String& text) { m_text = text; }
-    [[nodiscard]] const String& text() const { return m_text; }
+    void setText(const std::string& text) { m_text = text; }
+    [[nodiscard]] const std::string& text() const { return m_text; }
 
     void setTextColor(u32 color) { m_textColor = color; }
     [[nodiscard]] u32 textColor() const { return m_textColor; }
@@ -649,7 +649,7 @@ public:
     void setHoveredColor(u32 color) { m_hoveredColor = color; }
 
 private:
-    String m_text;
+    std::string m_text;
     i32 m_height = 20;
     u32 m_textColor = Colors::WHITE;
     u32 m_selectedColor = Colors::fromARGB(128, 0, 0, 255);

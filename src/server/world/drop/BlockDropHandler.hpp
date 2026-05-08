@@ -103,7 +103,7 @@ public:
         server::ServerWorld& world,
         const BlockPos& pos,
         const std::vector<ItemStack>& drops,
-        const String& throwerUuid = "");
+        const std::string& throwerUuid = "");
 
     /**
      * @brief 在实体管理器中生成掉落物实体（内置服务端用）
@@ -116,7 +116,7 @@ public:
         PhysicsEngine* physicsEngine,
         const BlockPos& pos,
         const std::vector<ItemStack>& drops,
-        const String& throwerUuid = "");
+        const std::string& throwerUuid = "");
 
     /**
      * @brief 检查玩家是否能采集方块

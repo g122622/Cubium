@@ -8,11 +8,11 @@ class InventorySlot : public SlotWidget {
 public:
     using SlotWidget::SlotWidget;
 
-    void setSlotGroup(String group);
-    [[nodiscard]] const String& slotGroup() const;
+    void setSlotGroup(std::string group);
+    [[nodiscard]] const std::string& slotGroup() const;
 
 private:
-    String m_slotGroup = "inventory";
+    std::string m_slotGroup = "inventory";
 };
 
 } // namespace mc::client::ui::minecraft

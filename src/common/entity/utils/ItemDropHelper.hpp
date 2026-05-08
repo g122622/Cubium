@@ -133,7 +133,7 @@ public:
         f64 x, f64 y, f64 z,
         math::Random& rng,
         i32 pickupDelay = DEFAULT_PICKUP_DELAY,
-        const String& ownerUuid = "");
+        const std::string& ownerUuid = "");
 
     /**
      * @brief 在指定位置生成物品实体（指定速度）
@@ -156,7 +156,7 @@ public:
         f64 x, f64 y, f64 z,
         f32 vx, f32 vy, f32 vz,
         i32 pickupDelay = DEFAULT_PICKUP_DELAY,
-        const String& ownerUuid = "");
+        const std::string& ownerUuid = "");
 
     /**
      * @brief 在实体位置生成物品实体
@@ -193,7 +193,7 @@ public:
         const BlockPos& pos,
         const std::vector<ItemStack>& drops,
         math::Random& rng,
-        const String& throwerUuid = "");
+        const std::string& throwerUuid = "");
 
 private:
     ItemDropHelper() = delete;  // 静态工具类，禁止实例化

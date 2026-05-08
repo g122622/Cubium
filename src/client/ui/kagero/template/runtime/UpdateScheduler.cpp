@@ -15,7 +15,7 @@ UpdateScheduler::~UpdateScheduler() {
     cancelAll();
 }
 
-u64 UpdateScheduler::schedule(const String& path, Priority priority) {
+u64 UpdateScheduler::schedule(const std::string& path, Priority priority) {
     auto task = std::make_unique<UpdateTask>(path, priority, m_nextTimestamp++);
     u64 taskId = reinterpret_cast<u64>(task.get());
     m_pathToTasks[path].push_back(taskId);
@@ -38,7 +38,7 @@ void UpdateScheduler::cancel(u64 taskId) {
     }
 }
 
-void UpdateScheduler::cancelByPath(const String& path) {
+void UpdateScheduler::cancelByPath(const std::string& path) {
     auto it = m_pathToTasks.find(path);
     if (it != m_pathToTasks.end()) {
         for (u64 taskId : it->second) {
@@ -96,7 +96,7 @@ u32 UpdateScheduler::executeBatch() {
     deduplicatePaths();
 
     u32 count = 0;
-    std::set<String> processedPaths;
+    std::set<std::string> processedPaths;
 
     for (const auto& task : m_tasks) {
         if (task->cancelled) continue;
@@ -137,7 +137,7 @@ u32 UpdateScheduler::executePriority(Priority priority) {
     if (!m_updateCallback) return 0;
 
     // 先收集要执行的任务，避免在迭代过程中修改容器
-    std::vector<std::pair<u64, String>> tasksToExecute;
+    std::vector<std::pair<u64, std::string>> tasksToExecute;
     for (const auto& task : m_tasks) {
         if (!task->cancelled && task->priority == priority) {
             tasksToExecute.emplace_back(reinterpret_cast<u64>(task.get()), task->path);

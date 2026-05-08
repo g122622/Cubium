@@ -52,8 +52,8 @@ src/client/application/
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `levelId` | `String` | 世界目录名 |
-| `displayName` | `String` | 显示名称 |
+| `levelId` | `std::string` | 世界目录名 |
+| `displayName` | `std::string` | 显示名称 |
 | `seed` | `i64` | 世界种子 |
 | `worldType` | `WorldType` | 世界类型 |
 | `defaultGameMode` | `GameMode` | 默认游戏模式 |
@@ -88,12 +88,12 @@ Initializing -> MainMenu -> LoadingWorld -> InGame <-> Paused
 | `windowWidth` | `std::optional<i32>` | 窗口宽度覆盖 |
 | `windowHeight` | `std::optional<i32>` | 窗口高度覆盖 |
 | `fullscreen` | `std::optional<bool>` | 全屏模式覆盖 |
-| `serverAddress` | `std::optional<String>` | 服务器地址覆盖 |
+| `serverAddress` | `std::optional<std::string>` | 服务器地址覆盖 |
 | `serverPort` | `std::optional<u16>` | 服务器端口覆盖 |
-| `username` | `std::optional<String>` | 用户名覆盖 |
-| `settingsPath` | `std::optional<String>` | 自定义设置文件路径 |
+| `username` | `std::optional<std::string>` | 用户名覆盖 |
+| `settingsPath` | `std::optional<std::string>` | 自定义设置文件路径 |
 | `skipIntegratedServer` | `bool` | 是否跳过内置服务端 |
-| `quickPlayLevelId` | `std::optional<String>` | Quick-play：直接加载指定世界 |
+| `quickPlayLevelId` | `std::optional<std::string>` | Quick-play：直接加载指定世界 |
 | `quickPlayNew` | `bool` | Quick-play：直接创建新世界 |
 
 #### ClientApplication 类

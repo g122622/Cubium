@@ -148,7 +148,7 @@ const BlockSoundType& BlockState::getSoundType() const {
     return m_owner->getSoundType();
 }
 
-String BlockState::toModelKey() const {
+std::string BlockState::toModelKey() const {
     if (m_values.empty()) {
         return "";
     }
@@ -166,7 +166,7 @@ String BlockState::toModelKey() const {
             return a.first->name() < b.first->name();
         });
 
-    String result;
+    std::string result;
     result.reserve(sortedValues.size() * 16);
     bool first = true;
     for (const auto& [prop, valueIndex] : sortedValues) {
@@ -181,7 +181,7 @@ String BlockState::toModelKey() const {
     return result;
 }
 
-String BlockState::ownerName() const {
+std::string BlockState::ownerName() const {
     return m_owner->toString();
 }
 

@@ -490,12 +490,12 @@ public:
     /**
      * @brief 获取设备名称
      */
-    [[nodiscard]] virtual String getDeviceName() const = 0;
+    [[nodiscard]] virtual std::string getDeviceName() const = 0;
 
     /**
      * @brief 获取调试字符串
      */
-    [[nodiscard]] virtual String getDebugString() const = 0;
+    [[nodiscard]] virtual std::string getDebugString() const = 0;
 };
 
 /**

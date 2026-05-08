@@ -2,7 +2,7 @@
 
 namespace mc::client::ui::minecraft {
 
-Screen::Screen(String id)
+Screen::Screen(std::string id)
     : ContainerWidget(std::move(id)) {}
 
 void Screen::onOpen() {}

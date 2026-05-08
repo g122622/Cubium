@@ -175,14 +175,14 @@ public:
      * @param weight 权重
      * @param quality 质量
      */
-    ItemLootEntry(const String& itemId,
+    ItemLootEntry(const std::string& itemId,
                   const RandomValueRange& count = RandomValueRange(1.0f, 1.0f),
                   i32 weight = 1, i32 quality = 0);
 
     [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Item; }
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
 
-    [[nodiscard]] const String& getItemId() const { return m_itemId; }
+    [[nodiscard]] const std::string& getItemId() const { return m_itemId; }
     [[nodiscard]] const RandomValueRange& getCount() const { return m_count; }
 
     void expand(LootContext& context,
@@ -197,7 +197,7 @@ public:
     void setCount(const RandomValueRange& count) { m_count = count; }
 
 private:
-    String m_itemId;
+    std::string m_itemId;
     RandomValueRange m_count;
 };
 
@@ -209,12 +209,12 @@ private:
  */
 class TableLootEntry : public LootEntry {
 public:
-    explicit TableLootEntry(const String& tableId, i32 weight = 1, i32 quality = 0);
+    explicit TableLootEntry(const std::string& tableId, i32 weight = 1, i32 quality = 0);
 
     [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Table; }
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
 
-    [[nodiscard]] const String& getTableId() const { return m_tableId; }
+    [[nodiscard]] const std::string& getTableId() const { return m_tableId; }
 
     void expand(LootContext& context,
                std::function<void(LootEntry&)> consumer) const override;
@@ -223,7 +223,7 @@ public:
                  LootContext& context) const override;
 
 private:
-    String m_tableId;
+    std::string m_tableId;
 };
 
 /**
@@ -332,7 +332,7 @@ public:
     /**
      * @brief 构建物品条目
      */
-    static LootEntryBuilder item(const String& itemId);
+    static LootEntryBuilder item(const std::string& itemId);
 
     /**
      * @brief 构建空条目
@@ -342,7 +342,7 @@ public:
     /**
      * @brief 构建掉落表引用
      */
-    static LootEntryBuilder table(const String& tableId);
+    static LootEntryBuilder table(const std::string& tableId);
 
     /**
      * @brief 设置数量
@@ -360,8 +360,8 @@ public:
     [[nodiscard]] std::unique_ptr<LootEntry> build() const;
 
 private:
-    String m_itemId;
-    String m_tableId;
+    std::string m_itemId;
+    std::string m_tableId;
     LootEntryType m_type = LootEntryType::Empty;
     RandomValueRange m_count{1.0f, 1.0f};
     i32 m_weight = 1;

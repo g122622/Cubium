@@ -126,11 +126,11 @@ TEST(Result, ChainingOperations) {
 }
 
 TEST(Result, StringResult) {
-    Result<String> result = String("Hello");
+    Result<std::string> result = std::string("Hello");
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), "Hello");
 
-    Result<String> error = Error(ErrorCode::NotFound, "String not found");
+    Result<std::string> error = Error(ErrorCode::NotFound, "std::string not found");
     EXPECT_TRUE(error.failed());
 }
 

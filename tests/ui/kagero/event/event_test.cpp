@@ -14,7 +14,7 @@ using namespace mc::client::ui::kagero::event;
 using mc::i32;
 using mc::u32;
 using mc::u64;
-using mc::String;
+using mc::std::string;
 
 // ==================== Event Base Tests ====================
 
@@ -320,7 +320,7 @@ TEST_F(InputEventsTest, CharInputEvent) {
 
     // 测试 UTF-8 转换 - 中文
     CharInputEvent chineseEvent(0x4E2D);  // '中'
-    String utf8 = chineseEvent.toUtf8();
+    std::string utf8 = chineseEvent.toUtf8();
     EXPECT_EQ(utf8.size(), 3u);  // 中文字符 UTF-8 编码为 3 字节
 }
 
@@ -1109,23 +1109,23 @@ protected:
 // 自定义事件类
 class PlayerDeathEvent : public Event {
 public:
-    explicit PlayerDeathEvent(i32 playerId, const String& cause)
+    explicit PlayerDeathEvent(i32 playerId, const std::string& cause)
         : m_playerId(playerId), m_cause(cause) {}
 
     EventType getType() const override { return EventType::Custom; }
     const char* getName() const override { return "PlayerDeath"; }
 
     i32 playerId() const { return m_playerId; }
-    const String& cause() const { return m_cause; }
+    const std::string& cause() const { return m_cause; }
 
 private:
     i32 m_playerId;
-    String m_cause;
+    std::string m_cause;
 };
 
 TEST_F(CustomEventTest, CustomEventSubscription) {
     i32 lastPlayerId = 0;
-    String lastCause;
+    std::string lastCause;
 
     auto id = EventBus::instance().subscribe<PlayerDeathEvent>(
         [&lastPlayerId, &lastCause](const PlayerDeathEvent& e) {
@@ -1172,7 +1172,7 @@ TEST_F(CustomEventTest, SimpleEventUsage) {
 
 TEST_F(CustomEventTest, SimpleEventMutableData) {
     // 测试 SimpleEvent 的可变数据访问
-    SimpleEvent<String, EventType::Custom> event(String("test"));
+    SimpleEvent<std::string, EventType::Custom> event(std::string("test"));
 
     EXPECT_EQ(event.data(), "test");
 

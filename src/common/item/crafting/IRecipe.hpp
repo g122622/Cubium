@@ -33,14 +33,14 @@ enum class RecipeType : u8 {
  * @param type 配方类型
  * @return 类型的字符串ID（如 "minecraft:crafting_shaped"）
  */
-String recipeTypeToString(RecipeType type);
+std::string recipeTypeToString(RecipeType type);
 
 /**
  * @brief 从字符串解析RecipeType
  * @param str 类型的字符串ID
  * @return 配方类型，如果无法识别返回std::nullopt
  */
-std::optional<RecipeType> recipeTypeFromString(const String& str);
+std::optional<RecipeType> recipeTypeFromString(const std::string& str);
 
 /**
  * @brief 配方接口模板
@@ -106,8 +106,8 @@ public:
      *
      * 分组用于在配方书中合并相似的配方
      */
-    [[nodiscard]] virtual const String& getGroup() const {
-        static const String empty;
+    [[nodiscard]] virtual const std::string& getGroup() const {
+        static const std::string empty;
         return empty;
     }
 

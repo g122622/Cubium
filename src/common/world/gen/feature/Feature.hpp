@@ -192,16 +192,16 @@ private:
  */
 class TagMatchRuleTest : public RuleTest {
 public:
-    explicit TagMatchRuleTest(const String& tagName);
+    explicit TagMatchRuleTest(const std::string& tagName);
 
     [[nodiscard]] bool test(const BlockState& state, math::Random& random) const override;
     [[nodiscard]] const char* name() const override { return "tag_match"; }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 
-    [[nodiscard]] const String& getTagName() const { return m_tagName; }
+    [[nodiscard]] const std::string& getTagName() const { return m_tagName; }
 
 private:
-    String m_tagName;
+    std::string m_tagName;
     // TODO: 添加标签引用，需要标签系统支持
 };
 

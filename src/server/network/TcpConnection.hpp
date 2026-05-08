@@ -35,9 +35,9 @@ public:
     // ========== IServerConnection 接口实现 ==========
 
     void send(const u8* data, size_t size) override;
-    void disconnect(const String& reason = "") override;
+    void disconnect(const std::string& reason = "") override;
     [[nodiscard]] bool isConnected() const override;
-    [[nodiscard]] String identifier() const override;
+    [[nodiscard]] std::string identifier() const override;
     [[nodiscard]] network::ConnectionType type() const override;
 
     // ========== TCP 特有方法 ==========

@@ -26,7 +26,7 @@ class JungleTempleStructure : public Structure {
 public:
     JungleTempleStructure();
 
-    [[nodiscard]] const String& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
@@ -56,7 +56,7 @@ private:
 
     // MC 1.16.5: spacing=32, separation=8, salt=14357619
     static constexpr StructureSeparationSettings m_settings{32, 8, 14357619};
-    static const String m_name;
+    static const std::string m_name;
     std::vector<BiomeId> m_validBiomes;
 };
 

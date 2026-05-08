@@ -19,7 +19,7 @@
 
 using namespace mc::client::ui::kagero::state;
 using mc::i32;
-using mc::String;
+using mc::std::string;
 
 // ============================================================================
 // AutoObserver 测试
@@ -112,10 +112,10 @@ TEST(AutoObserverTest, MoveAssignment) {
 }
 
 TEST(AutoObserverTest, DifferentTypes) {
-    Reactive<String> name("Steve");
+    Reactive<std::string> name("Steve");
 
-    String lastValue;
-    AutoObserver<String> observer(name, [&](const String& v) {
+    std::string lastValue;
+    AutoObserver<std::string> observer(name, [&](const std::string& v) {
         lastValue = v;
     });
 
@@ -202,12 +202,12 @@ TEST(MultiStateObserverTest, NoCallback) {
 // ============================================================================
 
 TEST(DebouncedObserverTest, Debounce) {
-    Reactive<String> searchText("");
+    Reactive<std::string> searchText("");
 
-    String lastSearch;
+    std::string lastSearch;
     int callCount = 0;
 
-    DebouncedObserver<String> observer(searchText, [&](const String& text) {
+    DebouncedObserver<std::string> observer(searchText, [&](const std::string& text) {
         lastSearch = text;
         callCount++;
     }, 100);
@@ -231,12 +231,12 @@ TEST(DebouncedObserverTest, Debounce) {
 }
 
 TEST(DebouncedObserverTest, Flush) {
-    Reactive<String> value("");
+    Reactive<std::string> value("");
 
-    String lastValue;
+    std::string lastValue;
     int callCount = 0;
 
-    DebouncedObserver<String> observer(value, [&](const String& text) {
+    DebouncedObserver<std::string> observer(value, [&](const std::string& text) {
         lastValue = text;
         callCount++;
     }, 1000); // 很长的延迟

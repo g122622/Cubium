@@ -76,7 +76,7 @@ public:
      * @return 创建的模板
      */
     [[nodiscard]] std::unique_ptr<Template> createProceduralTemplate(
-        const String& name,
+        const std::string& name,
         i32 width,
         i32 height,
         i32 depth);

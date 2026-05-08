@@ -21,10 +21,10 @@ private:
     static i32 getAttribute(CommandContext<ServerCommandSource>& context);
     static i32 setAttributeBase(CommandContext<ServerCommandSource>& context);
 
-    static String normalizeAttributeName(const String& name);
-    static bool isKnownAttribute(const String& name) noexcept;
-    static f64 getAttributeDefaultValue(const String& name) noexcept;
-    static std::pair<f64, f64> getAttributeRange(const String& name) noexcept;
+    static std::string normalizeAttributeName(const std::string& name);
+    static bool isKnownAttribute(const std::string& name) noexcept;
+    static f64 getAttributeDefaultValue(const std::string& name) noexcept;
+    static std::pair<f64, f64> getAttributeRange(const std::string& name) noexcept;
 };
 
 } // namespace command

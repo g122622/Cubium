@@ -242,7 +242,7 @@ public:
     /**
      * @brief 向所有在线玩家广播服务器系统消息。
      */
-    virtual void broadcastServerMessage(StringView message) = 0;
+    virtual void broadcastServerMessage(std::string_view message) = 0;
 
     /**
      * @brief 请求服务器优雅停机。

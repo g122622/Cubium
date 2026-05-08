@@ -51,7 +51,7 @@ public:
     /**
      * @brief 获取算法名称
      */
-    [[nodiscard]] virtual String name() const = 0;
+    [[nodiscard]] virtual std::string name() const = 0;
 };
 
 /**
@@ -107,7 +107,7 @@ public:
      * @param name 算法名称
      * @param algorithm 算法实例
      */
-    void registerAlgorithm(const String& name, std::unique_ptr<ILayoutAlgorithm> algorithm);
+    void registerAlgorithm(const std::string& name, std::unique_ptr<ILayoutAlgorithm> algorithm);
 
     /**
      * @brief 获取布局算法
@@ -115,12 +115,12 @@ public:
      * @param name 算法名称
      * @return 算法指针，如果不存在返回nullptr
      */
-    [[nodiscard]] ILayoutAlgorithm* getAlgorithm(const String& name) const;
+    [[nodiscard]] ILayoutAlgorithm* getAlgorithm(const std::string& name) const;
 
     /**
      * @brief 检查算法是否存在
      */
-    [[nodiscard]] bool hasAlgorithm(const String& name) const;
+    [[nodiscard]] bool hasAlgorithm(const std::string& name) const;
 
     // ==================== 布局执行 ====================
 
@@ -150,7 +150,7 @@ public:
      * @param container 容器适配器
      * @param availableSpace 可用空间
      */
-    void layoutWith(const String& algorithmName,
+    void layoutWith(const std::string& algorithmName,
                    WidgetLayoutAdaptor* container,
                    const Rect& availableSpace);
 
@@ -220,10 +220,10 @@ private:
      */
     [[nodiscard]] ILayoutAlgorithm* selectAlgorithm(
         LayoutType type,
-        const String& name
+        const std::string& name
     );
 
-    std::map<String, std::unique_ptr<ILayoutAlgorithm>> m_algorithms;
+    std::map<std::string, std::unique_ptr<ILayoutAlgorithm>> m_algorithms;
     LayoutStats m_stats;
     bool m_debugVisualize = false;
     bool m_profiling = false;
@@ -265,7 +265,7 @@ public:
         return layout.measure(widthSpec, heightSpec, children);
     }
 
-    [[nodiscard]] String name() const override { return "flex"; }
+    [[nodiscard]] std::string name() const override { return "flex"; }
 
 private:
     FlexConfig m_config;

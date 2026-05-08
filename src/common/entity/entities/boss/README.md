@@ -43,7 +43,7 @@ Boss实体基类，提供：
 class BossEntity : public MobEntity {
 public:
     // Boss名称（显示在生命条上）
-    virtual String getBossName() const = 0;
+    virtual std::string getBossName() const = 0;
 
     // 生命条显示范围
     virtual f32 getHealthBarRange() const { return 100.0f; }
@@ -213,7 +213,7 @@ world->spawnEntity(std::move(wither));
 if (boss->shouldDisplayHealthBar()) {
     f32 healthPercent = boss->health() / boss->maxHealth();
     u32 color = boss->getHealthBarColor();
-    String name = boss->getBossName();
+    std::string name = boss->getBossName();
     // 渲染Boss生命条
 }
 ```

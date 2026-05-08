@@ -21,11 +21,11 @@ class BindingCurseEnchantment : public Enchantment {
 public:
     BindingCurseEnchantment() = default;
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:binding_curse";
     }
 
-    [[nodiscard]] String getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override {
         (void)level;
         return "enchantment.minecraft.binding_curse";
     }

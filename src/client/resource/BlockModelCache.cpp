@@ -76,7 +76,7 @@ const BlockAppearance* BlockModelCache::getBlockAppearance(u32 stateId) const
 
 const BlockAppearance* BlockModelCache::getBlockAppearance(
     u32 blockId,
-    const String& properties) const
+    const std::string& properties) const
 {
     if (!m_resourceManager || !m_initialized) {
         return getMissingAppearance();
@@ -90,7 +90,7 @@ const BlockAppearance* BlockModelCache::getBlockAppearance(
 
     // 从 ResourceManager 获取外观
     // 构建 properties map
-    std::map<String, String> props;
+    std::map<std::string, std::string> props;
     if (!properties.empty()) {
         // 解析 "key=value,key2=value2" 格式
         size_t start = 0;
@@ -98,15 +98,15 @@ const BlockAppearance* BlockModelCache::getBlockAppearance(
 
         while (start < properties.size()) {
             end = properties.find(',', start);
-            if (end == String::npos) {
+            if (end == std::string::npos) {
                 end = properties.size();
             }
 
-            StringView pair(properties.data() + start, end - start);
+            std::string_view pair(properties.data() + start, end - start);
             size_t eq = pair.find('=');
-            if (eq != StringView::npos) {
-                String key(pair.substr(0, eq));
-                String value(pair.substr(eq + 1));
+            if (eq != std::string_view::npos) {
+                std::string key(pair.substr(0, eq));
+                std::string value(pair.substr(eq + 1));
                 props[key] = value;
             }
 
@@ -149,10 +149,10 @@ void BlockModelCache::buildStateCache()
         const ResourceLocation& blockLoc = state.blockLocation();
 
         // 获取模型键（属性字符串）
-        String modelKey = state.toModelKey();
+        std::string modelKey = state.toModelKey();
 
         // 构建 properties map
-        std::map<String, String> props;
+        std::map<std::string, std::string> props;
         if (!modelKey.empty()) {
             // 解析 "key=value,key2=value2" 格式
             size_t start = 0;
@@ -160,15 +160,15 @@ void BlockModelCache::buildStateCache()
 
             while (start < modelKey.size()) {
                 end = modelKey.find(',', start);
-                if (end == String::npos) {
+                if (end == std::string::npos) {
                     end = modelKey.size();
                 }
 
-                StringView pair(modelKey.data() + start, end - start);
+                std::string_view pair(modelKey.data() + start, end - start);
                 size_t eq = pair.find('=');
-                if (eq != StringView::npos) {
-                    String key(pair.substr(0, eq));
-                    String value(pair.substr(eq + 1));
+                if (eq != std::string_view::npos) {
+                    std::string key(pair.substr(0, eq));
+                    std::string value(pair.substr(eq + 1));
                     props[key] = value;
                 }
 

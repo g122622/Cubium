@@ -33,7 +33,7 @@ void EnchantCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     );
 
     // /enchant <player> <enchantment>
-    auto enchantmentNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto enchantmentNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "enchantment",
         StringArgumentType::word()
     );
@@ -67,7 +67,7 @@ i32 EnchantCommand::enchantItem(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    const String& enchantmentName = context.getArgument<String>("enchantment");
+    const std::string& enchantmentName = context.getArgument<std::string>("enchantment");
     i32 level = 1;
 
     if (context.hasArgument("level")) {

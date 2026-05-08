@@ -59,7 +59,7 @@ Result<GameProfileProperty> GameProfileProperty::deserialize(network::PacketDese
 // GameProfile 实现
 // ============================================================================
 
-GameProfile::GameProfile(const std::array<u8, 16>& uuid, const String& name)
+GameProfile::GameProfile(const std::array<u8, 16>& uuid, const std::string& name)
     : m_uuid(uuid), m_name(name) {
 }
 
@@ -95,7 +95,7 @@ void GameProfile::addProperty(GameProfileProperty&& property) {
     }
 }
 
-const GameProfileProperty* GameProfile::getProperty(const String& name) const {
+const GameProfileProperty* GameProfile::getProperty(const std::string& name) const {
     auto it = std::find_if(m_properties.begin(), m_properties.end(),
         [&name](const GameProfileProperty& p) {
             return p.name == name;
@@ -112,7 +112,7 @@ const GameProfileProperty* GameProfile::getTexturesProperty() const {
     return getProperty("textures");
 }
 
-String GameProfile::uuidToString() const {
+std::string GameProfile::uuidToString() const {
     // 格式: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     std::ostringstream oss;
     oss << std::hex << std::setfill('0');
@@ -149,7 +149,7 @@ String GameProfile::uuidToString() const {
     return oss.str();
 }
 
-String GameProfile::uuidToStringNoDashes() const {
+std::string GameProfile::uuidToStringNoDashes() const {
     std::ostringstream oss;
     oss << std::hex << std::setfill('0');
 
@@ -160,11 +160,11 @@ String GameProfile::uuidToStringNoDashes() const {
     return oss.str();
 }
 
-std::array<u8, 16> GameProfile::parseUUID(const String& str) {
+std::array<u8, 16> GameProfile::parseUUID(const std::string& str) {
     std::array<u8, 16> uuid = {};
 
     // 移除连字符
-    String cleanStr;
+    std::string cleanStr;
     cleanStr.reserve(32);
     for (char c : str) {
         if (c != '-') {
@@ -180,7 +180,7 @@ std::array<u8, 16> GameProfile::parseUUID(const String& str) {
 
     // 解析十六进制
     for (size_t i = 0; i < 16; ++i) {
-        String byteStr = cleanStr.substr(i * 2, 2);
+        std::string byteStr = cleanStr.substr(i * 2, 2);
 
         try {
             unsigned int byte = std::stoul(byteStr, nullptr, 16);

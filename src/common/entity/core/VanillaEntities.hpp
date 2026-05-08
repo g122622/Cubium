@@ -111,15 +111,15 @@ public:
      * @param typeId 实体类型ID
      * @return 本地化名称键（如 entity.minecraft.pig）
      */
-    static String getLocalizedNameKey(EntityTypeId typeId) {
+    static std::string getLocalizedNameKey(EntityTypeId typeId) {
         const auto* type = EntityRegistry::instance().getType(typeId);
         if (!type) {
             return "entity.minecraft.unknown";
         }
 
         // 将 minecraft:pig 转换为 entity.minecraft.pig
-        const String& name = type->name();
-        if (name.find(':') != String::npos) {
+        const std::string& name = type->name();
+        if (name.find(':') != std::string::npos) {
             return "entity." + name;
         }
         return "entity.minecraft." + name;

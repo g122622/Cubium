@@ -48,7 +48,7 @@ i32 PardonCommand::pardonPlayer(CommandContext<ServerCommandSource>& context) {
     std::vector<PlayerId> playerIds = support::resolvePlayerIds(source, selector);
 
     // 获取玩家名
-    String playerName;
+    std::string playerName;
     if (!playerIds.empty()) {
         auto* server = source.server();
         if (server != nullptr) {

@@ -7,7 +7,7 @@ namespace mc {
 // DoorHinge Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::DoorHinge>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::DoorHinge>::Traits::toString(
     const BlockStateProperties::DoorHinge& value) {
     switch (value) {
         case BlockStateProperties::DoorHinge::Left:
@@ -20,7 +20,7 @@ String EnumProperty<BlockStateProperties::DoorHinge>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::DoorHinge> EnumProperty<BlockStateProperties::DoorHinge>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "left") {
         return BlockStateProperties::DoorHinge::Left;
     } else if (name == "right") {
@@ -33,7 +33,7 @@ std::optional<BlockStateProperties::DoorHinge> EnumProperty<BlockStateProperties
 // DoubleBlockHalf Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::DoubleBlockHalf>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::DoubleBlockHalf>::Traits::toString(
     const BlockStateProperties::DoubleBlockHalf& value) {
     switch (value) {
         case BlockStateProperties::DoubleBlockHalf::Upper:
@@ -46,7 +46,7 @@ String EnumProperty<BlockStateProperties::DoubleBlockHalf>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::DoubleBlockHalf> EnumProperty<BlockStateProperties::DoubleBlockHalf>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "upper") {
         return BlockStateProperties::DoubleBlockHalf::Upper;
     } else if (name == "lower") {
@@ -59,7 +59,7 @@ std::optional<BlockStateProperties::DoubleBlockHalf> EnumProperty<BlockStateProp
 // ChestType Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::ChestType>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::ChestType>::Traits::toString(
     const BlockStateProperties::ChestType& value) {
     switch (value) {
         case BlockStateProperties::ChestType::Single:
@@ -74,7 +74,7 @@ String EnumProperty<BlockStateProperties::ChestType>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::ChestType> EnumProperty<BlockStateProperties::ChestType>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "single") {
         return BlockStateProperties::ChestType::Single;
     } else if (name == "left") {
@@ -89,7 +89,7 @@ std::optional<BlockStateProperties::ChestType> EnumProperty<BlockStateProperties
 // AttachFace Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::AttachFace>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::AttachFace>::Traits::toString(
     const BlockStateProperties::AttachFace& value) {
     switch (value) {
         case BlockStateProperties::AttachFace::Floor:
@@ -104,7 +104,7 @@ String EnumProperty<BlockStateProperties::AttachFace>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::AttachFace> EnumProperty<BlockStateProperties::AttachFace>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "floor") {
         return BlockStateProperties::AttachFace::Floor;
     } else if (name == "wall") {
@@ -119,7 +119,7 @@ std::optional<BlockStateProperties::AttachFace> EnumProperty<BlockStatePropertie
 // StairsShape Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::StairsShape>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::StairsShape>::Traits::toString(
     const BlockStateProperties::StairsShape& value) {
     switch (value) {
         case BlockStateProperties::StairsShape::Straight:
@@ -138,7 +138,7 @@ String EnumProperty<BlockStateProperties::StairsShape>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::StairsShape> EnumProperty<BlockStateProperties::StairsShape>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "straight") {
         return BlockStateProperties::StairsShape::Straight;
     } else if (name == "inner_left") {
@@ -157,7 +157,7 @@ std::optional<BlockStateProperties::StairsShape> EnumProperty<BlockStateProperti
 // SlabType Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::SlabType>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::SlabType>::Traits::toString(
     const BlockStateProperties::SlabType& value) {
     switch (value) {
         case BlockStateProperties::SlabType::Bottom:
@@ -172,7 +172,7 @@ String EnumProperty<BlockStateProperties::SlabType>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::SlabType> EnumProperty<BlockStateProperties::SlabType>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "bottom") {
         return BlockStateProperties::SlabType::Bottom;
     } else if (name == "top") {
@@ -187,7 +187,7 @@ std::optional<BlockStateProperties::SlabType> EnumProperty<BlockStateProperties:
 // WallHeight Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::WallHeight>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::WallHeight>::Traits::toString(
     const BlockStateProperties::WallHeight& value) {
     switch (value) {
         case BlockStateProperties::WallHeight::None:
@@ -202,7 +202,7 @@ String EnumProperty<BlockStateProperties::WallHeight>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::WallHeight> EnumProperty<BlockStateProperties::WallHeight>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "none") {
         return BlockStateProperties::WallHeight::None;
     } else if (name == "low") {
@@ -217,7 +217,7 @@ std::optional<BlockStateProperties::WallHeight> EnumProperty<BlockStatePropertie
 // BedPart Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::BedPart>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::BedPart>::Traits::toString(
     const BlockStateProperties::BedPart& value) {
     switch (value) {
         case BlockStateProperties::BedPart::Head:
@@ -230,7 +230,7 @@ String EnumProperty<BlockStateProperties::BedPart>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::BedPart> EnumProperty<BlockStateProperties::BedPart>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "head") {
         return BlockStateProperties::BedPart::Head;
     } else if (name == "foot") {
@@ -243,7 +243,7 @@ std::optional<BlockStateProperties::BedPart> EnumProperty<BlockStateProperties::
 // BellAttachment Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::BellAttachment>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::BellAttachment>::Traits::toString(
     const BlockStateProperties::BellAttachment& value) {
     switch (value) {
         case BlockStateProperties::BellAttachment::Floor:
@@ -260,7 +260,7 @@ String EnumProperty<BlockStateProperties::BellAttachment>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::BellAttachment> EnumProperty<BlockStateProperties::BellAttachment>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "floor") {
         return BlockStateProperties::BellAttachment::Floor;
     } else if (name == "ceiling") {
@@ -277,7 +277,7 @@ std::optional<BlockStateProperties::BellAttachment> EnumProperty<BlockStatePrope
 // BambooLeaves Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::BambooLeaves>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::BambooLeaves>::Traits::toString(
     const BlockStateProperties::BambooLeaves& value) {
     switch (value) {
         case BlockStateProperties::BambooLeaves::None:
@@ -292,7 +292,7 @@ String EnumProperty<BlockStateProperties::BambooLeaves>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::BambooLeaves> EnumProperty<BlockStateProperties::BambooLeaves>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "none") {
         return BlockStateProperties::BambooLeaves::None;
     } else if (name == "small") {
@@ -307,7 +307,7 @@ std::optional<BlockStateProperties::BambooLeaves> EnumProperty<BlockStatePropert
 // Half Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::Half>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::Half>::Traits::toString(
     const BlockStateProperties::Half& value) {
     switch (value) {
         case BlockStateProperties::Half::Top:
@@ -320,7 +320,7 @@ String EnumProperty<BlockStateProperties::Half>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::Half> EnumProperty<BlockStateProperties::Half>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "top") {
         return BlockStateProperties::Half::Top;
     } else if (name == "bottom") {
@@ -333,7 +333,7 @@ std::optional<BlockStateProperties::Half> EnumProperty<BlockStateProperties::Hal
 // RailShape Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::RailShape>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::RailShape>::Traits::toString(
     const BlockStateProperties::RailShape& value) {
     switch (value) {
         case BlockStateProperties::RailShape::NorthSouth:
@@ -362,7 +362,7 @@ String EnumProperty<BlockStateProperties::RailShape>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::RailShape> EnumProperty<BlockStateProperties::RailShape>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "north_south") {
         return BlockStateProperties::RailShape::NorthSouth;
     } else if (name == "east_west") {
@@ -391,7 +391,7 @@ std::optional<BlockStateProperties::RailShape> EnumProperty<BlockStateProperties
 // RedstoneSide Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::RedstoneSide>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::RedstoneSide>::Traits::toString(
     const BlockStateProperties::RedstoneSide& value) {
     switch (value) {
         case BlockStateProperties::RedstoneSide::Up:
@@ -406,7 +406,7 @@ String EnumProperty<BlockStateProperties::RedstoneSide>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::RedstoneSide> EnumProperty<BlockStateProperties::RedstoneSide>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "up") {
         return BlockStateProperties::RedstoneSide::Up;
     } else if (name == "side") {
@@ -421,7 +421,7 @@ std::optional<BlockStateProperties::RedstoneSide> EnumProperty<BlockStatePropert
 // PistonType Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::PistonType>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::PistonType>::Traits::toString(
     const BlockStateProperties::PistonType& value) {
     switch (value) {
         case BlockStateProperties::PistonType::Default:
@@ -434,7 +434,7 @@ String EnumProperty<BlockStateProperties::PistonType>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::PistonType> EnumProperty<BlockStateProperties::PistonType>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "normal") {
         return BlockStateProperties::PistonType::Default;
     } else if (name == "sticky") {
@@ -447,7 +447,7 @@ std::optional<BlockStateProperties::PistonType> EnumProperty<BlockStatePropertie
 // ComparatorMode Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::ComparatorMode>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::ComparatorMode>::Traits::toString(
     const BlockStateProperties::ComparatorMode& value) {
     switch (value) {
         case BlockStateProperties::ComparatorMode::Compare:
@@ -460,7 +460,7 @@ String EnumProperty<BlockStateProperties::ComparatorMode>::Traits::toString(
 }
 
 std::optional<BlockStateProperties::ComparatorMode> EnumProperty<BlockStateProperties::ComparatorMode>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "compare") {
         return BlockStateProperties::ComparatorMode::Compare;
     } else if (name == "subtract") {
@@ -473,7 +473,7 @@ std::optional<BlockStateProperties::ComparatorMode> EnumProperty<BlockStatePrope
 // NoteBlockInstrument Traits 实现
 // ============================================================================
 
-String EnumProperty<BlockStateProperties::NoteBlockInstrument>::Traits::toString(
+std::string EnumProperty<BlockStateProperties::NoteBlockInstrument>::Traits::toString(
     const BlockStateProperties::NoteBlockInstrument& value) {
     switch (value) {
         case BlockStateProperties::NoteBlockInstrument::Harp:
@@ -514,7 +514,7 @@ String EnumProperty<BlockStateProperties::NoteBlockInstrument>::Traits::toString
 }
 
 std::optional<BlockStateProperties::NoteBlockInstrument> EnumProperty<BlockStateProperties::NoteBlockInstrument>::Traits::fromName(
-    StringView name) {
+    std::string_view name) {
     if (name == "harp") {
         return BlockStateProperties::NoteBlockInstrument::Harp;
     } else if (name == "basedrum") {

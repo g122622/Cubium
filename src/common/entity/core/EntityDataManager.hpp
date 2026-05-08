@@ -17,7 +17,7 @@ using mc::i8;
 using mc::i32;
 using mc::i64;
 using mc::f32;
-using mc::String;
+using mc::std::string;
 using mc::Vector3i;
 using mc::Vector2f;
 using mc::Vector3f;
@@ -35,7 +35,7 @@ public:
         i32,
         i64,
         f32,
-        String,
+        std::string,
         bool,
         Vector3i,
         Vector2f,

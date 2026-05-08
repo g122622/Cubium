@@ -28,7 +28,7 @@ enum class ContainerLayoutType : u8 {
 class ContainerWidget : public Widget, public WidgetContainerMixin<ContainerWidget> {
 public:
     ContainerWidget() = default;
-    explicit ContainerWidget(String id)
+    explicit ContainerWidget(std::string id)
         : Widget(std::move(id)) {}
 
     // ========== 绘制和更新 ==========

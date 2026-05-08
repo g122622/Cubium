@@ -45,9 +45,9 @@ Result<RandomValueRange> LootSerializers::parseRandomValueRange(const nlohmann::
     }
 
     // 检查是否指定了 type
-    String type = "minecraft:uniform";  // 默认类型
+    std::string type = "minecraft:uniform";  // 默认类型
     if (json.contains("type") && json["type"].is_string()) {
-        type = json["type"].get<String>();
+        type = json["type"].get<std::string>();
     }
 
     if (type == "minecraft:uniform" || type == "uniform") {
@@ -157,9 +157,9 @@ Result<std::unique_ptr<math::IRandomRange>> LootSerializers::parseRandomRange(co
     }
 
     // 获取类型
-    String type = "minecraft:uniform";  // 默认类型
+    std::string type = "minecraft:uniform";  // 默认类型
     if (json.contains("type") && json["type"].is_string()) {
-        type = json["type"].get<String>();
+        type = json["type"].get<std::string>();
     }
 
     // 根据类型分发
@@ -201,7 +201,7 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::parseCondition(const nlo
         return Error(ErrorCode::InvalidData, "Condition missing 'condition' field");
     }
 
-    String conditionType = json["condition"].get<String>();
+    std::string conditionType = json["condition"].get<std::string>();
 
     // 根据 condition 类型分发
     if (conditionType == "minecraft:silk_touch" || conditionType == "silk_touch") {
@@ -383,7 +383,7 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::parseBlockStatePropertyC
         return Error(ErrorCode::InvalidData, "block_state_property condition missing 'block' field");
     }
 
-    String blockId = json["block"].get<String>();
+    std::string blockId = json["block"].get<std::string>();
 
     // TODO: 解析 properties 字段
     // 目前只检查方块 ID
@@ -408,7 +408,7 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::parseMatchToolCondition(
     if (predicate.contains("enchantments") && predicate["enchantments"].is_array()) {
         for (const auto& ench : predicate["enchantments"]) {
             if (ench.contains("enchantment") && ench["enchantment"].is_string()) {
-                String enchId = ench["enchantment"].get<String>();
+                std::string enchId = ench["enchantment"].get<std::string>();
                 if (enchId == "minecraft:silk_touch" || enchId == "silk_touch") {
                     return castToBase<SilkTouchCondition, LootCondition>(std::make_unique<SilkTouchCondition>());
                 }
@@ -453,7 +453,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseFunction(const nlohm
         return Error(ErrorCode::InvalidData, "Function missing 'function' field");
     }
 
-    String functionType = json["function"].get<String>();
+    std::string functionType = json["function"].get<std::string>();
 
     // 根据 function 类型分发
     if (functionType == "minecraft:set_count" || functionType == "set_count") {
@@ -573,7 +573,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetCountFunction(con
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::parseApplyBonusFunction(const nlohmann::json& json) {
     // 解析附魔类型（暂不使用）
-    // String enchantment = json.value("enchantment", "minecraft:fortune");
+    // std::string enchantment = json.value("enchantment", "minecraft:fortune");
 
     ApplyBonusFunction::BonusType bonusType = ApplyBonusFunction::BonusType::OreDrops;
     i32 bonusMultiplier = 1;
@@ -582,7 +582,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseApplyBonusFunction(c
 
     // 解析公式类型
     if (json.contains("formula") && json["formula"].is_string()) {
-        String formula = json["formula"].get<String>();
+        std::string formula = json["formula"].get<std::string>();
 
         if (formula == "minecraft:uniform" || formula == "uniform") {
             bonusType = ApplyBonusFunction::BonusType::Uniform;
@@ -657,17 +657,17 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetDamageFunction(co
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetNameFunction(const nlohmann::json& json) {
-    String name;
+    std::string name;
     bool replace = true;
 
     if (json.contains("name")) {
         if (json["name"].is_string()) {
-            name = json["name"].get<String>();
+            name = json["name"].get<std::string>();
         }
         else if (json["name"].is_object()) {
             // JSON 文本组件，简化为取 text 字段
             if (json["name"].contains("text") && json["name"]["text"].is_string()) {
-                name = json["name"]["text"].get<String>();
+                name = json["name"]["text"].get<std::string>();
             }
         }
     }
@@ -680,16 +680,16 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetNameFunction(cons
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetLoreFunction(const nlohmann::json& json) {
-    std::vector<String> lore;
+    std::vector<std::string> lore;
     bool replace = true;
 
     if (json.contains("lore") && json["lore"].is_array()) {
         for (const auto& line : json["lore"]) {
             if (line.is_string()) {
-                lore.push_back(line.get<String>());
+                lore.push_back(line.get<std::string>());
             }
             else if (line.is_object() && line.contains("text") && line["text"].is_string()) {
-                lore.push_back(line["text"].get<String>());
+                lore.push_back(line["text"].get<std::string>());
             }
         }
     }
@@ -751,13 +751,13 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseEnchantWithLevelsFun
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::parseEnchantRandomlyFunction(const nlohmann::json& json) {
-    std::vector<String> enchantments;
+    std::vector<std::string> enchantments;
     bool treasure = false;
 
     if (json.contains("enchantments") && json["enchantments"].is_array()) {
         for (const auto& ench : json["enchantments"]) {
             if (ench.is_string()) {
-                enchantments.push_back(ench.get<String>());
+                enchantments.push_back(ench.get<std::string>());
             }
         }
     }
@@ -778,7 +778,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetNbtFunction(const
         return Error(ErrorCode::InvalidData, "set_nbt function missing 'tag' field");
     }
 
-    String nbtString = json["tag"].get<String>();
+    std::string nbtString = json["tag"].get<std::string>();
     return castToBase<SetNbtFunction, LootFunction>(std::make_unique<SetNbtFunction>(nbtString));
 }
 
@@ -786,7 +786,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseCopyNameFunction(con
     CopyNameFunction::Source source = CopyNameFunction::Source::This;
 
     if (json.contains("source") && json["source"].is_string()) {
-        String sourceStr = json["source"].get<String>();
+        std::string sourceStr = json["source"].get<std::string>();
         if (sourceStr == "this") {
             source = CopyNameFunction::Source::This;
         }
@@ -809,13 +809,13 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseCopyBlockStateFuncti
         return Error(ErrorCode::InvalidData, "copy_block_state function missing 'block' field");
     }
 
-    String blockId = json["block"].get<String>();
-    std::vector<String> properties;
+    std::string blockId = json["block"].get<std::string>();
+    std::vector<std::string> properties;
 
     if (json.contains("properties") && json["properties"].is_array()) {
         for (const auto& prop : json["properties"]) {
             if (prop.is_string()) {
-                properties.push_back(prop.get<String>());
+                properties.push_back(prop.get<std::string>());
             }
         }
     }
@@ -827,7 +827,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseCopyNbtFunction(cons
     CopyNbtFunction::Source source = CopyNbtFunction::Source::This;
 
     if (json.contains("source") && json["source"].is_string()) {
-        String sourceStr = json["source"].get<String>();
+        std::string sourceStr = json["source"].get<std::string>();
         if (sourceStr == "this") {
             source = CopyNbtFunction::Source::This;
         }
@@ -851,9 +851,9 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseCopyNbtFunction(cons
                 continue;
             }
 
-            String sourcePath = op["source"].get<String>();
-            String targetPath = op["target"].get<String>();
-            String opStr = op["op"].get<String>();
+            std::string sourcePath = op["source"].get<std::string>();
+            std::string targetPath = op["target"].get<std::string>();
+            std::string opStr = op["op"].get<std::string>();
 
             CopyNbtFunction::Operation operation = CopyNbtFunction::Operation::Replace;
             if (opStr == "append") {
@@ -874,7 +874,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseFillPlayerHeadFuncti
     CopyNameFunction::Source source = CopyNameFunction::Source::This;
 
     if (json.contains("entity") && json["entity"].is_string()) {
-        String entityStr = json["entity"].get<String>();
+        std::string entityStr = json["entity"].get<std::string>();
         if (entityStr == "this") {
             source = CopyNameFunction::Source::This;
         }
@@ -899,8 +899,8 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetAttributesFunctio
             }
 
             SetAttributesFunction::AttributeModifier modifier;
-            modifier.name = mod["name"].get<String>();
-            modifier.attributeId = mod["attribute"].get<String>();
+            modifier.name = mod["name"].get<std::string>();
+            modifier.attributeId = mod["attribute"].get<std::string>();
 
             if (mod["amount"].is_number_float()) {
                 modifier.value = mod["amount"].get<f32>();
@@ -911,7 +911,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetAttributesFunctio
             // 解析操作类型
             modifier.operation = 0;
             if (mod.contains("operation") && mod["operation"].is_string()) {
-                String opStr = mod["operation"].get<String>();
+                std::string opStr = mod["operation"].get<std::string>();
                 if (opStr == "addition" || opStr == "add") {
                     modifier.operation = 0;
                 }
@@ -926,11 +926,11 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetAttributesFunctio
             // 解析槽位
             modifier.slot = "mainhand";
             if (mod.contains("slot") && mod["slot"].is_string()) {
-                modifier.slot = mod["slot"].get<String>();
+                modifier.slot = mod["slot"].get<std::string>();
             }
             else if (mod.contains("slots") && mod["slots"].is_array() && !mod["slots"].empty()) {
                 if (mod["slots"][0].is_string()) {
-                    modifier.slot = mod["slots"][0].get<String>();
+                    modifier.slot = mod["slots"][0].get<std::string>();
                 }
             }
 
@@ -951,7 +951,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetLootTableFunction
         return Error(ErrorCode::InvalidData, "set_loot_table function missing 'name' field");
     }
 
-    String lootTableId = json["name"].get<String>();
+    std::string lootTableId = json["name"].get<std::string>();
     u64 seed = 0;
 
     if (json.contains("seed") && json["seed"].is_number_integer()) {
@@ -965,7 +965,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseExplorationMapFuncti
     ExplorationMapFunction::Destination destination = ExplorationMapFunction::Destination::BuriedTreasure;
 
     if (json.contains("destination") && json["destination"].is_string()) {
-        String destStr = json["destination"].get<String>();
+        std::string destStr = json["destination"].get<std::string>();
         if (destStr == "minecraft:buried_treasure" || destStr == "buried_treasure") {
             destination = ExplorationMapFunction::Destination::BuriedTreasure;
         }
@@ -995,7 +995,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetStewEffectFunctio
                 continue;
             }
 
-            String effectId = effect["type"].get<String>();
+            std::string effectId = effect["type"].get<std::string>();
             RandomValueRange duration(5.0f, 10.0f);  // 默认持续时间
 
             if (effect.contains("duration")) {
@@ -1022,9 +1022,9 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::parseEntry(const nlohmann::j
     }
 
     // 获取类型
-    String entryType = "minecraft:item";  // 默认类型
+    std::string entryType = "minecraft:item";  // 默认类型
     if (json.contains("type") && json["type"].is_string()) {
-        entryType = json["type"].get<String>();
+        entryType = json["type"].get<std::string>();
     }
 
     // 根据类型分发
@@ -1183,7 +1183,7 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::parseItemEntry(const nlohman
         return Error(ErrorCode::InvalidData, "item entry missing 'name' field");
     }
 
-    String itemId = json["name"].get<String>();
+    std::string itemId = json["name"].get<std::string>();
 
     i32 weight = 1;
     i32 quality = 0;
@@ -1228,7 +1228,7 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::parseTableEntry(const nlohma
         return Error(ErrorCode::InvalidData, "loot_table entry missing 'name' field");
     }
 
-    String tableId = json["name"].get<String>();
+    std::string tableId = json["name"].get<std::string>();
 
     i32 weight = 1;
     i32 quality = 0;
@@ -1374,7 +1374,7 @@ Result<std::unique_ptr<LootPool>> LootSerializers::parsePool(const nlohmann::jso
 
     // 解析名称
     if (json.contains("name") && json["name"].is_string()) {
-        pool->setName(json["name"].get<String>());
+        pool->setName(json["name"].get<std::string>());
     }
 
     // 解析条目
@@ -1444,7 +1444,7 @@ Result<std::unique_ptr<LootTable>> LootSerializers::parseLootTable(const nlohman
 
     // 解析参数集类型（暂不使用）
     // if (json.contains("type") && json["type"].is_string()) {
-    //     String type = json["type"].get<String>();
+    //     std::string type = json["type"].get<std::string>();
     //     // 设置参数集
     // }
 
@@ -1465,16 +1465,16 @@ Result<std::unique_ptr<LootTable>> LootSerializers::parseLootTable(const nlohman
     return table;
 }
 
-Result<std::unique_ptr<LootTable>> LootSerializers::parseLootTable(const String& jsonStr) {
+Result<std::unique_ptr<LootTable>> LootSerializers::parseLootTable(const std::string& jsonStr) {
     try {
         nlohmann::json json = nlohmann::json::parse(jsonStr);
         return parseLootTable(json);
     }
     catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, String("JSON parse error: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::InvalidData, String("JSON error: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("JSON error: ") + e.what());
     }
 }
 
@@ -1494,7 +1494,7 @@ nlohmann::json LootSerializers::toJson(const LootTable& table) {
     return json;
 }
 
-String LootSerializers::toJsonString(const LootTable& table, i32 indent) {
+std::string LootSerializers::toJsonString(const LootTable& table, i32 indent) {
     nlohmann::json json = toJson(table);
     return json.dump(indent);
 }

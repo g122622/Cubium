@@ -134,15 +134,15 @@ public:
     [[nodiscard]] bool isSingle() const noexcept { return m_single; }
     void setSingle(bool single) { m_single = single; }
 
-    [[nodiscard]] const String& username() const noexcept { return m_username; }
+    [[nodiscard]] const std::string& username() const noexcept { return m_username; }
     [[nodiscard]] bool hasUsername() const noexcept { return !m_username.empty(); }
-    void setUsername(const String& username) { m_username = username; }
+    void setUsername(const std::string& username) { m_username = username; }
 
     // ========== 新增参数 ==========
 
-    [[nodiscard]] const String& usernameNegated() const noexcept { return m_usernameNegated; }
+    [[nodiscard]] const std::string& usernameNegated() const noexcept { return m_usernameNegated; }
     [[nodiscard]] bool hasUsernameNegated() const noexcept { return !m_usernameNegated.empty(); }
-    void setUsernameNegated(const String& name) { m_usernameNegated = name; }
+    void setUsernameNegated(const std::string& name) { m_usernameNegated = name; }
 
     [[nodiscard]] const FloatRange& distance() const noexcept { return m_distance; }
     FloatRange& distance() { return m_distance; }
@@ -173,17 +173,17 @@ public:
     [[nodiscard]] EntitySelectorSort sort() const noexcept { return m_sort; }
     void setSort(EntitySelectorSort sort) { m_sort = sort; }
 
-    [[nodiscard]] const String& entityType() const noexcept { return m_entityType; }
+    [[nodiscard]] const std::string& entityType() const noexcept { return m_entityType; }
     [[nodiscard]] bool hasEntityType() const noexcept { return !m_entityType.empty(); }
     [[nodiscard]] bool entityTypeNegated() const noexcept { return m_entityTypeNegated; }
-    void setEntityType(const String& type, bool negated = false) {
+    void setEntityType(const std::string& type, bool negated = false) {
         m_entityType = type;
         m_entityTypeNegated = negated;
     }
 
-    [[nodiscard]] const std::vector<String>& tags() const noexcept { return m_tags; }
-    [[nodiscard]] const std::vector<String>& tagsNegated() const noexcept { return m_tagsNegated; }
-    void addTag(const String& tag, bool negated = false) {
+    [[nodiscard]] const std::vector<std::string>& tags() const noexcept { return m_tags; }
+    [[nodiscard]] const std::vector<std::string>& tagsNegated() const noexcept { return m_tagsNegated; }
+    void addTag(const std::string& tag, bool negated = false) {
         if (negated) {
             m_tagsNegated.push_back(tag);
         } else {
@@ -191,18 +191,18 @@ public:
         }
     }
 
-    [[nodiscard]] const String& gameMode() const noexcept { return m_gameMode; }
+    [[nodiscard]] const std::string& gameMode() const noexcept { return m_gameMode; }
     [[nodiscard]] bool hasGameMode() const noexcept { return !m_gameMode.empty(); }
     [[nodiscard]] bool gameModeNegated() const noexcept { return m_gameModeNegated; }
-    void setGameMode(const String& mode, bool negated = false) {
+    void setGameMode(const std::string& mode, bool negated = false) {
         m_gameMode = mode;
         m_gameModeNegated = negated;
     }
 
-    [[nodiscard]] const String& team() const noexcept { return m_team; }
+    [[nodiscard]] const std::string& team() const noexcept { return m_team; }
     [[nodiscard]] bool hasTeam() const noexcept { return !m_team.empty(); }
     [[nodiscard]] bool teamNegated() const noexcept { return m_teamNegated; }
-    void setTeam(const String& team, bool negated = false) {
+    void setTeam(const std::string& team, bool negated = false) {
         m_team = team;
         m_teamNegated = negated;
     }
@@ -248,7 +248,7 @@ public:
         return selector;
     }
 
-    [[nodiscard]] static EntitySelector byUsername(const String& username) {
+    [[nodiscard]] static EntitySelector byUsername(const std::string& username) {
         EntitySelector selector(EntitySelectorType::SinglePlayer);
         selector.m_username = username;
         selector.m_single = true;
@@ -263,8 +263,8 @@ private:
     bool m_includesNonPlayers = false;
     bool m_single = true;
     bool m_currentWorldOnly = false;
-    String m_username;
-    String m_usernameNegated;  // name=!xxx
+    std::string m_username;
+    std::string m_usernameNegated;  // name=!xxx
 
     // 新增参数
     FloatRange m_distance;
@@ -272,13 +272,13 @@ private:
     std::optional<f32> m_x, m_y, m_z;      // 坐标偏移
     std::optional<f32> m_dx, m_dy, m_dz;    // 体积尺寸
     EntitySelectorSort m_sort = EntitySelectorSort::Arbitrary;
-    String m_entityType;
+    std::string m_entityType;
     bool m_entityTypeNegated = false;
-    std::vector<String> m_tags;
-    std::vector<String> m_tagsNegated;
-    String m_gameMode;
+    std::vector<std::string> m_tags;
+    std::vector<std::string> m_tagsNegated;
+    std::string m_gameMode;
     bool m_gameModeNegated = false;
-    String m_team;
+    std::string m_team;
     bool m_teamNegated = false;
 };
 
@@ -301,7 +301,7 @@ public:
 
     [[nodiscard]] EntitySelector parse(StringReader& reader) override;
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         switch (m_mode) {
             case Mode::SingleEntity:
                 return "entity";
@@ -315,7 +315,7 @@ public:
         return "entity";
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
         return {"Player", "0123", "@p", "@a", "@e", "@r", "@s"};
     }
 
@@ -348,10 +348,10 @@ public:
 private:
     [[nodiscard]] EntitySelector parseSelector(StringReader& reader, i32 start);
     void parseSelectorArguments(StringReader& reader, EntitySelector& selector);
-    void applySelectorArgument(EntitySelector& selector, const String& name, const String& value, i32 cursor);
+    void applySelectorArgument(EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor);
     void validateSelector(const EntitySelector& selector, i32 start);
 
-    [[nodiscard]] static String readSelectorArgumentToken(StringReader& reader);
+    [[nodiscard]] static std::string readSelectorArgumentToken(StringReader& reader);
     [[nodiscard]] static bool shouldInvertValue(StringReader& reader);
     [[nodiscard]] FloatRange parseFloatRange(StringReader& reader);
     [[nodiscard]] IntRange parseIntRange(StringReader& reader);

@@ -43,7 +43,7 @@ i32 DefaultGameModeCommand::setDefaultMode(CommandContext<ServerCommandSource>& 
 
     const GameMode mode = context.getArgument<GameMode>("gamemode");
     server->setDefaultGameMode(mode);
-    source.sendMessage("Set default game mode to " + String(support::getGameModeCommandName(mode)));
+    source.sendMessage("Set default game mode to " + std::string(support::getGameModeCommandName(mode)));
     return 1;
 }
 

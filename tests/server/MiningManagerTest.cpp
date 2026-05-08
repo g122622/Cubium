@@ -101,7 +101,7 @@ protected:
     /**
      * @brief 设置玩家手持物品（带附魔）
      */
-    void setHeldItemWithEnchantment(const Item& item, i32 count, const String& enchantmentId, i32 level) {
+    void setHeldItemWithEnchantment(const Item& item, i32 count, const std::string& enchantmentId, i32 level) {
         PlayerInventory* inventory = m_inventoryManager->getInventory(m_playerId);
         ASSERT_NE(inventory, nullptr);
         inventory->setSelectedSlot(0);

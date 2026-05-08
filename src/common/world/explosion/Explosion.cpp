@@ -374,7 +374,7 @@ void Explosion::destroyBlocks() {
             std::vector<ItemStack> singleDrop;
             singleDrop.push_back(drop.copy());
 
-            String throwerUuid;
+            std::string throwerUuid;
             if (m_source != nullptr) {
                 throwerUuid = m_source->uuid();
             }
@@ -540,7 +540,7 @@ std::vector<ItemStack> Explosion::generateBlockDrops(
     const Block& block = state.getBlock();
 
     // 获取方块的掉落表
-    String lootTableId = block.getLootTableId();
+    std::string lootTableId = block.getLootTableId();
     if (lootTableId.empty()) {
         return {};
     }
@@ -564,7 +564,7 @@ std::vector<ItemStack> Explosion::generateBlockDrops(
         .withOwnedValue(loot::LootParams::EXPLOSION_RADIUS, m_radius);  // 爆炸半径参数
 
     // 设置掉落表解析器（用于处理嵌套掉落表）
-    contextBuilder.withLootTableResolver([this](const String& id) -> const loot::LootTable* {
+    contextBuilder.withLootTableResolver([this](const std::string& id) -> const loot::LootTable* {
         if (m_lootTableManager == nullptr) {
             return nullptr;
         }

@@ -21,7 +21,7 @@ LoadingScreen::LoadingScreen()
     loadTemplateFile("src/client/ui/minecraft/templates/loading.tpl");
 }
 
-void LoadingScreen::setStage(const String& stage) {
+void LoadingScreen::setStage(const std::string& stage) {
     m_stageValue.set(stage);
 }
 
@@ -30,7 +30,7 @@ void LoadingScreen::setProgress(f32 progress) {
     m_progressWidth.set(static_cast<i32>(PROGRESS_BAR_WIDTH * clamped));
 }
 
-void LoadingScreen::setTitle(const String& title) {
+void LoadingScreen::setTitle(const std::string& title) {
     m_titleValue.set(title);
 }
 

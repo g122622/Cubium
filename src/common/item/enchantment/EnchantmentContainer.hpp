@@ -27,12 +27,12 @@ namespace enchant {
  * 存储附魔ID和等级。
  */
 struct EnchantmentInstance {
-    String enchantmentId;   ///< 附魔ID
+    std::string enchantmentId;   ///< 附魔ID
     i32 level = 1;          ///< 附魔等级
 
     EnchantmentInstance() = default;
 
-    EnchantmentInstance(const String& id, i32 lvl)
+    EnchantmentInstance(const std::string& id, i32 lvl)
         : enchantmentId(id), level(lvl) {}
 
     /**
@@ -81,13 +81,13 @@ public:
      * @param enchantmentId 附魔ID
      * @return 附魔等级（0表示无此附魔）
      */
-    [[nodiscard]] i32 getLevel(const String& enchantmentId) const;
+    [[nodiscard]] i32 getLevel(const std::string& enchantmentId) const;
 
     /**
      * @brief 检查是否有指定附魔
      * @param enchantmentId 附魔ID
      */
-    [[nodiscard]] bool has(const String& enchantmentId) const;
+    [[nodiscard]] bool has(const std::string& enchantmentId) const;
 
     /**
      * @brief 检查是否有指定类型的附魔
@@ -107,14 +107,14 @@ public:
      * @param enchantmentId 附魔ID
      * @param level 附魔等级
      */
-    void set(const String& enchantmentId, i32 level);
+    void set(const std::string& enchantmentId, i32 level);
 
     /**
      * @brief 移除附魔
      * @param enchantmentId 附魔ID
      * @return 如果成功移除返回true
      */
-    bool remove(const String& enchantmentId);
+    bool remove(const std::string& enchantmentId);
 
     /**
      * @brief 清除所有附魔
@@ -128,7 +128,7 @@ public:
      * @param enchantmentId 附魔ID
      * @return 如果与现有附魔兼容返回true
      */
-    [[nodiscard]] bool canAdd(const String& enchantmentId) const;
+    [[nodiscard]] bool canAdd(const std::string& enchantmentId) const;
 
     // ========== 序列化 ==========
 

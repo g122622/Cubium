@@ -120,7 +120,7 @@ std::unique_ptr<BlockEntity> BlockEntityRegistry::createFromJson(const nlohmann:
         return nullptr;
     }
 
-    ResourceLocation id(data["id"].get<String>());
+    ResourceLocation id(data["id"].get<std::string>());
     BlockEntityType type = blockEntityTypeFromId(id);
 
     if (type == BlockEntityType::Unknown) {

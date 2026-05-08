@@ -163,7 +163,7 @@ TEST_F(BiomeRegistryTest, RepresentativeBiomesAreRegisteredWithExpectedNames) {
 
         const Biome& biome = BiomeRegistry::instance().get(expectedBiome.id);
         EXPECT_EQ(biome.id(), expectedBiome.id);
-        EXPECT_EQ(biome.name(), String(expectedBiome.name));
+        EXPECT_EQ(biome.name(), std::string(expectedBiome.name));
     }
 }
 

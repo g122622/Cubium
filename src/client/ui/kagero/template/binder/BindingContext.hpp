@@ -28,9 +28,9 @@ public:
     explicit Value(bool v) : m_type(ValueType::Bool), m_boolValue(v) {}
     explicit Value(i32 v) : m_type(ValueType::Integer), m_intValue(v) {}
     explicit Value(f32 v) : m_type(ValueType::Float), m_floatValue(v) {}
-    explicit Value(const String& v) : m_type(ValueType::String), m_stringValue(v) {}
-    explicit Value(String&& v) : m_type(ValueType::String), m_stringValue(std::move(v)) {}
-    explicit Value(const char* v) : m_type(ValueType::String), m_stringValue(v ? v : "") {}  // 处理字符串字面量
+    explicit Value(const std::string& v) : m_type(ValueType::std::string), m_stringValue(v) {}
+    explicit Value(std::string&& v) : m_type(ValueType::std::string), m_stringValue(std::move(v)) {}
+    explicit Value(const char* v) : m_type(ValueType::std::string), m_stringValue(v ? v : "") {}  // 处理字符串字面量
 
     // 数组类型构造
     explicit Value(const std::vector<Value>& v) : m_type(ValueType::Array), m_arrayValue(v) {}
@@ -44,7 +44,7 @@ public:
     [[nodiscard]] bool isBool() const { return m_type == ValueType::Bool; }
     [[nodiscard]] bool isInteger() const { return m_type == ValueType::Integer; }
     [[nodiscard]] bool isFloat() const { return m_type == ValueType::Float; }
-    [[nodiscard]] bool isString() const { return m_type == ValueType::String; }
+    [[nodiscard]] bool isString() const { return m_type == ValueType::std::string; }
     [[nodiscard]] bool isArray() const { return m_type == ValueType::Array; }
     [[nodiscard]] bool isObject() const { return m_type == ValueType::Object; }
     [[nodiscard]] bool isNumber() const { return isInteger() || isFloat(); }
@@ -53,8 +53,8 @@ public:
     [[nodiscard]] bool asBool() const;
     [[nodiscard]] i32 asInteger() const;
     [[nodiscard]] f32 asFloat() const;
-    [[nodiscard]] const String& asString() const;
-    [[nodiscard]] String toString() const;
+    [[nodiscard]] const std::string& asString() const;
+    [[nodiscard]] std::string toString() const;
 
     // 数组操作
     [[nodiscard]] size_t arraySize() const;
@@ -67,14 +67,14 @@ public:
     static Value emptyArray() { return Value(std::vector<Value>{}); }
 
     // 对象操作
-    [[nodiscard]] Value getProperty(const String& name) const;
-    void setProperty(const String& name, const Value& value);
-    [[nodiscard]] bool hasProperty(const String& name) const;
-    [[nodiscard]] const std::unordered_map<String, Value>& asObject() const { return m_objectValue; }
-    [[nodiscard]] std::unordered_map<String, Value>& asObject() { return m_objectValue; }
+    [[nodiscard]] Value getProperty(const std::string& name) const;
+    void setProperty(const std::string& name, const Value& value);
+    [[nodiscard]] bool hasProperty(const std::string& name) const;
+    [[nodiscard]] const std::unordered_map<std::string, Value>& asObject() const { return m_objectValue; }
+    [[nodiscard]] std::unordered_map<std::string, Value>& asObject() { return m_objectValue; }
 
     // 创建对象值
-    static Value fromObject(std::unordered_map<String, Value> properties) {
+    static Value fromObject(std::unordered_map<std::string, Value> properties) {
         Value v;
         v.m_type = ValueType::Object;
         v.m_objectValue = std::move(properties);
@@ -99,7 +99,7 @@ public:
         Bool,
         Integer,
         Float,
-        String,
+        std::string,
         Array,
         Object
     };
@@ -111,9 +111,9 @@ private:
     bool m_boolValue = false;
     i32 m_intValue = 0;
     f32 m_floatValue = 0.0f;
-    String m_stringValue;
+    std::string m_stringValue;
     std::vector<Value> m_arrayValue;
-    std::unordered_map<String, Value> m_objectValue;
+    std::unordered_map<std::string, Value> m_objectValue;
 };
 
 /**
@@ -149,7 +149,7 @@ public:
     /**
      * @brief 状态变化回调
      */
-    using StateChangeCallback = std::function<void(const String& path, const Value& newValue)>;
+    using StateChangeCallback = std::function<void(const std::string& path, const Value& newValue)>;
 
     /**
      * @brief 构造函数
@@ -182,7 +182,7 @@ public:
      * @param onUpdate 可选的更新回调
      */
     template<typename T>
-    void expose(const String& path, const T* ptr, StateChangeCallback onUpdate = nullptr) {
+    void expose(const std::string& path, const T* ptr, StateChangeCallback onUpdate = nullptr) {
         ExposedVar var;
         var.ptr = const_cast<T*>(ptr);
         var.typeId = typeid(T).hash_code();
@@ -201,7 +201,7 @@ public:
      * @param onUpdate 可选的更新回调
      */
     template<typename T>
-    void exposeWritable(const String& path, T* ptr, StateChangeCallback onUpdate = nullptr) {
+    void exposeWritable(const std::string& path, T* ptr, StateChangeCallback onUpdate = nullptr) {
         ExposedVar var;
         var.ptr = ptr;
         var.typeId = typeid(T).hash_code();
@@ -215,7 +215,7 @@ public:
                 *ptr = static_cast<T>(v.toInteger());
             } else if constexpr (std::is_floating_point_v<T>) {
                 *ptr = static_cast<T>(v.toFloat());
-            } else if constexpr (std::is_same_v<T, String>) {
+            } else if constexpr (std::is_same_v<T, std::string>) {
                 // 使用 toString() 而不是 asString()，因为后者对非字符串类型返回空
                 *ptr = v.toString();
             } else {
@@ -234,7 +234,7 @@ public:
      * @param reactive 响应式状态引用
      */
     template<typename T>
-    void exposeReactive(const String& path, state::Reactive<T>& reactive) {
+    void exposeReactive(const std::string& path, state::Reactive<T>& reactive) {
         // 暴露读取
         ExposedVar var;
         var.ptr = &reactive;
@@ -249,7 +249,7 @@ public:
                 reactive.set(static_cast<T>(v.toInteger()));
             } else if constexpr (std::is_floating_point_v<T>) {
                 reactive.set(static_cast<T>(v.toFloat()));
-            } else if constexpr (std::is_same_v<T, String>) {
+            } else if constexpr (std::is_same_v<T, std::string>) {
                 reactive.set(v.asString());
             } else {
                 reactive.set(static_cast<T>(v.toFloat()));
@@ -272,7 +272,7 @@ public:
      * @param name 回调名称（如 "onStartGame"）
      * @param callback 回调函数
      */
-    void exposeCallback(const String& name, Callback callback);
+    void exposeCallback(const std::string& name, Callback callback);
 
     /**
      * @brief 暴露简单回调（无参数）
@@ -280,12 +280,12 @@ public:
      * @param name 回调名称
      * @param callback 回调函数
      */
-    void exposeSimpleCallback(const String& name, std::function<void()> callback);
+    void exposeSimpleCallback(const std::string& name, std::function<void()> callback);
 
     /**
      * @brief 检查回调是否存在
      */
-    [[nodiscard]] bool hasCallback(const String& name) const;
+    [[nodiscard]] bool hasCallback(const std::string& name) const;
 
     /**
      * @brief 调用回调
@@ -295,7 +295,7 @@ public:
      * @param event 事件对象
      * @return 是否成功调用
      */
-    bool invokeCallback(const String& name, widget::Widget* source, const event::Event& event);
+    bool invokeCallback(const std::string& name, widget::Widget* source, const event::Event& event);
 
     // ========== 绑定解析 ==========
 
@@ -307,8 +307,8 @@ public:
      * @param loopValue 当前循环变量值
      * @return 解析后的值
      */
-    [[nodiscard]] Value resolveBinding(const String& path,
-                                        const String& loopVar = "",
+    [[nodiscard]] Value resolveBinding(const std::string& path,
+                                        const std::string& loopVar = "",
                                         const Value& loopValue = Value()) const;
 
     /**
@@ -318,17 +318,17 @@ public:
      * @param value 新值
      * @return 是否成功设置
      */
-    bool setBinding(const String& path, const Value& value);
+    bool setBinding(const std::string& path, const Value& value);
 
     /**
      * @brief 检查路径是否存在
      */
-    [[nodiscard]] bool hasPath(const String& path) const;
+    [[nodiscard]] bool hasPath(const std::string& path) const;
 
     /**
      * @brief 检查路径是否可写
      */
-    [[nodiscard]] bool isWritable(const String& path) const;
+    [[nodiscard]] bool isWritable(const std::string& path) const;
 
     // ========== 状态变更通知 ==========
 
@@ -340,7 +340,7 @@ public:
      * @param path 变更的路径
      * @param newValue 新值
      */
-    void notifyChange(const String& path, const Value& newValue);
+    void notifyChange(const std::string& path, const Value& newValue);
 
     /**
      * @brief 订阅路径变更
@@ -349,7 +349,7 @@ public:
      * @param callback 变更回调
      * @return 订阅ID
      */
-    u64 subscribe(const String& path, StateChangeCallback callback);
+    u64 subscribe(const std::string& path, StateChangeCallback callback);
 
     /**
      * @brief 取消订阅
@@ -366,22 +366,22 @@ public:
      * @param varName 变量名（如 "slot"）
      * @param value 变量值
      */
-    void setLoopVariable(const String& varName, const Value& value);
+    void setLoopVariable(const std::string& varName, const Value& value);
 
     /**
      * @brief 清除循环变量
      */
-    void clearLoopVariable(const String& varName);
+    void clearLoopVariable(const std::string& varName);
 
     /**
      * @brief 获取循环变量
      */
-    [[nodiscard]] Value getLoopVariable(const String& varName) const;
+    [[nodiscard]] Value getLoopVariable(const std::string& varName) const;
 
     /**
      * @brief 检查循环变量是否存在
      */
-    [[nodiscard]] bool hasLoopVariable(const String& varName) const;
+    [[nodiscard]] bool hasLoopVariable(const std::string& varName) const;
 
     // ========== 集合解析 ==========
 
@@ -393,7 +393,7 @@ public:
      * @param path 集合路径
      * @return 值数组，如果路径不存在或不是集合则返回空数组
      */
-    [[nodiscard]] std::vector<Value> resolveCollection(const String& path) const;
+    [[nodiscard]] std::vector<Value> resolveCollection(const std::string& path) const;
 
     /**
      * @brief 设置集合值供索引访问
@@ -401,7 +401,7 @@ public:
      * @param name 集合名
      * @param values 值数组
      */
-    void setCollectionValue(const String& name, const std::vector<Value>& values);
+    void setCollectionValue(const std::string& name, const std::vector<Value>& values);
 
     /**
      * @brief 设置任意类型的集合
@@ -411,7 +411,7 @@ public:
      * @param items 元素数组
      */
     template<typename T>
-    void setCollection(const String& name, const std::vector<T>& items) {
+    void setCollection(const std::string& name, const std::vector<T>& items) {
         std::vector<Value> values;
         values.reserve(items.size());
         for (const auto& item : items) {
@@ -460,20 +460,20 @@ private:
      * - "path.to.value" 格式
      * - "array[index]" 格式
      */
-    [[nodiscard]] Value resolvePath(const String& path) const;
+    [[nodiscard]] Value resolvePath(const std::string& path) const;
 
     /**
      * @brief 分割路径
      */
-    [[nodiscard]] std::vector<String> splitPath(const String& path) const;
+    [[nodiscard]] std::vector<std::string> splitPath(const std::string& path) const;
 
     state::StateStore& m_store;
     event::EventBus& m_eventBus;
 
-    std::unordered_map<String, ExposedVar> m_exposedVars;
-    std::unordered_map<String, Callback> m_callbacks;
-    std::unordered_map<String, std::vector<std::pair<u64, StateChangeCallback>>> m_subscribers;
-    std::unordered_map<String, Value> m_loopVariables;
+    std::unordered_map<std::string, ExposedVar> m_exposedVars;
+    std::unordered_map<std::string, Callback> m_callbacks;
+    std::unordered_map<std::string, std::vector<std::pair<u64, StateChangeCallback>>> m_subscribers;
+    std::unordered_map<std::string, Value> m_loopVariables;
 
     u64 m_nextSubscriberId = 1;
 };

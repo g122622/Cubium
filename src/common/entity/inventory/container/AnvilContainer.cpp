@@ -135,7 +135,7 @@ AnvilContainer::AnvilContainer(ContainerId id,
 
 // ========== 重命名 ==========
 
-void AnvilContainer::setItemName(const String& name) {
+void AnvilContainer::setItemName(const std::string& name) {
     m_itemName = name;
     updateRepairOutput();
 }
@@ -540,7 +540,7 @@ i32 AnvilContainer::getNewRepairCost(i32 oldRepairCost) {
     return oldRepairCost * 2 + 1;
 }
 
-bool AnvilContainer::areEnchantmentsCompatible(const String& ench1, const String& ench2) const {
+bool AnvilContainer::areEnchantmentsCompatible(const std::string& ench1, const std::string& ench2) const {
     auto* enchantment1 = item::enchant::EnchantmentRegistry::get(ench1);
     auto* enchantment2 = item::enchant::EnchantmentRegistry::get(ench2);
 

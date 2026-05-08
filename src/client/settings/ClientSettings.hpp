@@ -277,7 +277,7 @@ public:
      * @param id 绑定 ID（如 "key.forward"）
      * @return 按键绑定指针，找不到返回 nullptr
      */
-    [[nodiscard]] static KeyBinding* getKeyBinding(const String& id);
+    [[nodiscard]] static KeyBinding* getKeyBinding(const std::string& id);
 
     /**
      * @brief 获取所有按键绑定

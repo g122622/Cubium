@@ -778,7 +778,7 @@ void OpenALBackend::process() {
     // 流式播放的处理将在 SoundEngine 层实现
 }
 
-String OpenALBackend::getDeviceName() const {
+std::string OpenALBackend::getDeviceName() const {
     if (!m_initialized || !m_device) {
         return "Not initialized";
     }
@@ -787,12 +787,12 @@ String OpenALBackend::getDeviceName() const {
     return name ? name : "Unknown";
 }
 
-String OpenALBackend::getDebugString() const {
+std::string OpenALBackend::getDebugString() const {
     if (!m_initialized) {
         return "Not initialized";
     }
 
-    String result;
+    std::string result;
     result += fmt::format("Device: {}\n", getDeviceName());
     result += fmt::format("Vendor: {}\n", alGetString(AL_VENDOR));
     result += fmt::format("Version: {}\n", alGetString(AL_VERSION));
@@ -810,10 +810,10 @@ String OpenALBackend::getDebugString() const {
     return result;
 }
 
-String OpenALBackend::checkALError(const char* operation) const {
+std::string OpenALBackend::checkALError(const char* operation) const {
     ALenum error = alGetError();
     if (error != AL_NO_ERROR) {
-        String msg = fmt::format("[OpenALBackend] Error in {}: {} (0x{:X})",
+        std::string msg = fmt::format("[OpenALBackend] Error in {}: {} (0x{:X})",
                                  operation, alGetString(error), static_cast<u32>(error));
         spdlog::warn("{}", msg);
         return msg;

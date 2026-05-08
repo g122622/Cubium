@@ -110,7 +110,7 @@ class Error {
 public:
     Error() = default;
 
-    Error(ErrorCode code, StringView message = "", StringView source = "")
+    Error(ErrorCode code, std::string_view message = "", std::string_view source = "")
         : m_code(code)
         , m_message(message)
         , m_source(source)
@@ -128,7 +128,7 @@ public:
         // spdlog::error("[Error] {}", str);
     }
 
-    Error(ErrorCode code, String message, String source = "")
+    Error(ErrorCode code, std::string message, std::string source = "")
         : m_code(code)
         , m_message(std::move(message))
         , m_source(std::move(source))
@@ -138,8 +138,8 @@ public:
     }
 
     [[nodiscard]] ErrorCode code() const noexcept { return m_code; }
-    [[nodiscard]] const String& message() const noexcept { return m_message; }
-    [[nodiscard]] const String& source() const noexcept { return m_source; }
+    [[nodiscard]] const std::string& message() const noexcept { return m_message; }
+    [[nodiscard]] const std::string& source() const noexcept { return m_source; }
 
     [[nodiscard]] bool success() const noexcept
     {
@@ -151,7 +151,7 @@ public:
         return m_code != ErrorCode::Success;
     }
 
-    [[nodiscard]] String toString() const
+    [[nodiscard]] std::string toString() const
     {
         if (m_source.empty()) {
             return formatError();
@@ -162,43 +162,43 @@ public:
     // 静态工厂方法
     static Error ok() { return Error(ErrorCode::Success); }
 
-    static Error unknown(StringView message = "")
+    static Error unknown(std::string_view message = "")
     {
         return Error(ErrorCode::Unknown, message);
     }
 
-    static Error invalidArgument(StringView message = "")
+    static Error invalidArgument(std::string_view message = "")
     {
         return Error(ErrorCode::InvalidArgument, message);
     }
 
-    static Error notFound(StringView message = "")
+    static Error notFound(std::string_view message = "")
     {
         return Error(ErrorCode::NotFound, message);
     }
 
-    static Error fileNotFound(StringView path = "")
+    static Error fileNotFound(std::string_view path = "")
     {
         return Error(ErrorCode::FileNotFound, path);
     }
 
-    static Error connectionFailed(StringView message = "")
+    static Error connectionFailed(std::string_view message = "")
     {
         return Error(ErrorCode::ConnectionFailed, message);
     }
 
 private:
-    [[nodiscard]] String formatError() const
+    [[nodiscard]] std::string formatError() const
     {
         if (m_message.empty()) {
-            return String("[Error ") + std::to_string(static_cast<i32>(m_code)) + "]";
+            return std::string("[Error ") + std::to_string(static_cast<i32>(m_code)) + "]";
         }
-        return String("[Error ") + std::to_string(static_cast<i32>(m_code)) + "] " + m_message;
+        return std::string("[Error ") + std::to_string(static_cast<i32>(m_code)) + "] " + m_message;
     }
 
     ErrorCode m_code = ErrorCode::Success;
-    String m_message;
-    String m_source;
+    std::string m_message;
+    std::string m_source;
 };
 
 // ============================================================================

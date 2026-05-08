@@ -110,7 +110,7 @@ public:
 
 class NearestAttackableTargetGoal : public Goal {
 public:
-    NearestAttackableTargetGoal(MobEntity* mob, const String& targetClass, bool checkSight = true, bool nearbyOnly = false)
+    NearestAttackableTargetGoal(MobEntity* mob, const std::string& targetClass, bool checkSight = true, bool nearbyOnly = false)
         : Goal(EnumSet<GoalFlag>{GoalFlag::Target}) {}
     bool shouldExecute() override { return false; }
     bool shouldContinueExecuting() override { return false; }

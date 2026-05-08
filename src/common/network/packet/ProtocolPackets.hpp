@@ -112,17 +112,17 @@ struct PlayerPosition {
 class LoginRequestPacket {
 public:
     LoginRequestPacket() = default;
-    explicit LoginRequestPacket(String username, i32 protocolVersion = protocol::VERSION)
+    explicit LoginRequestPacket(std::string username, i32 protocolVersion = protocol::VERSION)
         : m_username(std::move(username))
         , m_protocolVersion(protocolVersion)
     {}
 
     // Getters
-    const String& username() const { return m_username; }
+    const std::string& username() const { return m_username; }
     i32 protocolVersion() const { return m_protocolVersion; }
 
     // Setters
-    void setUsername(const String& username) { m_username = username; }
+    void setUsername(const std::string& username) { m_username = username; }
     void setProtocolVersion(i32 version) { m_protocolVersion = version; }
 
     // 序列化
@@ -155,7 +155,7 @@ public:
     }
 
 private:
-    String m_username;
+    std::string m_username;
     i32 m_protocolVersion = protocol::VERSION;
 };
 
@@ -178,7 +178,7 @@ private:
 class LoginResponsePacket {
 public:
     LoginResponsePacket() = default;
-    LoginResponsePacket(bool success, PlayerId playerId, EntityId entityId, const String& username, const String& message = "", bool isDebugWorld = false, DimensionId dimension = 0)
+    LoginResponsePacket(bool success, PlayerId playerId, EntityId entityId, const std::string& username, const std::string& message = "", bool isDebugWorld = false, DimensionId dimension = 0)
         : m_success(success)
         , m_playerId(playerId)
         , m_entityId(entityId)
@@ -192,8 +192,8 @@ public:
     bool success() const { return m_success; }
     PlayerId playerId() const { return m_playerId; }
     EntityId entityId() const { return m_entityId; }
-    const String& username() const { return m_username; }
-    const String& message() const { return m_message; }
+    const std::string& username() const { return m_username; }
+    const std::string& message() const { return m_message; }
     bool isDebugWorld() const { return m_isDebugWorld; }
     DimensionId dimension() const { return m_dimension; }
 
@@ -201,8 +201,8 @@ public:
     void setSuccess(bool success) { m_success = success; }
     void setPlayerId(PlayerId id) { m_playerId = id; }
     void setEntityId(EntityId id) { m_entityId = id; }
-    void setUsername(const String& username) { m_username = username; }
-    void setMessage(const String& message) { m_message = message; }
+    void setUsername(const std::string& username) { m_username = username; }
+    void setMessage(const std::string& message) { m_message = message; }
     void setIsDebugWorld(bool isDebugWorld) { m_isDebugWorld = isDebugWorld; }
     void setDimension(DimensionId dimension) { m_dimension = dimension; }
 
@@ -257,8 +257,8 @@ private:
     bool m_success = false;
     PlayerId m_playerId = 0;
     EntityId m_entityId = INVALID_ENTITY_ID;
-    String m_username;
-    String m_message;
+    std::string m_username;
+    std::string m_message;
     bool m_isDebugWorld = false;
     DimensionId m_dimension = 0;
 };
@@ -880,7 +880,7 @@ private:
 class PlayerSpawnPacket {
 public:
     PlayerSpawnPacket() = default;
-    PlayerSpawnPacket(PlayerId playerId, const String& username, const PlayerPosition& pos)
+    PlayerSpawnPacket(PlayerId playerId, const std::string& username, const PlayerPosition& pos)
         : m_playerId(playerId)
         , m_username(username)
         , m_position(pos)
@@ -888,12 +888,12 @@ public:
 
     // Getters
     PlayerId playerId() const { return m_playerId; }
-    const String& username() const { return m_username; }
+    const std::string& username() const { return m_username; }
     const PlayerPosition& position() const { return m_position; }
 
     // Setters
     void setPlayerId(PlayerId id) { m_playerId = id; }
-    void setUsername(const String& username) { m_username = username; }
+    void setUsername(const std::string& username) { m_username = username; }
     void setPosition(const PlayerPosition& pos) { m_position = pos; }
 
     // 序列化
@@ -923,7 +923,7 @@ public:
 
 private:
     PlayerId m_playerId = 0;
-    String m_username;
+    std::string m_username;
     PlayerPosition m_position;
 };
 
@@ -1031,17 +1031,17 @@ private:
 class ChatMessagePacket {
 public:
     ChatMessagePacket() = default;
-    ChatMessagePacket(const String& message, PlayerId senderId = 0)
+    ChatMessagePacket(const std::string& message, PlayerId senderId = 0)
         : m_message(message)
         , m_senderId(senderId)
     {}
 
     // Getters
-    const String& message() const { return m_message; }
+    const std::string& message() const { return m_message; }
     PlayerId senderId() const { return m_senderId; }
 
     // Setters
-    void setMessage(const String& message) { m_message = message; }
+    void setMessage(const std::string& message) { m_message = message; }
     void setSenderId(PlayerId id) { m_senderId = id; }
 
     // 序列化
@@ -1070,7 +1070,7 @@ public:
     }
 
 private:
-    String m_message;
+    std::string m_message;
     PlayerId m_senderId = 0;
 };
 

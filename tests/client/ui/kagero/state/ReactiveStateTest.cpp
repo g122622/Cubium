@@ -21,7 +21,7 @@
 
 using namespace mc::client::ui::kagero::state;
 using mc::i32;
-using mc::String;
+using mc::std::string;
 using mc::f32;
 
 // ============================================================================
@@ -37,7 +37,7 @@ TEST(ReactiveTest, InitialValue) {
     Reactive<i32> count(42);
     EXPECT_EQ(count.get(), 42);
 
-    Reactive<String> name("Steve");
+    Reactive<std::string> name("Steve");
     EXPECT_EQ(name.get(), "Steve");
 
     Reactive<f32> value(3.14f);
@@ -74,14 +74,14 @@ TEST(ReactiveTest, SetDifferentValue) {
 }
 
 TEST(ReactiveTest, SetMoveValue) {
-    Reactive<String> name("Steve");
+    Reactive<std::string> name("Steve");
 
     int callCount = 0;
-    name.observe([&](const String&, const String&) {
+    name.observe([&](const std::string&, const std::string&) {
         callCount++;
     });
 
-    String newName = "Alex";
+    std::string newName = "Alex";
     name.set(std::move(newName));
     EXPECT_EQ(callCount, 1);
     EXPECT_EQ(name.get(), "Alex");
@@ -385,10 +385,10 @@ TEST(ComputedTest, ImplicitConversion) {
 }
 
 TEST(ComputedTest, ComplexComputation) {
-    Reactive<String> firstName("John");
-    Reactive<String> lastName("Doe");
+    Reactive<std::string> firstName("John");
+    Reactive<std::string> lastName("Doe");
 
-    Computed<String> fullName([&]() {
+    Computed<std::string> fullName([&]() {
         return firstName.get() + " " + lastName.get();
     });
 

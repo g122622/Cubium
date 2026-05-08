@@ -26,7 +26,7 @@ public:
         m_sentData.insert(m_sentData.end(), data, data + size);
     }
 
-    void disconnect(const String& reason = "") override {
+    void disconnect(const std::string& reason = "") override {
         (void)reason;
         m_connected = false;
     }
@@ -35,7 +35,7 @@ public:
         return m_connected;
     }
 
-    [[nodiscard]] String identifier() const override {
+    [[nodiscard]] std::string identifier() const override {
         return "MockConnection";
     }
 

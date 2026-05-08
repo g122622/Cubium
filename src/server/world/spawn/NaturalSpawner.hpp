@@ -98,7 +98,7 @@ public:
      * @param spawnCosts 生成成本
      * @return 是否可以生成
      */
-    [[nodiscard]] bool canSpawnWithDensity(const String& entityTypeId,
+    [[nodiscard]] bool canSpawnWithDensity(const std::string& entityTypeId,
                                             const Vector3& pos,
                                             const SpawnCosts& spawnCosts) const;
 
@@ -108,7 +108,7 @@ public:
      * @param pos 生成位置
      * @param spawnCosts 生成成本
      */
-    void onSpawn(const String& entityTypeId,
+    void onSpawn(const std::string& entityTypeId,
                  const Vector3& pos,
                  const SpawnCosts& spawnCosts);
 

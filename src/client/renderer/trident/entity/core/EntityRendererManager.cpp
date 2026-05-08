@@ -73,9 +73,9 @@ inline constexpr f64 SHADOW_MAX_DISTANCE = 256.0;
  * 将实体类型ID转换为标准格式（带命名空间前缀）
  * 例如："pig" -> "minecraft:pig", "minecraft:cow" -> "minecraft:cow"
  */
-String normalizeEntityTypeId(const String& typeId) {
+std::string normalizeEntityTypeId(const std::string& typeId) {
     // 如果已有命名空间前缀，直接返回
-    if (typeId.find(':') != String::npos) {
+    if (typeId.find(':') != std::string::npos) {
         return typeId;
     }
     // 添加默认命名空间
@@ -109,12 +109,12 @@ void EntityRendererManager::setTextureAtlas(const EntityTextureAtlas* textureAtl
     clearMeshes();
 }
 
-void EntityRendererManager::registerRenderer(const String& typeId, RendererCreator creator) {
+void EntityRendererManager::registerRenderer(const std::string& typeId, RendererCreator creator) {
     m_creators[typeId] = std::move(creator);
 }
 
-EntityRenderer* EntityRendererManager::getRenderer(const String& typeId) {
-    String normalizedId = normalizeEntityTypeId(typeId);
+EntityRenderer* EntityRendererManager::getRenderer(const std::string& typeId) {
+    std::string normalizedId = normalizeEntityTypeId(typeId);
     auto it = m_renderers.find(normalizedId);
     if (it != m_renderers.end()) {
         return it->second.get();
@@ -142,7 +142,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     }
 
     // 检查是否为 ItemEntity 或 ExperienceOrb
-    String normalizedType = normalizeEntityTypeId(entity.typeId());
+    std::string normalizedType = normalizeEntityTypeId(entity.typeId());
     bool isItemEntity = (normalizedType == EntityTypes::ITEM);
     bool isExperienceOrb = (normalizedType == EntityTypes::EXPERIENCE_ORB);
     bool useAnimatedMesh = usesAnimatedMesh(normalizedType);
@@ -397,7 +397,7 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity) {
     }
 
     // 对于 ItemEntity，使用 ItemTextureAtlas 进行 UV 重映射
-    String normalizedType = normalizeEntityTypeId(entity.typeId());
+    std::string normalizedType = normalizeEntityTypeId(entity.typeId());
     if (normalizedType == entity::EntityTypes::ITEM) {
         remapItemEntityUv(entity, vertices);
     } else {
@@ -618,9 +618,9 @@ void EntityRendererManager::initializeDefaults() {
     spdlog::debug("EntityRendererManager: Registered all entity renderers");
 }
 
-EntityRenderer* EntityRendererManager::getOrCreateRenderer(const String& typeId) {
+EntityRenderer* EntityRendererManager::getOrCreateRenderer(const std::string& typeId) {
     // 规范化实体类型ID
-    String normalizedId = normalizeEntityTypeId(typeId);
+    std::string normalizedId = normalizeEntityTypeId(typeId);
 
     // 先查找已创建的渲染器
     auto it = m_renderers.find(normalizedId);
@@ -641,11 +641,11 @@ EntityRenderer* EntityRendererManager::getOrCreateRenderer(const String& typeId)
     return ptr;
 }
 
-bool EntityRendererManager::generateModelMesh(const String& typeId,
+bool EntityRendererManager::generateModelMesh(const std::string& typeId,
                                                std::vector<ModelVertex>& vertices,
                                                std::vector<u32>& indices) {
     // 规范化实体类型ID，统一使用命名空间格式进行比较
-    String normalizedId = normalizeEntityTypeId(typeId);
+    std::string normalizedId = normalizeEntityTypeId(typeId);
 
     // 使用 EntityTypes 常量进行比较
     namespace ET = entity::EntityTypes;
@@ -891,7 +891,7 @@ void EntityRendererManager::remapItemEntityUv(ClientEntity& entity, std::vector<
     }
 }
 
-void EntityRendererManager::remapUvToAtlasRegion(const String& normalizedTypeId,
+void EntityRendererManager::remapUvToAtlasRegion(const std::string& normalizedTypeId,
                                                  std::vector<ModelVertex>& vertices) const {
     if (!m_textureAtlas || !m_textureAtlas->isBuilt() || vertices.empty()) {
         // spdlog::info("remapUvToAtlasRegion: early return for '{}' - atlas null: {}, built: {}, vertices empty: {}",
@@ -933,7 +933,7 @@ void EntityRendererManager::clearAnimatedMeshes() {
     }
 }
 
-bool EntityRendererManager::usesAnimatedMesh(const String& normalizedTypeId) const {
+bool EntityRendererManager::usesAnimatedMesh(const std::string& normalizedTypeId) const {
     // ItemEntity 和 ExperienceOrb 使用静态网格
     // 所有生物实体使用动画网格
     return normalizedTypeId != entity::EntityTypes::ITEM &&
@@ -944,7 +944,7 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::createModelForEntity(
     ClientEntity& entity,
     core::AnimationContext& context
 ) {
-    String normalizedId = normalizeEntityTypeId(entity.typeId());
+    std::string normalizedId = normalizeEntityTypeId(entity.typeId());
     namespace ET = entity::EntityTypes;
     using namespace model::animal;
     using namespace model::monster;
@@ -1085,10 +1085,10 @@ pipeline::EntityMesh* EntityRendererManager::getOrCreateAnimatedMesh(
         return nullptr;
     }
 
-    String normalizedId = normalizeEntityTypeId(entity.typeId());
+    std::string normalizedId = normalizeEntityTypeId(entity.typeId());
 
     // 设置 UV 重映射回调
-    m_animatedMeshCache->setUvRemapFunc([this, normalizedId](const String& typeId, std::vector<ModelVertex>& vertices) {
+    m_animatedMeshCache->setUvRemapFunc([this, normalizedId](const std::string& typeId, std::vector<ModelVertex>& vertices) {
         remapUvToAtlasRegion(typeId, vertices);
     });
 

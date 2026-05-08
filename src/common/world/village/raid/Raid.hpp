@@ -223,7 +223,7 @@ public:
      *
      * @return 当前状态对应的文本。
      */
-    [[nodiscard]] String getBossBarTitle() const;
+    [[nodiscard]] std::string getBossBarTitle() const;
 
     /**
      * @brief 获取 Boss 栏进度。

@@ -157,17 +157,17 @@ public:
      * @param ownerUuid 所有者UUID
      * @param throwerUuid 投掷者UUID（可选）
      */
-    void setOwner(const String& ownerUuid, const String& throwerUuid = "");
+    void setOwner(const std::string& ownerUuid, const std::string& throwerUuid = "");
 
     /**
      * @brief 获取所有者UUID
      */
-    [[nodiscard]] const String& ownerUuid() const { return m_ownerUuid; }
+    [[nodiscard]] const std::string& ownerUuid() const { return m_ownerUuid; }
 
     /**
      * @brief 获取投掷者UUID
      */
-    [[nodiscard]] const String& throwerUuid() const { return m_throwerUuid; }
+    [[nodiscard]] const std::string& throwerUuid() const { return m_throwerUuid; }
 
     // ========== 玩家拾取 ==========
 
@@ -232,8 +232,8 @@ private:
     i32 m_pickupDelay = DEFAULT_PICKUP_DELAY;  // 拾取延迟
     bool m_unpickable = false;      // 是否不可拾取
 
-    String m_ownerUuid;             // 所有者UUID（防止自己立即拾取）
-    String m_throwerUuid;           // 投掷者UUID
+    std::string m_ownerUuid;             // 所有者UUID（防止自己立即拾取）
+    std::string m_throwerUuid;           // 投掷者UUID
 
     // 合并相关
     static constexpr f32 MERGE_RADIUS = 1.5f;  // 合并检测半径

@@ -70,7 +70,7 @@ graph TB
 class FortuneEnchantment : public Enchantment {
 public:
     // Enchantment 接口实现
-    String id() const override;           // "minecraft:fortune"
+    std::string id() const override;           // "minecraft:fortune"
     i32 minLevel() const override;        // 1
     i32 maxLevel() const override;        // 3
     EnchantmentType type() const override; // Digger
@@ -146,7 +146,7 @@ flowchart TD
 class SilkTouchEnchantment : public Enchantment {
 public:
     // Enchantment 接口实现
-    String id() const override;           // "minecraft:silk_touch"
+    std::string id() const override;           // "minecraft:silk_touch"
     i32 minLevel() const override;        // 1
     i32 maxLevel() const override;        // 1 (只有I级)
     EnchantmentType type() const override; // Digger
@@ -299,7 +299,7 @@ graph TB
 |------|------|------|
 | `Enchantment` | `../Enchantment.hpp` | 附魔基类 |
 | `math::Random` | `common/util/math/random/Random.hpp` | 随机数生成 |
-| `String`, `i32` | `common/core/Types.hpp` | 基础类型 |
+| `std::string`, `i32` | `common/core/Types.hpp` | 基础类型 |
 
 ---
 
@@ -497,7 +497,7 @@ const Enchantment* enchant = EnchantmentRegistry::get("minecraft:fortune");
 // 新附魔示例
 class NewEnchantment : public Enchantment {
 public:
-    String id() const override { return "minecraft:new_enchantment"; }
+    std::string id() const override { return "minecraft:new_enchantment"; }
     i32 minLevel() const override { return 1; }
     i32 maxLevel() const override { return 5; }
     EnchantmentType type() const override { return EnchantmentType::Weapon; }

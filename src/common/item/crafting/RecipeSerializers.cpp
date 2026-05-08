@@ -15,7 +15,7 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::fromJson(
         return Error(ErrorCode::ResourceParseError, "Recipe missing 'type' field");
     }
 
-    String type = json["type"].get<String>();
+    std::string type = json["type"].get<std::string>();
 
     // 有序合成
     if (type == "minecraft:crafting_shaped") {
@@ -86,7 +86,7 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::fromSmeltingJson(
         return Error(ErrorCode::ResourceParseError, "Recipe missing 'type' field");
     }
 
-    String type = json["type"].get<String>();
+    std::string type = json["type"].get<std::string>();
 
     if (type == "minecraft:smelting") {
         return parseSmeltingRecipe(id, json, DEFAULT_SMELTING_TIME);
@@ -115,12 +115,12 @@ Result<std::unique_ptr<ShapedRecipe>> RecipeSerializers::parseShapedRecipe(
         return Error(ErrorCode::ResourceParseError, "Shaped recipe missing 'pattern' array");
     }
 
-    std::vector<String> pattern;
+    std::vector<std::string> pattern;
     for (const auto& row : json["pattern"]) {
         if (!row.is_string()) {
             return Error(ErrorCode::ResourceParseError, "Pattern row must be a string");
         }
-        pattern.push_back(row.get<String>());
+        pattern.push_back(row.get<std::string>());
     }
 
     if (pattern.empty()) {
@@ -128,13 +128,13 @@ Result<std::unique_ptr<ShapedRecipe>> RecipeSerializers::parseShapedRecipe(
     }
 
     // 验证pattern
-    String validationError = validatePattern(pattern);
+    std::string validationError = validatePattern(pattern);
     if (!validationError.empty()) {
         return Error(ErrorCode::ResourceParseError, validationError);
     }
 
     // 压缩pattern（移除空边）
-    std::vector<String> shrunkPattern = shrinkPattern(pattern);
+    std::vector<std::string> shrunkPattern = shrinkPattern(pattern);
     if (shrunkPattern.empty()) {
         return Error(ErrorCode::ResourceParseError, "Pattern is all spaces");
     }
@@ -164,9 +164,9 @@ Result<std::unique_ptr<ShapedRecipe>> RecipeSerializers::parseShapedRecipe(
     }
 
     // 解析group（可选）
-    String group;
+    std::string group;
     if (json.contains("group") && json["group"].is_string()) {
-        group = json["group"].get<String>();
+        group = json["group"].get<std::string>();
     }
 
     return std::make_unique<ShapedRecipe>(
@@ -224,9 +224,9 @@ Result<std::unique_ptr<ShapelessRecipe>> RecipeSerializers::parseShapelessRecipe
     }
 
     // 解析group（可选）
-    String group;
+    std::string group;
     if (json.contains("group") && json["group"].is_string()) {
-        group = json["group"].get<String>();
+        group = json["group"].get<std::string>();
     }
 
     return std::make_unique<ShapelessRecipe>(
@@ -243,9 +243,9 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseSmeltingRecipe(
     i32 defaultCookTime) {
 
     // 解析group（可选）
-    String group;
+    std::string group;
     if (json.contains("group") && json["group"].is_string()) {
-        group = json["group"].get<String>();
+        group = json["group"].get<std::string>();
     }
 
     // 解析ingredient
@@ -381,7 +381,7 @@ Result<Ingredient> RecipeSerializers::parseIngredient(const nlohmann::json& json
         if (!json["tag"].is_string()) {
             return Error(ErrorCode::ResourceParseError, "Tag must be a string");
         }
-        return Ingredient::fromTag(json["tag"].get<String>());
+        return Ingredient::fromTag(json["tag"].get<std::string>());
     }
 
     // 单个物品
@@ -390,7 +390,7 @@ Result<Ingredient> RecipeSerializers::parseIngredient(const nlohmann::json& json
             return Error(ErrorCode::ResourceParseError, "Item must be a string");
         }
 
-        String itemId = json["item"].get<String>();
+        std::string itemId = json["item"].get<std::string>();
         ResourceLocation loc(itemId);
 
         Item* item = ItemRegistry::instance().getItem(loc);
@@ -408,7 +408,7 @@ Result<Ingredient> RecipeSerializers::parseIngredient(const nlohmann::json& json
 Result<ItemStack> RecipeSerializers::parseResult(const nlohmann::json& json) {
     // 字符串形式：仅物品ID
     if (json.is_string()) {
-        String itemId = json.get<String>();
+        std::string itemId = json.get<std::string>();
         ResourceLocation loc(itemId);
         Item* item = ItemRegistry::instance().getItem(loc);
         if (!item) {
@@ -426,7 +426,7 @@ Result<ItemStack> RecipeSerializers::parseResult(const nlohmann::json& json) {
         return Error(ErrorCode::ResourceParseError, "Result missing 'item' field");
     }
 
-    String itemId = json["item"].get<String>();
+    std::string itemId = json["item"].get<std::string>();
     ResourceLocation loc(itemId);
 
     Item* item = ItemRegistry::instance().getItem(loc);
@@ -448,7 +448,7 @@ Result<ItemStack> RecipeSerializers::parseResult(const nlohmann::json& json) {
     return ItemStack(*item, count);
 }
 
-std::vector<String> RecipeSerializers::shrinkPattern(const std::vector<String>& pattern) {
+std::vector<std::string> RecipeSerializers::shrinkPattern(const std::vector<std::string>& pattern) {
     if (pattern.empty()) {
         return {};
     }
@@ -460,7 +460,7 @@ std::vector<String> RecipeSerializers::shrinkPattern(const std::vector<String>& 
     i32 maxCol = 0;
 
     for (i32 row = 0; row < static_cast<i32>(pattern.size()); ++row) {
-        const String& rowStr = pattern[row];
+        const std::string& rowStr = pattern[row];
         bool hasContent = false;
         for (i32 col = 0; col < static_cast<i32>(rowStr.size()); ++col) {
             if (rowStr[col] != ' ') {
@@ -481,9 +481,9 @@ std::vector<String> RecipeSerializers::shrinkPattern(const std::vector<String>& 
     }
 
     // 提取压缩后的pattern
-    std::vector<String> result;
+    std::vector<std::string> result;
     for (i32 row = minRow; row <= maxRow; ++row) {
-        String rowStr;
+        std::string rowStr;
         for (i32 col = minCol; col <= maxCol; ++col) {
             if (col < static_cast<i32>(pattern[row].size())) {
                 rowStr += pattern[row][col];
@@ -497,7 +497,7 @@ std::vector<String> RecipeSerializers::shrinkPattern(const std::vector<String>& 
     return result;
 }
 
-String RecipeSerializers::validatePattern(const std::vector<String>& pattern) {
+std::string RecipeSerializers::validatePattern(const std::vector<std::string>& pattern) {
     if (pattern.size() > static_cast<size_t>(MAX_RECIPE_HEIGHT)) {
         std::ostringstream oss;
         oss << "Pattern has too many rows, max is " << MAX_RECIPE_HEIGHT;
@@ -508,7 +508,7 @@ String RecipeSerializers::validatePattern(const std::vector<String>& pattern) {
     size_t expectedWidth = 0;
     bool widthSet = false;
 
-    for (const String& row : pattern) {
+    for (const std::string& row : pattern) {
         if (row.size() > static_cast<size_t>(MAX_RECIPE_WIDTH)) {
             std::ostringstream oss;
             oss << "Pattern row is too long, max is " << MAX_RECIPE_WIDTH;
@@ -530,7 +530,7 @@ String RecipeSerializers::validatePattern(const std::vector<String>& pattern) {
 }
 
 Result<std::vector<Ingredient>> RecipeSerializers::parsePatternIngredients(
-    const std::vector<String>& pattern,
+    const std::vector<std::string>& pattern,
     const nlohmann::json& key) {
 
     std::vector<Ingredient> ingredients;
@@ -547,7 +547,7 @@ Result<std::vector<Ingredient>> RecipeSerializers::parsePatternIngredients(
     }
 
     // 按行列顺序解析原料
-    for (const String& row : pattern) {
+    for (const std::string& row : pattern) {
         for (char c : row) {
             if (c == ' ') {
                 // 空格表示空槽位（MC 原版使用 Ingredient.EMPTY）
@@ -557,7 +557,7 @@ Result<std::vector<Ingredient>> RecipeSerializers::parsePatternIngredients(
                 auto it = keyMap.find(c);
                 if (it == keyMap.end()) {
                     return Error(ErrorCode::ResourceParseError,
-                                 "Pattern uses undefined key: " + String(1, c));
+                                 "Pattern uses undefined key: " + std::string(1, c));
                 }
                 ingredients.push_back(it->second);
             }

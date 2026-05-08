@@ -85,7 +85,7 @@ void ArmorItem::buildAttributeModifiers() {
     // 在构造函数中创建属性修饰符的多重映射
 
     i32 equipmentSlot = armorSlotToEquipmentSlot(m_slot);
-    String uuid = entity::attribute::uuids::fromString(getArmorModifierUUID(m_slot));
+    std::string uuid = entity::attribute::uuids::fromString(getArmorModifierUUID(m_slot));
 
     // 1. 护甲值修饰符 (generic.armor)
     auto armorAttr = entity::attribute::Attributes::armor();

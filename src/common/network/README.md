@@ -45,9 +45,9 @@ class IServerConnection {
 public:
     virtual ~IServerConnection() = default;
     virtual void send(const u8* data, size_t size) = 0;
-    virtual void disconnect(const String& reason = "") = 0;
+    virtual void disconnect(const std::string& reason = "") = 0;
     [[nodiscard]] virtual bool isConnected() const = 0;
-    [[nodiscard]] virtual String identifier() const = 0;
+    [[nodiscard]] virtual std::string identifier() const = 0;
     [[nodiscard]] virtual ConnectionType type() const = 0;
 };
 
@@ -107,9 +107,9 @@ class LocalServerConnection : public IServerConnection {
 public:
     explicit LocalServerConnection(LocalEndpoint* endpoint);
     void send(const u8* data, size_t size) override;
-    void disconnect(const String& reason = "") override;
+    void disconnect(const std::string& reason = "") override;
     [[nodiscard]] bool isConnected() const override;
-    [[nodiscard]] String identifier() const override;  // "Local:N"
+    [[nodiscard]] std::string identifier() const override;  // "Local:N"
     [[nodiscard]] ConnectionType type() const override; // Local
     [[nodiscard]] LocalEndpoint* endpoint() const;
 };
@@ -156,7 +156,7 @@ public:
     virtual size_t expectedSize() const;
 
     [[nodiscard]] PacketType type() const;
-    [[nodiscard]] static String typeToString(PacketType type);
+    [[nodiscard]] static std::string typeToString(PacketType type);
 };
 ```
 
@@ -193,7 +193,7 @@ public:
     void writeVarInt(i32 value);
     void writeVarUInt(u32 value);
     void writeVarLong(i64 value);
-    void writeString(const String& value);  // VarInt长度前缀，最大2097151字节
+    void writeString(const std::string& value);  // VarInt长度前缀，最大2097151字节
     void writeBytes(const u8* data, size_t size);
     std::vector<u8> buffer() const;
 };
@@ -215,7 +215,7 @@ public:
     Result<i32> readVarInt();
     Result<u32> readVarUInt();
     Result<i64> readVarLong();
-    Result<String> readString();  // VarInt长度前缀，最大2097151字节
+    Result<std::string> readString();  // VarInt长度前缀，最大2097151字节
     Result<std::vector<u8>> readBytes(size_t size);
     size_t remaining() const;
 };
@@ -284,7 +284,7 @@ public:
 | 0 | Byte (i8) |
 | 1 | VarInt (i32) |
 | 2 | Float (f32) |
-| 3 | String (UTF-8) |
+| 3 | std::string (UTF-8) |
 | 4 | TextComponent (JSON) |
 | 6 | Slot (ItemStack) |
 | 7 | Boolean (bool) |

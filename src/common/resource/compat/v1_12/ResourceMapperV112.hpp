@@ -27,27 +27,27 @@ public:
     // 纹理路径转换
     // -------------------------------------------------------------------------
 
-    String toUnifiedTexturePath(StringView path) const override;
+    std::string toUnifiedTexturePath(std::string_view path) const override;
 
-    std::vector<String> getTexturePathVariants(StringView unifiedPath) const override;
+    std::vector<std::string> getTexturePathVariants(std::string_view unifiedPath) const override;
 
-    String toModernTextureName(StringView name) const override;
+    std::string toModernTextureName(std::string_view name) const override;
 
-    String toLegacyTextureName(StringView name) const override;
+    std::string toLegacyTextureName(std::string_view name) const override;
 
     // -------------------------------------------------------------------------
     // 模型路径转换
     // -------------------------------------------------------------------------
 
-    String toUnifiedModelPath(StringView path) const override;
+    std::string toUnifiedModelPath(std::string_view path) const override;
 
-    std::vector<String> getModelPathVariants(StringView unifiedPath) const override;
+    std::vector<std::string> getModelPathVariants(std::string_view unifiedPath) const override;
 
     // -------------------------------------------------------------------------
     // 方块状态路径转换
     // -------------------------------------------------------------------------
 
-    String toUnifiedBlockStatePath(StringView path) const override;
+    std::string toUnifiedBlockStatePath(std::string_view path) const override;
 
     // -------------------------------------------------------------------------
     // 包格式

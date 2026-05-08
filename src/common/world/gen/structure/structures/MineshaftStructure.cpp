@@ -715,7 +715,7 @@ void MineshaftStairs::buildComponent(std::vector<std::unique_ptr<MineshaftPiece>
 // MineshaftStructure 实现
 // ============================================================================
 
-const String MineshaftStructure::m_name = "mineshaft";
+const std::string MineshaftStructure::m_name = "mineshaft";
 
 const std::vector<BiomeId> MineshaftStructure::m_validBiomes = {
     Biomes::Plains, Biomes::Forest, Biomes::Taiga, Biomes::SnowyTaiga,

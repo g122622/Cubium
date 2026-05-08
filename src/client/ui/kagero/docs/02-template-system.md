@@ -92,7 +92,7 @@ BindingContext ctx(store, eventBus);
 
 ```cpp
 // 暴露只读变量
-String playerName = "Steve";
+std::string playerName = "Steve";
 ctx.expose("player.name", &playerName);
 
 // 暴露可写变量
@@ -313,7 +313,7 @@ v4.isString();  // true
 i32 i = v2.toInteger();
 f32 f = v3.toFloat();
 bool b = v1.toBool();
-String s = v4.asString();
+std::string s = v4.asString();
 ```
 
 ### BindingContext 方法
@@ -339,7 +339,7 @@ bool exists = ctx.hasPath("player.name");
 bool writable = ctx.isWritable("player.name");
 
 // 订阅变化
-u64 subId = ctx.subscribe("player.name", [](const String& path, const Value& newValue) {
+u64 subId = ctx.subscribe("player.name", [](const std::string& path, const Value& newValue) {
     // 处理变化
 });
 

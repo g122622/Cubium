@@ -185,8 +185,8 @@ namespace JigsawOrientations {
      * @param name 名称（如 "down_east", "up_north", "north_up"）
      * @return JigsawOrientation，如果无效则返回 nullopt
      */
-    inline std::optional<JigsawOrientation> fromName(StringView name) {
-        static const std::unordered_map<String, JigsawOrientation> nameMap = {
+    inline std::optional<JigsawOrientation> fromName(std::string_view name) {
+        static const std::unordered_map<std::string, JigsawOrientation> nameMap = {
             {"down_east", JigsawOrientation::DownEast},
             {"down_north", JigsawOrientation::DownNorth},
             {"down_south", JigsawOrientation::DownSouth},
@@ -200,14 +200,14 @@ namespace JigsawOrientations {
             {"north_up", JigsawOrientation::NorthUp},
             {"south_up", JigsawOrientation::SouthUp}
         };
-        auto it = nameMap.find(String(name));
+        auto it = nameMap.find(std::string(name));
         return it != nameMap.end() ? std::optional<JigsawOrientation>(it->second) : std::nullopt;
     }
 
     /**
      * @brief 获取名称
      */
-    inline String toString(JigsawOrientation orientation) {
+    inline std::string toString(JigsawOrientation orientation) {
         switch (orientation) {
             case JigsawOrientation::DownEast: return "down_east";
             case JigsawOrientation::DownNorth: return "down_north";

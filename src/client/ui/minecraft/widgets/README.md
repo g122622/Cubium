@@ -143,7 +143,7 @@ Widgets 模块负责把游戏状态转换成玩家可见的 UI 表达。它既�
 ```cpp
 auto chatWidget = std::make_unique<mc::client::ui::minecraft::widgets::ChatWidget>();
 chatWidget->setCommandManager(commandManager);
-chatWidget->setCommandCallback([](const mc::String& input) {
+chatWidget->setCommandCallback([](const mc::std::string& input) {
     // 发送聊天或命令
 });
 chatWidget->open(true);

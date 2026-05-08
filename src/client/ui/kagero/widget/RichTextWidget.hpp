@@ -43,7 +43,7 @@ public:
      * @param width 宽度
      * @param height 高度
      */
-    RichTextWidget(String id, i32 x, i32 y, i32 width, i32 height)
+    RichTextWidget(std::string id, i32 x, i32 y, i32 width, i32 height)
         : Widget(std::move(id)) {
         setBounds(Rect(x, y, width, height));
     }
@@ -57,7 +57,7 @@ public:
      * @param height 高度
      * @param text 文本组件
      */
-    RichTextWidget(String id, i32 x, i32 y, i32 width, i32 height,
+    RichTextWidget(std::string id, i32 x, i32 y, i32 width, i32 height,
                    std::unique_ptr<text::ITextComponent> text)
         : Widget(std::move(id))
         , m_text(std::move(text)) {
@@ -258,7 +258,7 @@ public:
      * @brief 设置纯文本内容
      * @param text 纯文本字符串
      */
-    void setText(const String& text) {
+    void setText(const std::string& text) {
         m_text = text::TextParser::parse(text);
         m_linesDirty = true;
     }
@@ -271,7 +271,7 @@ public:
     /**
      * @brief 获取纯文本内容
      */
-    [[nodiscard]] String getUnformattedText() const {
+    [[nodiscard]] std::string getUnformattedText() const {
         if (m_text == nullptr) {
             return "";
         }
@@ -332,7 +332,7 @@ private:
      * @brief 文本样式片段
      */
     struct TextRun {
-        String text;           // 文本内容
+        std::string text;           // 文本内容
         text::Style style;     // 样式
         Rect bounds;           // 渲染区域
         f32 advanceWidth;      // 文本宽度
@@ -381,7 +381,7 @@ private:
             dynamic_cast<const text::StringTextComponent*>(&component);
 
         if (stringComp != nullptr) {
-            const String& text = stringComp->getText();
+            const std::string& text = stringComp->getText();
             if (!text.empty()) {
                 TextRun run;
                 run.text = text;
@@ -391,7 +391,7 @@ private:
             }
         } else {
             // 对于其他组件类型，使用未格式化文本
-            String unformatted = component.getUnformattedText();
+            std::string unformatted = component.getUnformattedText();
             if (!unformatted.empty()) {
                 TextRun run;
                 run.text = unformatted;
@@ -471,7 +471,7 @@ private:
     /**
      * @brief 测量文本宽度
      */
-    [[nodiscard]] f32 measureTextWidth(const String& text) const {
+    [[nodiscard]] f32 measureTextWidth(const std::string& text) const {
         if (auto* font = resolvedFont()) {
             f32 width = 0.0f;
             for (char32_t codePoint : text) {

@@ -30,14 +30,14 @@ Result<void> SoundHandler::reload() {
 
     // 已知的命名空间列表（优先加载 minecraft）
     // 大多数资源包只使用 minecraft 命名空间
-    static const std::vector<String> knownNamespaces = {
+    static const std::vector<std::string> knownNamespaces = {
         "minecraft"
         // 未来可以添加其他常用命名空间
         // 例如：如果检测到 mod 资源包，动态添加
     };
 
     // 收集已处理的命名空间，避免重复
-    std::set<String> processedNamespaces;
+    std::set<std::string> processedNamespaces;
 
     // 遍历资源包（从低优先级到高优先级）
     // 这样高优先级的资源包可以覆盖低优先级的
@@ -74,14 +74,14 @@ Result<void> SoundHandler::reload() {
                 continue;
             }
 
-            std::set<String> foundNamespaces;
+            std::set<std::string> foundNamespaces;
             for (const auto& nsPath : namespacesResult.value()) {
                 // 提取命名空间名称
                 // 格式: assets/<namespace>/...
-                String namespace_;
+                std::string namespace_;
                 if (nsPath.size() > 7 && nsPath.substr(0, 7) == "assets/") {
                     auto slashPos = nsPath.find('/', 7);
-                    if (slashPos != String::npos) {
+                    if (slashPos != std::string::npos) {
                         namespace_ = nsPath.substr(7, slashPos - 7);
                     } else {
                         namespace_ = nsPath.substr(7);
@@ -160,10 +160,10 @@ std::vector<ResourceLocation> SoundHandler::getPreloadSounds() const {
 
 Result<size_t> SoundHandler::loadSoundsJson(
     const IResourcePack& pack,
-    StringView namespace_
+    std::string_view namespace_
 ) {
     // 构建 sounds.json 路径
-    String jsonPath = "assets/" + String(namespace_) + "/sounds.json";
+    std::string jsonPath = "assets/" + std::string(namespace_) + "/sounds.json";
 
     // 检查文件是否存在
     if (!pack.hasResource(jsonPath)) {
@@ -185,8 +185,8 @@ Result<size_t> SoundHandler::loadSoundsJson(
 }
 
 Result<size_t> SoundHandler::parseSoundsJson(
-    StringView content,
-    StringView namespace_
+    std::string_view content,
+    std::string_view namespace_
 ) {
     // 解析 JSON
     nlohmann::json json;
@@ -195,7 +195,7 @@ Result<size_t> SoundHandler::parseSoundsJson(
     } catch (const nlohmann::json::parse_error& e) {
         m_errorCount++;
         return Error(ErrorCode::ResourceParseError,
-                     "Failed to parse sounds.json: " + String(e.what()));
+                     "Failed to parse sounds.json: " + std::string(e.what()));
     }
 
     if (!json.is_object()) {
@@ -208,17 +208,17 @@ Result<size_t> SoundHandler::parseSoundsJson(
 
     // 遍历所有声音事件
     for (auto it = json.begin(); it != json.end(); ++it) {
-        const String& eventId = it.key();
+        const std::string& eventId = it.key();
         const auto& eventJson = it.value();
 
         // 构建完整的声音事件ID
         ResourceLocation location;
-        if (eventId.find(':') != String::npos) {
+        if (eventId.find(':') != std::string::npos) {
             // 已有命名空间
             location = ResourceLocation::parse(eventId);
         } else {
             // 使用当前命名空间
-            location = ResourceLocation(String(namespace_), eventId);
+            location = ResourceLocation(std::string(namespace_), eventId);
         }
 
         // 解析声音事件定义

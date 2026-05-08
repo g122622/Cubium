@@ -13,11 +13,11 @@ ItemParticleData::ItemParticleData(ParticleTypeId type, const ItemStack& itemSta
                   "ItemParticleData requires an item-type particle");
 }
 
-String ItemParticleData::getTypeName() const {
+std::string ItemParticleData::getTypeName() const {
     return ParticleRegistry::instance().getTypeName(m_type);
 }
 
-String ItemParticleData::getParameters() const {
+std::string ItemParticleData::getParameters() const {
     // 物品粒子参数格式: item_id
     // 例如: minecraft:diamond
     if (m_itemStack.isEmpty()) {

@@ -38,7 +38,7 @@ class RuinedPortalStructure : public Structure {
 public:
     RuinedPortalStructure() : Structure(StructureType::RuinedPortal) {}
 
-    [[nodiscard]] const String& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
@@ -64,7 +64,7 @@ public:
 
 private:
     static constexpr StructureSeparationSettings m_settings{40, 15, 34222645};
-    static const String m_name;
+    static const std::string m_name;
     static const std::vector<BiomeId> m_validBiomes;
 
     /**

@@ -55,7 +55,7 @@ public:
      *
      * @param reason 断开原因。
      */
-    void disconnect(const String& reason = "") override
+    void disconnect(const std::string& reason = "") override
     {
         m_disconnectReason = reason;
         m_connected = false;
@@ -74,7 +74,7 @@ public:
     /**
      * @brief 获取连接标识字符串。
      */
-    [[nodiscard]] String identifier() const override
+    [[nodiscard]] std::string identifier() const override
     {
         return "FakeConnection";
     }
@@ -90,7 +90,7 @@ public:
     /**
      * @brief 获取最近一次断开原因。
      */
-    [[nodiscard]] const String& disconnectReason() const noexcept
+    [[nodiscard]] const std::string& disconnectReason() const noexcept
     {
         return m_disconnectReason;
     }
@@ -102,7 +102,7 @@ public:
 
 private:
     bool m_connected = true;
-    String m_disconnectReason;
+    std::string m_disconnectReason;
     std::vector<u8> m_sentData;
 };
 
@@ -202,7 +202,7 @@ public:
     void setDefaultGameMode(GameMode mode) override { m_defaultGameMode = mode; }
     [[nodiscard]] i32 playerIdleTimeoutMinutes() const override { return m_idleTimeoutMinutes; }
     void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) override { m_idleTimeoutMinutes = timeoutMinutes; }
-    void broadcastServerMessage(StringView message) override { m_lastBroadcastMessage = String(message); }
+    void broadcastServerMessage(std::string_view message) override { m_lastBroadcastMessage = std::string(message); }
     void requestStop() override { m_stopRequested = true; m_running = false; }
 
     void broadcastParticleInRange(
@@ -240,7 +240,7 @@ public:
      *
      * @warning 测试用例应保证 `playerId` 唯一，否则 `PlayerManager` 会拒绝插入。
      */
-    [[nodiscard]] server::ServerPlayerData* addTestPlayer(PlayerId playerId, const String& username)
+    [[nodiscard]] server::ServerPlayerData* addTestPlayer(PlayerId playerId, const std::string& username)
     {
         auto connection = std::make_shared<FakeConnection>();
         auto* player = m_playerManager.addPlayer(playerId, username, connection);
@@ -261,7 +261,7 @@ public:
         return m_connections.empty() ? nullptr : m_connections.back();
     }
 
-    [[nodiscard]] const String& lastBroadcastMessage() const noexcept { return m_lastBroadcastMessage; }
+    [[nodiscard]] const std::string& lastBroadcastMessage() const noexcept { return m_lastBroadcastMessage; }
     [[nodiscard]] bool stopRequested() const noexcept { return m_stopRequested; }
 
 private:
@@ -271,7 +271,7 @@ private:
     GameMode m_defaultGameMode = GameMode::Survival;
     i32 m_idleTimeoutMinutes = 0;
     bool m_stopRequested = false;
-    String m_lastBroadcastMessage;
+    std::string m_lastBroadcastMessage;
 
     // 粒子广播记录
     bool m_particleBroadcastCalled = false;
@@ -305,7 +305,7 @@ protected:
      *
      * @note 该辅助函数不会重复建玩家，调用前应先通过 `addTestPlayer()` 完成注册。
      */
-    [[nodiscard]] ServerCommandSource makePlayerSource(PlayerId playerId, const String& username)
+    [[nodiscard]] ServerCommandSource makePlayerSource(PlayerId playerId, const std::string& username)
     {
         auto* playerData = m_server.playerManager().getPlayer(playerId);
         if (playerData == nullptr) {
@@ -613,12 +613,12 @@ TEST_F(CommandRegistryServerTest, CommandTreeSnapshotContainsMetadata)
     const auto* helpNode = findNodeByName("help");
     ASSERT_NE(helpNode, nullptr);
     ASSERT_TRUE(helpNode->metadata.contains("description"));
-    EXPECT_EQ(helpNode->metadata.at("description").get<String>(), "Show command help.");
+    EXPECT_EQ(helpNode->metadata.at("description").get<std::string>(), "Show command help.");
 
     const auto* experienceNode = findNodeByName("experience");
     ASSERT_NE(experienceNode, nullptr);
     ASSERT_TRUE(experienceNode->metadata.contains("aliases"));
-    EXPECT_EQ(experienceNode->metadata.at("aliases").at(0).get<String>(), "xp");
+    EXPECT_EQ(experienceNode->metadata.at("aliases").at(0).get<std::string>(), "xp");
 
     const auto* kickNode = findNodeByName("kick");
     ASSERT_NE(kickNode, nullptr);

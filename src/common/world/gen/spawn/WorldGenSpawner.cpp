@@ -369,7 +369,7 @@ bool WorldGenSpawner::checkSpawnRules(
         return false;
     }
 
-    const String& typeName = entityType.name();
+    const std::string& typeName = entityType.name();
 
     // 参考原版常见被动生物规则：大多数生物偏好草方块
     if (typeName == "minecraft:sheep" ||

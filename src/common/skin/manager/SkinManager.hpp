@@ -25,7 +25,7 @@ namespace mc::skin {
  */
 struct SkinLoadCallbacks {
     std::function<void(const std::array<u8, 16>& uuid)> onSkinLoaded;
-    std::function<void(const std::array<u8, 16>& uuid, const String& error)> onSkinFailed;
+    std::function<void(const std::array<u8, 16>& uuid, const std::string& error)> onSkinFailed;
 };
 
 /**
@@ -59,7 +59,7 @@ public:
      * @brief 构造皮肤管理器
      * @param cacheDir 缓存目录路径
      */
-    explicit SkinManager(const String& cacheDir);
+    explicit SkinManager(const std::string& cacheDir);
 
     ~SkinManager();
 
@@ -118,7 +118,7 @@ public:
      * @param uuidStr UUID字符串
      * @return 皮肤信息指针，不存在返回 nullptr
      */
-    [[nodiscard]] std::shared_ptr<PlayerSkinInfo> getPlayerInfo(const String& uuidStr) const;
+    [[nodiscard]] std::shared_ptr<PlayerSkinInfo> getPlayerInfo(const std::string& uuidStr) const;
 
     /**
      * @brief 移除玩家皮肤信息
@@ -211,14 +211,14 @@ private:
     /**
      * @brief UUID 转字符串键
      */
-    [[nodiscard]] static String uuidToKey(const std::array<u8, 16>& uuid);
+    [[nodiscard]] static std::string uuidToKey(const std::array<u8, 16>& uuid);
 
-    String m_cacheDir;
+    std::string m_cacheDir;
     std::unique_ptr<SkinCache> m_cache;
     std::unique_ptr<DefaultSkinProvider> m_defaultSkinProvider;
 
     mutable std::mutex m_playerInfosMutex;
-    std::unordered_map<String, std::shared_ptr<PlayerSkinInfo>> m_playerInfos;  // key: uuid string
+    std::unordered_map<std::string, std::shared_ptr<PlayerSkinInfo>> m_playerInfos;  // key: uuid string
 
     IResourcePack* m_resourcePack = nullptr;
 

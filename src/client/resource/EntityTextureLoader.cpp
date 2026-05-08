@@ -16,7 +16,7 @@ namespace {
  * 这里必须按 vanilla 资源包的真实文件名显式指定，避免先尝试错误路径再回退。
  * 键为实体名称（不含命名空间），值为纹理路径列表（不含 textures/ 前缀和 .png 后缀）。
  */
-const std::unordered_map<String, std::vector<String>> SPECIAL_TEXTURE_PATHS = {
+const std::unordered_map<std::string, std::vector<std::string>> SPECIAL_TEXTURE_PATHS = {
     // 玩家 - 多种默认皮肤
     {"player", {"entity/steve", "entity/alex", "entity/player/wide/steve", "entity/player/slim/alex"}},
 
@@ -113,7 +113,7 @@ const std::unordered_map<String, std::vector<String>> SPECIAL_TEXTURE_PATHS = {
  *
  * 键为实体名称，值为附加纹理路径列表。
  */
-const std::unordered_map<String, std::vector<String>> ADDITIONAL_TEXTURES = {
+const std::unordered_map<std::string, std::vector<std::string>> ADDITIONAL_TEXTURES = {
     // 羊的毛皮层
     {"sheep", {"entity/sheep/sheep_fur"}},
 };
@@ -150,7 +150,7 @@ Result<u32> EntityTextureLoader::loadAllEntityTextures(
             continue;
         }
 
-        const String& entityName = type.name();
+        const std::string& entityName = type.name();
 
         // 获取纹理路径
         auto paths = getTexturePaths(entityName);
@@ -192,7 +192,7 @@ Result<u32> EntityTextureLoader::loadDefaultTextures(mc::IResourcePack& pack, En
 
 Result<void> EntityTextureLoader::loadEntityTexture(mc::IResourcePack& pack,
                                                      EntityTextureAtlas& atlas,
-                                                     const String& entityTypeId) {
+                                                     const std::string& entityTypeId) {
     auto paths = getTexturePaths(entityTypeId);
 
     for (const auto& loc : paths) {
@@ -235,9 +235,9 @@ u32 EntityTextureLoader::loadAdditionalTextures(
     return loadedCount;
 }
 
-std::vector<ResourceLocation> EntityTextureLoader::getTexturePaths(const String& entityTypeId) {
+std::vector<ResourceLocation> EntityTextureLoader::getTexturePaths(const std::string& entityTypeId) {
     std::vector<ResourceLocation> paths;
-    String name = parseEntityName(entityTypeId);
+    std::string name = parseEntityName(entityTypeId);
 
     // 检查特殊路径映射
     auto it = SPECIAL_TEXTURE_PATHS.find(name);
@@ -257,10 +257,10 @@ std::vector<ResourceLocation> EntityTextureLoader::getTexturePaths(const String&
     return paths;
 }
 
-String EntityTextureLoader::parseEntityName(const String& entityTypeId) {
+std::string EntityTextureLoader::parseEntityName(const std::string& entityTypeId) {
     // 解析 "minecraft:pig" -> "pig"
     size_t colonPos = entityTypeId.find(':');
-    if (colonPos != String::npos && colonPos + 1 < entityTypeId.size()) {
+    if (colonPos != std::string::npos && colonPos + 1 < entityTypeId.size()) {
         return entityTypeId.substr(colonPos + 1);
     }
     return entityTypeId;

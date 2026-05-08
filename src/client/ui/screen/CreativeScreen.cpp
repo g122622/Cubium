@@ -161,7 +161,7 @@ bool CreativeScreen::isPauseScreen() const
     return false;
 }
 
-String CreativeScreen::getTitle() const
+std::string CreativeScreen::getTitle() const
 {
     return "Creative Inventory";
 }
@@ -186,7 +186,7 @@ void CreativeScreen::rebuildVisibleEntries()
 {
     m_visibleEntries.clear();
 
-    const String filter = normalizeSearchText(m_searchText);
+    const std::string filter = normalizeSearchText(m_searchText);
     for (i32 index = 0; index < static_cast<i32>(m_paletteEntries.size()); ++index) {
         if (filter.empty() || matchesSearch(m_paletteEntries[static_cast<std::size_t>(index)])) {
             m_visibleEntries.push_back(index);
@@ -240,7 +240,7 @@ void CreativeScreen::renderSearchBox()
     m_gui->drawRect(static_cast<f64>(searchX), static_cast<f64>(searchY), static_cast<f64>(SEARCH_WIDTH), static_cast<f64>(SEARCH_HEIGHT), 0xFF4DA3FF);
 
     if (m_gui->font() != nullptr) {
-        const String displayText = m_searchText.empty() ? String("Search creative items...") : m_searchText;
+        const std::string displayText = m_searchText.empty() ? std::string("Search creative items...") : m_searchText;
         const u32 color = m_searchText.empty() ? 0xFF6B7785 : 0xFFF5F7FA;
         m_gui->drawText(displayText, static_cast<f64>(searchX + 4), static_cast<f64>(searchY + 4), color, false);
     }
@@ -392,7 +392,7 @@ void CreativeScreen::renderItemTooltip(const ItemStack& stack, i32 mouseX, i32 m
         return;
     }
 
-    std::vector<String> lines;
+    std::vector<std::string> lines;
     auto displayName = stack.getDisplayName();
     lines.emplace_back(displayName ? displayName->getUnformattedText() : "");
 
@@ -591,19 +591,19 @@ bool CreativeScreen::isMouseOver(i32 mouseX, i32 mouseY, i32 x, i32 y, i32 width
     return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
 }
 
-String CreativeScreen::normalizeSearchText(StringView text) const
+std::string CreativeScreen::normalizeSearchText(std::string_view text) const
 {
     return util::toLowerAscii(text);
 }
 
 bool CreativeScreen::matchesSearch(const CreativeInventoryEntry& entry) const
 {
-    const String filter = normalizeSearchText(m_searchText);
+    const std::string filter = normalizeSearchText(m_searchText);
     if (filter.empty()) {
         return true;
     }
 
-    return entry.searchKey.find(filter) != String::npos;
+    return entry.searchKey.find(filter) != std::string::npos;
 }
 
 } // namespace mc::client

@@ -98,13 +98,13 @@ public:
      * @param playerId 玩家ID
      * @param reason 断开原因
      */
-    void disconnectPlayer(PlayerId playerId, const String& reason = "");
+    void disconnectPlayer(PlayerId playerId, const std::string& reason = "");
 
     /**
      * @brief 断开所有玩家连接
      * @param reason 断开原因
      */
-    void disconnectAll(const String& reason = "");
+    void disconnectAll(const std::string& reason = "");
 
     /**
      * @brief 清理已断开连接的玩家

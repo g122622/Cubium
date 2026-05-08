@@ -8,7 +8,7 @@ namespace mc::client::ui::kagero::widget {
 // 测试用的 Mock Widget，用于跟踪 tick 调用
 class MockTickWidget : public Widget {
 public:
-    MockTickWidget(const String& id) : Widget(id) {
+    MockTickWidget(const std::string& id) : Widget(id) {
         setBounds(Rect(0, 0, 100, 20));
     }
 
@@ -215,7 +215,7 @@ TEST_F(ContainerWidgetEventTest, Key_SentToFocusedWidget) {
     // 测试字符输入
     bool handled = container->onChar(static_cast<u32>('A'));
     EXPECT_TRUE(handled);  // TextField 应该处理
-    EXPECT_EQ(fieldPtr->text(), String("A"));
+    EXPECT_EQ(fieldPtr->text(), std::string("A"));
 }
 
 TEST_F(ContainerWidgetEventTest, Key_NotHandledWhenNoFocus) {

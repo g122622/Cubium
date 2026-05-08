@@ -108,7 +108,7 @@ Widget 是所有 UI 组件的基类，提供：
 ```mermaid
 classDiagram
     class Widget {
-        +String m_id
+        +std::string m_id
         +Rect m_bounds
         +bool m_visible
         +bool m_active
@@ -137,18 +137,18 @@ classDiagram
     }
 
     class ButtonWidget {
-        +text: String
+        +text: std::string
         +onPress: callback
         +paint(ctx)
         +onClick() bool
     }
 
     class TextFieldWidget {
-        +text: String
+        +text: std::string
         +maxLength: i32
         +cursorPosition: i32
         +setText(text)
-        +getText() String
+        +getText() std::string
         +onChar(codePoint) bool
     }
 
@@ -355,11 +355,11 @@ auto& store = StateStore::instance();
 
 // 设置状态
 store.set("player.health", 100);
-store.set("player.name", String("Steve"));
+store.set("player.name", std::string("Steve"));
 
 // 获取状态
 i32 health = store.get<i32>("player.health", 0);
-String name = store.get<String>("player.name", "");
+std::string name = store.get<std::string>("player.name", "");
 
 // 订阅变化
 u64 id = store.subscribe("player.health", []() {
@@ -877,7 +877,7 @@ i32 width = button->width();  // 现在是正确的
 // 运行时会静默失败
 
 // 正确：确保StateStore中有对应的键
-store.set("player.name", String("Steve"));
+store.set("player.name", std::string("Steve"));
 // bind:text="player.name"
 ```
 

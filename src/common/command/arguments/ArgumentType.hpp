@@ -39,12 +39,12 @@ public:
     /**
      * @brief 获取参数类型名称（用于帮助信息）
      */
-    [[nodiscard]] virtual String getTypeName() const = 0;
+    [[nodiscard]] virtual std::string getTypeName() const = 0;
 
     /**
      * @brief 获取示例值列表
      */
-    [[nodiscard]] virtual std::vector<String> getExamples() const {
+    [[nodiscard]] virtual std::vector<std::string> getExamples() const {
         return {};
     }
 
@@ -67,7 +67,7 @@ public:
  * - QuotablePhrase: 可引号短语
  * - GreedyPhrase: 贪婪短语（读取剩余所有内容）
  */
-class StringArgumentType : public ArgumentType<String> {
+class StringArgumentType : public ArgumentType<std::string> {
 public:
     enum class StringType {
         SingleWord,      // 单个单词
@@ -78,7 +78,7 @@ public:
     explicit StringArgumentType(StringType type = StringType::QuotablePhrase)
         : m_type(type) {}
 
-    [[nodiscard]] String parse(StringReader& reader) override {
+    [[nodiscard]] std::string parse(StringReader& reader) override {
         switch (m_type) {
             case StringType::SingleWord:
                 return reader.readUnquotedString();
@@ -86,7 +86,7 @@ public:
                 return reader.readString();
             case StringType::GreedyPhrase:
                 {
-                    String remaining = reader.getRemaining();
+                    std::string remaining = reader.getRemaining();
                     reader.setCursor(reader.getTotalLength());
                     return remaining;
                 }
@@ -94,7 +94,7 @@ public:
         return "";
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         switch (m_type) {
             case StringType::SingleWord: return "word";
             case StringType::QuotablePhrase: return "phrase";
@@ -103,7 +103,7 @@ public:
         return "string";
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
         switch (m_type) {
             case StringType::SingleWord:
                 return {"word", "123"};
@@ -135,7 +135,7 @@ public:
 
     // ========== 静态获取方法 ==========
 
-    static String getString(StringReader& reader) {
+    static std::string getString(StringReader& reader) {
         return reader.readString();
     }
 
@@ -180,11 +180,11 @@ public:
         return result;
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         return "integer";
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
         return {"0", "123", "-123"};
     }
 
@@ -252,11 +252,11 @@ public:
         return static_cast<f32>(result);
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         return "float";
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
         return {"0", "1.5", "-2.5"};
     }
 
@@ -298,11 +298,11 @@ public:
         return reader.readBool();
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         return "bool";
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
         return {"true", "false"};
     }
 
@@ -342,7 +342,7 @@ public:
 template<typename T>
 class EnumArgumentType : public ArgumentType<T> {
 public:
-    EnumArgumentType& add(const String& name, T value) {
+    EnumArgumentType& add(const std::string& name, T value) {
         m_names.push_back(name);
         m_values[name] = value;
         return *this;
@@ -350,7 +350,7 @@ public:
 
     [[nodiscard]] T parse(StringReader& reader) override {
         i32 start = reader.getCursor();
-        String name = reader.readUnquotedString();
+        std::string name = reader.readUnquotedString();
 
         auto it = m_values.find(name);
         if (it == m_values.end()) {
@@ -365,11 +365,11 @@ public:
         return it->second;
     }
 
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getTypeName() const override {
         return "enum";
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
         return m_names;
     }
 
@@ -380,13 +380,13 @@ public:
     // ========== 静态方法 ==========
 
     template<typename S>
-    static T getEnum(CommandContext<S>& context, const String& name) {
+    static T getEnum(CommandContext<S>& context, const std::string& name) {
         return context.template getArgument<T>(name);
     }
 
 private:
-    std::vector<String> m_names;
-    std::unordered_map<String, T> m_values;
+    std::vector<std::string> m_names;
+    std::unordered_map<std::string, T> m_values;
 };
 
 } // namespace mc::command

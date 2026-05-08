@@ -21,11 +21,11 @@ class SharpnessEnchantment : public DamageEnchantment {
 public:
     SharpnessEnchantment() : DamageEnchantment(Type::All) {}
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:sharpness";
     }
 
-    [[nodiscard]] String getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override {
         (void)level;
         return "enchantment.minecraft.sharpness";
     }

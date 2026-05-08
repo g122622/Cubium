@@ -57,44 +57,44 @@ enum class CommandErrorType {
  */
 class CommandException : public std::runtime_error {
 public:
-    explicit CommandException(CommandErrorType type, const String& message)
+    explicit CommandException(CommandErrorType type, const std::string& message)
         : std::runtime_error(message)
         , m_type(type)
         , m_message(message)
         , m_cursor(-1) {}
 
-    CommandException(CommandErrorType type, const String& message, i32 cursor)
+    CommandException(CommandErrorType type, const std::string& message, i32 cursor)
         : std::runtime_error(message)
         , m_type(type)
         , m_message(message)
         , m_cursor(cursor) {}
 
     [[nodiscard]] CommandErrorType type() const noexcept { return m_type; }
-    [[nodiscard]] const String& message() const noexcept { return m_message; }
+    [[nodiscard]] const std::string& message() const noexcept { return m_message; }
     [[nodiscard]] i32 cursor() const noexcept { return m_cursor; }
 
     /**
      * @brief 创建带有上下文的异常
      * @param input 原始输入字符串
      */
-    [[nodiscard]] CommandException withInput(StringView input) const {
+    [[nodiscard]] CommandException withInput(std::string_view input) const {
         CommandException result(m_type, m_message, m_cursor);
-        result.m_input = String(input);
+        result.m_input = std::string(input);
         return result;
     }
 
-    [[nodiscard]] const String& input() const noexcept { return m_input; }
+    [[nodiscard]] const std::string& input() const noexcept { return m_input; }
 
     /**
      * @brief 设置输入字符串（内部使用）
      */
-    void setInput(const String& input) { m_input = input; }
+    void setInput(const std::string& input) { m_input = input; }
 
 private:
     CommandErrorType m_type;
-    String m_message;
+    std::string m_message;
     i32 m_cursor;
-    String m_input;
+    std::string m_input;
 };
 
 /**
@@ -104,22 +104,22 @@ private:
  */
 class SimpleCommandException {
 public:
-    explicit SimpleCommandException(CommandErrorType type, const String& message)
+    explicit SimpleCommandException(CommandErrorType type, const std::string& message)
         : m_type(type), m_message(message) {}
 
     [[nodiscard]] CommandException create() const {
         return CommandException(m_type, m_message);
     }
 
-    [[nodiscard]] CommandException createWithContext(i32 cursor, StringView input) const {
+    [[nodiscard]] CommandException createWithContext(i32 cursor, std::string_view input) const {
         CommandException result(m_type, m_message, cursor);
-        result.setInput(String(input));
+        result.setInput(std::string(input));
         return result;
     }
 
 private:
     CommandErrorType m_type;
-    String m_message;
+    std::string m_message;
 };
 
 /**
@@ -130,7 +130,7 @@ private:
 template<typename... Args>
 class DynamicCommandException {
 public:
-    explicit DynamicCommandException(CommandErrorType type, const String& format)
+    explicit DynamicCommandException(CommandErrorType type, const std::string& format)
         : m_type(type), m_format(format) {}
 
     [[nodiscard]] CommandException create(Args... args) const {
@@ -138,22 +138,22 @@ public:
     }
 
 private:
-    String formatMessage(Args... args) const {
-        String result = m_format;
+    std::string formatMessage(Args... args) const {
+        std::string result = m_format;
         // 简单实现：支持 {} 占位符
         ((replaceFirst(result, "{}", std::to_string(args))), ...);
         return result;
     }
 
-    static void replaceFirst(String& str, const String& from, const String& to) {
+    static void replaceFirst(std::string& str, const std::string& from, const std::string& to) {
         size_t pos = str.find(from);
-        if (pos != String::npos) {
+        if (pos != std::string::npos) {
             str.replace(pos, from.length(), to);
         }
     }
 
     CommandErrorType m_type;
-    String m_format;
+    std::string m_format;
 };
 
 } // namespace mc::command

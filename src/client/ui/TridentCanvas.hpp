@@ -80,7 +80,7 @@ public:
     void drawImageRect(const kagero::paint::IImage& image, const kagero::Rect& src, const kagero::Rect& dst) override;
     void drawImageNine(const kagero::paint::IImage& image, const kagero::Rect& center, const kagero::Rect& dst, const kagero::paint::IPaint* paint) override;
 
-    void drawText(const String& text, f32 x, f32 y, const kagero::paint::IPaint& paint) override;
+    void drawText(const std::string& text, f32 x, f32 y, const kagero::paint::IPaint& paint) override;
     void drawTextBlob(const kagero::paint::ITextBlob& blob, f32 x, f32 y, const kagero::paint::IPaint& paint) override;
 
     void clipRect(const kagero::Rect& rect) override;
@@ -109,7 +109,7 @@ public:
 
     // ==================== 文本测量 ====================
 
-    [[nodiscard]] f32 getTextWidth(const String& text) const override;
+    [[nodiscard]] f32 getTextWidth(const std::string& text) const override;
     [[nodiscard]] u32 getFontHeight() const override;
 
     // ==================== 扩展接口 ====================

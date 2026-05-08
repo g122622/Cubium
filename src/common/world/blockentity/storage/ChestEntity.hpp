@@ -174,7 +174,7 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
 protected:
-    [[nodiscard]] String getDefaultName() const override { return "container.chest"; }
+    [[nodiscard]] std::string getDefaultName() const override { return "container.chest"; }
 
     /**
      * @brief 广播打开/关闭事件

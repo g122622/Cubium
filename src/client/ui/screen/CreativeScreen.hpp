@@ -114,7 +114,7 @@ public:
     /**
      * @brief 获取屏幕标题
      */
-    [[nodiscard]] String getTitle() const override;
+    [[nodiscard]] std::string getTitle() const override;
 
     /**
      * @brief 窗口尺寸变化时调用
@@ -175,7 +175,7 @@ private:
     [[nodiscard]] i32 getPaletteCellY(i32 row) const;
     [[nodiscard]] i32 getMaxScrollRows() const;
     [[nodiscard]] bool isMouseOver(i32 mouseX, i32 mouseY, i32 x, i32 y, i32 width, i32 height) const;
-    [[nodiscard]] String normalizeSearchText(StringView text) const;
+    [[nodiscard]] std::string normalizeSearchText(std::string_view text) const;
     [[nodiscard]] bool matchesSearch(const CreativeInventoryEntry& entry) const;
 
     PlayerInventory* m_inventory;
@@ -183,7 +183,7 @@ private:
     std::vector<CreativeInventoryEntry> m_paletteEntries;
     std::vector<i32> m_visibleEntries;
     ItemStack m_carriedItem;
-    String m_searchText;
+    std::string m_searchText;
     i32 m_scrollRows = 0;
     i32 m_leftPos = 0;
     i32 m_topPos = 0;

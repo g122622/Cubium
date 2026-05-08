@@ -13,7 +13,7 @@ EntitySelector EntityArgumentType::parse(StringReader& reader) {
         return parseSelector(reader, start);
     }
 
-    const String name = reader.readString();
+    const std::string name = reader.readString();
     return EntitySelector::byUsername(name);
 }
 
@@ -52,7 +52,7 @@ EntitySelector EntityArgumentType::parseSelector(StringReader& reader, i32 start
             reader.setCursor(start);
             throw CommandException(
                 CommandErrorType::EntitySelectorInvalid,
-                "Unknown selector type: @" + String(1, typeChar),
+                "Unknown selector type: @" + std::string(1, typeChar),
                 start);
     }
 
@@ -73,7 +73,7 @@ void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySele
             break;
         }
 
-        const String paramName = readSelectorArgumentToken(reader);
+        const std::string paramName = readSelectorArgumentToken(reader);
         reader.skipWhitespace();
         if (!reader.canRead() || reader.peek() != '=') {
             throw CommandException(
@@ -86,7 +86,7 @@ void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySele
         reader.skipWhitespace();
 
         const i32 cursor = reader.getCursor();
-        const String paramValue =
+        const std::string paramValue =
             reader.canRead() && reader.peek() == StringReader::SYNTAX_QUOTE
                 ? reader.readString()
                 : readSelectorArgumentToken(reader);
@@ -108,7 +108,7 @@ void EntityArgumentType::parseSelectorArguments(StringReader& reader, EntitySele
     reader.skip();
 }
 
-void EntityArgumentType::applySelectorArgument(EntitySelector& selector, const String& name, const String& value, i32 cursor) {
+void EntityArgumentType::applySelectorArgument(EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor) {
     // limit / c - 结果数量限制
     if (name == "limit" || name == "c") {
         const i32 limit = std::stoi(value);
@@ -209,7 +209,7 @@ void EntityArgumentType::applySelectorArgument(EntitySelector& selector, const S
         }
         StringReader valueReader(value);
         bool negated = shouldInvertValue(valueReader);
-        String typeStr = valueReader.getRemaining();
+        std::string typeStr = valueReader.getRemaining();
 
         // 如果是 minecraft:player 且未取反，则限制为仅玩家
         if (!negated && (typeStr == "minecraft:player" || typeStr == "player")) {
@@ -308,7 +308,7 @@ void EntityArgumentType::validateSelector(const EntitySelector& selector, i32 st
     }
 }
 
-String EntityArgumentType::readSelectorArgumentToken(StringReader& reader) {
+std::string EntityArgumentType::readSelectorArgumentToken(StringReader& reader) {
     const i32 start = reader.getCursor();
     while (reader.canRead()) {
         const char ch = reader.peek();
@@ -327,7 +327,7 @@ String EntityArgumentType::readSelectorArgumentToken(StringReader& reader) {
 
     const size_t startIndex = static_cast<size_t>(start);
     const size_t endIndex = static_cast<size_t>(reader.getCursor());
-    return String(reader.getString().substr(startIndex, endIndex - startIndex));
+    return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
 }
 
 bool EntityArgumentType::shouldInvertValue(StringReader& reader) {

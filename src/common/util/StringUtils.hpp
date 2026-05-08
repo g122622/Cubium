@@ -16,9 +16,9 @@ namespace mc::util {
  * @param text 输入字符串
  * @return 转换后的小写字符串
  */
-[[nodiscard]] inline String toLowerAscii(StringView text)
+[[nodiscard]] inline std::string toLowerAscii(std::string_view text)
 {
-    String lowered;
+    std::string lowered;
     lowered.reserve(text.size());
     for (const char character : text) {
         lowered.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(character))));
@@ -33,7 +33,7 @@ namespace mc::util {
  * @param allowSign 是否允许前导符号（+/-）
  * @return 是否只包含数字
  */
-[[nodiscard]] inline bool isNumeric(StringView text, bool allowSign = true)
+[[nodiscard]] inline bool isNumeric(std::string_view text, bool allowSign = true)
 {
     if (text.empty()) {
         return false;

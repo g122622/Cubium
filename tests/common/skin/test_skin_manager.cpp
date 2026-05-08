@@ -22,7 +22,7 @@ protected:
         std::filesystem::remove_all(testDir_, ec);
     }
 
-    mc::String testDir_;
+    mc::std::string testDir_;
     std::unique_ptr<SkinManager> manager_;
 };
 
@@ -40,9 +40,9 @@ TEST_F(SkinManagerTest, DefaultSkinSteve) {
     mc::ResourceLocation skin = manager_->getDefaultSkin(zeroUUID);
 
     // 应该是 steve 或 alex
-    mc::String skinStr = skin.toString();
-    EXPECT_TRUE(skinStr.find("steve") != mc::String::npos ||
-                skinStr.find("alex") != mc::String::npos);
+    mc::std::string skinStr = skin.toString();
+    EXPECT_TRUE(skinStr.find("steve") != mc::std::string::npos ||
+                skinStr.find("alex") != mc::std::string::npos);
 }
 
 TEST_F(SkinManagerTest, DefaultSkinTypeForUUID) {

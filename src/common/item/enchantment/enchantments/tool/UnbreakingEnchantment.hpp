@@ -29,11 +29,11 @@ class UnbreakingEnchantment : public Enchantment {
 public:
     UnbreakingEnchantment() = default;
 
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:unbreaking";
     }
 
-    [[nodiscard]] String getNameKey(i32 level) const override {
+    [[nodiscard]] std::string getNameKey(i32 level) const override {
         (void)level;
         return "enchantment.minecraft.unbreaking";
     }

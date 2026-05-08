@@ -13,8 +13,8 @@ namespace {
 /**
  * @brief Base64 解码
  */
-std::vector<u8> base64Decode(const String& encoded) {
-    static const String base64Chars =
+std::vector<u8> base64Decode(const std::string& encoded) {
+    static const std::string base64Chars =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     std::vector<u8> decoded;
@@ -24,7 +24,7 @@ std::vector<u8> base64Decode(const String& encoded) {
     }
 
     // 移除空白字符
-    String cleanEncoded;
+    std::string cleanEncoded;
     for (char c : encoded) {
         if (!std::isspace(static_cast<unsigned char>(c))) {
             cleanEncoded.push_back(c);
@@ -59,7 +59,7 @@ std::vector<u8> base64Decode(const String& encoded) {
         }
 
         size_t pos = base64Chars.find(c);
-        if (pos == String::npos) {
+        if (pos == std::string::npos) {
             spdlog::warn("SkinMetadataParser: Invalid base64 character: {}", c);
             continue;
         }
@@ -87,7 +87,7 @@ Result<SkinTextures> SkinMetadataParser::parse(const GameProfileProperty& proper
     return parseBase64(property.value);
 }
 
-Result<SkinTextures> SkinMetadataParser::parseBase64(const String& base64Data) {
+Result<SkinTextures> SkinMetadataParser::parseBase64(const std::string& base64Data) {
     // Base64 解码
     auto decoded = base64Decode(base64Data);
     if (decoded.empty()) {
@@ -95,12 +95,12 @@ Result<SkinTextures> SkinMetadataParser::parseBase64(const String& base64Data) {
     }
 
     // 转换为字符串
-    String jsonData(decoded.begin(), decoded.end());
+    std::string jsonData(decoded.begin(), decoded.end());
 
     return parseJson(jsonData);
 }
 
-Result<SkinTextures> SkinMetadataParser::parseJson(const String& jsonData) {
+Result<SkinTextures> SkinMetadataParser::parseJson(const std::string& jsonData) {
     SkinTextures textures;
 
     try {
@@ -119,11 +119,11 @@ Result<SkinTextures> SkinMetadataParser::parseJson(const String& jsonData) {
 
             // URL
             if (skinObj.contains("url") && skinObj["url"].is_string()) {
-                String url = skinObj["url"].get<String>();
+                std::string url = skinObj["url"].get<std::string>();
                 textures.setSkinUrl(url);
 
                 // 提取哈希
-                String hash = SkinTextures::extractHashFromUrl(url);
+                std::string hash = SkinTextures::extractHashFromUrl(url);
                 if (!hash.empty()) {
                     textures.setSkinHash(hash);
                 }
@@ -133,7 +133,7 @@ Result<SkinTextures> SkinMetadataParser::parseJson(const String& jsonData) {
             if (skinObj.contains("metadata") && skinObj["metadata"].is_object()) {
                 const auto& metadata = skinObj["metadata"];
                 if (metadata.contains("model") && metadata["model"].is_string()) {
-                    String model = metadata["model"].get<String>();
+                    std::string model = metadata["model"].get<std::string>();
                     textures.setSkinType(parseSkinType(model));
                 }
             }
@@ -144,10 +144,10 @@ Result<SkinTextures> SkinMetadataParser::parseJson(const String& jsonData) {
             const auto& capeObj = texturesObj["CAPE"];
 
             if (capeObj.contains("url") && capeObj["url"].is_string()) {
-                String url = capeObj["url"].get<String>();
+                std::string url = capeObj["url"].get<std::string>();
                 textures.setCapeUrl(url);
 
-                String hash = SkinTextures::extractHashFromUrl(url);
+                std::string hash = SkinTextures::extractHashFromUrl(url);
                 if (!hash.empty()) {
                     textures.setCapeHash(hash);
                 }
@@ -159,10 +159,10 @@ Result<SkinTextures> SkinMetadataParser::parseJson(const String& jsonData) {
             const auto& elytraObj = texturesObj["ELYTRA"];
 
             if (elytraObj.contains("url") && elytraObj["url"].is_string()) {
-                String url = elytraObj["url"].get<String>();
+                std::string url = elytraObj["url"].get<std::string>();
                 textures.setElytraUrl(url);
 
-                String hash = SkinTextures::extractHashFromUrl(url);
+                std::string hash = SkinTextures::extractHashFromUrl(url);
                 if (!hash.empty()) {
                     textures.setElytraHash(hash);
                 }
@@ -174,7 +174,7 @@ Result<SkinTextures> SkinMetadataParser::parseJson(const String& jsonData) {
 
     } catch (const nlohmann::json::exception& e) {
         return Error(ErrorCode::InvalidData,
-                    String("Failed to parse textures JSON: ") + e.what());
+                    std::string("Failed to parse textures JSON: ") + e.what());
     }
 
     return textures;
@@ -198,7 +198,7 @@ bool SkinMetadataParser::verifySignature(const GameProfileProperty& property) {
     return true;
 }
 
-void SkinMetadataParser::parseTexture(const void* textureObj, const String& type, SkinTextures& textures) {
+void SkinMetadataParser::parseTexture(const void* textureObj, const std::string& type, SkinTextures& textures) {
     // 此方法在 parseJson 中已经实现，这里保留用于未来扩展
 }
 

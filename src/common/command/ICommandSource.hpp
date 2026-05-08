@@ -43,7 +43,7 @@ public:
      * @param message 消息内容
      * @param senderUuid 发送者UUID（可选）
      */
-    virtual void sendMessage(const String& message,
+    virtual void sendMessage(const std::string& message,
                             const std::optional<Uuid>& senderUuid = std::nullopt) = 0;
 
     /**
@@ -69,7 +69,7 @@ public:
  */
 class SilentCommandSource : public ICommandSource {
 public:
-    void sendMessage(const String&, const std::optional<Uuid>&) override {}
+    void sendMessage(const std::string&, const std::optional<Uuid>&) override {}
 
     bool shouldReceiveFeedback() const override { return false; }
     bool shouldReceiveErrors() const override { return false; }

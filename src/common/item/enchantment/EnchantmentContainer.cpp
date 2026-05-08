@@ -18,7 +18,7 @@ const Enchantment* EnchantmentInstance::getEnchantment() const {
 // EnchantmentContainer 实现
 // ============================================================================
 
-i32 EnchantmentContainer::getLevel(const String& enchantmentId) const {
+i32 EnchantmentContainer::getLevel(const std::string& enchantmentId) const {
     for (const auto& instance : m_enchantments) {
         if (instance.enchantmentId == enchantmentId) {
             return instance.level;
@@ -27,7 +27,7 @@ i32 EnchantmentContainer::getLevel(const String& enchantmentId) const {
     return 0;
 }
 
-bool EnchantmentContainer::has(const String& enchantmentId) const {
+bool EnchantmentContainer::has(const std::string& enchantmentId) const {
     for (const auto& instance : m_enchantments) {
         if (instance.enchantmentId == enchantmentId) {
             return true;
@@ -46,7 +46,7 @@ bool EnchantmentContainer::hasType(EnchantmentType type) const {
     return false;
 }
 
-void EnchantmentContainer::set(const String& enchantmentId, i32 level) {
+void EnchantmentContainer::set(const std::string& enchantmentId, i32 level) {
     // 查找现有附魔
     for (auto& instance : m_enchantments) {
         if (instance.enchantmentId == enchantmentId) {
@@ -59,7 +59,7 @@ void EnchantmentContainer::set(const String& enchantmentId, i32 level) {
     m_enchantments.emplace_back(enchantmentId, level);
 }
 
-bool EnchantmentContainer::remove(const String& enchantmentId) {
+bool EnchantmentContainer::remove(const std::string& enchantmentId) {
     for (auto it = m_enchantments.begin(); it != m_enchantments.end(); ++it) {
         if (it->enchantmentId == enchantmentId) {
             m_enchantments.erase(it);
@@ -69,7 +69,7 @@ bool EnchantmentContainer::remove(const String& enchantmentId) {
     return false;
 }
 
-bool EnchantmentContainer::canAdd(const String& enchantmentId) const {
+bool EnchantmentContainer::canAdd(const std::string& enchantmentId) const {
     const Enchantment* newEnchantment = EnchantmentRegistry::get(enchantmentId);
     if (!newEnchantment) {
         return false;
@@ -87,7 +87,7 @@ bool EnchantmentContainer::canAdd(const String& enchantmentId) const {
 }
 
 void EnchantmentContainer::serialize(network::PacketSerializer& ser) const {
-    // 格式: VarInt count, 然后每个附魔: String id, VarInt level
+    // 格式: VarInt count, 然后每个附魔: std::string id, VarInt level
     ser.writeVarInt(static_cast<i32>(m_enchantments.size()));
     for (const auto& instance : m_enchantments) {
         ser.writeString(instance.enchantmentId);
@@ -148,7 +148,7 @@ Result<EnchantmentContainer> EnchantmentContainer::fromJson(const nlohmann::json
             continue;
         }
 
-        String id = enchJson["id"].get<String>();
+        std::string id = enchJson["id"].get<std::string>();
         i32 level = 1;
         if (enchJson.contains("lvl") && enchJson["lvl"].is_number()) {
             level = enchJson["lvl"].get<i32>();
@@ -183,10 +183,10 @@ EnchantmentContainer EnchantmentContainer::fromNbt(const nbt::tags::list_tag& li
     for (const auto& enchTag : compoundList.value) {
         // 获取附魔ID
         auto it = enchTag.value.find("id");
-        if (it == enchTag.value.end() || it->second->id() != nbt::TagId::String) {
+        if (it == enchTag.value.end() || it->second->id() != nbt::TagId::std::string) {
             continue;
         }
-        String id = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
+        std::string id = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
 
         // 获取附魔等级
         i32 level = 1;

@@ -80,7 +80,7 @@ public:
      * @param source 命令源
      * @return 解析结果
      */
-    [[nodiscard]] ParseResults<S> parse(StringView input, S& source) const {
+    [[nodiscard]] ParseResults<S> parse(std::string_view input, S& source) const {
         StringReader reader(input);
 
         // 跳过命令前缀
@@ -111,7 +111,7 @@ public:
      * @param source 命令源
      * @return 执行结果
      */
-    Result<CommandResult> execute(StringView input, S& source) {
+    Result<CommandResult> execute(std::string_view input, S& source) {
         ParseResults<S> parseResult = parse(input, source);
         return execute(parseResult);
     }
@@ -122,7 +122,7 @@ public:
      * @param source 命令源
      * @return 异步建议结果
      */
-    [[nodiscard]] std::future<Suggestions> getSuggestions(StringView input, S& source) const;
+    [[nodiscard]] std::future<Suggestions> getSuggestions(std::string_view input, S& source) const;
 
     /**
      * @brief 执行已解析的命令
@@ -143,13 +143,13 @@ public:
      * @param node 命令节点
      * @return 路径字符串列表
      */
-    [[nodiscard]] std::vector<String> getPath(NodePtr node) const;
+    [[nodiscard]] std::vector<std::string> getPath(NodePtr node) const;
 
     /**
      * @brief 查找歧义命令
      */
     void findAmbiguities(
-        std::function<void(NodePtr, NodePtr, const std::set<String>&)> callback
+        std::function<void(NodePtr, NodePtr, const std::set<std::string>&)> callback
     ) const;
 
 private:
@@ -171,13 +171,13 @@ private:
  * @brief 创建字面量构建器
  */
 template<typename S>
-LiteralArgumentBuilder<S> literal(const String& name);
+LiteralArgumentBuilder<S> literal(const std::string& name);
 
 /**
  * @brief 创建参数构建器
  */
 template<typename S, typename T>
-RequiredArgumentBuilder<S, T> argument(const String& name, std::shared_ptr<ArgumentCommandNode<S, T>> type);
+RequiredArgumentBuilder<S, T> argument(const std::string& name, std::shared_ptr<ArgumentCommandNode<S, T>> type);
 
 // ========== 字面量构建器 ==========
 
@@ -189,7 +189,7 @@ class LiteralArgumentBuilder {
 public:
     using NodePtr = std::shared_ptr<CommandNode<S>>;
 
-    explicit LiteralArgumentBuilder(const String& literal)
+    explicit LiteralArgumentBuilder(const std::string& literal)
         : m_literal(literal) {}
 
     // ========== 命令执行 ==========
@@ -248,7 +248,7 @@ public:
     }
 
 private:
-    String m_literal;
+    std::string m_literal;
     CommandCallback<S> m_command;
     RequirementPredicate<S> m_requirement = [](const S&) { return true; };
     std::vector<NodePtr> m_children;
@@ -265,7 +265,7 @@ class RequiredArgumentBuilder {
 public:
     using NodePtr = std::shared_ptr<CommandNode<S>>;
 
-    RequiredArgumentBuilder(const String& name, std::shared_ptr<ArgumentCommandNode<S, T>> type)
+    RequiredArgumentBuilder(const std::string& name, std::shared_ptr<ArgumentCommandNode<S, T>> type)
         : m_name(name)
         , m_type(type) {}
 
@@ -323,7 +323,7 @@ public:
     }
 
 private:
-    String m_name;
+    std::string m_name;
     std::shared_ptr<ArgumentCommandNode<S, T>> m_type;
     CommandCallback<S> m_command;
     RequirementPredicate<S> m_requirement = [](const S&) { return true; };
@@ -334,12 +334,12 @@ private:
 // ========== 模板实现 ==========
 
 template<typename S>
-LiteralArgumentBuilder<S> literal(const String& name) {
+LiteralArgumentBuilder<S> literal(const std::string& name) {
     return LiteralArgumentBuilder<S>(name);
 }
 
 template<typename S, typename T>
-RequiredArgumentBuilder<S, T> argument(const String& name, std::shared_ptr<ArgumentCommandNode<S, T>> type) {
+RequiredArgumentBuilder<S, T> argument(const std::string& name, std::shared_ptr<ArgumentCommandNode<S, T>> type) {
     return RequiredArgumentBuilder<S, T>(name, type);
 }
 
@@ -388,7 +388,7 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
             }
         };
 
-        auto tryChild = [&](const String& childName) {
+        auto tryChild = [&](const std::string& childName) {
             auto child = currentNode->getChild(childName);
             if (!child || !child->canUse(currentContext->getSource())) {
                 return;
@@ -481,7 +481,7 @@ Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse) {
 }
 
 template<typename S>
-std::future<Suggestions> CommandDispatcher<S>::getSuggestions(StringView input, S& source) const {
+std::future<Suggestions> CommandDispatcher<S>::getSuggestions(std::string_view input, S& source) const {
     StringReader reader(input);
     if (reader.canRead() && reader.peek() == '/') {
         reader.skip();
@@ -490,7 +490,7 @@ std::future<Suggestions> CommandDispatcher<S>::getSuggestions(StringView input, 
     auto context = std::make_unique<CommandContext<S>>(source, input, m_root);
     NodePtr currentNode = m_root;
 
-    auto startsWithIgnoreCase = [](StringView text, StringView prefix) {
+    auto startsWithIgnoreCase = [](std::string_view text, std::string_view prefix) {
         if (prefix.size() > text.size()) {
             return false;
         }
@@ -551,7 +551,7 @@ std::future<Suggestions> CommandDispatcher<S>::getSuggestions(StringView input, 
 
         const i32 tokenStart = reader.getCursor();
         StringReader tokenReader = reader;
-        String token = tokenReader.readUnquotedString();
+        std::string token = tokenReader.readUnquotedString();
         const i32 tokenEnd = tokenReader.getCursor();
 
         NodePtr matchedNode;
@@ -626,7 +626,7 @@ std::future<Suggestions> CommandDispatcher<S>::getSuggestions(StringView input, 
 }
 
 template<typename S>
-std::vector<String> CommandDispatcher<S>::getPath(NodePtr node) const {
+std::vector<std::string> CommandDispatcher<S>::getPath(NodePtr node) const {
     if (!node) {
         return {};
     }
@@ -635,8 +635,8 @@ std::vector<String> CommandDispatcher<S>::getPath(NodePtr node) const {
         return {};
     }
 
-    std::vector<String> currentPath;
-    std::vector<String> result;
+    std::vector<std::string> currentPath;
+    std::vector<std::string> result;
 
     std::function<bool(NodePtr)> collectPath = [&](NodePtr current) -> bool {
         if (!current) {
@@ -686,14 +686,14 @@ std::vector<String> CommandDispatcher<S>::getPath(NodePtr node) const {
 
 template<typename S>
 void CommandDispatcher<S>::findAmbiguities(
-    std::function<void(NodePtr, NodePtr, const std::set<String>&)> callback
+    std::function<void(NodePtr, NodePtr, const std::set<std::string>&)> callback
 ) const {
     if (!callback) {
         return;
     }
 
-    auto toLower = [](const String& value) {
-        String result = value;
+    auto toLower = [](const std::string& value) {
+        std::string result = value;
         for (char& character : result) {
             if (character >= 'A' && character <= 'Z') {
                 character = static_cast<char>(character - 'A' + 'a');
@@ -703,7 +703,7 @@ void CommandDispatcher<S>::findAmbiguities(
     };
 
     auto collectCandidates = [&](NodePtr child) {
-        std::set<String> candidates;
+        std::set<std::string> candidates;
         if (!child) {
             return candidates;
         }
@@ -748,7 +748,7 @@ void CommandDispatcher<S>::findAmbiguities(
                 const auto leftCandidates = collectCandidates(children[leftIndex]);
                 const auto rightCandidates = collectCandidates(children[rightIndex]);
 
-                std::set<String> ambiguous;
+                std::set<std::string> ambiguous;
                 for (const auto& candidate : leftCandidates) {
                     if (rightCandidates.find(candidate) != rightCandidates.end()) {
                         ambiguous.insert(candidate);

@@ -8,7 +8,7 @@
 
 namespace mc::client {
 
-Result<void> ClientApplication::loadSettings(const String& path)
+Result<void> ClientApplication::loadSettings(const std::string& path)
 {
     MC_TRACE_EVENT("client.initialization", "LoadSettings", "path", path);
 

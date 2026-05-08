@@ -75,17 +75,17 @@ enum class CommandErrorType {
 class CommandException : public std::runtime_error {
 public:
     // 构造函数
-    explicit CommandException(CommandErrorType type, const String& message);
-    CommandException(CommandErrorType type, const String& message, i32 cursor);
+    explicit CommandException(CommandErrorType type, const std::string& message);
+    CommandException(CommandErrorType type, const std::string& message, i32 cursor);
 
     // 访问器
     [[nodiscard]] CommandErrorType type() const noexcept;
-    [[nodiscard]] const String& message() const noexcept;
+    [[nodiscard]] const std::string& message() const noexcept;
     [[nodiscard]] i32 cursor() const noexcept;
-    [[nodiscard]] const String& input() const noexcept;
+    [[nodiscard]] const std::string& input() const noexcept;
 
     // 创建带上下文的异常副本
-    [[nodiscard]] CommandException withInput(StringView input) const;
+    [[nodiscard]] CommandException withInput(std::string_view input) const;
 };
 ```
 
@@ -94,9 +94,9 @@ public:
 | 属性 | 类型 | 描述 |
 |------|------|------|
 | `m_type` | `CommandErrorType` | 错误类型枚举值 |
-| `m_message` | `String` | 人类可读的错误消息 |
+| `m_message` | `std::string` | 人类可读的错误消息 |
 | `m_cursor` | `i32` | 错误发生位置（-1 表示未知） |
-| `m_input` | `String` | 原始输入字符串（可选） |
+| `m_input` | `std::string` | 原始输入字符串（可选） |
 
 #### SimpleCommandException 类
 
@@ -105,11 +105,11 @@ public:
 ```cpp
 class SimpleCommandException {
 public:
-    explicit SimpleCommandException(CommandErrorType type, const String& message);
+    explicit SimpleCommandException(CommandErrorType type, const std::string& message);
 
     // 创建异常实例
     [[nodiscard]] CommandException create() const;
-    [[nodiscard]] CommandException createWithContext(i32 cursor, StringView input) const;
+    [[nodiscard]] CommandException createWithContext(i32 cursor, std::string_view input) const;
 };
 ```
 
@@ -134,7 +134,7 @@ throw ERROR_ENTITY_NOT_FOUND.createWithContext(cursor, input);
 template<typename... Args>
 class DynamicCommandException {
 public:
-    explicit DynamicCommandException(CommandErrorType type, const String& format);
+    explicit DynamicCommandException(CommandErrorType type, const std::string& format);
 
     // 创建异常实例，参数替换 {} 占位符
     [[nodiscard]] CommandException create(Args... args) const;
@@ -257,7 +257,7 @@ flowchart TD
 
 | 依赖项 | 用途 |
 |--------|------|
-| `common/core/Types.hpp` | 基础类型定义（`String`, `StringView`, `i32` 等） |
+| `common/core/Types.hpp` | 基础类型定义（`std::string`, `std::string_view`, `i32` 等） |
 | `common/core/Result.hpp` | `Result<T>` 错误处理类型 |
 | `<string>` | 标准字符串类 |
 | `<stdexcept>` | `std::runtime_error` 基类 |
@@ -335,7 +335,7 @@ try {
 
     // 显示错误位置
     if (!e.input().empty()) {
-        String pointer(e.cursor(), ' ');
+        std::string pointer(e.cursor(), ' ');
         pointer += '^';
         spdlog::error("{}", e.input());
         spdlog::error("{}", pointer);
@@ -511,7 +511,7 @@ namespace command_errors {
         "Custom error message"
     );
 
-    const DynamicCommandException<String> VALIDATION_FAILED(
+    const DynamicCommandException<std::string> VALIDATION_FAILED(
         CommandErrorType::ValidationFailed,
         "Validation failed: {}"
     );

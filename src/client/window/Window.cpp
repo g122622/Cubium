@@ -170,7 +170,7 @@ void Window::swapBuffers()
     }
 }
 
-void Window::setTitle(const String& title)
+void Window::setTitle(const std::string& title)
 {
     if (m_window) {
         glfwSetWindowTitle(m_window, title.c_str());

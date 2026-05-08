@@ -20,7 +20,7 @@ void SayCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
             "/say <message>",
             2));
 
-    auto messageArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto messageArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "message",
         StringArgumentType::greedyString());
     messageArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -40,7 +40,7 @@ i32 SayCommand::say(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    const String message = context.getArgument<String>("message");
+    const std::string message = context.getArgument<std::string>("message");
     server->broadcastServerMessage("[" + source.name() + "] " + message);
     source.sendMessage("Broadcasted message");
     return 1;

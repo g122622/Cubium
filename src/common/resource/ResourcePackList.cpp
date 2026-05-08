@@ -45,7 +45,7 @@ Result<size_t> ResourcePackList::scanDirectory(const std::filesystem::path& dir)
         const auto& path = entry.path();
 
         // 跳过已存在的资源包
-        String normalizedPath = normalizePath(path);
+        std::string normalizedPath = normalizePath(path);
         if (containsPack(normalizedPath)) {
             continue;
         }
@@ -93,7 +93,7 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
         return Error(ErrorCode::FileNotFound, "Resource pack not found: " + path.string());
     }
 
-    String normalizedPath = normalizePath(path);
+    std::string normalizedPath = normalizePath(path);
 
     // 先在锁内做一次“已存在”检查：如果只是更新开关/优先级，应该快速返回，
     // 不要做昂贵的 ZIP 打开与初始化。
@@ -187,11 +187,11 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
     return resultInfo;
 }
 
-bool ResourcePackList::removePack(const String& path)
+bool ResourcePackList::removePack(const std::string& path)
 {
-    String normalizedPath = path;
+    std::string normalizedPath = path;
     // 如果路径不是规范的，尝试规范化
-    if (normalizedPath.find('\\') != String::npos) {
+    if (normalizedPath.find('\\') != std::string::npos) {
         std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
     }
 
@@ -228,7 +228,7 @@ void ResourcePackList::clear()
 // 启用/禁用和优先级
 // ============================================================================
 
-bool ResourcePackList::setEnabled(const String& path, bool enabled)
+bool ResourcePackList::setEnabled(const std::string& path, bool enabled)
 {
     bool changed = false;
     {
@@ -249,7 +249,7 @@ bool ResourcePackList::setEnabled(const String& path, bool enabled)
     return changed;
 }
 
-bool ResourcePackList::setPriority(const String& path, i32 priority)
+bool ResourcePackList::setPriority(const std::string& path, i32 priority)
 {
     bool changed = false;
     {
@@ -270,7 +270,7 @@ bool ResourcePackList::setPriority(const String& path, i32 priority)
     return changed;
 }
 
-bool ResourcePackList::moveUp(const String& path)
+bool ResourcePackList::moveUp(const std::string& path)
 {
     MC_TRACE_EVENT("client.resource", "ResourcePackList::moveUp", "path", path);
 
@@ -317,7 +317,7 @@ bool ResourcePackList::moveUp(const String& path)
     return changed;
 }
 
-bool ResourcePackList::moveDown(const String& path)
+bool ResourcePackList::moveDown(const std::string& path)
 {
     MC_TRACE_EVENT("client.resource", "ResourcePackList::moveDown", "path", path);
 
@@ -417,7 +417,7 @@ std::vector<ResourcePackList::PackInfo> ResourcePackList::getEnabledPackInfos() 
     return result;
 }
 
-std::optional<ResourcePackList::PackInfo> ResourcePackList::getPackInfo(const String& path) const
+std::optional<ResourcePackList::PackInfo> ResourcePackList::getPackInfo(const std::string& path) const
 {
     MC_TRACE_EVENT("client.resource", "ResourcePackList::getPackInfo", "path", path);
 
@@ -432,7 +432,7 @@ std::optional<ResourcePackList::PackInfo> ResourcePackList::getPackInfo(const St
     return *it;
 }
 
-bool ResourcePackList::containsPack(const String& path) const
+bool ResourcePackList::containsPack(const std::string& path) const
 {
     std::shared_lock lock(m_mutex);
     return std::any_of(m_packs.begin(), m_packs.end(),
@@ -456,7 +456,7 @@ size_t ResourcePackList::enabledPackCount() const
 // 资源访问
 // ============================================================================
 
-bool ResourcePackList::hasResource(StringView resourcePath) const
+bool ResourcePackList::hasResource(std::string_view resourcePath) const
 {
     MC_TRACE_EVENT("client.resource", "ResourcePackList::hasResource", "resourcePath", resourcePath);
 
@@ -469,7 +469,7 @@ bool ResourcePackList::hasResource(StringView resourcePath) const
     return false;
 }
 
-Result<std::vector<u8>> ResourcePackList::readResource(StringView resourcePath) const
+Result<std::vector<u8>> ResourcePackList::readResource(std::string_view resourcePath) const
 {
     MC_TRACE_EVENT("client.resource", "ResourcePackList::readResource", "resourcePath", resourcePath);
 
@@ -491,10 +491,10 @@ Result<std::vector<u8>> ResourcePackList::readResource(StringView resourcePath) 
     }
 
     return Error(ErrorCode::ResourceNotFound,
-                 "Resource not found in any enabled pack: " + String(resourcePath));
+                 "Resource not found in any enabled pack: " + std::string(resourcePath));
 }
 
-Result<String> ResourcePackList::readTextResource(StringView resourcePath) const
+Result<std::string> ResourcePackList::readTextResource(std::string_view resourcePath) const
 {
     MC_TRACE_EVENT("client.resource", "ResourcePackList::readTextResource", "resourcePath", resourcePath);
 
@@ -504,15 +504,15 @@ Result<String> ResourcePackList::readTextResource(StringView resourcePath) const
     }
 
     const auto& data = dataResult.value();
-    return String(data.begin(), data.end());
+    return std::string(data.begin(), data.end());
 }
 
-Result<std::vector<String>> ResourcePackList::listResources(StringView directory, StringView extension) const
+Result<std::vector<std::string>> ResourcePackList::listResources(std::string_view directory, std::string_view extension) const
 {
     MC_TRACE_EVENT("client.resource", "ResourcePackList::listResources", "directory", directory, "extension", extension);
 
-    std::vector<String> result;
-    std::set<String> seen;
+    std::vector<std::string> result;
+    std::set<std::string> seen;
 
     for (const auto& pack : getEnabledPacks()) {
         auto listResult = pack->listResources(directory, extension);
@@ -599,11 +599,11 @@ void ResourcePackList::notifyChange()
 // 私有方法
 // ============================================================================
 
-String ResourcePackList::normalizePath(const std::filesystem::path& path)
+std::string ResourcePackList::normalizePath(const std::filesystem::path& path)
 {
     MC_TRACE_EVENT("client.resource", "ResourcePackList::normalizePath");
 
-    String result = path.string();
+    std::string result = path.string();
     // 统一使用正斜杠
     std::replace(result.begin(), result.end(), '\\', '/');
     return result;
@@ -615,7 +615,7 @@ bool ResourcePackList::isZipFile(const std::filesystem::path& path)
         return false;
     }
 
-    String ext = path.extension().string();
+    std::string ext = path.extension().string();
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
     return ext == ".zip";
 }

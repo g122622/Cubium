@@ -141,7 +141,7 @@ public:
      * @param y Y坐标
      * @param z Z坐标
      */
-    void onEntitySpawn(u32 entityId, const String& typeId, f32 x, f32 y, f32 z);
+    void onEntitySpawn(u32 entityId, const std::string& typeId, f32 x, f32 y, f32 z);
 
     /**
      * @brief 处理实体移除事件
@@ -299,7 +299,7 @@ private:
         f64 playerZ = 0.0;
         // 实体声音
         u32 entityId = 0;
-        String entityTypeId;
+        std::string entityTypeId;
         bool isFlying = false;
         bool isAngry = false;
         // 实体速度

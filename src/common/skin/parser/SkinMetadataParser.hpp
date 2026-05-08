@@ -49,7 +49,7 @@ public:
      * @param base64Data Base64 编码的 JSON 数据
      * @return 解析出的皮肤纹理集合
      */
-    [[nodiscard]] static Result<SkinTextures> parseBase64(const String& base64Data);
+    [[nodiscard]] static Result<SkinTextures> parseBase64(const std::string& base64Data);
 
     /**
      * @brief 解析 JSON 字符串
@@ -57,7 +57,7 @@ public:
      * @param jsonData JSON 字符串
      * @return 解析出的皮肤纹理集合
      */
-    [[nodiscard]] static Result<SkinTextures> parseJson(const String& jsonData);
+    [[nodiscard]] static Result<SkinTextures> parseJson(const std::string& jsonData);
 
     /**
      * @brief 验证签名
@@ -78,7 +78,7 @@ private:
      * @param type 纹理类型（"SKIN", "CAPE", "ELYTRA"）
      * @param textures 输出的皮肤纹理集合
      */
-    static void parseTexture(const void* textureObj, const String& type, SkinTextures& textures);
+    static void parseTexture(const void* textureObj, const std::string& type, SkinTextures& textures);
 };
 
 } // namespace mc::skin

@@ -48,7 +48,7 @@ public:
      * @param isLarge 是否为大型废墟
      */
     OceanRuinPiece(
-        const String& templateName,
+        const std::string& templateName,
         const BlockPos& position,
         Rotation rotation,
         f32 integrity,
@@ -68,7 +68,7 @@ public:
      */
     void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
 
-    [[nodiscard]] const String& templateName() const { return m_templateName; }
+    [[nodiscard]] const std::string& templateName() const { return m_templateName; }
     [[nodiscard]] f32 integrity() const { return m_integrity; }
     [[nodiscard]] OceanRuinType ruinType() const { return m_type; }
     [[nodiscard]] bool isLarge() const { return m_isLarge; }
@@ -76,7 +76,7 @@ public:
 private:
     void loadTemplate();
 
-    String m_templateName;
+    std::string m_templateName;
     Rotation m_rotation;
     f32 m_integrity;
     OceanRuinType m_type;
@@ -96,7 +96,7 @@ class OceanRuinStructure : public Structure {
 public:
     OceanRuinStructure();
 
-    [[nodiscard]] const String& name() const override { return m_name; }
+    [[nodiscard]] const std::string& name() const override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
@@ -127,14 +127,14 @@ public:
     [[nodiscard]] const OceanRuinConfig& config() const { return m_config; }
 
     // 模板名称常量（公开供测试访问）
-    static const std::vector<String> s_warmTemplates;
-    static const std::vector<String> s_warmBigTemplates;
-    static const std::vector<String> s_brickTemplates;
-    static const std::vector<String> s_brickBigTemplates;
-    static const std::vector<String> s_crackedTemplates;
-    static const std::vector<String> s_crackedBigTemplates;
-    static const std::vector<String> s_mossyTemplates;
-    static const std::vector<String> s_mossyBigTemplates;
+    static const std::vector<std::string> s_warmTemplates;
+    static const std::vector<std::string> s_warmBigTemplates;
+    static const std::vector<std::string> s_brickTemplates;
+    static const std::vector<std::string> s_brickBigTemplates;
+    static const std::vector<std::string> s_crackedTemplates;
+    static const std::vector<std::string> s_crackedBigTemplates;
+    static const std::vector<std::string> s_mossyTemplates;
+    static const std::vector<std::string> s_mossyBigTemplates;
 
 private:
     void initializeBiomes();
@@ -190,7 +190,7 @@ private:
     [[nodiscard]] bool isWarmBiome(BiomeId biomeId) const;
 
     static constexpr StructureSeparationSettings m_settings{20, 8, 14357621};  // MC 1.16.5: 14357621
-    static const String m_name;
+    static const std::string m_name;
     std::vector<BiomeId> m_validBiomes;
     OceanRuinConfig m_config;
     feature::template_::TemplateManager* m_templateManager = nullptr;

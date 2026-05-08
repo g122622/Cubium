@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 
 using namespace mc::text;
-using mc::String;
+using mc::std::string;
 
 // ============================================================================
 // TextFormatting 测试
@@ -329,7 +329,7 @@ TEST_F(StyleTest, GetStyleCodes) {
     style.setColor(TextFormatting::Red);
     style.setBold(true);
 
-    String codes = getStyleCodes(style);
+    std::string codes = getStyleCodes(style);
     EXPECT_EQ(codes, "§c§l");
 
     Style style2;
@@ -337,6 +337,6 @@ TEST_F(StyleTest, GetStyleCodes) {
     style2.setItalic(true);
     style2.setUnderlined(true);
 
-    String codes2 = getStyleCodes(style2);
+    std::string codes2 = getStyleCodes(style2);
     EXPECT_EQ(codes2, "§9§o§n");
 }

@@ -47,12 +47,12 @@ public:
         const Vector2f& rotation = Vector2f(0, 0),
         i32 permissionLevel = 0,
         PlayerId playerId = 0,
-        String playerName = ""
+        std::string playerName = ""
     );
 
     // ========== ICommandSource 接口实现 ==========
 
-    void sendMessage(const String& message,
+    void sendMessage(const std::string& message,
                     const std::optional<Uuid>& senderUuid = std::nullopt) override;
 
     /**
@@ -61,7 +61,7 @@ public:
      *
      * 错误消息会以红色显示（对于支持的客户端）
      */
-    void sendError(const String& message);
+    void sendError(const std::string& message);
 
     bool shouldReceiveFeedback() const override;
     bool shouldReceiveErrors() const override;
@@ -113,7 +113,7 @@ public:
     /**
      * @brief 获取显示名称
      */
-    [[nodiscard]] const String& name() const noexcept { return m_name; }
+    [[nodiscard]] const std::string& name() const noexcept { return m_name; }
 
     // ========== 实体检查 ==========
 
@@ -190,7 +190,7 @@ private:
     Vector3d m_position;
     Vector2f m_rotation;
     i32 m_permissionLevel;
-    String m_name;
+    std::string m_name;
     bool m_feedbackDisabled;
 };
 

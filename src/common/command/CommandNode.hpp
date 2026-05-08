@@ -74,11 +74,11 @@ public:
      * @brief Metadata for command nodes.
      */
     struct Metadata {
-        String description;
-        String usage;
+        std::string description;
+        std::string usage;
         i32 permissionLevel = 0;
         bool implemented = true;
-        std::vector<String> aliases;
+        std::vector<std::string> aliases;
     };
 
     virtual ~CommandNode() = default;
@@ -86,14 +86,14 @@ public:
     // ========== 节点属性 ==========
 
     [[nodiscard]] virtual NodeType getType() const noexcept = 0;
-    [[nodiscard]] virtual String getName() const noexcept = 0;
-    [[nodiscard]] virtual String getTypeName() const { return getName(); }
-    [[nodiscard]] virtual std::vector<String> getExamples() const { return {}; }
+    [[nodiscard]] virtual std::string getName() const noexcept = 0;
+    [[nodiscard]] virtual std::string getTypeName() const { return getName(); }
+    [[nodiscard]] virtual std::vector<std::string> getExamples() const { return {}; }
     [[nodiscard]] virtual nlohmann::json getMetadata() const { return nlohmann::json::object(); }
     virtual void parse(StringReader& reader, CommandContext<S>& context) const = 0;
 
-    [[nodiscard]] const String& getUsageText() const { return m_usageText; }
-    void setUsageText(const String& text) { m_usageText = text; }
+    [[nodiscard]] const std::string& getUsageText() const { return m_usageText; }
+    void setUsageText(const std::string& text) { m_usageText = text; }
 
     /**
      * @brief Get metadata for this node.
@@ -163,16 +163,16 @@ public:
         }
     }
 
-    [[nodiscard]] const std::unordered_map<String, std::shared_ptr<CommandNode<S>>>&
+    [[nodiscard]] const std::unordered_map<std::string, std::shared_ptr<CommandNode<S>>>&
     getChildren() const noexcept { return m_children; }
 
-    [[nodiscard]] std::shared_ptr<CommandNode<S>> getChild(const String& name) const {
+    [[nodiscard]] std::shared_ptr<CommandNode<S>> getChild(const std::string& name) const {
         auto it = m_children.find(name);
         return it != m_children.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] const std::set<String>& getLiterals() const noexcept { return m_literals; }
-    [[nodiscard]] const std::set<String>& getArguments() const noexcept { return m_arguments; }
+    [[nodiscard]] const std::set<std::string>& getLiterals() const noexcept { return m_literals; }
+    [[nodiscard]] const std::set<std::string>& getArguments() const noexcept { return m_arguments; }
 
     // ========== 重定向 ==========
 
@@ -220,12 +220,12 @@ protected:
     CommandCallback<S> m_command;
     RequirementPredicate<S> m_requirement = [](const S&) { return true; };
     std::shared_ptr<ISuggestionProvider<S>> m_customSuggestions;
-    std::unordered_map<String, std::shared_ptr<CommandNode<S>>> m_children;
-    std::set<String> m_literals;
-    std::set<String> m_arguments;
+    std::unordered_map<std::string, std::shared_ptr<CommandNode<S>>> m_children;
+    std::set<std::string> m_literals;
+    std::set<std::string> m_arguments;
     std::shared_ptr<CommandNode<S>> m_redirect;
     RedirectModifier m_redirectModifier = RedirectModifier::None;
-    String m_usageText;
+    std::string m_usageText;
     Metadata m_metadataInfo;
 };
 
@@ -238,7 +238,7 @@ public:
     RootCommandNode() = default;
 
     [[nodiscard]] NodeType getType() const noexcept override { return NodeType::Root; }
-    [[nodiscard]] String getName() const noexcept override { return ""; }
+    [[nodiscard]] std::string getName() const noexcept override { return ""; }
     void parse(StringReader& /*reader*/, CommandContext<S>& /*context*/) const override {}
 };
 
@@ -250,16 +250,16 @@ public:
 template<typename S>
 class LiteralCommandNode : public CommandNode<S> {
 public:
-    explicit LiteralCommandNode(const String& literal)
+    explicit LiteralCommandNode(const std::string& literal)
         : m_literal(literal) {}
 
     [[nodiscard]] NodeType getType() const noexcept override { return NodeType::Literal; }
-    [[nodiscard]] String getName() const noexcept override { return m_literal; }
-    [[nodiscard]] const String& getLiteral() const noexcept { return m_literal; }
+    [[nodiscard]] std::string getName() const noexcept override { return m_literal; }
+    [[nodiscard]] const std::string& getLiteral() const noexcept { return m_literal; }
 
     void parse(StringReader& reader, CommandContext<S>& /*context*/) const override {
         const i32 start = reader.getCursor();
-        const String literal = reader.readUnquotedString();
+        const std::string literal = reader.readUnquotedString();
         if (literal != m_literal) {
             reader.setCursor(start);
             throw CommandException(
@@ -277,7 +277,7 @@ public:
     }
 
 private:
-    String m_literal;
+    std::string m_literal;
 };
 
 /**
@@ -288,12 +288,12 @@ private:
 template<typename S, typename T>
 class ArgumentCommandNode : public CommandNode<S> {
 public:
-    using Parser = std::function<T(StringView, i32&, CommandException&)>;
+    using Parser = std::function<T(std::string_view, i32&, CommandException&)>;
 
     /**
      * @brief 使用解析函数构造
      */
-    ArgumentCommandNode(const String& name, Parser parser)
+    ArgumentCommandNode(const std::string& name, Parser parser)
         : m_name(name)
         , m_parser(std::move(parser)) {}
 
@@ -303,9 +303,9 @@ public:
      * 更方便的构造方式，从 ArgumentType 派生类创建。
      * 例如：ArgumentCommandNode<ServerCommandSource, i32>("value", IntegerArgumentType::integer())
      */
-    ArgumentCommandNode(const String& name, std::shared_ptr<ArgumentType<T>> argumentType)
+    ArgumentCommandNode(const std::string& name, std::shared_ptr<ArgumentType<T>> argumentType)
         : m_name(name)
-        , m_parser([this](StringView input, i32& cursor, CommandException& error) -> T {
+        , m_parser([this](std::string_view input, i32& cursor, CommandException& error) -> T {
             StringReader reader(input);
             reader.setCursor(cursor);
             try {
@@ -321,8 +321,8 @@ public:
         , m_argumentType(std::move(argumentType)) {}
 
     [[nodiscard]] NodeType getType() const noexcept override { return NodeType::Argument; }
-    [[nodiscard]] String getName() const noexcept override { return m_name; }
-    [[nodiscard]] String getTypeName() const override {
+    [[nodiscard]] std::string getName() const noexcept override { return m_name; }
+    [[nodiscard]] std::string getTypeName() const override {
         return m_argumentType ? m_argumentType->getTypeName() : "argument";
     }
 
@@ -330,8 +330,8 @@ public:
         return m_argumentType ? m_argumentType->serializeMetadata() : nlohmann::json::object();
     }
 
-    [[nodiscard]] std::vector<String> getExamples() const override {
-        return m_argumentType ? m_argumentType->getExamples() : std::vector<String>{};
+    [[nodiscard]] std::vector<std::string> getExamples() const override {
+        return m_argumentType ? m_argumentType->getExamples() : std::vector<std::string>{};
     }
 
     void parse(StringReader& reader, CommandContext<S>& context) const override {
@@ -348,7 +348,7 @@ public:
      * @param cursor 当前位置（会被更新）
      * @return 解析结果，失败时抛出异常
      */
-    [[nodiscard]] T parse(StringView input, i32& cursor) const {
+    [[nodiscard]] T parse(std::string_view input, i32& cursor) const {
         CommandException error(CommandErrorType::Unknown, "Parse error");
         T result = m_parser(input, cursor, error);
         if (cursor < 0) {
@@ -371,7 +371,7 @@ public:
     }
 
 private:
-    String m_name;
+    std::string m_name;
     Parser m_parser;
     std::shared_ptr<ArgumentType<T>> m_argumentType;
 };

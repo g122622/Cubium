@@ -126,16 +126,16 @@ public:
  */
 class ScreenOpenEvent : public Event {
 public:
-    explicit ScreenOpenEvent(const String& screenId)
+    explicit ScreenOpenEvent(const std::string& screenId)
         : m_screenId(screenId) {}
 
     [[nodiscard]] EventType getType() const override { return EventType::Custom; }
     [[nodiscard]] const char* getName() const override { return "ScreenOpen"; }
 
-    [[nodiscard]] const String& screenId() const { return m_screenId; }
+    [[nodiscard]] const std::string& screenId() const { return m_screenId; }
 
 private:
-    String m_screenId;
+    std::string m_screenId;
 };
 
 /**
@@ -143,16 +143,16 @@ private:
  */
 class ScreenCloseEvent : public Event {
 public:
-    explicit ScreenCloseEvent(const String& screenId)
+    explicit ScreenCloseEvent(const std::string& screenId)
         : m_screenId(screenId) {}
 
     [[nodiscard]] EventType getType() const override { return EventType::Custom; }
     [[nodiscard]] const char* getName() const override { return "ScreenClose"; }
 
-    [[nodiscard]] const String& screenId() const { return m_screenId; }
+    [[nodiscard]] const std::string& screenId() const { return m_screenId; }
 
 private:
-    String m_screenId;
+    std::string m_screenId;
 };
 
 /**
@@ -160,18 +160,18 @@ private:
  */
 class ScreenChangeEvent : public Event {
 public:
-    ScreenChangeEvent(const String& fromScreen, const String& toScreen)
+    ScreenChangeEvent(const std::string& fromScreen, const std::string& toScreen)
         : m_fromScreen(fromScreen), m_toScreen(toScreen) {}
 
     [[nodiscard]] EventType getType() const override { return EventType::Custom; }
     [[nodiscard]] const char* getName() const override { return "ScreenChange"; }
 
-    [[nodiscard]] const String& fromScreen() const { return m_fromScreen; }
-    [[nodiscard]] const String& toScreen() const { return m_toScreen; }
+    [[nodiscard]] const std::string& fromScreen() const { return m_fromScreen; }
+    [[nodiscard]] const std::string& toScreen() const { return m_toScreen; }
 
 private:
-    String m_fromScreen;
-    String m_toScreen;
+    std::string m_fromScreen;
+    std::string m_toScreen;
 };
 
 } // namespace mc::client::ui::kagero::event

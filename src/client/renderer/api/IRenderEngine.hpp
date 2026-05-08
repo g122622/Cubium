@@ -24,7 +24,7 @@ namespace mc::client::renderer::api {
  * @brief 渲染引擎配置
  */
 struct RenderEngineConfig {
-    String appName = "Trident";
+    std::string appName = "Trident";
     bool enableValidation = true;    // 启用验证层
     bool enableVSync = true;         // 垂直同步
     bool enableAntiAliasing = true;  // 抗锯齿开关

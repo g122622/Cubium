@@ -157,7 +157,7 @@ constexpr size_t PATTERN_COUNT = static_cast<size_t>(BannerPatternType::Count);
 
 } // namespace
 
-BannerPatternType BannerPatterns::byHash(const String& hashName) {
+BannerPatternType BannerPatterns::byHash(const std::string& hashName) {
     for (size_t i = 0; i < PATTERN_COUNT; ++i) {
         if (hashName == HASH_NAMES[i]) {
             return static_cast<BannerPatternType>(i);
@@ -167,13 +167,13 @@ BannerPatternType BannerPatterns::byHash(const String& hashName) {
     return BannerPatternType::Base;
 }
 
-String BannerPatterns::getHashName(BannerPatternType type) {
+std::string BannerPatterns::getHashName(BannerPatternType type) {
     const size_t index = static_cast<size_t>(type);
     MC_ASSERT_RELEASE(index < PATTERN_COUNT);
     return HASH_NAMES[index];
 }
 
-String BannerPatterns::getFileName(BannerPatternType type) {
+std::string BannerPatterns::getFileName(BannerPatternType type) {
     const size_t index = static_cast<size_t>(type);
     MC_ASSERT_RELEASE(index < PATTERN_COUNT);
     return FILE_NAMES[index];

@@ -15,7 +15,7 @@ namespace {
         Byte = 0,
         VarInt = 1,
         Float = 2,
-        String = 3,
+        std::string = 3,
         TextComponent = 4,
         OptChat = 5,
         Slot = 6,
@@ -44,8 +44,8 @@ namespace {
                 return MetadataTypeId::VarInt; // 使用 VarInt 近似
             case 3:  // f32
                 return MetadataTypeId::Float;
-            case 4:  // String
-                return MetadataTypeId::String;
+            case 4:  // std::string
+                return MetadataTypeId::std::string;
             case 5:  // bool
                 return MetadataTypeId::Boolean;
             case 6:  // Vector3i
@@ -114,8 +114,8 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
             }
             break;
         }
-        case 4: { // String
-            writeString(value.get<String>(), output);
+        case 4: { // std::string
+            writeString(value.get<std::string>(), output);
             break;
         }
         case 5: { // bool
@@ -209,8 +209,8 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                 manager.clearDirty(index);
                 break;
             }
-            case MetadataTypeId::String: {
-                String value = readString(data.data(), data.size(), offset);
+            case MetadataTypeId::std::string: {
+                std::string value = readString(data.data(), data.size(), offset);
                 (void)manager.setRaw(index, entity::DataValue(value));
                 manager.clearDirty(index);
                 break;
@@ -313,7 +313,7 @@ i64 EntityMetadataSerializer::readVarLong(const u8* data, size_t size, size_t& o
     return result;
 }
 
-void EntityMetadataSerializer::writeString(const String& str, std::vector<u8>& output) {
+void EntityMetadataSerializer::writeString(const std::string& str, std::vector<u8>& output) {
     // 截断过长的字符串
     size_t writeLen = std::min(str.size(), static_cast<size_t>(MAX_STRING_LENGTH));
     // 字符串长度 (VarInt)
@@ -322,7 +322,7 @@ void EntityMetadataSerializer::writeString(const String& str, std::vector<u8>& o
     output.insert(output.end(), str.begin(), str.begin() + writeLen);
 }
 
-String EntityMetadataSerializer::readString(const u8* data, size_t size, size_t& offset) {
+std::string EntityMetadataSerializer::readString(const u8* data, size_t size, size_t& offset) {
     i32 length = readVarInt(data, size, offset);
 
     // 验证长度
@@ -336,7 +336,7 @@ String EntityMetadataSerializer::readString(const u8* data, size_t size, size_t&
         return "";
     }
 
-    String result(reinterpret_cast<const char*>(data + offset), static_cast<size_t>(length));
+    std::string result(reinterpret_cast<const char*>(data + offset), static_cast<size_t>(length));
     offset += static_cast<size_t>(length);
     return result;
 }

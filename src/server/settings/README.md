@@ -243,7 +243,7 @@ if (result.failed()) {
 // 访问设置值
 u16 port = settings.serverPort.get();
 i32 maxPlayers = settings.maxPlayers;
-String worldName = settings.worldName;
+std::string worldName = settings.worldName;
 
 // 修改设置
 settings.maxPlayers.set(50);
@@ -426,7 +426,7 @@ settings.difficulty.set(DifficultyValue::Hard);
 
 nlohmann::json j;
 settings.difficulty.serialize(j);
-EXPECT_EQ(j["difficulty"].get<String>(), "hard");
+EXPECT_EQ(j["difficulty"].get<std::string>(), "hard");
 ```
 
 #### ServerSettingsTest.EnumOptionDeserialize

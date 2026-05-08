@@ -14,7 +14,7 @@ namespace mc::skin {
 struct SkinLoadResult {
     std::vector<u8> pngData;    // PNG 数据
     SkinTextures textures;       // 解析出的纹理信息
-    String hash;                 // 文件哈希（用于缓存）
+    std::string hash;                 // 文件哈希（用于缓存）
 };
 
 /**
@@ -47,28 +47,28 @@ public:
      * @param url 皮肤 URL
      * @return 是否支持
      */
-    [[nodiscard]] virtual bool supportsUrl(const String& url) const = 0;
+    [[nodiscard]] virtual bool supportsUrl(const std::string& url) const = 0;
 
     /**
      * @brief 同步加载皮肤
      * @param url 皮肤 URL 或路径
      * @return 加载结果
      */
-    virtual Result<SkinLoadResult> load(const String& url) = 0;
+    virtual Result<SkinLoadResult> load(const std::string& url) = 0;
 
     /**
      * @brief 异步加载皮肤
      * @param url 皮肤 URL 或路径
      * @param callback 完成回调
      */
-    virtual void loadAsync(const String& url,
+    virtual void loadAsync(const std::string& url,
                           std::function<void(Result<SkinLoadResult>)> callback) = 0;
 
     /**
      * @brief 取消加载
      * @param url 要取消的 URL
      */
-    virtual void cancel(const String& url) = 0;
+    virtual void cancel(const std::string& url) = 0;
 
     /**
      * @brief 取消所有加载
@@ -78,7 +78,7 @@ public:
     /**
      * @brief 获取加载器名称
      */
-    [[nodiscard]] virtual String name() const = 0;
+    [[nodiscard]] virtual std::string name() const = 0;
 };
 
 } // namespace mc::skin

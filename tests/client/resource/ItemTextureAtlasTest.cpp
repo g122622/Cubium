@@ -19,25 +19,25 @@ public:
 
     const PackMetadata& metadata() const override { return m_metadata; }
 
-    bool hasResource(StringView resourcePath) const override {
-        return m_resources.find(String(resourcePath)) != m_resources.end();
+    bool hasResource(std::string_view resourcePath) const override {
+        return m_resources.find(std::string(resourcePath)) != m_resources.end();
     }
 
-    Result<std::vector<u8>> readResource(StringView resourcePath) const override {
-        auto it = m_resources.find(String(resourcePath));
+    Result<std::vector<u8>> readResource(std::string_view resourcePath) const override {
+        auto it = m_resources.find(std::string(resourcePath));
         if (it == m_resources.end()) {
             return Error(ErrorCode::NotFound, "Resource not found");
         }
         return it->second;
     }
 
-    Result<std::vector<String>> listResources(StringView directory, StringView extension) const override {
-        std::vector<String> results;
-        const String prefix(directory);
-        const String ext(extension);
+    Result<std::vector<std::string>> listResources(std::string_view directory, std::string_view extension) const override {
+        std::vector<std::string> results;
+        const std::string prefix(directory);
+        const std::string ext(extension);
 
         for (const auto& [path, _] : m_resources) {
-            const bool prefixMatched = path.find(prefix) != String::npos;
+            const bool prefixMatched = path.find(prefix) != std::string::npos;
             const bool extensionMatched = ext.empty() || (path.size() >= ext.size() && path.substr(path.size() - ext.size()) == ext);
             if (prefixMatched && extensionMatched) {
                 results.push_back(path);
@@ -47,17 +47,17 @@ public:
         return results;
     }
 
-    String name() const override {
+    std::string name() const override {
         return "MemoryResourcePack";
     }
 
-    void addResource(const String& path, const std::vector<u8>& data) {
+    void addResource(const std::string& path, const std::vector<u8>& data) {
         m_resources[path] = data;
     }
 
 private:
     PackMetadata m_metadata{6, "test"};
-    std::unordered_map<String, std::vector<u8>> m_resources;
+    std::unordered_map<std::string, std::vector<u8>> m_resources;
 };
 
 const std::vector<u8>& oneByOnePng() {

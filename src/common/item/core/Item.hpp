@@ -346,12 +346,12 @@ public:
     /**
      * @brief 获取翻译键
      */
-    [[nodiscard]] virtual String getTranslationKey() const;
+    [[nodiscard]] virtual std::string getTranslationKey() const;
 
     /**
      * @brief 获取翻译键（带物品堆）
      */
-    [[nodiscard]] virtual String getTranslationKey(const ItemStack& stack) const;
+    [[nodiscard]] virtual std::string getTranslationKey(const ItemStack& stack) const;
 
     /**
      * @brief 获取物品名称
@@ -361,7 +361,7 @@ public:
      *
      * @return 物品名称
      */
-    [[nodiscard]] virtual String getName() const;
+    [[nodiscard]] virtual std::string getName() const;
 
     /**
      * @brief 获取附魔能力
@@ -500,7 +500,7 @@ public:
      * @param advanced 是否显示高级提示
      */
     virtual void addInformation(const ItemStack& stack, IWorld& world,
-                                std::vector<String>& tooltip, bool advanced) const;
+                                std::vector<std::string>& tooltip, bool advanced) const;
 
     /**
      * @brief 是否有附魔光效
@@ -660,7 +660,7 @@ public:
     /**
      * @brief 转换为字符串
      */
-    [[nodiscard]] virtual String toString() const {
+    [[nodiscard]] virtual std::string toString() const {
         return m_itemLocation.toString();
     }
 

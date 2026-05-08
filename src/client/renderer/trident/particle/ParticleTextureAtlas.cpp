@@ -109,7 +109,7 @@ Result<std::vector<u8>> loadTexturePixels(
     u32& outWidth,
     u32& outHeight)
 {
-    const String pngPath = location.toFilePath("png");
+    const std::string pngPath = location.toFilePath("png");
     const auto readResult = pack.readResource(pngPath);
     if (readResult.failed()) {
         return readResult.error();
@@ -312,10 +312,10 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(
 
         // 遍历粒子纹理目录
         // MC 1.16.5 粒子纹理路径: textures/particle/*.png
-        const String particleDir = "textures/particle";
+        const std::string particleDir = "textures/particle";
 
         // 常见的粒子纹理名称
-        static const std::vector<String> particleTextures = {
+        static const std::vector<std::string> particleTextures = {
             // 环境类
             "bubble", "bubble_pop", "underwater",
             // 火焰和烟雾
@@ -343,9 +343,9 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(
             "dragon_breath", "soul", "sculk_soul", "glow", "glow_squid_ink"
         };
 
-        for (const String& textureName : particleTextures) {
+        for (const std::string& textureName : particleTextures) {
             ResourceLocation location("minecraft", "particle/" + textureName);
-            const String path = location.toFilePath("png");
+            const std::string path = location.toFilePath("png");
 
             // 检查是否已加载（优先使用第一个找到的纹理）
             if (builder.getTextureLocations().size() > 0) {
@@ -373,7 +373,7 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(
             u32 frameHeight = width;  // 默认为正方形帧
             f64 frameTime = 0.1f;     // 默认帧时间
 
-            const String mcmetaPath = path + ".mcmeta";
+            const std::string mcmetaPath = path + ".mcmeta";
             if (pack->hasResource(mcmetaPath)) {
                 auto mcmetaResult = pack->readResource(mcmetaPath);
                 if (mcmetaResult.success()) {

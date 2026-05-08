@@ -130,7 +130,7 @@ TEST(FolderResourcePackTest, ReadTextResource) {
     if (result.success()) {
         auto readResult = pack.readTextResource("pack.mcmeta");
         if (readResult.success()) {
-            EXPECT_TRUE(readResult.value().find("pack") != String::npos);
+            EXPECT_TRUE(readResult.value().find("pack") != std::string::npos);
         }
     }
 }
@@ -147,7 +147,7 @@ TEST(FolderResourcePackTest, ListResources) {
             // 检查是否包含oak_log.json
             bool foundOakLog = false;
             for (const auto& file : listResult.value()) {
-                if (file.find("oak_log.json") != String::npos) {
+                if (file.find("oak_log.json") != std::string::npos) {
                     foundOakLog = true;
                     break;
                 }

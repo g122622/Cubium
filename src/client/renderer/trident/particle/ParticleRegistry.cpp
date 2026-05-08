@@ -15,7 +15,7 @@ ParticleRegistry::ParticleRegistry() {
 
 void ParticleRegistry::registerType(
     ParticleTypeId id,
-    const String& name,
+    const std::string& name,
     ParticleFactory factory,
     ParticleRenderType defaultRenderType,
     f64 defaultLifetime,
@@ -41,7 +41,7 @@ void ParticleRegistry::registerType(
 
 void ParticleRegistry::registerSimpleType(
     ParticleTypeId id,
-    const String& name,
+    const std::string& name,
     ParticleFactory factory,
     ParticleRenderType defaultRenderType) {
 
@@ -63,7 +63,7 @@ std::unique_ptr<Particle> ParticleRegistry::createParticle(
 }
 
 std::unique_ptr<Particle> ParticleRegistry::createParticle(
-    const String& name,
+    const std::string& name,
     const glm::vec3& pos,
     const glm::vec3& velocity,
     mc::client::ClientWorld* world) const {
@@ -76,7 +76,7 @@ std::unique_ptr<Particle> ParticleRegistry::createParticle(
     return createParticle(id.value(), pos, velocity, world);
 }
 
-std::optional<ParticleTypeId> ParticleRegistry::getTypeId(const String& name) const {
+std::optional<ParticleTypeId> ParticleRegistry::getTypeId(const std::string& name) const {
     auto it = m_nameToId.find(name);
     if (it != m_nameToId.end()) {
         return it->second;
@@ -88,7 +88,7 @@ std::optional<ParticleTypeId> ParticleRegistry::getTypeId(const ResourceLocation
     return getTypeId(location.toString());
 }
 
-const String& ParticleRegistry::getTypeName(ParticleTypeId id) const {
+const std::string& ParticleRegistry::getTypeName(ParticleTypeId id) const {
     auto it = m_types.find(id);
     if (it != m_types.end()) {
         return it->second.name;
@@ -108,7 +108,7 @@ bool ParticleRegistry::isRegistered(ParticleTypeId id) const {
     return m_types.find(id) != m_types.end();
 }
 
-bool ParticleRegistry::isRegistered(const String& name) const {
+bool ParticleRegistry::isRegistered(const std::string& name) const {
     return m_nameToId.find(name) != m_nameToId.end();
 }
 

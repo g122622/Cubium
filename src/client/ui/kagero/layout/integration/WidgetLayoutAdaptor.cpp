@@ -38,8 +38,8 @@ WidgetLayoutAdaptor::WidgetLayoutAdaptor(widget::Widget* widget)
     }
 }
 
-const String& WidgetLayoutAdaptor::id() const {
-    static const String empty;
+const std::string& WidgetLayoutAdaptor::id() const {
+    static const std::string empty;
     return m_widget != nullptr ? m_widget->id() : empty;
 }
 

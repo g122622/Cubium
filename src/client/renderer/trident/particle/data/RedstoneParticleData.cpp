@@ -12,11 +12,11 @@ RedstoneParticleData::RedstoneParticleData(const glm::vec3& color)
     m_color = glm::clamp(color, glm::vec3(0.0f), glm::vec3(1.0f));
 }
 
-String RedstoneParticleData::getTypeName() const {
+std::string RedstoneParticleData::getTypeName() const {
     return ParticleRegistry::instance().getTypeName(ParticleTypeId::Redstone);
 }
 
-String RedstoneParticleData::getParameters() const {
+std::string RedstoneParticleData::getParameters() const {
     // 红石粒子参数格式: r g b
     // 例如: 1.0 0.0 0.0
     std::ostringstream ss;

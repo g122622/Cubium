@@ -555,9 +555,9 @@ TEST(BlockStateTest, ToString) {
     TestBlockWithAxis block{BlockProperties{Material::WOOD}};
     const auto& state = block.defaultState();
 
-    String str = state.toString();
+    std::string str = state.toString();
     // 应该包含属性名和值
-    EXPECT_TRUE(str.find("axis") != String::npos);
+    EXPECT_TRUE(str.find("axis") != std::string::npos);
 }
 
 TEST(BlockStateTest, ToModelKeyUsesStableSortedOrder) {
@@ -566,7 +566,7 @@ TEST(BlockStateTest, ToModelKeyUsesStableSortedOrder) {
         .with(TestBlockWithMultiple::FACING(block), Direction::West)
         .with(TestBlockWithMultiple::LIT(block), true);
 
-    const String modelKey = state.toModelKey();
+    const std::string modelKey = state.toModelKey();
     EXPECT_EQ(modelKey, "facing=west,lit=true");
 }
 

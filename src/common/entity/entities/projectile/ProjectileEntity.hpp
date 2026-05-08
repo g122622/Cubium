@@ -84,7 +84,7 @@ public:
     /**
      * @brief 获取发射者UUID
      */
-    [[nodiscard]] const String& shooterUuid() const { return m_shooterUuid; }
+    [[nodiscard]] const std::string& shooterUuid() const { return m_shooterUuid; }
 
     /**
      * @brief 设置发射者
@@ -221,7 +221,7 @@ protected:
     RayTraceResult rayTraceBlocks(const Vector3& start, const Vector3& end);
 
     // 发射者信息
-    String m_shooterUuid;           // 发射者UUID
+    std::string m_shooterUuid;           // 发射者UUID
     EntityId m_shooterEntityId = INVALID_ENTITY_ID;  // 发射者实体ID
     bool m_leftShooter = false;     // 是否已离开发射者
     bool m_noGravity = false;       // 是否不受重力

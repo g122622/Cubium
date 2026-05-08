@@ -44,15 +44,15 @@ protected:
     /**
      * @brief 获取基础翻译键
      */
-    [[nodiscard]] String getBaseTranslationKey() const override {
-        return String("item.minecraft.lingering_potion");
+    [[nodiscard]] std::string getBaseTranslationKey() const override {
+        return std::string("item.minecraft.lingering_potion");
     }
 
     /**
      * @brief 获取带效果后缀的翻译键前缀
      */
-    [[nodiscard]] String getEffectTranslationKeyPrefix() const override {
-        return String("item.minecraft.lingering_potion.effect.");
+    [[nodiscard]] std::string getEffectTranslationKeyPrefix() const override {
+        return std::string("item.minecraft.lingering_potion.effect.");
     }
 };
 

@@ -39,7 +39,7 @@ public:
      * @return 属性实例
      * @throws std::invalid_argument 如果 min < 0 或 max <= min
      */
-    [[nodiscard]] static std::unique_ptr<IntegerProperty> create(const String& name, i32 min, i32 max) {
+    [[nodiscard]] static std::unique_ptr<IntegerProperty> create(const std::string& name, i32 min, i32 max) {
         if (min < 0) {
             throw std::invalid_argument("Min value of " + name + " must be 0 or greater");
         }
@@ -66,17 +66,17 @@ public:
     /**
      * @brief 将整数值转换为字符串
      */
-    [[nodiscard]] String valueToString(const i32& value) const override {
+    [[nodiscard]] std::string valueToString(const i32& value) const override {
         return std::to_string(value);
     }
 
     /**
      * @brief 解析字符串为整数值
      */
-    [[nodiscard]] std::optional<i32> parse(StringView str) const override {
+    [[nodiscard]] std::optional<i32> parse(std::string_view str) const override {
         try {
             size_t pos = 0;
-            i32 value = std::stoi(String(str), &pos);
+            i32 value = std::stoi(std::string(str), &pos);
             if (pos != str.length()) {
                 return std::nullopt;
             }
@@ -94,8 +94,8 @@ public:
      * @brief 计算哈希值
      */
     [[nodiscard]] size_t hashCode() const override {
-        size_t h = std::hash<String>{}(m_name);
-        h ^= (std::hash<String>{}("IntegerProperty") << 1);
+        size_t h = std::hash<std::string>{}(m_name);
+        h ^= (std::hash<std::string>{}("IntegerProperty") << 1);
         h ^= (std::hash<i32>{}(m_min) << 2);
         h ^= (std::hash<i32>{}(m_max) << 3);
         return h;
@@ -122,7 +122,7 @@ private:
     i32 m_min;
     i32 m_max;
 
-    IntegerProperty(const String& name, i32 min, i32 max)
+    IntegerProperty(const std::string& name, i32 min, i32 max)
         : Property<i32>(name, generateValues(min, max))
         , m_min(min)
         , m_max(max) {

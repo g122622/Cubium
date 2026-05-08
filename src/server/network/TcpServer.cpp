@@ -259,7 +259,7 @@ void TcpServer::acceptNewConnection() {
 
     // 创建会话
     auto session = std::make_shared<TcpSession>(m_nextSessionId++, this);
-    session->setAddress(String(ipStr), clientPort);
+    session->setAddress(std::string(ipStr), clientPort);
     session->setState(SessionState::Connected);
 
     // 设置回调

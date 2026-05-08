@@ -100,7 +100,7 @@ interactive/
 
 **关键方法**：
 - `getLine(i32 line)` - 获取指定行文本
-- `setLine(i32 line, const String& text)` - 设置文本
+- `setLine(i32 line, const std::string& text)` - 设置文本
 - `isEditable()` - 检查是否可编辑
 - `setTextColor()` / `getTextColor()` - 文本颜色
 - `isGlowing()` / `setGlowing()` - 发光状态

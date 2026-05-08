@@ -34,7 +34,7 @@ namespace {
     // 数据参数 ID 生成器
     entity::DataParameter<i8> FLAGS_PARAM{0};
     entity::DataParameter<i32> AIR_PARAM{1};
-    entity::DataParameter<String> CUSTOM_NAME_PARAM{2};
+    entity::DataParameter<std::string> CUSTOM_NAME_PARAM{2};
     entity::DataParameter<bool> CUSTOM_NAME_VISIBLE_PARAM{3};
     entity::DataParameter<bool> SILENT_PARAM{4};
     entity::DataParameter<bool> NO_GRAVITY_PARAM{5};
@@ -69,7 +69,7 @@ void Entity::registerData() {
     // 注册基础数据参数
     m_dataManager.registerParam(FLAGS_PARAM, static_cast<i8>(0));
     m_dataManager.registerParam(AIR_PARAM, maxAir());
-    m_dataManager.registerParam(CUSTOM_NAME_PARAM, String{});
+    m_dataManager.registerParam(CUSTOM_NAME_PARAM, std::string{});
     m_dataManager.registerParam(CUSTOM_NAME_VISIBLE_PARAM, false);
     m_dataManager.registerParam(SILENT_PARAM, false);
     m_dataManager.registerParam(NO_GRAVITY_PARAM, false);
@@ -126,10 +126,10 @@ void Entity::setAir(i32 air) {
     m_dataManager.set(AIR_PARAM, m_air);
 }
 
-void Entity::setCustomName(const String& name) {
+void Entity::setCustomName(const std::string& name) {
     if (name.empty()) {
         m_customName = nullptr;
-        m_dataManager.set(CUSTOM_NAME_PARAM, String(""));
+        m_dataManager.set(CUSTOM_NAME_PARAM, std::string(""));
     } else {
         m_customName = std::make_unique<text::StringTextComponent>(name);
         m_dataManager.set(CUSTOM_NAME_PARAM, name);
@@ -139,7 +139,7 @@ void Entity::setCustomName(const String& name) {
 void Entity::setCustomNameComponent(std::unique_ptr<text::ITextComponent> name) {
     m_customName = std::move(name);
     // 数据管理器仍然存储纯文本用于网络同步
-    m_dataManager.set(CUSTOM_NAME_PARAM, m_customName ? m_customName->getUnformattedText() : String(""));
+    m_dataManager.set(CUSTOM_NAME_PARAM, m_customName ? m_customName->getUnformattedText() : std::string(""));
 }
 
 std::unique_ptr<text::ITextComponent> Entity::getDisplayName() const {
@@ -165,7 +165,7 @@ void Entity::setNoGravity(bool noGravity) {
     m_dataManager.set(NO_GRAVITY_PARAM, m_noGravity);
 }
 
-String Entity::getTypeId() const {
+std::string Entity::getTypeId() const {
     if (!m_typeId.empty()) {
         return m_typeId;
     }
@@ -173,22 +173,22 @@ String Entity::getTypeId() const {
     return EntityUtils::legacyTypeToTypeId(m_legacyType);
 }
 
-std::optional<ResourceLocation> Entity::makeSoundEventId(StringView suffix) const {
-    const String typeId = getTypeId();
+std::optional<ResourceLocation> Entity::makeSoundEventId(std::string_view suffix) const {
+    const std::string typeId = getTypeId();
     const size_t separatorPos = typeId.find(':');
-    if (separatorPos == String::npos || separatorPos + 1 >= typeId.size()) {
+    if (separatorPos == std::string::npos || separatorPos + 1 >= typeId.size()) {
         return std::nullopt;
     }
 
-    const String typePath = typeId.substr(separatorPos + 1);
+    const std::string typePath = typeId.substr(separatorPos + 1);
     if (typePath.empty() || typePath == "unknown") {
         return std::nullopt;
     }
 
-    String soundId = "minecraft:entity.";
+    std::string soundId = "minecraft:entity.";
     soundId += typePath;
     soundId += '.';
-    soundId += String(suffix);
+    soundId += std::string(suffix);
     return ResourceLocation(soundId);
 }
 
@@ -220,8 +220,8 @@ void Entity::playStepSound(const BlockPos& pos, const BlockState* blockState) {
         // 检查上方方块是否为雪层（通过材质或其他属性判断）
         // MC 1.16.5: 如果上方是雪层且高度足够，使用雪的声音
         const ResourceLocation& blockLoc = aboveState->getBlock().blockLocation();
-        const String& blockPath = blockLoc.path();
-        if (blockPath.find("snow") != String::npos && blockPath != "snow_block") {
+        const std::string& blockPath = blockLoc.path();
+        if (blockPath.find("snow") != std::string::npos && blockPath != "snow_block") {
             // 雪层 - 使用雪的声音类型
             soundState = aboveState;
         }
@@ -597,7 +597,7 @@ void Entity::syncMetadataFromDataManager() {
     m_air = m_dataManager.get<i32>(AIR_PARAM);
     // 从数据管理器同步名称（纯文本）
     {
-        const String& nameText = m_dataManager.get<String>(CUSTOM_NAME_PARAM);
+        const std::string& nameText = m_dataManager.get<std::string>(CUSTOM_NAME_PARAM);
         if (nameText.empty()) {
             m_customName = nullptr;
         } else {
@@ -1356,7 +1356,7 @@ bool Entity::isInvulnerableTo(DamageSource& source) const {
     return false;
 }
 
-String Entity::toString() const {
+std::string Entity::toString() const {
     std::stringstream ss;
     ss << "Entity{id=" << m_id
        << ", type=" << getTypeId()

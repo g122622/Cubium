@@ -37,7 +37,7 @@ namespace {
  * @param username 目标玩家名。
  * @return 找到的玩家 ID；找不到时返回 0。
  */
-[[nodiscard]] PlayerId findPlayerIdByUsername(const ServerCommandSource& source, StringView username)
+[[nodiscard]] PlayerId findPlayerIdByUsername(const ServerCommandSource& source, std::string_view username)
 {
     if (source.server() == nullptr) {
         return 0;
@@ -69,7 +69,7 @@ namespace {
 
     // 检查游戏模式
     if (selector.hasGameMode()) {
-        const String& mode = selector.gameMode();
+        const std::string& mode = selector.gameMode();
         bool matches = false;
         switch (playerData.gameMode) {
             case GameMode::Survival:

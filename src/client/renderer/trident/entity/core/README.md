@@ -103,7 +103,7 @@ protected:
 class EntityRendererManager {
 public:
     // 注册渲染器
-    void registerRenderer(const String& typeId, RendererCreator creator);
+    void registerRenderer(const std::string& typeId, RendererCreator creator);
     
     // 渲染实体
     void renderWithPipeline(VkCommandBuffer cmd, ClientEntity& entity, f64 partialTicks);

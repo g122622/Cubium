@@ -27,10 +27,10 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /team add <team> [displayName]
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto teamNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto teamNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "team",
         StringArgumentType::string());
-    auto displayNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto displayNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "displayName",
         StringArgumentType::greedyString());
     displayNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -45,7 +45,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /team remove <team>
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
-    auto removeTeamArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto removeTeamArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "team",
         StringArgumentType::string());
     removeTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -56,7 +56,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /team list [team]
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
-    auto listTeamArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto listTeamArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "team",
         StringArgumentType::string());
     listTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -70,7 +70,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /team empty <team>
     auto emptyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("empty");
-    auto emptyTeamArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto emptyTeamArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "team",
         StringArgumentType::string());
     emptyTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -81,7 +81,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /team join <team> <members>
     auto joinNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("join");
-    auto joinTeamArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto joinTeamArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "team",
         StringArgumentType::string());
     auto membersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
@@ -107,13 +107,13 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /team modify <team> <property> <value>
     auto modifyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("modify");
-    auto modifyTeamArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto modifyTeamArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "team",
         StringArgumentType::string());
 
     // modify <team> color <color>
     auto colorNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("color");
-    auto colorValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto colorValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "value",
         StringArgumentType::string());
     colorValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -146,7 +146,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // modify <team> prefix <prefix>
     auto prefixNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("prefix");
-    auto prefixArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto prefixArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "value",
         StringArgumentType::greedyString());
     prefixArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -157,7 +157,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // modify <team> suffix <suffix>
     auto suffixNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("suffix");
-    auto suffixArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto suffixArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "value",
         StringArgumentType::greedyString());
     suffixArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -168,7 +168,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // modify <team> displayName <displayName>
     auto displayNameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("displayName");
-    auto displayNameValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto displayNameValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "value",
         StringArgumentType::greedyString());
     displayNameValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -186,11 +186,11 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 i32 TeamCommand::addTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String teamName = context.getArgument<String>("team");
+    const std::string teamName = context.getArgument<std::string>("team");
 
-    String displayName = teamName;
+    std::string displayName = teamName;
     if (context.hasArgument("displayName")) {
-        displayName = context.getArgument<String>("displayName");
+        displayName = context.getArgument<std::string>("displayName");
     }
 
     std::ostringstream ss;
@@ -205,7 +205,7 @@ i32 TeamCommand::addTeam(CommandContext<ServerCommandSource>& context)
 i32 TeamCommand::removeTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String teamName = context.getArgument<String>("team");
+    const std::string teamName = context.getArgument<std::string>("team");
 
     std::ostringstream ss;
     ss << "Removed team '" << teamName << "'";
@@ -221,7 +221,7 @@ i32 TeamCommand::listTeams(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
 
     if (context.hasArgument("team")) {
-        const String teamName = context.getArgument<String>("team");
+        const std::string teamName = context.getArgument<std::string>("team");
         std::ostringstream ss;
         ss << "Members of team '" << teamName << "': (none)";
         source.sendMessage(ss.str());
@@ -236,7 +236,7 @@ i32 TeamCommand::listTeams(CommandContext<ServerCommandSource>& context)
 i32 TeamCommand::emptyTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String teamName = context.getArgument<String>("team");
+    const std::string teamName = context.getArgument<std::string>("team");
 
     std::ostringstream ss;
     ss << "Emptied team '" << teamName << "'";
@@ -250,7 +250,7 @@ i32 TeamCommand::emptyTeam(CommandContext<ServerCommandSource>& context)
 i32 TeamCommand::joinTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String teamName = context.getArgument<String>("team");
+    const std::string teamName = context.getArgument<std::string>("team");
     const EntitySelector& selector = context.getArgument<EntitySelector>("members");
 
     auto playerIds = support::resolvePlayerIds(source, selector);
@@ -291,7 +291,7 @@ i32 TeamCommand::leaveTeam(CommandContext<ServerCommandSource>& context)
 i32 TeamCommand::modifyTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const String teamName = context.getArgument<String>("team");
+    const std::string teamName = context.getArgument<std::string>("team");
 
     std::ostringstream ss;
     ss << "Modified team '" << teamName << "'";

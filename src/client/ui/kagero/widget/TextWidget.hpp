@@ -32,7 +32,7 @@ public:
     /**
      * @brief 构造函数
      */
-    TextWidget(String id, i32 x, i32 y, i32 width, i32 height)
+    TextWidget(std::string id, i32 x, i32 y, i32 width, i32 height)
         : Widget(std::move(id)) {
         setBounds(Rect(x, y, width, height));
     }
@@ -40,7 +40,7 @@ public:
     /**
      * @brief 构造函数（带文本）
      */
-    TextWidget(String id, i32 x, i32 y, i32 width, i32 height, String text)
+    TextWidget(std::string id, i32 x, i32 y, i32 width, i32 height, std::string text)
         : Widget(std::move(id))
         , m_text(std::move(text)) {
         setBounds(Rect(x, y, width, height));
@@ -54,7 +54,7 @@ public:
     /**
      * @brief 设置文本
      */
-    void setText(const String& text) {
+    void setText(const std::string& text) {
         if (m_text != text) {
             m_text = text;
             m_linesDirty = true;
@@ -64,7 +64,7 @@ public:
     /**
      * @brief 获取文本
      */
-    [[nodiscard]] const String& text() const { return m_text; }
+    [[nodiscard]] const std::string& text() const { return m_text; }
 
     /**
      * @brief 设置文本颜色
@@ -200,7 +200,7 @@ public:
     /**
      * @brief 获取指定行的文本
      */
-    [[nodiscard]] String getLine(i32 lineIndex) const {
+    [[nodiscard]] std::string getLine(i32 lineIndex) const {
         const auto& lines = ensureLines();
         if (lineIndex < 0 || static_cast<size_t>(lineIndex) >= lines.size()) {
             return {};
@@ -254,7 +254,7 @@ protected:
     /**
      * @brief 计算单行文本宽度
      */
-    [[nodiscard]] f32 measureLineWidth(const String& text) const {
+    [[nodiscard]] f32 measureLineWidth(const std::string& text) const {
         f32 width = 0.0f;
         for (char32_t codePoint : text) {
             width += measureGlyphAdvance(codePoint);
@@ -265,14 +265,14 @@ protected:
     /**
      * @brief 追加一行到缓存
      */
-    void appendLine(String line) const {
+    void appendLine(std::string line) const {
         m_lines.emplace_back(std::move(line));
     }
 
     /**
      * @brief 将当前文本按可用宽度构建成行缓存
      */
-    [[nodiscard]] const std::vector<String>& ensureLines() const {
+    [[nodiscard]] const std::vector<std::string>& ensureLines() const {
         if (!m_linesDirty) {
             return m_lines;
         }
@@ -295,7 +295,7 @@ protected:
             return m_lines;
         }
 
-        String currentLine;
+        std::string currentLine;
         currentLine.reserve(m_text.size());
         f32 currentWidth = 0.0f;
 
@@ -336,8 +336,8 @@ protected:
         size_t start = 0;
         while (start <= m_text.size()) {
             const size_t end = m_text.find(U'\n', start);
-            appendLine(m_text.substr(start, end == String::npos ? String::npos : end - start));
-            if (end == String::npos) {
+            appendLine(m_text.substr(start, end == std::string::npos ? std::string::npos : end - start));
+            if (end == std::string::npos) {
                 break;
             }
 
@@ -356,7 +356,7 @@ protected:
         return std::max(0, bounds().width - padding().horizontal());
     }
 
-    String m_text;
+    std::string m_text;
     u32 m_color = Colors::WHITE;
     bool m_shadow = true;
     u32 m_shadowColor = Colors::MC_DARK_GRAY;
@@ -366,7 +366,7 @@ protected:
     i32 m_lineHeight = 9;
     f32 m_scale = 1.0f;
     void* m_font = nullptr;
-    mutable std::vector<String> m_lines;
+    mutable std::vector<std::string> m_lines;
     mutable bool m_linesDirty = true;
 };
 

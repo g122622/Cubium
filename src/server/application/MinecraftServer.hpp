@@ -215,7 +215,7 @@ public:
     void setDefaultGameMode(GameMode mode) override;
     [[nodiscard]] i32 playerIdleTimeoutMinutes() const override { return m_playerIdleTimeoutMinutes; }
     void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) override;
-    void broadcastServerMessage(StringView message) override;
+    void broadcastServerMessage(std::string_view message) override;
     void requestStop() override;
 
     // ========== 便捷方法 ==========

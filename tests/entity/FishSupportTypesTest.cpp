@@ -470,7 +470,7 @@ TEST_F(AbstractFishEntityFromBucketTest, FromBucketFishCannotDespawn) {
 
     // 设置自定义名称也阻止消失
     cod.setFromBucket(false);
-    cod.setCustomName("Nemo");  // 使用 setCustomName(String) 重载
+    cod.setCustomName("Nemo");  // 使用 setCustomName(std::string) 重载
     EXPECT_FALSE(cod.canDespawn(128.0));
 }
 

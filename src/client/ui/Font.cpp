@@ -89,7 +89,7 @@ const Glyph* Font::getGlyph(u32 codepoint) {
     return nullptr;
 }
 
-f32 Font::getStringWidth(const String& text) {
+f32 Font::getStringWidth(const std::string& text) {
     f32 width = 0.0f;
     for (char c : text) {
         const Glyph* glyph = getGlyph(static_cast<u32>(static_cast<u8>(c)));
@@ -163,11 +163,11 @@ u32 Font::getFontHeight() const {
 // ============================================================================
 
 Result<void> BitmapGlyphProvider::load(IResourcePack& pack,
-                                        const String& texturePath,
+                                        const std::string& texturePath,
                                         u32 height, u32 ascent,
-                                        const std::vector<String>& charRows) {
+                                        const std::vector<std::string>& charRows) {
     // 构建完整资源路径
-    String fullPath = "textures/";
+    std::string fullPath = "textures/";
     fullPath += texturePath;
 
     // 加载纹理
@@ -214,7 +214,7 @@ Result<void> BitmapGlyphProvider::load(IResourcePack& pack,
     m_codepointToIndex.clear();
 
     for (u32 row = 0; row < rows; ++row) {
-        const String& chars = charRows[row];
+        const std::string& chars = charRows[row];
         for (u32 col = 0; col < chars.length(); ++col) {
             u32 codepoint = static_cast<u32>(static_cast<u8>(chars[col]));
             if (codepoint != 0 && codepoint != ' ') {

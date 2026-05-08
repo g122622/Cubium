@@ -350,7 +350,7 @@ namespace enchant {
 
 class ExampleEnchantment : public Enchantment {
 public:
-    [[nodiscard]] String id() const override {
+    [[nodiscard]] std::string id() const override {
         return "minecraft:example";
     }
 

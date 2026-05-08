@@ -14,7 +14,6 @@ Minecraft Reborn 是一个现代化的 Minecraft 克隆项目，采用客户端-
 - `i8`, `i16`, `i32`, `i64` - 有符号整数
 - `u8`, `u16`, `u32`, `u64` - 无符号整数
 - `f32`, `f64` - 浮点数（性能优先使用 f32）
-- `String`, `StringView` - 字符串类型
 
 ### 游戏类型
 - `ChunkCoord`, `BlockCoord`, `WorldHeight` - 坐标类型
@@ -210,7 +209,7 @@ constexpr i32 CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT;
 ### NBT 系统 (`src/common/util/nbt/`)
 
 **核心类型**
-- `TagId` - NBT 标签类型枚举（End, Byte, Short, Int, Long, Float, Double, ByteArray, String, List, Compound, IntArray, LongArray）
+- `TagId` - NBT 标签类型枚举（End, Byte, Short, Int, Long, Float, Double, ByteArray, std::string, List, Compound, IntArray, LongArray）
 - `tags::tag` - 抽象基类
 - `tags::compound_tag` - 复合标签（键值对映射）
 - `tags::list_tag` - 列表基类（同类型元素）

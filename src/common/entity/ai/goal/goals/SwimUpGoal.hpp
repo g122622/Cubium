@@ -33,7 +33,7 @@ public:
     void resetTask() override;
     void tick() override;
 
-    [[nodiscard]] String getTypeName() const override { return "SwimUpGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "SwimUpGoal"; }
 
 private:
     /**

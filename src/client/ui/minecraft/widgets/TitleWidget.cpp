@@ -20,7 +20,7 @@ TitleWidget::TitleWidget()
 // 标题控制
 // ============================================================================
 
-void TitleWidget::setTitle(const String& text) {
+void TitleWidget::setTitle(const std::string& text) {
     m_title.text = text;
     m_title.elapsed = 0.0f;
     m_title.remainingTime = m_title.fadeInTime + m_title.stayTime + m_title.fadeOutTime;
@@ -35,7 +35,7 @@ void TitleWidget::setTitle(const String& text) {
     }
 }
 
-void TitleWidget::setSubtitle(const String& text) {
+void TitleWidget::setSubtitle(const std::string& text) {
     m_subtitle.text = text;
     m_subtitle.elapsed = 0.0f;
     m_subtitle.remainingTime = m_subtitle.fadeInTime + m_subtitle.stayTime + m_subtitle.fadeOutTime;
@@ -50,7 +50,7 @@ void TitleWidget::setSubtitle(const String& text) {
     }
 }
 
-void TitleWidget::setActionbar(const String& text) {
+void TitleWidget::setActionbar(const std::string& text) {
     m_actionbar.text = text;
     m_actionbar.elapsed = 0.0f;
     m_actionbar.remainingTime = m_actionbar.fadeInTime + m_actionbar.stayTime + m_actionbar.fadeOutTime;
@@ -116,7 +116,7 @@ void TitleWidget::reset() {
 }
 
 void TitleWidget::handleTitlePacket(TitleAction action,
-                                     const std::optional<String>& text,
+                                     const std::optional<std::string>& text,
                                      i32 fadeIn, i32 stay, i32 fadeOut) {
     switch (action) {
         case TitleAction::Title:
@@ -222,7 +222,7 @@ void TitleWidget::renderTitle(kagero::widget::PaintContext& ctx) {
     if (m_title.active && m_title.text.has_value()) {
         f32 alpha = calculateAlpha(m_title);
         if (alpha > 0.0f) {
-            const String& text = *m_title.text;
+            const std::string& text = *m_title.text;
 
             // 计算文本宽度
             f32 textWidth = ctx.getTextWidth(text);
@@ -250,7 +250,7 @@ void TitleWidget::renderTitle(kagero::widget::PaintContext& ctx) {
     if (m_subtitle.active && m_subtitle.text.has_value() && m_title.active) {
         f32 alpha = calculateAlpha(m_subtitle);
         if (alpha > 0.0f) {
-            const String& text = *m_subtitle.text;
+            const std::string& text = *m_subtitle.text;
 
             // 计算副标题位置（主标题下方）
             f32 subtitleY = titleY + 20.0f;
@@ -294,7 +294,7 @@ void TitleWidget::renderActionbar(kagero::widget::PaintContext& ctx) {
     // 计算动作栏位置（快捷栏上方）
     const f32 actionbarY = screenHeight * ACTIONBAR_Y_RATIO;
 
-    const String& text = *m_actionbar.text;
+    const std::string& text = *m_actionbar.text;
 
     // 计算文本宽度
     f32 textWidth = ctx.getTextWidth(text);

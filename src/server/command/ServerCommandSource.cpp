@@ -19,7 +19,7 @@ ServerCommandSource::ServerCommandSource(
     const Vector2f& rotation,
     i32 permissionLevel,
     PlayerId playerId,
-    String playerName
+    std::string playerName
 )
     : m_server(server)
     , m_player(player)
@@ -41,7 +41,7 @@ ServerCommandSource::ServerCommandSource(
 }
 
 void ServerCommandSource::sendMessage(
-    const String& message,
+    const std::string& message,
     const std::optional<Uuid>& /*senderUuid*/
 ) {
     if (m_player) {
@@ -68,9 +68,9 @@ void ServerCommandSource::sendMessage(
     spdlog::info("{}", message);
 }
 
-void ServerCommandSource::sendError(const String& message) {
+void ServerCommandSource::sendError(const std::string& message) {
     // 错误消息使用红色格式（对于支持的客户端）
-    String formattedMessage = "§c" + message;
+    std::string formattedMessage = "§c" + message;
     sendMessage(formattedMessage);
 }
 

@@ -114,16 +114,16 @@ bool Item::canHarvestBlock(const BlockState& state) const {
     return false;
 }
 
-String Item::getTranslationKey() const {
+std::string Item::getTranslationKey() const {
     return "item." + m_itemLocation.toString();
 }
 
-String Item::getTranslationKey(const ItemStack& stack) const {
+std::string Item::getTranslationKey(const ItemStack& stack) const {
     (void)stack;
     return getTranslationKey();
 }
 
-String Item::getName() const {
+std::string Item::getName() const {
     // 默认返回翻译键，未来可支持语言文件
     return getTranslationKey();
 }
@@ -210,7 +210,7 @@ void Item::inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
 }
 
 void Item::addInformation(const ItemStack& stack, IWorld& world,
-                           std::vector<String>& tooltip, bool advanced) const {
+                           std::vector<std::string>& tooltip, bool advanced) const {
     // 默认实现：不做任何操作
     // 子类可重写以添加自定义提示
     (void)stack;

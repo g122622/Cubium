@@ -39,7 +39,7 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
 
     // /advancement grant <targets> only <advancement>
     auto onlyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("only");
-    auto advancementArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto advancementArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "advancement",
         StringArgumentType::string());
     advancementArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -60,7 +60,7 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
 
     // /advancement revoke <targets> only <advancement>
     auto revokeOnlyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("only");
-    auto revokeAdvArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto revokeAdvArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "advancement",
         StringArgumentType::string());
     revokeAdvArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -77,7 +77,7 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto testTargetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets",
         EntityArgumentType::entities());
-    auto testAdvArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, String>>(
+    auto testAdvArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "advancement",
         StringArgumentType::string());
     testAdvArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -102,9 +102,9 @@ i32 AdvancementCommand::grantAdvancement(CommandContext<ServerCommandSource>& co
         return 0;
     }
 
-    String advancement = "everything";
+    std::string advancement = "everything";
     if (context.hasArgument("advancement")) {
-        advancement = context.getArgument<String>("advancement");
+        advancement = context.getArgument<std::string>("advancement");
     }
 
     std::ostringstream ss;
@@ -127,9 +127,9 @@ i32 AdvancementCommand::revokeAdvancement(CommandContext<ServerCommandSource>& c
         return 0;
     }
 
-    String advancement = "everything";
+    std::string advancement = "everything";
     if (context.hasArgument("advancement")) {
-        advancement = context.getArgument<String>("advancement");
+        advancement = context.getArgument<std::string>("advancement");
     }
 
     std::ostringstream ss;
@@ -145,7 +145,7 @@ i32 AdvancementCommand::testAdvancement(CommandContext<ServerCommandSource>& con
 {
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
-    const String advancement = context.getArgument<String>("advancement");
+    const std::string advancement = context.getArgument<std::string>("advancement");
 
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {

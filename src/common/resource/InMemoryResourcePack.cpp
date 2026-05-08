@@ -5,25 +5,25 @@
 
 namespace mc {
 
-InMemoryResourcePack::InMemoryResourcePack(String name)
+InMemoryResourcePack::InMemoryResourcePack(std::string name)
     : m_name(std::move(name))
     , m_metadata(3, "Built-in resources")  // pack_format 3 for 1.16.x
 {
 }
 
-void InMemoryResourcePack::addResource(String path, String content) {
-    String normalized = normalizePath(path);
+void InMemoryResourcePack::addResource(std::string path, std::string content) {
+    std::string normalized = normalizePath(path);
     std::vector<u8> data(content.begin(), content.end());
     m_resources[normalized] = std::move(data);
 
     // 自动添加目录条目
     size_t lastSlash = normalized.find_last_of('/');
-    if (lastSlash != String::npos) {
-        String dir = normalized.substr(0, lastSlash);
+    if (lastSlash != std::string::npos) {
+        std::string dir = normalized.substr(0, lastSlash);
         while (!dir.empty()) {
             m_directories.insert(dir);
             size_t pos = dir.find_last_of('/');
-            if (pos == String::npos) {
+            if (pos == std::string::npos) {
                 break;
             }
             dir = dir.substr(0, pos);
@@ -31,18 +31,18 @@ void InMemoryResourcePack::addResource(String path, String content) {
     }
 }
 
-void InMemoryResourcePack::addResource(String path, std::vector<u8> data) {
-    String normalized = normalizePath(path);
+void InMemoryResourcePack::addResource(std::string path, std::vector<u8> data) {
+    std::string normalized = normalizePath(path);
     m_resources[normalized] = std::move(data);
 
     // 自动添加目录条目
     size_t lastSlash = normalized.find_last_of('/');
-    if (lastSlash != String::npos) {
-        String dir = normalized.substr(0, lastSlash);
+    if (lastSlash != std::string::npos) {
+        std::string dir = normalized.substr(0, lastSlash);
         while (!dir.empty()) {
             m_directories.insert(dir);
             size_t pos = dir.find_last_of('/');
-            if (pos == String::npos) {
+            if (pos == std::string::npos) {
                 break;
             }
             dir = dir.substr(0, pos);
@@ -50,8 +50,8 @@ void InMemoryResourcePack::addResource(String path, std::vector<u8> data) {
     }
 }
 
-void InMemoryResourcePack::addDirectory(String directory) {
-    String normalized = normalizePath(directory);
+void InMemoryResourcePack::addDirectory(std::string directory) {
+    std::string normalized = normalizePath(directory);
     m_directories.insert(normalized);
 }
 
@@ -61,13 +61,13 @@ Result<void> InMemoryResourcePack::initialize() {
     return Result<void>::ok();
 }
 
-bool InMemoryResourcePack::hasResource(StringView resourcePath) const {
-    String normalized = normalizePath(resourcePath);
+bool InMemoryResourcePack::hasResource(std::string_view resourcePath) const {
+    std::string normalized = normalizePath(resourcePath);
     return m_resources.find(normalized) != m_resources.end();
 }
 
-Result<std::vector<u8>> InMemoryResourcePack::readResource(StringView resourcePath) const {
-    String normalized = normalizePath(resourcePath);
+Result<std::vector<u8>> InMemoryResourcePack::readResource(std::string_view resourcePath) const {
+    std::string normalized = normalizePath(resourcePath);
 
     auto it = m_resources.find(normalized);
     if (it != m_resources.end()) {
@@ -79,12 +79,12 @@ Result<std::vector<u8>> InMemoryResourcePack::readResource(StringView resourcePa
     return Error(ErrorCode::ResourceNotFound, oss.str());
 }
 
-Result<std::vector<String>> InMemoryResourcePack::listResources(
-    StringView directory,
-    StringView extension) const
+Result<std::vector<std::string>> InMemoryResourcePack::listResources(
+    std::string_view directory,
+    std::string_view extension) const
 {
-    std::vector<String> resources;
-    String normalizedDir = normalizePath(directory);
+    std::vector<std::string> resources;
+    std::string normalizedDir = normalizePath(directory);
 
     // 确保目录以斜杠结尾
     if (!normalizedDir.empty() && normalizedDir.back() != '/') {
@@ -114,8 +114,8 @@ Result<std::vector<String>> InMemoryResourcePack::listResources(
     return resources;
 }
 
-String InMemoryResourcePack::normalizePath(StringView path) {
-    String result(path);
+std::string InMemoryResourcePack::normalizePath(std::string_view path) {
+    std::string result(path);
 
     // 统一使用正斜杠
     std::replace(result.begin(), result.end(), '\\', '/');

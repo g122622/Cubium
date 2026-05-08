@@ -88,7 +88,7 @@ public:
     /**
      * @brief 获取算法名称
      */
-    [[nodiscard]] String name() const override
+    [[nodiscard]] std::string name() const override
     {
         return "grid";
     }
@@ -146,7 +146,7 @@ public:
     /**
      * @brief 获取算法名称
      */
-    [[nodiscard]] String name() const override
+    [[nodiscard]] std::string name() const override
     {
         return "anchor";
     }
@@ -202,7 +202,7 @@ public:
     /**
      * @brief 获取算法名称
      */
-    [[nodiscard]] String name() const override
+    [[nodiscard]] std::string name() const override
     {
         return "stack";
     }
