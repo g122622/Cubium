@@ -144,6 +144,20 @@ public:
      */
     void eatGrassBonus();
 
+    // ========== 颜色混合 ==========
+
+    /**
+     * @brief 从父母颜色获取混合后的幼羊颜色
+     * 参考 MC 1.16.5 SheepEntity.getDyeColorMixFromParents()
+     *
+     * @param parent1Color 父母1的颜色
+     * @param parent2Color 父母2的颜色
+     * @param random 随机数生成器
+     * @return 混合后的颜色（如果没有配方则随机选择父母颜色）
+     */
+    [[nodiscard]] static DyeColor getDyeColorMixFromParents(
+        DyeColor parent1Color, DyeColor parent2Color, math::Random& random);
+
     /**
      * @brief 吃草动画计时器
      */

@@ -12,11 +12,13 @@
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"  // 包含 LookRandomlyGoal
+#include "../../../ai/goal/goals/EatGrassGoal.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include <memory>
 #include <vector>
+#include <optional>
 
 namespace mc {
 
@@ -106,10 +108,10 @@ std::unique_ptr<AnimalEntity> SheepEntity::spawnBaby(AnimalEntity& partner) {
     // MC 1.16.5: 颜色继承逻辑
     SheepEntity* partnerSheep = dynamic_cast<SheepEntity*>(&partner);
     if (partnerSheep != nullptr) {
-        // TODO: 实现颜色混合逻辑
-        // DyeColor mixedColor = getDyeColorMixFromParents(this, partnerSheep);
-        // baby->setFleeceColor(mixedColor);
-        baby->setFleeceColor(getFleeceColor());  // 暂时继承父体颜色
+        // 使用颜色混合逻辑
+        math::Random rng = getRandom();
+        DyeColor mixedColor = getDyeColorMixFromParents(getFleeceColor(), partnerSheep->getFleeceColor(), rng);
+        baby->setFleeceColor(mixedColor);
     } else {
         baby->setFleeceColor(getFleeceColor());
     }
@@ -205,10 +207,15 @@ void SheepEntity::registerGoals() {
     // 优先级 4: 跟随父母
     m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.1));
 
-    // 优先级 5: 随机漫步
-    m_goalSelector.addGoal(5, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
+    // 优先级 5: 吃草 - MC 1.16.5: 在 RandomWalkingGoal 之前
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::EatGrassGoal>(
+        this,
+        [this]() { this->eatGrassBonus(); },
+        [this]() { return this->isChild(); }
+    ));
 
-    // TODO: 优先级 6: EatGrassGoal - TODO 需要实现
+    // 优先级 6: 随机漫步
+    m_goalSelector.addGoal(6, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
 
     // 优先级 7: 看向玩家
     m_goalSelector.addGoal(7, new entity::ai::goal::LookAtGoal(this, 6.0f));
@@ -234,6 +241,92 @@ void SheepEntity::tick() {
     }
 
     AnimalEntity::tick();
+}
+
+// ============================================================================
+// 颜色混合逻辑
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 染料颜色混合表
+ *
+ * MC 1.16.5 中的颜色混合基于合成配方：
+ * - 白色 + 红色 = 粉红色
+ * - 红色 + 黄色 = 橙色
+ * - 白色 + 黑色 = 灰色
+ * - 灰色 + 白色 = 淡灰色
+ * - 白色 + 蓝色 = 淡蓝色
+ * - 蓝色 + 红色 = 紫色
+ * - 蓝色 + 绿色 = 青色
+ * - 白色 + 绿色 = 黄绿色
+ * 等等
+ */
+const std::vector<std::tuple<DyeColor, DyeColor, DyeColor>> COLOR_MIXING_TABLE = {
+    // 白色混合
+    {DyeColor::White, DyeColor::Red, DyeColor::Pink},
+    {DyeColor::White, DyeColor::Blue, DyeColor::LightBlue},
+    {DyeColor::White, DyeColor::Green, DyeColor::Lime},
+    {DyeColor::White, DyeColor::Black, DyeColor::Gray},
+    {DyeColor::White, DyeColor::Gray, DyeColor::LightGray},
+
+    // 红色混合
+    {DyeColor::Red, DyeColor::Yellow, DyeColor::Orange},
+    {DyeColor::Red, DyeColor::Blue, DyeColor::Purple},
+
+    // 蓝色混合
+    {DyeColor::Blue, DyeColor::Green, DyeColor::Cyan},
+    {DyeColor::Blue, DyeColor::White, DyeColor::LightBlue},
+    {DyeColor::Blue, DyeColor::Red, DyeColor::Purple},
+
+    // 黄色混合
+    {DyeColor::Yellow, DyeColor::Red, DyeColor::Orange},
+
+    // 绿色混合
+    {DyeColor::Green, DyeColor::Blue, DyeColor::Cyan},
+    {DyeColor::Green, DyeColor::White, DyeColor::Lime},
+
+    // 黑色混合
+    {DyeColor::Black, DyeColor::White, DyeColor::Gray},
+
+    // 灰色混合
+    {DyeColor::Gray, DyeColor::White, DyeColor::LightGray},
+};
+
+/**
+ * @brief 查找颜色混合结果
+ * @param c1 颜色1
+ * @param c2 颜色2
+ * @return 混合后的颜色，如果没有配方返回无效值
+ */
+std::optional<DyeColor> findMixingResult(DyeColor c1, DyeColor c2) {
+    for (const auto& [a, b, result] : COLOR_MIXING_TABLE) {
+        if ((a == c1 && b == c2) || (a == c2 && b == c1)) {
+            return result;
+        }
+    }
+    return std::nullopt;
+}
+
+} // anonymous namespace
+
+DyeColor SheepEntity::getDyeColorMixFromParents(DyeColor parent1Color, DyeColor parent2Color, math::Random& random) {
+    // MC 1.16.5: 尝试通过混合表查找
+    // 如果两个颜色相同，直接返回该颜色
+    if (parent1Color == parent2Color) {
+        return parent1Color;
+    }
+
+    // 查找混合结果
+    auto mixedColor = findMixingResult(parent1Color, parent2Color);
+    if (mixedColor.has_value()) {
+        return mixedColor.value();
+    }
+
+    // MC 1.16.5: 如果没有配方，随机选择父母颜色
+    // 原版使用 world.rand.nextBoolean()
+    return random.nextBoolean() ? parent1Color : parent2Color;
 }
 
 } // namespace mc

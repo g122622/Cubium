@@ -236,6 +236,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/RandomSwimmingGoal.cpp
     entity/ai/goal/goals/FindWaterGoal.cpp
     entity/ai/goal/goals/SwimUpGoal.cpp
+    entity/ai/goal/goals/EatGrassGoal.cpp
     entity/ai/goal/goals/interact/TameableGoals.cpp
     entity/ai/goal/goals/movement/MovementGoals.cpp
     entity/ai/goal/goals/movement/FollowSchoolLeaderGoal.cpp
