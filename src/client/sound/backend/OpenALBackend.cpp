@@ -321,8 +321,8 @@ void OpenALSource::queueBuffers(const AudioBufferId* buffers, size_t count) {
     std::vector<ALuint> alBuffers;
     alBuffers.reserve(count);
 
-    // 注意：这里需要从 AudioBufferManager 获取实际的 OpenALBuffer
-    // 这是一个简化实现，实际使用时需要传入 BufferManager 或映射表
+    // 注意：这里需要从 AudioBufferCache 获取实际的 OpenALBuffer
+    // 这是一个简化实现，实际使用时需要传入缓存映射表
     // 暂时跳过，流式播放将在 SoundEngine 层实现
     spdlog::warn("[OpenALSource] queueBuffers: streaming not fully implemented");
 

@@ -40,7 +40,7 @@ namespace client::sound {
  * - 8-bit 和 16-bit 采样
  *
  * @see AudioData
- * @see AudioBufferManager
+ * @see AudioBufferCache
  */
 class SoundLoader {
 public:

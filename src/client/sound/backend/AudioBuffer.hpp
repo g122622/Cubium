@@ -2,12 +2,10 @@
 
 #include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundTypes.hpp"
 
 #include <vector>
 #include <memory>
-#include <unordered_map>
 
 namespace mc::client::sound {
 
@@ -132,101 +130,6 @@ public:
      * @brief 检查缓冲区是否有效
      */
     [[nodiscard]] virtual bool isValid() const noexcept = 0;
-};
-
-/**
- * @brief 音频缓冲区管理器
- *
- * 管理音频缓冲区的创建、缓存和销毁。
- * 支持缓冲区共享以节省内存。
- *
- * 使用示例:
- * @code
- * AudioBufferManager manager;
- *
- * // 加载音频
- * auto buffer = manager.load("minecraft:sounds/dig/stone1.ogg");
- * if (buffer.success()) {
- *     // 使用缓冲区
- * }
- *
- * // 获取已缓存的缓冲区
- * auto cached = manager.get("minecraft:sounds/dig/stone1.ogg");
- * @endcode
- */
-class AudioBufferManager {
-public:
-    /**
-     * @brief 默认构造函数
-     */
-    AudioBufferManager() = default;
-
-    /**
-     * @brief 析构函数
-     */
-    ~AudioBufferManager() = default;
-
-    // 禁止拷贝
-    AudioBufferManager(const AudioBufferManager&) = delete;
-    AudioBufferManager& operator=(const AudioBufferManager&) = delete;
-
-    // 允许移动
-    AudioBufferManager(AudioBufferManager&&) noexcept = default;
-    AudioBufferManager& operator=(AudioBufferManager&&) noexcept = default;
-
-    /**
-     * @brief 加载音频文件
-     *
-     * 如果缓冲区已缓存，直接返回缓存实例。
-     * 否则从资源加载音频数据并创建新缓冲区。
-     *
-     * @param location 音频文件资源位置
-     * @return 音频缓冲区，或错误
-     */
-    [[nodiscard]] Result<std::shared_ptr<IAudioBuffer>> load(
-        const ResourceLocation& location
-    );
-
-    /**
-     * @brief 获取已缓存的缓冲区
-     *
-     * @param location 音频文件资源位置
-     * @return 缓冲区，不存在返回 nullptr
-     */
-    [[nodiscard]] std::shared_ptr<IAudioBuffer> get(
-        const ResourceLocation& location
-    ) const;
-
-    /**
-     * @brief 检查缓冲区是否已缓存
-     */
-    [[nodiscard]] bool has(const ResourceLocation& location) const;
-
-    /**
-     * @brief 卸载缓冲区
-     *
-     * @param location 音频文件资源位置
-     * @return 是否成功卸载
-     */
-    bool unload(const ResourceLocation& location);
-
-    /**
-     * @brief 卸载所有缓冲区
-     */
-    void unloadAll();
-
-    /**
-     * @brief 获取缓存大小
-     */
-    [[nodiscard]] size_t cacheSize() const noexcept;
-
-    /**
-     * @brief 获取缓冲区数量
-     */
-    [[nodiscard]] size_t bufferCount() const noexcept;
-
-private:
-    std::unordered_map<ResourceLocation, std::weak_ptr<IAudioBuffer>> m_buffers;
 };
 
 } // namespace mc::client::sound
