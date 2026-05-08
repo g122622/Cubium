@@ -12,6 +12,7 @@ goal/
 └── goals/                    # 具体目标实现
     ├── AvoidEntityGoal.hpp/cpp   # 避开实体目标
     ├── BreedGoal.hpp/cpp         # 繁殖目标
+    ├── EatGrassGoal.hpp/cpp      # 吃草目标（羊等草食动物）
     ├── FollowParentGoal.hpp/cpp  # 跟随父母目标
     ├── LookAtGoal.hpp/cpp        # 看向目标/随机看向
     ├── MeleeAttackGoal.hpp/cpp   # 近战攻击目标
@@ -376,6 +377,45 @@ bool isPreemptedBy(const PrioritizedGoal& other) const {
 - `m_speed`: 跟随速度
 - `m_scaredByMovement`: 是否被玩家移动吓跑
 - `TEMPT_COOLDOWN`: 诱惑冷却 (100 tick)
+
+---
+
+#### EatGrassGoal - 吃草目标
+
+**职责**: 使草食动物（如羊）吃草方块或草丛。
+
+**执行条件**: 概率触发（幼年 1/50，成年 1/1000），且当前位置或下方有草
+
+**行为**:
+1. 概率检查决定是否尝试吃草
+2. 检测当前位置的草/高草丛或下方的草方块
+3. 播放吃草动画（40 ticks）
+4. 第 4 tick 时将草方块转为泥土，或移除草/高草丛
+5. 调用回调函数通知实体（如羊重新长毛、幼体加速成长）
+
+**互斥标志**: `Move`, `Look`, `Jump`
+
+**关键参数**:
+- `EAT_DURATION`: 吃草动画持续时间 (40 ticks)
+- `EAT_TICK`: 执行吃草动作的时机 (第 4 tick)
+- `CHILD_CHANCE`: 幼年动物触发概率倒数 (50)
+- `ADULT_CHANCE`: 成年动物触发概率倒数 (1000)
+
+**使用示例**:
+```cpp
+void SheepEntity::registerGoals() {
+    // ...其他目标...
+    
+    // 优先级 5: 吃草
+    m_goalSelector.addGoal(5, std::make_unique<EatGrassGoal>(
+        this,
+        [this]() { this->eatGrassBonus(); },  // 吃草回调
+        [this]() { return this->isChild(); }   // 是否幼年检查
+    ));
+}
+```
+
+**参考**: MC 1.16.5 `net.minecraft.entity.ai.goal.EatGrassGoal`
 
 ---
 

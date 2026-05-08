@@ -44,6 +44,20 @@ MobEntity
 - 16种颜色（通过 DyeColor 枚举）
 - 实现 IShearable 接口
 - 剪毛后需吃草重新长出羊毛
+- **颜色混合**：繁殖时幼羊颜色由父母颜色混合决定
+  - 白色 + 红色 = 粉红色
+  - 红色 + 黄色 = 橙色
+  - 白色 + 蓝色 = 淡蓝色
+  - 蓝色 + 绿色 = 青色
+  - 蓝色 + 红色 = 紫色
+  - 白色 + 绿色 = 黄绿色
+  - 白色 + 黑色 = 灰色
+  - 灰色 + 白色 = 淡灰色
+  - 无配方时随机选择父母颜色
+- **吃草行为**：通过 EatGrassGoal 实现
+  - 概率触发（幼年 1/50，成年 1/1000）
+  - 吃草后重新长出羊毛（如果被剪过）
+  - 幼羊吃草加速成长 60 ticks
 
 ### 鸡 (ChickenEntity)
 - 生命值：4
@@ -75,3 +89,4 @@ if (animal1->isInLove() && animal2->isInLove() && animal1->canMateWith(animal2))
 | 文件 | 说明 |
 |------|------|
 | `tests/common/entity/entities/passive/basic/ChickenEntityTest.cpp` | 验证鸡蛋生成与计时器重置 |
+| `tests/entity/EatGrassGoalTest.cpp` | 验证羊颜色混合和吃草行为 |

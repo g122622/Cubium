@@ -68,7 +68,7 @@
 - ✅ 已完成 `src/common/entity/entities/passive/basic/ChickenEntity.cpp:87`：补掉蛋生成物品实体并重置计时器。
 - `src/common/entity/entities/passive/basic/CowEntity.hpp:50`：补挤奶逻辑，目标是把空桶和牛奶桶互转接通。
 - `src/common/entity/entities/passive/basic/PigEntity.cpp:33` 与 `RabbitEntity.cpp:53,62`：补基础类型检查、食物判定和幼兔生成。
-- `src/common/entity/entities/passive/basic/SheepEntity.cpp:36,66,86,113`：补羊毛物品映射、父母颜色继承、吃草目标和羊毛再生。
+- ✅ 已完成 `src/common/entity/entities/passive/basic/SheepEntity.cpp:36,66,86,113`：补羊毛物品映射、父母颜色继承、吃草目标和羊毛再生。实现了 EatGrassGoal、颜色混合逻辑和 eatGrassBonus 调用。
 - `src/common/entity/entities/passive/special/BeeEntity.cpp:40,47,75`：补花朵判定、幼蜂生成和水中判定。
 - `src/common/entity/entities/passive/special/FoxEntity.cpp:91,99`：补浆果判定与幼狐生成。
 - `src/common/entity/entities/passive/special/StriderEntity.cpp:32,63`：补熔岩判定与诡异菌判定。
