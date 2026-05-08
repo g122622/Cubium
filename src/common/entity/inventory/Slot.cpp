@@ -158,17 +158,16 @@ bool ArmorSlot::mayPickup(Player& player) const {
         return true;
     }
 
-    // TODO: 检查玩家是否是创造模式
-    // if (player.isCreativeMode()) {
-    //     return true;
-    // }
+    // 创造模式可以取下任何护甲
+    if (player.isCreative()) {
+        return true;
+    }
 
-    // TODO: 检查绑定诅咒
-    // if (EnchantmentHelper::hasBindingCurse(stack)) {
-    //     return false;
-    // }
+    // 绑定诅咒的护甲无法取下
+    if (item::enchant::EnchantmentHelper::hasBindingCurse(stack)) {
+        return false;
+    }
 
-    (void)player;
     return true;
 }
 

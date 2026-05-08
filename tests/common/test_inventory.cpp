@@ -18,6 +18,8 @@
 #include "../src/common/world/block/Block.hpp"
 #include "../src/common/util/math/random/Random.hpp"
 #include "../src/common/world/blockentity/core/SimpleInventory.hpp"
+#include "../src/common/item/enchantment/EnchantmentRegistry.hpp"
+#include "../src/common/item/enchantment/EnchantmentHelper.hpp"
 
 #include <array>
 
@@ -520,8 +522,13 @@ class SlotTest : public ::testing::Test {
 protected:
     void SetUp() override {
         Items::initialize();
+        item::enchant::EnchantmentRegistry::initialize();
         m_inventory = std::make_unique<PlayerInventory>(nullptr);
         m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    }
+
+    void TearDown() override {
+        item::enchant::EnchantmentRegistry::clear();
     }
 
     std::unique_ptr<PlayerInventory> m_inventory;
@@ -601,6 +608,118 @@ TEST_F(SlotTest, ArmorSlotOnlyAcceptsMatchingArmorType) {
     EXPECT_TRUE(feetSlot.mayPlace(ItemStack(boots)));
     EXPECT_FALSE(feetSlot.mayPlace(ItemStack(helmet)));
     EXPECT_FALSE(feetSlot.mayPlace(ItemStack(*m_diamond)));
+}
+
+TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForEmptySlot) {
+    ArmorSlot headSlot(m_inventory.get(), InventorySlots::ARMOR_HEAD, 0, 0, ArmorSlot::ArmorType::Head);
+    Player player(EntityId(1), "TestPlayer");
+
+    // 空槽位应该总是可以拾取
+    EXPECT_TRUE(headSlot.mayPickup(player));
+}
+
+TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForCreativePlayer) {
+    auto makeArmorItem = [](const item::armor::ArmorMaterial& material,
+                            item::armor::ArmorSlot slot) {
+        return item::items::ArmorItem(
+            material,
+            slot,
+            ItemProperties().maxDamage(material.getDurability(slot)));
+    };
+
+    const auto helmet = makeArmorItem(item::armor::ArmorMaterials::IRON, item::armor::ArmorSlot::Head);
+
+    ArmorSlot headSlot(m_inventory.get(), InventorySlots::ARMOR_HEAD, 0, 0, ArmorSlot::ArmorType::Head);
+    m_inventory->setItem(InventorySlots::ARMOR_HEAD, ItemStack(helmet));
+
+    Player player(EntityId(1), "TestPlayer");
+    player.setGameMode(GameMode::Creative);
+
+    // 创造模式玩家可以取下任何护甲
+    EXPECT_TRUE(headSlot.mayPickup(player));
+}
+
+TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForNormalArmor) {
+    auto makeArmorItem = [](const item::armor::ArmorMaterial& material,
+                            item::armor::ArmorSlot slot) {
+        return item::items::ArmorItem(
+            material,
+            slot,
+            ItemProperties().maxDamage(material.getDurability(slot)));
+    };
+
+    const auto chestplate = makeArmorItem(item::armor::ArmorMaterials::DIAMOND, item::armor::ArmorSlot::Chest);
+
+    ArmorSlot chestSlot(m_inventory.get(), InventorySlots::ARMOR_CHEST, 0, 0, ArmorSlot::ArmorType::Chest);
+    m_inventory->setItem(InventorySlots::ARMOR_CHEST, ItemStack(chestplate));
+
+    Player player(EntityId(1), "TestPlayer");
+    player.setGameMode(GameMode::Survival);
+
+    // 普通护甲（无绑定诅咒）可以取下
+    EXPECT_TRUE(chestSlot.mayPickup(player));
+}
+
+TEST_F(SlotTest, ArmorSlotMayPickupReturnsFalseForBindingCurseArmor) {
+    auto makeArmorItem = [](const item::armor::ArmorMaterial& material,
+                            item::armor::ArmorSlot slot) {
+        return item::items::ArmorItem(
+            material,
+            slot,
+            ItemProperties().maxDamage(material.getDurability(slot)));
+    };
+
+    const auto boots = makeArmorItem(item::armor::ArmorMaterials::DIAMOND, item::armor::ArmorSlot::Feet);
+
+    ArmorSlot feetSlot(m_inventory.get(), InventorySlots::ARMOR_FEET, 0, 0, ArmorSlot::ArmorType::Feet);
+
+    // 创建带绑定诅咒的护甲
+    ItemStack cursedBoots(boots);
+    cursedBoots.addEnchantment("minecraft:binding_curse", 1);
+    m_inventory->setItem(InventorySlots::ARMOR_FEET, cursedBoots);
+
+    Player survivalPlayer(EntityId(1), "SurvivalPlayer");
+    survivalPlayer.setGameMode(GameMode::Survival);
+
+    // 生存模式玩家无法取下绑定诅咒的护甲
+    EXPECT_FALSE(feetSlot.mayPickup(survivalPlayer));
+
+    // 创造模式玩家可以取下绑定诅咒的护甲
+    Player creativePlayer(EntityId(2), "CreativePlayer");
+    creativePlayer.setGameMode(GameMode::Creative);
+    EXPECT_TRUE(feetSlot.mayPickup(creativePlayer));
+}
+
+TEST_F(SlotTest, ArmorSlotMayPickupWithMultipleEnchantments) {
+    auto makeArmorItem = [](const item::armor::ArmorMaterial& material,
+                            item::armor::ArmorSlot slot) {
+        return item::items::ArmorItem(
+            material,
+            slot,
+            ItemProperties().maxDamage(material.getDurability(slot)));
+    };
+
+    const auto leggings = makeArmorItem(item::armor::ArmorMaterials::NETHERITE, item::armor::ArmorSlot::Legs);
+
+    ArmorSlot legsSlot(m_inventory.get(), InventorySlots::ARMOR_LEGS, 0, 0, ArmorSlot::ArmorType::Legs);
+
+    // 创建带多个附魔的护甲（包含绑定诅咒）
+    ItemStack multiEnchantedLeggings(leggings);
+    multiEnchantedLeggings.addEnchantment("minecraft:protection", 4);
+    multiEnchantedLeggings.addEnchantment("minecraft:unbreaking", 3);
+    multiEnchantedLeggings.addEnchantment("minecraft:binding_curse", 1);
+    multiEnchantedLeggings.addEnchantment("minecraft:mending", 1);
+    m_inventory->setItem(InventorySlots::ARMOR_LEGS, multiEnchantedLeggings);
+
+    Player player(EntityId(1), "TestPlayer");
+    player.setGameMode(GameMode::Survival);
+
+    // 绑定诅咒存在时无法取下
+    EXPECT_FALSE(legsSlot.mayPickup(player));
+
+    // 验证绑定诅咒附魔确实存在
+    EXPECT_TRUE(item::enchant::EnchantmentHelper::hasBindingCurse(
+        m_inventory->getItem(InventorySlots::ARMOR_LEGS)));
 }
 
 TEST(ArmorItemTest, TotalArmorStatsSumAllEquippedPieces) {
