@@ -10,6 +10,7 @@ block/
 ├── BlockPos.hpp            # 方块位置坐标类
 ├── BlockRegistry.hpp/cpp   # 方块注册表（单例）
 ├── HarvestTool.hpp         # 挖掘工具类型定义
+├── IBeaconBeamColorProvider.hpp # 信标光束颜色提供者接口
 ├── IBucketPickupHandler.hpp # 桶提取接口
 ├── ILiquidContainer.hpp    # 液体容器接口
 ├── IWaterLoggable.hpp      # 含水方块接口
@@ -181,6 +182,41 @@ block/
 - `Hoe (4)`：锄
 - `Sword (5)`：剑
 - `Shears (6)`：剪刀
+
+### IBeaconBeamColorProvider.hpp
+
+**职责**：定义信标光束颜色提供者接口，实现此接口的方块可以为信标光束提供颜色。
+
+**主要组件**：
+- **`IBeaconBeamColorProvider`**：接口类
+  - `getBeaconColor()`：返回此方块提供的染料颜色
+
+- **`BeaconColors`**：颜色工具类
+  - `getColorComponents(DyeColor)`：将染料颜色转换为 RGB float 数组
+
+**已实现方块**：
+| 方块类 | 颜色 |
+|--------|------|
+| StainedGlassBlock | 16种染料颜色 |
+
+**使用示例**：
+```cpp
+#include "world/block/IBeaconBeamColorProvider.hpp"
+
+// 检查方块是否提供信标光束颜色
+const Block* block = &state.getBlock();
+const auto* colorPtr = block->getBeaconColorMultiplier(state, &world, &pos, &beaconPos);
+if (colorPtr != nullptr) {
+    // 方块会修改信标光束颜色
+    f32 r = (*colorPtr)[0];
+    f32 g = (*colorPtr)[1];
+    f32 b = (*colorPtr)[2];
+}
+```
+
+**MC 1.16.5 参考**：
+- `net.minecraft.block.IBeaconBeamColorProvider`
+- `net.minecraft.item.DyeColor#getColorComponentValues`
 
 ### ILiquidContainer.hpp
 

@@ -1,12 +1,13 @@
 # 装饰性方块模块
 
-提供玻璃板、地毯、灯笼等装饰性方块的实现。
+提供玻璃板、地毯、灯笼、染色玻璃等装饰性方块的实现。
 
 ## 目录结构
 
 ```
 decorative/
 ├── PaneBlock.hpp/cpp           # 玻璃板/铁栏杆基类
+├── StainedGlassBlock.hpp/cpp   # 染色玻璃（信标光束颜色提供者）
 ├── CarpetBlock.hpp/cpp         # 地毯
 ├── GlazedTerracottaBlock.hpp/cpp # 釉面陶瓦
 ├── FlowerPotBlock.hpp/cpp      # 花盆
@@ -39,6 +40,46 @@ decorative/
 - GLASS_PANE（玻璃板）
 - WHITE_STAINED_GLASS_PANE ~ BLACK_STAINED_GLASS_PANE（染色玻璃板）
 - IRON_BARS（铁栏杆）
+
+### StainedGlassBlock.hpp/cpp
+
+**职责**：染色玻璃方块。
+
+**特性**:
+- 实现 `IBeaconBeamColorProvider` 接口
+- 为信标光束提供颜色
+- 16种染料颜色
+
+**接口实现**:
+```cpp
+class StainedGlassBlock : public Block, public IBeaconBeamColorProvider {
+public:
+    // 返回此染色玻璃的染料颜色
+    [[nodiscard]] DyeColor getBeaconColor() const override;
+
+    // 返回 RGB 颜色数组用于信标光束渲染
+    [[nodiscard]] const std::array<f32, 3>* getBeaconColorMultiplier(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr,
+        const BlockPos* beaconPos = nullptr) const override;
+
+    // 玻璃非固体
+    [[nodiscard]] bool isSolid(const BlockState& state) const override;
+};
+```
+
+**信标光束颜色混合**:
+- 信标光束穿过染色玻璃时，颜色会与当前光束颜色平均混合
+- 混合算法: `newColor = (currentColor + blockColor) / 2.0`
+- 多层染色玻璃会依次混合
+
+**衍生方块**: 16种染色玻璃
+- WHITE_STAINED_GLASS, ORANGE_STAINED_GLASS, MAGENTA_STAINED_GLASS
+- LIGHT_BLUE_STAINED_GLASS, YELLOW_STAINED_GLASS, LIME_STAINED_GLASS
+- PINK_STAINED_GLASS, GRAY_STAINED_GLASS, LIGHT_GRAY_STAINED_GLASS
+- CYAN_STAINED_GLASS, PURPLE_STAINED_GLASS, BLUE_STAINED_GLASS
+- BROWN_STAINED_GLASS, GREEN_STAINED_GLASS, RED_STAINED_GLASS, BLACK_STAINED_GLASS
 
 ### CarpetBlock.hpp/cpp
 
@@ -190,3 +231,12 @@ auto redCarpet = std::make_unique<CarpetBlock>(
 - `PaneBlockTest.cpp` - 玻璃板测试
 - `CarpetBlockTest.cpp` - 地毯测试
 - `LanternBlockTest.cpp` - 灯笼测试
+- `DecorativeBlockTest.cpp` - 梯子、花盆等装饰性方块测试
+- `StainedGlassBlockTest.cpp` - 染色玻璃和信标颜色工具类测试
+  - `BeaconColorsTest` - BeaconColors 工具类测试（16种颜色的 RGB 值验证）
+  - `StainedGlassBlockTest` - StainedGlassBlock 功能测试
+    - 构造和属性验证
+    - `isSolid()` 返回 false
+    - `getBeaconColor()` 返回正确的 DyeColor
+    - `getBeaconColorMultiplier()` 返回正确的 RGB 值
+    - IBeaconBeamColorProvider 接口验证
