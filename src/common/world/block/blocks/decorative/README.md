@@ -204,7 +204,9 @@ public:
 - `updatePostPlacement`: 邻居更新时调度 tick
 - `tick`: 
   - 重新计算距离和底部状态
-  - 若 `distance == 7`：掉落或破坏方块
+  - 若 `distance == 7`：
+    - 如果之前 `distance == 7`：破坏方块并掉落脚手架物品（使用 `ItemDropHelper`）
+    - 如果之前 `distance != 7`：创建 `FallingBlockEntity` 下落实体
   - 若状态改变：更新方块状态
 
 **放置检测** (`isValidPosition`):

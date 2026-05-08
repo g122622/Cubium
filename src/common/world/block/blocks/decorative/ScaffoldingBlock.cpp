@@ -4,9 +4,12 @@
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../WaterLoggableHelpers.hpp"
 #include "../../BlockRegistry.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/items/block/BlockItemRegistry.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../../entity/entities/misc/MiscEntities.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
-#include "../../../../entity/entities/misc/MiscEntities.hpp"
 #include "../../../../core/Types.hpp"
 
 namespace mc {
@@ -145,21 +148,61 @@ void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
     // 参考 MC 1.16.5: tick() 方法
     // distance == 7 表示需要掉落
     if (distance == 7) {
-        // 如果之前 distance != 7，则生成下落实体
-        // 如果之前 distance == 7，则直接破坏方块
-        if (state.get(BlockStateProperties::DISTANCE_0_7()) == 7) {
+        i32 previousDistance = state.get(BlockStateProperties::DISTANCE_0_7());
+
+        if (previousDistance == 7) {
             // 已经是 distance=7，破坏方块并掉落物品
-            // TODO: 当物品掉落系统完善后，应掉落脚手架物品
-            world.setBlockState(pos, BlockRegistry::instance().airState(), 3);
+            // 参考 MC: worldIn.destroyBlock(pos, true)
+
+            // 移除方块
+            const BlockState* airState = BlockRegistry::instance().airState();
+            world.setBlockState(pos, airState, 3);
+
+            // 掉落脚手架物品
+            const Block* block = &currentState->getBlock();
+            const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*block);
+            if (blockItem != nullptr) {
+                // 创建物品堆
+                ItemStack stack(*blockItem, 1);
+
+                // 在方块中心位置生成物品实体
+                math::Random& rng = world.getRandom();
+                ItemDropHelper::spawnItemEntity(
+                    &world,
+                    stack,
+                    static_cast<f64>(pos.x) + 0.5,
+                    static_cast<f64>(pos.y) + 0.5,
+                    static_cast<f64>(pos.z) + 0.5,
+                    rng
+                );
+            }
         } else {
             // 新的 distance=7，生成下落方块实体
             // 参考 MC: worldIn.addEntity(new FallingBlockEntity(...))
             // 注意：下落时不包含含水状态
-            BlockState fallingState = newState.with(BlockStateProperties::WATERLOGGED(), false);
+            // fallingState 用于记录下落时的状态，但目前 FallingBlockEntity 只存储 blockId
 
-            // TODO: 当 FallingBlockEntity 实现完善后，创建下落实体
-            // 目前先直接破坏方块
-            world.setBlockState(pos, BlockRegistry::instance().airState(), 3);
+            // 移除原方块
+            const BlockState* airState = BlockRegistry::instance().airState();
+            if (airState != nullptr && world.setBlockState(pos, airState, 3)) {
+                // 创建下落实体
+                auto fallingEntity = std::make_unique<entity::FallingBlockEntity>();
+                fallingEntity->setPosition(
+                    static_cast<f32>(pos.x) + 0.5f,
+                    static_cast<f32>(pos.y),
+                    static_cast<f32>(pos.z) + 0.5f);
+                fallingEntity->setVelocity(0.0f, 0.0f, 0.0f);
+                fallingEntity->setBlockId(currentState->blockId());
+                fallingEntity->setFallStartPos(static_cast<f64>(pos.y));
+                // 脚手架下落时不伤害实体
+                fallingEntity->setHurtEntities(false);
+
+                const EntityId entityId = world.spawnEntity(std::move(fallingEntity));
+                if (entityId == 0) {
+                    // 生成失败，恢复方块
+                    world.setBlockState(pos, currentState, 3);
+                }
+            }
         }
     } else if (state != newState) {
         // 状态改变，更新方块
