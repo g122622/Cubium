@@ -245,3 +245,109 @@ TEST(Result, RealWorldUsage) {
     auto result2 = divide(10, 0);
     EXPECT_FALSE(result2.success());
 }
+
+// ============================================================================
+// ExponentialDecayFactor 测试 (帧率无关的时间纠正因子)
+// ============================================================================
+
+TEST(ExponentialDecayFactor, ZeroDeltaTime) {
+    // deltaTime 为 0 时，纠正因子应为 0
+    EXPECT_FLOAT_EQ(exponentialDecayFactor(0.5f, 0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(exponentialDecayFactor(1.0f, 0.0f), 0.0f);
+}
+
+TEST(ExponentialDecayFactor, ZeroRate) {
+    // ratePerSecond 为 0 时，纠正因子应为 0
+    EXPECT_FLOAT_EQ(exponentialDecayFactor(0.0f, 1.0f), 0.0f);
+    EXPECT_FLOAT_EQ(exponentialDecayFactor(0.0f, 0.5f), 0.0f);
+}
+
+TEST(ExponentialDecayFactor, FullRate) {
+    // ratePerSecond 为 1 时，纠正因子应为 1（立即纠正）
+    EXPECT_FLOAT_EQ(exponentialDecayFactor(1.0f, 0.016f), 1.0f);
+    EXPECT_FLOAT_EQ(exponentialDecayFactor(1.0f, 1.0f), 1.0f);
+}
+
+TEST(ExponentialDecayFactor, HalfRateOneSecond) {
+    // ratePerSecond = 0.5, deltaTime = 1.0 时
+    // correctionFactor = 1 - (1 - 0.5)^1 = 0.5
+    EXPECT_FLOAT_EQ(exponentialDecayFactor(0.5f, 1.0f), 0.5f);
+}
+
+TEST(ExponentialDecayFactor, FrameRateIndependence) {
+    // 关键测试：验证帧率无关性
+    // 无论帧率如何，一秒内的总纠正量应相同
+
+    // 使用 ratePerSecond = 0.5
+    constexpr f32 rate = 0.5f;
+
+    // 60 FPS: deltaTime = 1/60 ≈ 0.0167s
+    const f32 dt60 = 1.0f / 60.0f;
+    const f32 factor60 = exponentialDecayFactor(rate, dt60);
+
+    // 30 FPS: deltaTime = 1/30 ≈ 0.0333s
+    const f32 dt30 = 1.0f / 30.0f;
+    const f32 factor30 = exponentialDecayFactor(rate, dt30);
+
+    // 一秒内的总纠正量（使用指数衰减公式）
+    // 60帧后剩余: (1 - factor60)^60
+    // 30帧后剩余: (1 - factor30)^30
+    // 两者应该相等
+    const f32 remainingAfter1Sec60 = std::pow(1.0f - factor60, 60.0f);
+    const f32 remainingAfter1Sec30 = std::pow(1.0f - factor30, 30.0f);
+
+    // 验证两者都约为 0.5（即每秒纠正 50%）
+    EXPECT_NEAR(remainingAfter1Sec60, 0.5f, 0.01f);
+    EXPECT_NEAR(remainingAfter1Sec30, 0.5f, 0.01f);
+    EXPECT_NEAR(remainingAfter1Sec60, remainingAfter1Sec30, 0.001f);
+}
+
+TEST(ExponentialDecayFactor, TypicalUseCases) {
+    // 典型使用场景测试
+
+    // 时间同步：ratePerSecond = 0.5, 60 FPS
+    constexpr f32 timeSyncRate = 0.5f;
+    const f32 dt60fps = 1.0f / 60.0f;
+    const f32 factor = exponentialDecayFactor(timeSyncRate, dt60fps);
+
+    // 每帧应该纠正约 1.15% (0.5 纠正率的 60 FPS 版本)
+    EXPECT_NEAR(factor, 0.0115f, 0.0002f);
+
+    // 验证 60 帧后的总纠正
+    const f32 totalCorrection = 1.0f - std::pow(1.0f - factor, 60.0f);
+    EXPECT_NEAR(totalCorrection, 0.5f, 0.01f);
+}
+
+TEST(ExponentialDecayFactor, EdgeCases) {
+    // 负值 deltaTime
+    EXPECT_FLOAT_EQ(exponentialDecayFactor(0.5f, -1.0f), 0.0f);
+
+    // 负值 ratePerSecond
+    EXPECT_FLOAT_EQ(exponentialDecayFactor(-0.5f, 1.0f), 0.0f);
+
+    // 非常大的 deltaTime（如低帧率场景）
+    // ratePerSecond = 0.5, deltaTime = 0.1 (10 FPS)
+    const f32 factor = exponentialDecayFactor(0.5f, 0.1f);
+    EXPECT_GT(factor, 0.0f);
+    EXPECT_LT(factor, 1.0f);
+
+    // 验证 10 帧后总纠正约 50%
+    const f32 totalCorrection = 1.0f - std::pow(1.0f - factor, 10.0f);
+    EXPECT_NEAR(totalCorrection, 0.5f, 0.02f);
+}
+
+TEST(ExponentialDecayFactor, FormulaCorrectness) {
+    // 验证公式正确性
+    // correctionFactor = 1 - (1 - ratePerSecond)^deltaTime
+
+    // 已知值测试
+    // rate = 0.5, dt = 0.5: factor = 1 - 0.5^0.5 = 1 - sqrt(0.5) ≈ 0.293
+    const f32 expected1 = 1.0f - std::sqrt(0.5f);
+    EXPECT_NEAR(exponentialDecayFactor(0.5f, 0.5f), expected1, 0.0001f);
+
+    // rate = 0.25, dt = 2.0: factor = 1 - 0.75^2 = 1 - 0.5625 = 0.4375
+    EXPECT_NEAR(exponentialDecayFactor(0.25f, 2.0f), 0.4375f, 0.0001f);
+
+    // rate = 0.1, dt = 1.0: factor = 1 - 0.9^1 = 0.1
+    EXPECT_NEAR(exponentialDecayFactor(0.1f, 1.0f), 0.1f, 0.0001f);
+}

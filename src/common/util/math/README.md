@@ -86,6 +86,33 @@ src/common/util/math/
   - `floorDiv()` - 地板除运算（向负无穷取整）
   - `floorMod()` - 地板模运算（结果与除数同号）
 
+- **帧率无关的衰减/插值函数**
+  - `exponentialDecayFactor(ratePerSecond, deltaTime)` - 计算指数衰减的帧率无关纠正因子
+
+**帧率无关纠正因子详解**：
+
+`exponentialDecayFactor(ratePerSecond, deltaTime)` 使用指数衰减公式计算纠正因子，
+使纠正速度与帧率无关。无论帧率高低，每秒的纠正总量保持一致。
+
+**公式**：`correctionFactor = 1 - (1 - ratePerSecond)^deltaTime`
+
+**使用场景**：
+- 客户端时间同步（平滑纠正到服务端时间）
+- 网络位置插值（平滑移动到服务端位置）
+- 相机跟随（平滑跟随目标对象）
+
+**示例**：
+```cpp
+// 时间同步：每秒纠正约 50% 的差值
+constexpr f32 CORRECTION_PER_SECOND = 0.5f;
+const f32 factor = exponentialDecayFactor(CORRECTION_PER_SECOND, deltaTime);
+currentValue += (targetValue - currentValue) * factor;
+
+// 60 FPS 时: factor ≈ 0.0115，每帧纠正约 1.15%
+// 30 FPS 时: factor ≈ 0.0228，每帧纠正约 2.28%
+// 无论帧率如何，1秒内总纠正量都约为 50%
+```
+
 #### Vector2.hpp
 
 **职责**：2D向量类，用于平面位置、方向、UV坐标等。
@@ -615,6 +642,14 @@ f32 g2 = rng.nextGaussian();  // 返回缓存的第二个
 | `ApproxEqual` | 浮点数近似相等 |
 | `ChunkCoordConversion` | 区块坐标转换 |
 | `LocalCoordConversion` | 区块内坐标转换 |
+| `ExponentialDecayFactor.ZeroDeltaTime` | deltaTime 为 0 的边界情况 |
+| `ExponentialDecayFactor.ZeroRate` | ratePerSecond 为 0 的边界情况 |
+| `ExponentialDecayFactor.FullRate` | ratePerSecond 为 1 的边界情况 |
+| `ExponentialDecayFactor.HalfRateOneSecond` | 50% 纠正率在 1 秒时的行为 |
+| `ExponentialDecayFactor.FrameRateIndependence` | 帧率无关性验证（核心测试） |
+| `ExponentialDecayFactor.TypicalUseCases` | 典型使用场景测试 |
+| `ExponentialDecayFactor.EdgeCases` | 边界情况（负值、极大 deltaTime） |
+| `ExponentialDecayFactor.FormulaCorrectness` | 公式正确性验证 |
 
 #### Vector3 测试
 

@@ -572,12 +572,17 @@ callbacks.onTeleport = [this](f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32) {
 // 每帧推进本地时间
 m_renderTickAccumulator += deltaTime * 20.0f;
 
-// 平滑纠正到服务端时间（1% 纠正率）
-constexpr f32 CORRECTION_RATE = 0.01f;
-m_renderDayTime += static_cast<i64>(dayTimeDiff * CORRECTION_RATE);
+// 使用基于 deltaTime 的指数衰减公式进行平滑纠正
+// 这样无论帧率如何，纠正速度都保持一致
+constexpr f32 CORRECTION_PER_SECOND = 0.5f;
+const f32 correctionFactor = 1.0f - std::pow(1.0f - CORRECTION_PER_SECOND, deltaTime);
+m_renderDayTime += static_cast<i64>(dayTimeDiff * correctionFactor);
 ```
 
-**常见问题**：直接使用服务端时间会导致天空/太阳跳变。
+**设计要点**：
+- 纠正因子基于 deltaTime 计算，与帧率无关
+- 每秒纠正约 50% 的差值，在平滑性和响应性之间取得平衡
+- 避免直接使用服务端时间导致的天空/太阳跳变
 
 ### 7. 资源重载时机
 

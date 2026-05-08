@@ -1,6 +1,7 @@
 #include "../ClientApplication.hpp"
 
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 namespace mc::client {
 
@@ -36,16 +37,18 @@ void ClientApplication::updateTimeAndWeather(f32 deltaTime)
             dayTimeDiff += DAY_LENGTH_TICKS;
         }
 
-        // 平滑纠正：每帧纠正差值的 1%，避免跳变（TODO:根据用户设定的帧率调整纠正率。CORRECTION_RATE = 1 / 用户设定FPS）
-        constexpr f32 CORRECTION_RATE = 0.01f;
-        const i64 correction = static_cast<i64>(dayTimeDiff * CORRECTION_RATE);
+        // 使用帧率无关的指数衰减公式进行平滑纠正
+        // 每秒纠正约 50% 的差值，在平滑性和响应性之间取得平衡
+        constexpr f32 CORRECTION_PER_SECOND = 0.5f;
+        const f32 correctionFactor = math::exponentialDecayFactor(CORRECTION_PER_SECOND, deltaTime);
+        const i64 correction = static_cast<i64>(dayTimeDiff * correctionFactor);
         if (correction != 0) {
             m_renderDayTime = (m_renderDayTime + correction + DAY_LENGTH_TICKS) % DAY_LENGTH_TICKS;
         }
 
-        // gameTime 同步纠正
+        // gameTime 同步纠正（使用相同的帧率无关纠正因子）
         i64 gameTimeDiff = serverGameTime - m_renderGameTime;
-        m_renderGameTime += static_cast<i64>(gameTimeDiff * CORRECTION_RATE);
+        m_renderGameTime += static_cast<i64>(gameTimeDiff * correctionFactor);
     }
 
     m_renderer->updateTime(m_renderDayTime, m_renderGameTime, m_renderTickAccumulator);

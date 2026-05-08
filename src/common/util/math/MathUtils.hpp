@@ -633,4 +633,43 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
     return static_cast<u64>(i >> 16);
 }
 
+// ============================================================================
+// 帧率无关的衰减/插值函数
+// ============================================================================
+
+/**
+ * @brief 计算指数衰减的帧率无关纠正因子
+ *
+ * 使用指数衰减公式计算纠正因子，使纠正速度与帧率无关。
+ * 无论帧率高低，每秒的纠正总量保持一致。
+ *
+ * 数学公式: correctionFactor = 1 - (1 - ratePerSecond)^deltaTime
+ *
+ * 例如，ratePerSecond = 0.5 表示每秒纠正约 50% 的差值：
+ * - 60 FPS 时: 每帧纠正因子 ≈ 0.0115
+ * - 30 FPS 时: 每帧纠正因子 ≈ 0.0228
+ * - 无论帧率如何，1秒内总纠正量都约为 50%
+ *
+ * @param ratePerSecond 每秒的衰减/纠正速率 [0, 1]
+ * @param deltaTime 帧间隔时间（秒）
+ * @return 该帧的纠正因子 [0, 1]
+ *
+ * @note 当 deltaTime 为 0 时返回 0
+ * @note 当 ratePerSecond 为 0 时返回 0
+ * @note 当 ratePerSecond 为 1 时返回 1（立即纠正）
+ */
+[[nodiscard]] inline f32 exponentialDecayFactor(f32 ratePerSecond, f32 deltaTime) noexcept
+{
+    // 边界情况处理
+    if (deltaTime <= 0.0f || ratePerSecond <= 0.0f) {
+        return 0.0f;
+    }
+    if (ratePerSecond >= 1.0f) {
+        return 1.0f;
+    }
+    // 公式: 1 - (1 - r)^dt
+    // 确保结果在 [0, 1] 范围内（浮点精度保护）
+    return std::clamp(1.0f - std::pow(1.0f - ratePerSecond, deltaTime), 0.0f, 1.0f);
+}
+
 } // namespace mc::math
