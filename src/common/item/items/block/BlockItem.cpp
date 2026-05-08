@@ -4,6 +4,7 @@
 #include "../../../world/block/BlockSoundType.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../sound/SoundCategory.hpp"
+#include "../../../physics/collision/CollisionShape.hpp"
 
 namespace mc {
 
@@ -128,9 +129,6 @@ bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& s
     // 参考 MC 1.16.5: BlockItem.canPlace
     Player* player = context.getPlayer();
 
-    // TODO: 实体碰撞检查
-    // ISelectionContext selectionContext = player == null ? ISelectionContext.dummy() : ISelectionContext.forEntity(player);
-
     // 检查方块位置有效性
     if (checkPosition()) {
         // 检查位置是否有效
@@ -152,9 +150,6 @@ bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& s
         }
     }
 
-    // TODO: 实体碰撞检查
-    // 参考 MC 1.16.5: world.func_226663_a_(state, pos, ISelectionContext.dummy())
-
     // 获取当前方块
     const BlockState* currentState = context.getBlockStateAtPlacementPos();
     if (currentState != nullptr && !currentState->isAir()) {
@@ -162,6 +157,27 @@ bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& s
         const Material& material = currentState->owner().material();
         if (!material.isReplaceable() && !material.isLiquid()) {
             return false;
+        }
+    }
+
+    // 实体碰撞检查
+    // 参考 MC 1.16.5: world.func_226663_a_(state, pos, ISelectionContext.dummy())
+    // 检查要放置的方块是否会与实体发生碰撞
+    const BlockPos& pos = context.placementPos();
+    const CollisionShape& collisionShape = state.getCollisionShape();
+
+    // 只有当方块有碰撞箱时才检查实体碰撞
+    if (!collisionShape.isEmpty()) {
+        // 获取方块在世界坐标下的碰撞箱
+        auto worldBoxes = collisionShape.getWorldBoxes(pos.x, pos.y, pos.z);
+
+        // 检查每个碰撞箱是否与实体碰撞
+        IWorld& world = const_cast<IWorld&>(context.getWorld());
+        for (const auto& box : worldBoxes) {
+            // 检查是否与实体碰撞（排除放置者）
+            if (world.hasEntityCollision(box, player)) {
+                return false;
+            }
         }
     }
 
