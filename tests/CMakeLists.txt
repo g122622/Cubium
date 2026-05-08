@@ -167,6 +167,7 @@ add_executable(mc_tests
     client/renderer/entity/AnimalModelTests.cpp
     client/renderer/entity/test_entity_renderer_manager.cpp
     client/renderer/entity/ShadowRendererTest.cpp
+    client/renderer/entity/WorldTextRendererTest.cpp
     client/renderer/test_gui_item_color.cpp
     client/resource/test_entity_texture_loader.cpp
     client/resource/ItemTextureAtlasTest.cpp

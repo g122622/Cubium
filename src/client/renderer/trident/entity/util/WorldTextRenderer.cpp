@@ -727,13 +727,13 @@ bool WorldTextRenderer::isBackFacing(const Vector3f& textPosition) {
     toCamera.z *= invDistance;
 
     // 计算相机前向向量与"到相机方向"的点积
-    // 如果点积 < 0，表示相机背对文本位置（夹角大于90度）
+    // 如果点积 >= 0，表示相机背对文本位置（文本在相机后方）
     f32 dot = toCamera.x * s_cameraForward.x +
               toCamera.y * s_cameraForward.y +
               toCamera.z * s_cameraForward.z;
 
-    // 点积 < 0 表示文本在相机背后
-    return dot < 0.0f;
+    // 点积 >= 0 表示文本在相机背后（toCamera 与 cameraForward 方向相同）
+    return dot >= 0.0f;
 }
 
 u32 WorldTextRenderer::decodeCodepoint(const std::string& text, size_t& pos) {

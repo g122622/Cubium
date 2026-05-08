@@ -8,6 +8,7 @@
 |------|------|
 | `ShadowRenderer.hpp/cpp` | 阴影渲染器 |
 | `NameTagRenderer.hpp/cpp` | 名称标签渲染器 |
+| `WorldTextRenderer.hpp/cpp` | 世界空间文本渲染器 |
 
 ## ShadowRenderer
 
@@ -110,6 +111,8 @@ renderShadow()
 - 可见距离控制
 - 背景颜色自定义
 - 随距离缩放
+- 视锥体剔除（通过 WorldTextRenderer）
+- 背面剔除（通过 WorldTextRenderer）
 
 ### 使用方法
 
@@ -124,6 +127,11 @@ NameTagRenderer::setMaxDistance(64.0);
 NameTagRenderer::setScale(0.025);
 NameTagRenderer::setShowBackground(true);
 NameTagRenderer::setBackgroundColor(0, 0, 0, 128);  // 半透明黑色背景
+
+// 设置相机信息（用于剔除）
+NameTagRenderer::setCameraPosition(cameraPosition);
+NameTagRenderer::setViewMatrix(viewMatrix);
+NameTagRenderer::setFrustum(frustum);
 
 // 检查是否应该渲染
 if (NameTagRenderer::shouldRenderNameTag(entity, distanceToCamera)) {
@@ -151,24 +159,163 @@ f64 scale = baseScale * distanceScale;
 - MC 1.16.5 EntityRenderer.renderNameTag()
 - MC 1.16.5 名称标签渲染逻辑
 
+## WorldTextRenderer
+
+在 3D 世界中渲染文本（如名称标签）。使用 billboard 技术使文本始终面向相机。
+
+### 主要功能
+
+- 世界空间文本渲染
+- Billboard 效果（始终面向相机）
+- **视锥体剔除**：跳过视锥外的文本渲染
+- **背面剔除**：跳过相机背对的文本渲染
+- 距离检查
+- 背景面板渲染
+- UTF-8 字符支持
+
+### 性能优化
+
+WorldTextRenderer 实现了两层剔除优化：
+
+#### 1. 视锥体剔除 (Frustum Culling)
+
+```cpp
+// 使用 Frustum 类进行球体测试
+if (s_frustum.isValid()) {
+    mc::Vector3 frustumPos(position.x, position.y, position.z);
+    if (!s_frustum.isSphereVisible(frustumPos, 2.0f)) {
+        return false;  // 文本不在视锥内，跳过渲染
+    }
+}
+```
+
+#### 2. 背面剔除 (Backface Culling)
+
+```cpp
+// 计算文本到相机的方向向量与相机前向向量的点积
+// toCamera: 从文本指向相机的方向向量（归一化）
+// s_cameraForward: 相机看向的方向（归一化）
+f32 dot = toCamera.x * s_cameraForward.x +
+          toCamera.y * s_cameraForward.y +
+          toCamera.z * s_cameraForward.z;
+
+// 点积 >= 0 表示文本在相机后方（toCamera 与 cameraForward 方向相同或垂直）
+// 此时应该剔除，不渲染
+if (dot >= 0.0f) {
+    return true;  // isBackFacing
+}
+```
+
+### 使用方法
+
+```cpp
+#include "client/renderer/trident/entity/util/WorldTextRenderer.hpp"
+
+// 初始化（游戏启动时调用一次）
+WorldTextRenderer::initialize(device, physicalDevice, commandPool, graphicsQueue, pipeline, font);
+
+// 每帧设置相机信息（用于 billboard 和剔除）
+WorldTextRenderer::setCameraPosition(cameraPosition);
+WorldTextRenderer::setViewMatrix(viewMatrix);
+WorldTextRenderer::setFrustum(frustum);  // 视锥体剔除
+
+// 渲染文本
+WorldTextRenderer::renderText(cmd, "Hello World", position, scale, color, showBackground, pipeline);
+
+// 渲染名称标签（简化接口）
+WorldTextRenderer::renderNameTag(cmd, "Player Name", entityPosition, entityHeight, pipeline);
+
+// 清理（游戏关闭时调用）
+WorldTextRenderer::cleanup();
+```
+
+### 设置 API
+
+```cpp
+// 设置最大可见距离
+WorldTextRenderer::setMaxDistance(64.0f);
+
+// 设置背景颜色和透明度
+WorldTextRenderer::setBackgroundColor(r, g, b, a);
+WorldTextRenderer::setShowBackground(true);
+
+// 设置视锥体（用于剔除）
+WorldTextRenderer::setFrustum(frustum);
+
+// 设置相机前向向量（用于背面剔除）
+WorldTextRenderer::setCameraForward(forward);
+```
+
+### 渲染流程
+
+```
+renderText()
+    │
+    ├── shouldRenderText()
+    │       │
+    │       ├── 距离检查 (distance > maxDistance)
+    │       │
+    │       ├── 视锥体剔除 (Frustum::isSphereVisible)
+    │       │
+    │       └── 背面剔除 (isBackFacing)
+    │
+    ├── 计算 billboard 矩阵
+    │
+    ├── 渲染背景面板（可选）
+    │
+    └── 渲染文本字符
+            │
+            ├── UTF-8 解码
+            ├── 获取字形网格
+            ├── 应用光标偏移和缩放
+            └── 绘制到管线
+```
+
+### 数据流
+
+```
+EntityRendererManager::setCameraInfo()
+        │
+        ├── NameTagRenderer::setCameraPosition()
+        ├── NameTagRenderer::setViewMatrix()
+        └── NameTagRenderer::setFrustum()
+                │
+                └── WorldTextRenderer::setFrustum()
+```
+
+### 参考
+
+- MC 1.16.5 EntityRenderer.renderNameTag()
+- MC 1.16.5 ClippingHelper（视锥剔除）
+
 ## 命名空间
 
 ```cpp
 namespace mc::client::renderer::entity::util {
     class ShadowRenderer;
     class NameTagRenderer;
+    class WorldTextRenderer;
 }
 ```
 
 ## 注意事项
 
 1. **阴影渲染**使用方块级渲染，根据方块碰撞箱裁剪阴影形状
-2. **名称标签渲染**需要与文本渲染系统集成
-3. 两个类都是静态工具类，使用前需初始化
+2. **名称标签渲染**委托给 WorldTextRenderer 进行实际渲染
+3. **WorldTextRenderer** 实现了视锥体剔除和背面剔除优化
+4. 所有类都是静态工具类，使用前需初始化
+5. 剔除功能需要每帧设置相机信息（位置、视图矩阵、视锥体）
 
 ## 测试
 
-单元测试位于 `tests/client/renderer/entity/ShadowRendererTest.cpp`，覆盖：
+单元测试位于：
+- `tests/client/renderer/entity/ShadowRendererTest.cpp`
+- `tests/client/renderer/entity/WorldTextRendererTest.cpp`
+
+覆盖：
 - 透明度计算逻辑
 - 阴影范围计算
 - 方块阴影条件检测
+- 视锥体剔除算法
+- 背面剔除算法
+- 边界情况处理
