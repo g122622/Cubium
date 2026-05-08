@@ -264,6 +264,41 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
         renderer::trident::firstperson::FirstPersonRenderer::RenderContext renderContext;
         renderContext.player = m_player.get();
         renderContext.partialTick = partialTick;
+
+        // 从玩家获取挥动动画状态
+        const f32 partialTickF32 = static_cast<f32>(partialTick);
+        const bool isSwinging = m_player->isSwingInProgress();
+        const Hand swingingHand = m_player->swingingHand();
+
+        if (isSwinging) {
+            const f32 prevSwing = m_player->prevSwingProgress();
+            const f32 currSwing = m_player->swingProgress();
+            const f32 interpolatedSwing = prevSwing + (currSwing - prevSwing) * partialTickF32;
+
+            if (swingingHand == Hand::MainHand) {
+                renderContext.mainHandSwingProgress = interpolatedSwing;
+                renderContext.offHandSwingProgress = 0.0f;
+            } else {
+                renderContext.mainHandSwingProgress = 0.0f;
+                renderContext.offHandSwingProgress = interpolatedSwing;
+            }
+        }
+
+        // 从玩家获取物品使用状态
+        const bool isUsingItem = m_player->isUsingItem();
+        if (isUsingItem) {
+            const Hand activeHand = m_player->getActiveHand();
+            const i32 useCount = m_player->getItemInUseCount();
+
+            if (activeHand == Hand::MainHand) {
+                renderContext.isMainHandActive = true;
+                renderContext.mainHandUseCount = useCount;
+            } else {
+                renderContext.isOffHandActive = true;
+                renderContext.offHandUseCount = useCount;
+            }
+        }
+
         m_renderer->firstPersonRenderer().render(cmd, cameraSet, renderContext);
     });
 

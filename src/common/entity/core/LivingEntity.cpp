@@ -426,13 +426,15 @@ void LivingEntity::tick() {
     }
 
     // 更新攻击动画
+    // MC 1.16.5: LivingEntity.updateArmSwingProgress()
     if (m_swingInProgress) {
-        m_swingProgressInt++;
-        if (m_swingProgressInt >= 6) {
+        ++m_swingProgressInt;
+        const i32 swingEnd = getArmSwingAnimationEnd();
+        if (m_swingProgressInt >= swingEnd) {
             m_swingProgressInt = 0;
             m_swingInProgress = false;
         }
-        m_swingProgress = static_cast<f32>(m_swingProgressInt) / 6.0f;
+        m_swingProgress = static_cast<f32>(m_swingProgressInt) / static_cast<f32>(swingEnd);
     } else {
         m_swingProgress = 0.0f;
         m_swingProgressInt = 0;
@@ -484,6 +486,27 @@ void LivingEntity::updateAnimation() {
     // 更新移动距离
     m_prevMovedDistance = m_movedDistance;
     m_movedDistance = distance;
+}
+
+i32 LivingEntity::getArmSwingAnimationEnd() const {
+    // MC 1.16.5: LivingEntity.getArmSwingAnimationEnd()
+    // 默认 6 tick，急迫效果减少，挖掘疲劳增加
+    i32 base = 6;
+
+    // 检查急迫效果（加快挥动）
+    const i32 hasteLevel = getEffectLevel(entity::effect::EffectType::Haste);
+    if (hasteLevel > 0) {
+        base -= 1 + hasteLevel;
+    }
+
+    // 检查挖掘疲劳效果（减慢挥动）
+    const i32 fatigueLevel = getEffectLevel(entity::effect::EffectType::MiningFatigue);
+    if (fatigueLevel > 0) {
+        base += (1 + fatigueLevel) * 2;
+    }
+
+    // 确保最小值为 1
+    return std::max(base, 1);
 }
 
 void LivingEntity::updateTravelAnimation(bool includeVertical) {

@@ -346,7 +346,7 @@ void ClientApplication::update(f32 deltaTime)
     }
 
     if (m_renderer && m_renderer->isFirstPersonRendererInitialized()) {
-        m_renderer->firstPersonRenderer().tick();
+        m_renderer->firstPersonRenderer().tick(m_player.get());
     }
 
     // 只在非暂停状态下更新游戏逻辑

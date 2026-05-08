@@ -236,37 +236,49 @@ void FirstPersonRenderer::setPlayerSkinLocation(const ResourceLocation& playerSk
 // 每帧更新
 // ============================================================================
 
-void FirstPersonRenderer::tick() {
+void FirstPersonRenderer::tick(Player* player) {
     // 保存上一帧的装备进度
     m_prevMainHandEquipProgress = m_mainHandEquipProgress;
     m_prevOffHandEquipProgress = m_offHandEquipProgress;
 
-    // TODO: 从玩家获取当前手持物品
-    // ItemStack mainHandItem = player->getHeldItem(Hand::MainHand);
-    // ItemStack offHandItem = player->getHeldItem(Hand::OffHand);
+    // 获取当前手持物品
+    ItemStack mainHandItem = player != nullptr ? getHeldItem(player, Hand::MainHand) : ItemStack();
+    ItemStack offHandItem = player != nullptr ? getHeldItem(player, Hand::OffHand) : ItemStack();
 
-    // 检测物品切换，重置装备进度
-    // 如果物品发生了变化，应该触发装备动画
-    // 这里使用简单的插值来平滑装备进度
+    // 检测物品切换
+    const bool mainHandChanged = !(m_prevMainHandItem == mainHandItem);
+    const bool offHandChanged = !(m_prevOffHandItem == offHandItem);
 
-    // 装备进度向 1.0 靠拢
-    f32 mainTarget = 1.0f;
-    f32 offTarget = 1.0f;
+    // 物品切换时重置装备进度
+    if (mainHandChanged) {
+        m_mainHandEquipProgress = 0.0f;
+        m_prevMainHandItem = mainHandItem;
+    }
+    if (offHandChanged) {
+        m_offHandEquipProgress = 0.0f;
+        m_prevOffHandItem = offHandItem;
+    }
 
-    // 使用攻击冷却来调整装备速度
-    // float cooldown = player->getCooledAttackStrength(1.0f);
+    // 获取攻击冷却进度
+    f32 cooldownStrength = 1.0f;
+    if (player != nullptr) {
+        cooldownStrength = player->getCooledAttackStrength(1.0f);
+    }
 
-    // 平滑插值
-    m_mainHandEquipProgress += (mainTarget - m_mainHandEquipProgress) * EQUIP_SPEED;
-    m_offHandEquipProgress += (offTarget - m_offHandEquipProgress) * EQUIP_SPEED;
+    // 装备进度向 1.0 靠拢（使用攻击冷却影响速度）
+    // MC 1.16.5: equippedProgress += clamp((!requip ? f^3 : 0) - equippedProgress, -0.4, 0.4)
+    const f32 mainTarget = cooldownStrength * cooldownStrength * cooldownStrength;  // f^3
+    const f32 offTarget = 1.0f;
+
+    m_mainHandEquipProgress += clamp(mainTarget - m_mainHandEquipProgress, -0.4f, 0.4f);
+    m_offHandEquipProgress += clamp(offTarget - m_offHandEquipProgress, -0.4f, 0.4f);
 
     // 限制范围
     m_mainHandEquipProgress = clamp(m_mainHandEquipProgress, 0.0f, 1.0f);
     m_offHandEquipProgress = clamp(m_offHandEquipProgress, 0.0f, 1.0f);
 
-    // 更新挥动进度
+    // 更新挥动进度（由 render 方法中的 RenderContext 提供）
     m_prevSwingProgress = m_swingProgress;
-    // 挥动进度由玩家状态决定
 }
 
 // ============================================================================
@@ -463,6 +475,14 @@ void FirstPersonRenderer::renderArmFirstPerson(MatrixStack& matrixStack,
 void FirstPersonRenderer::renderItemInHand(MatrixStack& stack, Player* player,
                                             const ItemStack& itemStack, HandSide side,
                                             f32 equipProgress, f32 swingProgress) {
+    renderItemInHand(stack, player, itemStack, side, equipProgress, swingProgress,
+                     false, 0, static_cast<f32>(PI));
+}
+
+void FirstPersonRenderer::renderItemInHand(MatrixStack& stack, Player* player,
+                                            const ItemStack& itemStack, HandSide side,
+                                            f32 equipProgress, f32 swingProgress,
+                                            bool isUsingItem, i32 useCount, f32 partialTicks) {
     if (player == nullptr || itemStack.isEmpty()) {
         return;
     }
@@ -480,10 +500,38 @@ void FirstPersonRenderer::renderItemInHand(MatrixStack& stack, Player* player,
     transformFirstPerson(stack, side, swingProgress);
 
     // 根据物品使用动作应用额外变换
-    bool isUsingItem = false;  // player->isHandActive() && player->getActiveHand() == hand
+    if (isUsingItem && itemStack.getItem() != nullptr) {
+        const UseAction useAction = itemStack.getItem()->getUseAction(itemStack);
 
-    if (isUsingItem) {
-        transformEatFirstPerson(stack, 0.0f, side, itemStack);
+        switch (useAction) {
+            case UseAction::Eat:
+            case UseAction::Drink:
+                // 食物/药水：进食动画
+                transformEatOrDrink(stack, partialTicks, side, itemStack, useCount);
+                break;
+
+            case UseAction::Block:
+                // 盾牌：格挡动画（已由 transformSideFirstPerson 处理）
+                break;
+
+            case UseAction::Bow:
+                // 弓：拉弓动画
+                transformBow(stack, partialTicks, side, useCount);
+                break;
+
+            case UseAction::Spear:
+                // 三叉戟：投掷动画（Trident 是 Spear 的别名）
+                transformSpear(stack, partialTicks, side, useCount);
+                break;
+
+            case UseAction::Crossbow:
+                // 弩：装填动画
+                transformCrossbow(stack, partialTicks, side, useCount, false);
+                break;
+
+            default:
+                break;
+        }
     }
 }
 
@@ -523,13 +571,130 @@ void FirstPersonRenderer::transformFirstPerson(MatrixStack& stack, HandSide side
     stack.rotateY(sideSign * -45.0f);
 }
 
-void FirstPersonRenderer::transformEatFirstPerson(MatrixStack& matrixStack, f32 partialTicks,
-                                                   HandSide side, const ItemStack& item) {
-    // TODO: 从玩家获取使用计数
-    (void)matrixStack;
-    (void)partialTicks;
-    (void)side;
-    (void)item;
+void FirstPersonRenderer::transformEatOrDrink(MatrixStack& matrixStack, f32 partialTicks,
+                                               HandSide side, const ItemStack& item, i32 useCount) {
+    const Item* itemPtr = item.getItem();
+    if (itemPtr == nullptr) {
+        return;
+    }
+
+    const i32 useDuration = itemPtr->getUseDuration(item);
+    if (useDuration <= 0) {
+        return;
+    }
+
+    // MC 1.16.5: f = useDuration - useCount + partialTicks + 1
+    // useCount 是剩余使用时间
+    const f32 f = static_cast<f32>(useDuration - useCount) + partialTicks + 1.0f;
+    const f32 f1 = f / static_cast<f32>(useDuration);
+
+    // 在进度小于 80% 时添加轻微抖动
+    if (f1 < 0.8f) {
+        const f32 f2 = std::abs(std::cos(f / 4.0f * static_cast<f32>(PI)) * 0.1f);
+        matrixStack.translate(0.0f, f2, 0.0f);
+    }
+
+    // 使用进度快速接近完成（27次方使曲线变陡）
+    const f32 f3 = 1.0f - static_cast<f32>(std::pow(static_cast<f64>(f1), 27.0));
+    const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
+
+    // 移动物品到嘴边
+    matrixStack.translate(sideSign * f3 * 0.6f, f3 * -0.5f, f3 * 0.0f);
+
+    // 旋转物品
+    matrixStack.rotateY(sideSign * f3 * 90.0f);
+    matrixStack.rotateX(f3 * 10.0f);
+    matrixStack.rotateZ(sideSign * f3 * 30.0f);
+}
+
+void FirstPersonRenderer::transformBow(MatrixStack& stack, f32 partialTicks,
+                                        HandSide side, i32 useCount) {
+    // MC 1.16.5: FirstPersonRenderer BOW 分支
+    const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
+
+    // 弓的默认使用时间是 72000 ticks
+    // f8 = useDuration - useCount + partialTicks + 1
+    const f32 f8 = static_cast<f32>(72000 - useCount) + partialTicks + 1.0f;
+
+    // f12 = f8 / 20, 然后用公式 (f12^2 + f12*2) / 3
+    f32 f12 = f8 / 20.0f;
+    f12 = (f12 * f12 + f12 * 2.0f) / 3.0f;
+    if (f12 > 1.0f) {
+        f12 = 1.0f;
+    }
+
+    // 超过 10% 进度后有轻微震动
+    if (f12 > 0.1f) {
+        const f32 f15 = std::sin((f8 - 0.1f) * 1.3f);
+        const f32 f18 = f12 - 0.1f;
+        const f32 f20 = f15 * f18;
+        stack.translate(f20 * 0.0f, f20 * 0.004f, f20 * 0.0f);
+    }
+
+    // 蓄力时弓向前移动并放大
+    stack.translate(f12 * 0.0f, f12 * 0.0f, f12 * 0.04f);
+    stack.scale(1.0f, 1.0f, 1.0f + f12 * 0.2f);
+    stack.rotateY(-sideSign * 45.0f);
+}
+
+void FirstPersonRenderer::transformSpear(MatrixStack& stack, f32 partialTicks,
+                                          HandSide side, i32 useCount) {
+    // MC 1.16.5: FirstPersonRenderer SPEAR 分支
+    const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
+
+    // 三叉戟蓄力需要 10 ticks
+    const f32 f7 = static_cast<f32>(72000 - useCount) + partialTicks + 1.0f;
+    f32 f11 = f7 / 10.0f;
+    if (f11 > 1.0f) {
+        f11 = 1.0f;
+    }
+
+    // 超过 10% 进度后有轻微震动
+    if (f11 > 0.1f) {
+        const f32 f14 = std::sin((f7 - 0.1f) * 1.3f);
+        const f32 f17 = f11 - 0.1f;
+        const f32 f19 = f14 * f17;
+        stack.translate(f19 * 0.0f, f19 * 0.004f, f19 * 0.0f);
+    }
+
+    // 蓄力时三叉戟向前移动并放大
+    stack.translate(0.0f, 0.0f, f11 * 0.2f);
+    stack.scale(1.0f, 1.0f, 1.0f + f11 * 0.2f);
+    stack.rotateY(-sideSign * 45.0f);
+}
+
+void FirstPersonRenderer::transformCrossbow(MatrixStack& stack, f32 partialTicks,
+                                             HandSide side, i32 useCount, bool isCharged) {
+    // MC 1.16.5: FirstPersonRenderer CROSSBOW 分支
+    const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
+
+    if (isCharged) {
+        // 已装填状态：弩有轻微偏移
+        stack.translate(sideSign * -0.641864f, 0.0f, 0.0f);
+        stack.rotateY(sideSign * 10.0f);
+    } else {
+        // 装填中
+        // 获取装填时间（考虑快速装填附魔）
+        // 简化：假设基础 25 ticks
+        const f32 f9 = static_cast<f32>(25 - useCount) + partialTicks + 1.0f;
+        f32 f13 = f9 / 25.0f;
+        if (f13 > 1.0f) {
+            f13 = 1.0f;
+        }
+
+        // 超过 10% 进度后有轻微震动
+        if (f13 > 0.1f) {
+            const f32 f16 = std::sin((f9 - 0.1f) * 1.3f);
+            const f32 f3 = f13 - 0.1f;
+            const f32 f4 = f16 * f3;
+            stack.translate(f4 * 0.0f, f4 * 0.004f, f4 * 0.0f);
+        }
+
+        // 装填时弩向前移动并放大
+        stack.translate(f13 * 0.0f, f13 * 0.0f, f13 * 0.04f);
+        stack.scale(1.0f, 1.0f, 1.0f + f13 * 0.2f);
+        stack.rotateY(-sideSign * 45.0f);
+    }
 }
 
 // ============================================================================
@@ -787,9 +952,13 @@ f32 FirstPersonRenderer::getSwingProgress(f32 partialTicks, Player* player, Hand
         return 0.0f;
     }
 
-    // TODO: 从玩家获取挥动进度
-    (void)partialTicks;
-    (void)hand;
+    // 只有正在挥动的手才返回进度
+    if (player->isSwingInProgress() && player->swingingHand() == hand) {
+        const f32 prevSwing = player->prevSwingProgress();
+        const f32 currSwing = player->swingProgress();
+        return prevSwing + (currSwing - prevSwing) * partialTicks;
+    }
+
     return 0.0f;
 }
 
@@ -805,7 +974,56 @@ ArmPose FirstPersonRenderer::determineArmPose(Player* player, Hand hand) const {
         return ArmPose::Empty;
     }
 
-    // TODO: 根据物品类型确定手臂姿态
+    // 获取物品
+    const Item* item = heldItem.getItem();
+    if (item == nullptr) {
+        return ArmPose::Item;
+    }
+
+    // 检查玩家是否正在使用物品
+    const bool isUsingItem = player->isUsingItem();
+    const Hand activeHand = player->getActiveHand();
+    const bool isHandActive = isUsingItem && activeHand == hand;
+
+    // 获取物品使用动作
+    const UseAction useAction = item->getUseAction(heldItem);
+
+    // 根据物品使用状态确定手臂姿态
+    if (isHandActive) {
+        switch (useAction) {
+            case UseAction::Eat:
+            case UseAction::Drink:
+                return ArmPose::EatOrDrink;
+
+            case UseAction::Block:
+                return ArmPose::Block;
+
+            case UseAction::Bow:
+                return ArmPose::BowAndArrow;
+
+            case UseAction::Spear:
+                // Trident 是 Spear 的别名，不需要单独 case
+                return ArmPose::ThrowSpear;
+
+            case UseAction::Crossbow:
+                return ArmPose::CrossbowCharge;
+
+            case UseAction::Spyglass:
+                // 望远镜暂不实现特殊姿态
+                return ArmPose::Item;
+
+            default:
+                break;
+        }
+    }
+
+    // 检查弩是否已装填
+    // TODO: 当 CrossbowItem 完整实现后添加 CrossbowHold 姿态检测
+    // 目前暂时返回 Item 姿态
+
+    // 检查是否为地图
+    // TODO: 实现地图检测
+
     // 默认持有物品姿态
     return ArmPose::Item;
 }
@@ -815,8 +1033,8 @@ HandSide FirstPersonRenderer::getPrimaryHand(Player* player) {
         return HandSide::Right;
     }
 
-    // TODO: 从玩家获取主手设置
-    return HandSide::Right;
+    // 从 LivingEntity 获取主手设置
+    return player->getPrimaryHand();
 }
 
 ItemStack FirstPersonRenderer::getHeldItem(Player* player, Hand hand) {

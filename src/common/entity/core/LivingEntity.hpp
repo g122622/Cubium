@@ -471,19 +471,51 @@ public:
     [[nodiscard]] i32 swingProgressInt() const { return m_swingProgressInt; }
 
     /**
-     * @brief 挥动手臂（攻击动画）
+     * @brief 获取正在挥动的手
+     *
+     * MC 1.16.5: LivingEntity.swingingHand
+     * 返回当前正在挥动的手（主手或副手）。
+     *
+     * @return 正在挥动的手，默认为主手
+     */
+    [[nodiscard]] Hand swingingHand() const { return m_swingingHand; }
+
+    /**
+     * @brief 挥动手臂（攻击动画）- 主手
      *
      * MC 1.16.5: LivingEntity.swingArm()
      * 触发攻击动画，持续6 tick。
      */
     void swingArm() {
-        if (!m_swingInProgress) {
+        swing(Hand::MainHand);
+    }
+
+    /**
+     * @brief 挥动手臂（攻击动画）- 指定手
+     *
+     * MC 1.16.5: LivingEntity.swing(Hand, boolean)
+     * 触发攻击动画，持续6 tick。
+     *
+     * @param hand 挥动的手（主手或副手）
+     */
+    void swing(Hand hand) {
+        // MC 1.16.5: 条件判断允许在动画进行到一半时重新触发
+        if (!m_swingInProgress || m_swingProgressInt >= getArmSwingAnimationEnd() / 2 || m_swingProgressInt < 0) {
+            m_swingProgressInt = -1;
             m_swingInProgress = true;
-            m_swingProgressInt = 0;
-            m_swingProgress = 0.0f;
-            m_prevSwingProgress = 0.0f;
+            m_swingingHand = hand;
         }
     }
+
+    /**
+     * @brief 获取手臂挥动动画持续 tick 数
+     *
+     * MC 1.16.5: LivingEntity.getArmSwingAnimationEnd()
+     * 默认返回 6 tick，急迫效果减少，挖掘疲劳增加。
+     *
+     * @return 动画持续 tick 数
+     */
+    [[nodiscard]] i32 getArmSwingAnimationEnd() const;
 
     // ========== 跳跃 ==========
 
@@ -901,6 +933,7 @@ protected:
     f32 m_prevSwingProgress = 0.0f;      // 上一帧攻击进度
     i32 m_swingProgressInt = 0;          // 攻击动画计数
     bool m_swingInProgress = false;      // 是否正在攻击动画
+    Hand m_swingingHand = Hand::MainHand; // 正在挥动的手
 
     // 身体旋转
     f32 m_renderYawOffset = 0.0f;        // 身体旋转偏移

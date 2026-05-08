@@ -136,8 +136,10 @@ public:
      * @brief 每游戏 tick 更新
      *
      * 更新手臂挥动动画、装备动画等状态。
+     *
+     * @param player 当前玩家（可为 nullptr）
      */
-    void tick();
+    void tick(Player* player);
 
     // ========== 渲染 ==========
 
@@ -212,18 +214,36 @@ private:
                               f32 equipProgress, f32 swingProgress);
 
     /**
-     * @brief 渲染手持物品
+     * @brief 渲染手持物品（基础版本）
      *
      * @param stack 矩阵栈
      * @param player 玩家
      * @param itemStack 物品堆
-    * @param side 手侧（左/右）
+     * @param side 手侧（左/右）
      * @param equipProgress 装备进度
      * @param swingProgress 挥动进度
      */
     void renderItemInHand(MatrixStack& stack, mc::Player* player,
-                     const ItemStack& itemStack, HandSide side,
+                          const ItemStack& itemStack, HandSide side,
                           f32 equipProgress, f32 swingProgress);
+
+    /**
+     * @brief 渲染手持物品（带使用状态）
+     *
+     * @param stack 矩阵栈
+     * @param player 玩家
+     * @param itemStack 物品堆
+     * @param side 手侧（左/右）
+     * @param equipProgress 装备进度
+     * @param swingProgress 挥动进度
+     * @param isUsingItem 是否正在使用物品
+     * @param useCount 使用计数
+     * @param partialTicks 部分 tick
+     */
+    void renderItemInHand(MatrixStack& stack, mc::Player* player,
+                          const ItemStack& itemStack, HandSide side,
+                          f32 equipProgress, f32 swingProgress,
+                          bool isUsingItem, i32 useCount, f32 partialTicks);
 
     /**
      * @brief 渲染地图（特殊物品）
@@ -246,9 +266,46 @@ private:
     void transformFirstPerson(MatrixStack& stack, HandSide side, f32 swingProgress);
 
     /**
-     * @brief 应用吃东西变换
+     * @brief 应用进食/饮用变换
+     *
+     * MC 1.16.5: FirstPersonRenderer.transformEatFirstPerson()
+     *
+     * @param matrixStack 矩阵栈
+     * @param partialTicks 部分 tick
+     * @param side 手侧
+     * @param item 物品堆
+     * @param useCount 剩余使用时间
      */
-    void transformEatFirstPerson(MatrixStack& matrixStack, f32 partialTicks, HandSide side, const ItemStack& item);
+    void transformEatOrDrink(MatrixStack& matrixStack, f32 partialTicks, HandSide side,
+                             const ItemStack& item, i32 useCount);
+
+    /**
+     * @brief 应用拉弓变换
+     *
+     * MC 1.16.5: FirstPersonRenderer 中 BOW 分支
+     */
+    void transformBow(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount);
+
+    /**
+     * @brief 应用三叉戟投掷变换
+     *
+     * MC 1.16.5: FirstPersonRenderer 中 SPEAR 分支
+     */
+    void transformSpear(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount);
+
+    /**
+     * @brief 应用弩装填变换
+     *
+     * MC 1.16.5: FirstPersonRenderer 中 CROSSBOW 分支
+     *
+     * @param stack 矩阵栈
+     * @param partialTicks 部分 tick
+     * @param side 手侧
+     * @param useCount 使用计数
+     * @param isCharged 是否已装填
+     */
+    void transformCrossbow(MatrixStack& stack, f32 partialTicks, HandSide side,
+                           i32 useCount, bool isCharged);
 
     /**
      * @brief 计算挥动动画参数
