@@ -163,6 +163,60 @@ TEST(Player, GameMode) {
     EXPECT_TRUE(player.abilities().flying);
 }
 
+TEST(Player, IsSpectator) {
+    Player player(1, "TestPlayer");
+
+    // 默认生存模式，不是观察者
+    EXPECT_FALSE(player.isSpectator());
+
+    // 设置为观察者模式
+    player.setGameMode(GameMode::Spectator);
+    EXPECT_TRUE(player.isSpectator());
+
+    // 设置为创造模式
+    player.setGameMode(GameMode::Creative);
+    EXPECT_FALSE(player.isSpectator());
+
+    // 设置为冒险模式
+    player.setGameMode(GameMode::Adventure);
+    EXPECT_FALSE(player.isSpectator());
+
+    // 设置回生存模式
+    player.setGameMode(GameMode::Survival);
+    EXPECT_FALSE(player.isSpectator());
+}
+
+TEST(Player, IsCreative) {
+    Player player(1, "TestPlayer");
+
+    // 默认生存模式
+    EXPECT_FALSE(player.isCreative());
+
+    player.setGameMode(GameMode::Creative);
+    EXPECT_TRUE(player.isCreative());
+
+    player.setGameMode(GameMode::Spectator);
+    EXPECT_FALSE(player.isCreative());
+}
+
+TEST(Player, IsSurvival) {
+    Player player(1, "TestPlayer");
+
+    EXPECT_TRUE(player.isSurvival());
+
+    player.setGameMode(GameMode::Creative);
+    EXPECT_FALSE(player.isSurvival());
+}
+
+TEST(Player, IsAdventure) {
+    Player player(1, "TestPlayer");
+
+    EXPECT_FALSE(player.isAdventure());
+
+    player.setGameMode(GameMode::Adventure);
+    EXPECT_TRUE(player.isAdventure());
+}
+
 TEST(Player, Experience) {
     Player player(1, "TestPlayer");
 

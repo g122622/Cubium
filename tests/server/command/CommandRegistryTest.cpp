@@ -696,6 +696,91 @@ TEST_F(CommandRegistryServerTest, ParticleCommandAcceptsMinecraftNamespace)
     EXPECT_EQ(m_server.lastParticleType(), 23u);
 }
 
+// ========== SpectateCommand 测试 ==========
+
+TEST_F(CommandRegistryServerTest, SpectateCommandRequiresSpectatorGameMode)
+{
+    // 创建一个非观察者模式的玩家
+    auto* steve = m_server.addTestPlayer(1, "Steve");
+    ASSERT_NE(steve, nullptr);
+    steve->gameMode = GameMode::Survival;  // 设置为生存模式
+
+    auto playerSource = makePlayerSource(1, "Steve");
+
+    // 尝试执行 spectate 命令，应该失败（玩家不在观察者模式）
+    const auto result = m_server.commandRegistry().execute("spectate @e[type=player,limit=1]", playerSource);
+
+    // 命令执行成功但返回 0（没有玩家被影响）
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
+TEST_F(CommandRegistryServerTest, SpectateCommandAcceptsSpectatorGameMode)
+{
+    // 创建一个观察者模式的玩家
+    auto* steve = m_server.addTestPlayer(1, "Steve");
+    ASSERT_NE(steve, nullptr);
+    steve->gameMode = GameMode::Spectator;  // 设置为观察者模式
+
+    auto playerSource = makePlayerSource(1, "Steve");
+
+    // 执行 spectate 命令（目标为自己作为测试）
+    const auto result = m_server.commandRegistry().execute("spectate @p", playerSource);
+
+    // 命令执行成功
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1);
+}
+
+TEST_F(CommandRegistryServerTest, SpectateCommandRejectsCreativeGameMode)
+{
+    // 创建一个创造模式的玩家
+    auto* steve = m_server.addTestPlayer(1, "Steve");
+    ASSERT_NE(steve, nullptr);
+    steve->gameMode = GameMode::Creative;
+
+    auto playerSource = makePlayerSource(1, "Steve");
+
+    // 执行 spectate 命令，应该失败
+    const auto result = m_server.commandRegistry().execute("spectate @p", playerSource);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
+TEST_F(CommandRegistryServerTest, SpectateCommandRejectsAdventureGameMode)
+{
+    // 创建一个冒险模式的玩家
+    auto* steve = m_server.addTestPlayer(1, "Steve");
+    ASSERT_NE(steve, nullptr);
+    steve->gameMode = GameMode::Adventure;
+
+    auto playerSource = makePlayerSource(1, "Steve");
+
+    // 执行 spectate 命令，应该失败
+    const auto result = m_server.commandRegistry().execute("spectate @p", playerSource);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
+TEST_F(CommandRegistryServerTest, SpectateCommandStopWorksForAnyGameMode)
+{
+    // /spectate stop 命令不需要观察者模式
+    auto* steve = m_server.addTestPlayer(1, "Steve");
+    ASSERT_NE(steve, nullptr);
+    steve->gameMode = GameMode::Survival;
+
+    auto playerSource = makePlayerSource(1, "Steve");
+
+    // 执行 spectate stop 命令
+    const auto result = m_server.commandRegistry().execute("spectate stop", playerSource);
+
+    // 命令执行成功
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1);
+}
+
 } // namespace
 } // namespace mc::command
 
