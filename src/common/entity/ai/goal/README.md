@@ -419,6 +419,62 @@ void SheepEntity::registerGoals() {
 
 ---
 
+### TargetPredicate - 目标筛选谓词
+
+**职责**: 用于筛选可以作为攻击目标的实体，允许自定义目标选择逻辑。
+
+**类型定义** (`TargetGoals.hpp`):
+```cpp
+using TargetPredicate = std::function<bool(const LivingEntity*)>;
+```
+
+**使用场景**:
+- `NearestAttackableTargetGoal` 的自定义目标筛选
+- 限制攻击目标类型（如只攻击玩家）
+- 添加额外的目标验证逻辑
+
+**使用示例**:
+```cpp
+// 示例 1: 只攻击玩家
+m_targetSelector.addGoal(1, std::make_unique<NearestAttackableTargetGoal<LivingEntity>>(
+    this,
+    true,    // checkSight
+    0,       // chance
+    [](const LivingEntity* entity) -> bool {
+        if (!entity) return false;
+        return entity->legacyType() == LegacyEntityType::Player;
+    }
+));
+
+// 示例 2: 攻击非队友目标
+m_targetSelector.addGoal(2, std::make_unique<NearestAttackableTargetGoal<LivingEntity>>(
+    this,
+    true,
+    0,
+    [this](const LivingEntity* entity) -> bool {
+        if (!entity) return false;
+        // 检查是否为队友
+        return !isOnSameTeam(entity);
+    }
+));
+
+// 示例 3: 攻击可见的敌对生物
+m_targetSelector.addGoal(3, std::make_unique<NearestAttackableTargetGoal<MobEntity>>(
+    this,
+    true,
+    10,  // 每 10 tick 检查一次
+    [](const LivingEntity* entity) -> bool {
+        if (!entity) return false;
+        auto* mob = dynamic_cast<const MobEntity*>(entity);
+        return mob != nullptr && mob->isHostile();
+    }
+));
+```
+
+**MC 1.16.5 参考**: `net.minecraft.entity.ai.goal.NearestAttackableTargetGoal` 的 `targetPredicate` 参数
+
+---
+
 ## 文件关系图
 
 ```mermaid
@@ -746,7 +802,7 @@ if (distSq < MAX_DISTANCE_SQ) { }
 
 ## 涉及的测试用例
 
-### GoalTests.cpp (437 行)
+### GoalTests.cpp
 
 | 测试名称 | 说明 |
 |----------|------|
@@ -774,8 +830,26 @@ if (distSq < MAX_DISTANCE_SQ) { }
 | `GoalSelectorTest.RemoveAllGoals` | 移除所有目标 |
 | `GoalSelectorTest.ForEachRunningGoal` | 遍历运行目标 |
 | `GoalFlagTest.AllFlags` | 所有标志测试 |
+| `TargetPredicateTest.CanBeCreatedFromLambda` | TargetPredicate 从 lambda 创建 |
+| `TargetPredicateTest.CanBeUsedForConditionChecking` | TargetPredicate 条件检查 |
+| `TargetPredicateTest.CanBeEmpty` | TargetPredicate 空谓词 |
+| `TargetPredicateTest.CanCaptureExternalState` | TargetPredicate 捕获外部状态 |
 
-### RandomWalkingGoalTest.cpp (389 行)
+### CreeperSwellGoalTest.cpp
+
+| 测试名称 | 说明 |
+|----------|------|
+| `CreeperSwellGoalBasicTest.GoalFlag_MoveFlagValue` | GoalFlag 枚举值验证 |
+| `CreeperSwellGoalBasicTest.EnumSet_CanStoreGoalFlags` | EnumSet 存储 GoalFlag |
+| `CreeperSwellGoalBasicTest.EnumSet_InitializerList` | EnumSet 初始化列表 |
+| `CreeperSwellGoalBasicTest.SwellDistances_AreCorrect` | 膨胀距离常量验证 |
+| `CreeperSwellGoalBasicTest.CreeperEntityConstants_AreCorrect` | 苦力怕实体常量验证 |
+| `CreeperSwellGoalBasicTest.AllGoalFlags_ReturnsAllFlags` | allGoalFlags 函数测试 |
+| `CreeperSwellGoalBasicTest.EnumSet_Operators` | EnumSet 运算符测试 |
+| `CreeperSwellGoalBasicTest.EnumSet_Intersects` | EnumSet 交集测试 |
+| `CreeperSwellGoalBasicTest.EnumSet_ForEach` | EnumSet 遍历测试 |
+
+### RandomWalkingGoalTest.cpp
 
 | 测试名称 | 说明 |
 |----------|------|

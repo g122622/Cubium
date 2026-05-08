@@ -440,3 +440,53 @@ TEST(GoalFlagTest, AllFlags) {
     EXPECT_TRUE(all.test(GoalFlag::Target));
     EXPECT_EQ(all.count(), 4);
 }
+
+// ============================================================================
+// TargetPredicate 类型测试
+// ============================================================================
+
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+
+using namespace mc::entity::ai::goal;
+
+TEST(TargetPredicateTest, CanBeCreatedFromLambda) {
+    // 测试 TargetPredicate 可以从 lambda 创建
+    TargetPredicate pred = [](const LivingEntity* entity) -> bool {
+        return entity != nullptr;
+    };
+
+    // 验证谓词可以调用
+    EXPECT_TRUE(pred(nullptr) == false);
+}
+
+TEST(TargetPredicateTest, CanBeUsedForConditionChecking) {
+    // 测试用于条件检查的谓词
+    int callCount = 0;
+    TargetPredicate countingPred = [&callCount](const LivingEntity* /*entity*/) -> bool {
+        callCount++;
+        return true;
+    };
+
+    // 验证谓词可以创建和存储
+    EXPECT_TRUE(static_cast<bool>(countingPred));
+}
+
+TEST(TargetPredicateTest, CanBeEmpty) {
+    // 测试空谓词
+    TargetPredicate emptyPred;
+
+    // 空谓词应该可以安全地存储和检查
+    EXPECT_FALSE(static_cast<bool>(emptyPred));
+}
+
+TEST(TargetPredicateTest, CanCaptureExternalState) {
+    // 测试谓词可以捕获外部状态
+    bool flag = false;
+    TargetPredicate statefulPred = [&flag](const LivingEntity* /*entity*/) -> bool {
+        flag = true;
+        return flag;
+    };
+
+    EXPECT_TRUE(statefulPred(nullptr));
+    EXPECT_TRUE(flag);
+}

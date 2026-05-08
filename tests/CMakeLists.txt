@@ -112,6 +112,7 @@ add_executable(mc_tests
     entity/AnimalSoundTests.cpp
     entity/GoalTests.cpp
     entity/EatGrassGoalTest.cpp
+    entity/CreeperSwellGoalTest.cpp
     entity/BrainScheduleTests.cpp
     entity/SensorTests.cpp
     entity/DamagingProjectileSupportTypesTest.cpp
