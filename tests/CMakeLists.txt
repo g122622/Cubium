@@ -105,6 +105,7 @@ add_executable(mc_tests
     entity/AnimalSoundTests.cpp
     entity/GoalTests.cpp
     entity/BrainScheduleTests.cpp
+    entity/SensorTests.cpp
     entity/DamagingProjectileSupportTypesTest.cpp
     entity/FishSupportTypesTest.cpp
     entity/HorseAppearanceSupportTypesTest.cpp
@@ -560,6 +561,10 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/player/SleepManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/core/Entity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/utils/EntityUtils.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/sensor/Sensors.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/memory/MemoryModuleType.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/schedule/Schedule.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/schedule/Activity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/movement/AutoJump.cpp
         ${CMAKE_SOURCE_DIR}/src/common/physics/PhysicsEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/common/physics/CollisionCache.cpp
