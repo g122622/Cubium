@@ -100,19 +100,15 @@ Player* TameableEntity::getOwner() const {
         return nullptr;
     }
 
-    // 搜索附近的玩家，匹配ownerId
-    // 注意：PlayerId在当前实现中是u64类型，与EntityId不同
-    // 这里我们需要通过legacyType和id来匹配
-    auto entities = worldPtr->getEntitiesInRange(position(), 64.0f, nullptr);
-    for (Entity* entity : entities) {
-        if (entity->legacyType() == LegacyEntityType::Player) {
-            Player* player = dynamic_cast<Player*>(entity);
-            // TODO: 需要Player类提供getPlayerId()或类似方法来匹配ownerId
-            // 当前先返回nullptr，等待Player类实现相关接口
-            MC_UNUSED(player);
-            // if (player && player->getPlayerId() == m_ownerId.value()) {
-            //     return player;
-            // }
+    // 获取所有玩家，查找匹配的主人
+    std::vector<Entity*> players = worldPtr->getPlayers();
+    for (Entity* entity : players) {
+        if (entity == nullptr) {
+            continue;
+        }
+        Player* player = dynamic_cast<Player*>(entity);
+        if (player != nullptr && player->playerId() == m_ownerId.value()) {
+            return player;
         }
     }
 

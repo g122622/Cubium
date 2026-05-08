@@ -3,6 +3,8 @@
 #include "../../../../entities/passive/tamable/TameableEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../../../item/core/ItemStack.hpp"
+#include "../../../../../world/IWorld.hpp"
+#include "../../../../../util/math/random/Random.hpp"
 #include <cmath>
 
 using namespace mc::entity::ai;
@@ -36,9 +38,15 @@ bool FollowOwnerGoal::shouldExecute() {
         return false;
     }
 
-    // TODO: 从世界获取主人玩家
-    // 暂时返回false，等待PlayerManager实现
-    return false;
+    // 从世界获取主人玩家
+    m_owner = m_entity->getOwner();
+    if (m_owner == nullptr) {
+        return false;
+    }
+
+    // 距离检查：超过最小距离才执行
+    f64 distance = m_entity->distanceTo(*m_owner);
+    return distance > m_minDistance;
 }
 
 bool FollowOwnerGoal::shouldContinueExecuting() {
@@ -112,9 +120,56 @@ bool FollowOwnerGoal::teleportToOwner() {
         return false;
     }
 
+    // MC 1.16.5: TameableEntity.teleportToOwner()
     // 在主人附近找一个安全的传送位置
-    // TODO: 实现传送逻辑
-    // 需要找到安全的传送位置并检查方块碰撞
+    IWorld* worldPtr = m_entity->world();
+    if (!worldPtr) {
+        return false;
+    }
+
+    math::Random& random = worldPtr->getRandom();
+
+    // 在主人周围尝试传送位置
+    for (i32 attempt = 0; attempt < 10; ++attempt) {
+        // 随机选择主人周围的位置（距离1-3格）
+        f32 angle = random.nextFloat() * 6.28318530718f; // 2 * PI
+        f32 distance = 1.0f + random.nextFloat() * 2.0f;
+
+        f32 targetX = m_owner->x() + std::cos(angle) * distance;
+        f32 targetZ = m_owner->z() + std::sin(angle) * distance;
+        f32 targetY = m_owner->y();
+
+        // 尝试找到安全的Y位置
+        for (i32 yOffset = -1; yOffset <= 1; ++yOffset) {
+            f32 testY = targetY + static_cast<f32>(yOffset);
+
+            // 检查脚部位置是否有碰撞
+            AxisAlignedBB entityBox = m_entity->boundingBox();
+            AxisAlignedBB testBox(
+                targetX - entityBox.width() / 2.0f,
+                testY,
+                targetZ - entityBox.width() / 2.0f,
+                targetX + entityBox.width() / 2.0f,
+                testY + entityBox.height(),
+                targetZ + entityBox.width() / 2.0f
+            );
+
+            // 检查是否有碰撞
+            if (worldPtr->hasNoCollisions(testBox)) {
+                // 传送实体
+                m_entity->setPosition(targetX, testY, targetZ);
+                m_entity->clearNavigation();
+
+                // 播放传送音效（如果有的话）
+                // auto soundEvent = m_entity->getTeleportSound();
+                // if (soundEvent) {
+                //     m_entity->playSound(*soundEvent, 1.0f, 1.0f);
+                // }
+
+                return true;
+            }
+        }
+    }
 
     return false;
 }
@@ -161,9 +216,45 @@ BegGoal::BegGoal(TameableEntity* entity, f32 maxDistance)
 }
 
 bool BegGoal::shouldExecute() {
-    // TODO: 找到最近的手持食物的玩家
-    // 暂时返回false，等待世界查询实现
-    return false;
+    // MC 1.16.5: BegGoal.shouldExecute()
+    // 查找最近的手持食物的玩家
+
+    IWorld* worldPtr = m_entity->world();
+    if (!worldPtr) {
+        return false;
+    }
+
+    // 获取范围内的所有实体
+    std::vector<Entity*> entities = worldPtr->getEntitiesInRange(
+        m_entity->position(), m_maxDistance, m_entity);
+
+    m_targetPlayer = nullptr;
+    f32 closestDistance = m_maxDistance * m_maxDistance; // 使用平方距离比较
+
+    for (Entity* entity : entities) {
+        if (entity == nullptr || entity->legacyType() != LegacyEntityType::Player) {
+            continue;
+        }
+
+        Player* player = dynamic_cast<Player*>(entity);
+        if (player == nullptr) {
+            continue;
+        }
+
+        // 检查玩家是否手持食物
+        if (!isPlayerHoldingFood(player)) {
+            continue;
+        }
+
+        // 检查距离
+        f32 distanceSq = m_entity->distanceSqTo(*player);
+        if (distanceSq < closestDistance) {
+            closestDistance = distanceSq;
+            m_targetPlayer = player;
+        }
+    }
+
+    return m_targetPlayer != nullptr;
 }
 
 bool BegGoal::shouldContinueExecuting() {
@@ -207,8 +298,25 @@ bool BegGoal::isPlayerHoldingFood(const Player* player) const {
         return false;
     }
 
-    // TODO: 检查玩家手持物品是否是此动物的食物
-    // 需要调用 TameableEntity::isFoodItem()
+    // MC 1.16.5: 检查玩家主手或副手是否持有食物
+    // 狼等驯服动物使用 isBreedingItem() 检查食物
+
+    // 获取主手物品
+    ItemStack mainHandItem = player->getHeldItem(Hand::MainHand);
+    if (!mainHandItem.isEmpty()) {
+        if (m_entity->isBreedingItem(mainHandItem)) {
+            return true;
+        }
+    }
+
+    // 获取副手物品
+    ItemStack offHandItem = player->getHeldItem(Hand::OffHand);
+    if (!offHandItem.isEmpty()) {
+        if (m_entity->isBreedingItem(offHandItem)) {
+            return true;
+        }
+    }
+
     return false;
 }
 

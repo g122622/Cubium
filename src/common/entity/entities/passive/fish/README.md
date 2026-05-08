@@ -5,7 +5,7 @@
 ```text
 fish/
 ├── AbstractFishEntity.hpp/cpp         # 所有鱼共享的基础游泳/离水语义
-├── AbstractGroupFishEntity.hpp        # 1.16.5 群游鱼中间层
+├── AbstractGroupFishEntity.hpp/cpp    # 1.16.5 群游鱼中间层（含招募和导航方法）
 ├── CodEntity.hpp/cpp                  # 鳕鱼
 ├── SalmonEntity.hpp/cpp               # 鲑鱼
 ├── PufferfishEntity.hpp/cpp           # 河豚
@@ -22,7 +22,10 @@ fish/
 - `AbstractGroupFishEntity`
   - 对齐 1.16.5 `AbstractGroupFishEntity`。
   - 负责群首引用、群体大小、跟随距离和 leader 失效后的状态清理。
-  - 当前先补最小可运行语义，后续再接 `FollowSchoolLeaderGoal` 和生成分组逻辑。
+  - **已实现方法**:
+    - `recruitFollowers()` - 招募无首领鱼加入群体
+    - `moveToGroupLeader()` - 导航到群首位置
+  - **已接入 `FollowSchoolLeaderGoal`** - 完整的群游跟随 AI。
 - `CodEntity`
   - 继承 `AbstractGroupFishEntity`。
   - 沿用 vanilla 默认最大群体大小 8。
@@ -94,8 +97,9 @@ if (follower.hasGroupLeader() && follower.inRangeOfGroupLeader()) {
   - 这会再次让 `PufferfishEntity` 落到错误层次。
 - 不要把 `SalmonEntity` 的最大群体大小写成默认值 8。
   - vanilla 1.16.5 鲑鱼固定为 5。
-- 当前 `AbstractGroupFishEntity` 只补了最小状态语义。
-  - `FollowSchoolLeaderGoal`、初始生成分组和桶/NBT 同步还没有接入。
+- 群游 AI 已完整实现。
+  - `FollowSchoolLeaderGoal` 已接入，使用 `EntityUtils::findEntities<AbstractGroupFishEntity>()` 搜索附近鱼群。
+  - 初始生成分组逻辑和桶/NBT 同步仍未实现。
 
 ## 测试用例
 
@@ -104,6 +108,16 @@ if (follower.hasGroupLeader() && follower.inRangeOfGroupLeader()) {
   - 覆盖 follower 加入/离开 leader。
   - 覆盖 leader 移除后的引用清理。
   - 覆盖 vanilla 风格的 11 格跟随距离语义。
+  - **覆盖 `FollowSchoolLeaderGoal` 完整测试**:
+    - `ShouldNotExecuteWhenIsGroupLeader` - 首领不执行跟随
+    - `ShouldExecuteWhenHasGroupLeader` - 有首领时执行
+    - `ShouldContinueExecutingWhenInRange` - 范围内继续跟随
+    - `ShouldNotContinueExecutingWhenOutOfRange` - 超出范围停止
+    - `ShouldLeaveGroupOnReset` - 重置时离开群体
+    - `ShouldFindGroupToJoin` - 搜索并加入群体
+    - `ShouldRespectMaxGroupSize` - 遵守最大群体限制
+    - `RecruitFollowersWorks` - 招募功能正常
+    - `MoveToGroupLeaderWorks` - 导航功能正常
 
 ## Mermaid 图表
 

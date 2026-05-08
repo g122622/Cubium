@@ -137,6 +137,30 @@ public:
         return distanceSqTo(*m_groupLeader) <= range * range;
     }
 
+    /**
+     * @brief 招募无首领鱼加入群体
+     *
+     * MC 1.16.5: func_212810_a
+     * 遍历无首领鱼列表，将它们加入当前群体（直到群体满员）
+     *
+     * @param followers 无首领鱼列表（自己不应该在列表中）
+     */
+    void recruitFollowers(const std::vector<AbstractGroupFishEntity*>& followers)
+    {
+        for (AbstractGroupFishEntity* follower : followers) {
+            if (canGroupGrow()) {
+                follower->joinGroup(*this);
+            }
+        }
+    }
+
+    /**
+     * @brief 导航到群首位置
+     *
+     * MC 1.16.5: moveToGroupLeader
+     */
+    void moveToGroupLeader();
+
     void tick() override
     {
         AbstractFishEntity::tick();
