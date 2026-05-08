@@ -14,6 +14,9 @@
 #include "world/block/Block.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/tick/manager/TickManager.hpp"
+#include "world/blockentity/storage/ChestEntity.hpp"
+#include "entity/core/Entity.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "util/math/random/Random.hpp"
 #include "core/Constants.hpp"
 
@@ -527,4 +530,270 @@ TEST_F(LootTest, FurnaceSmeltFunction_Builder) {
     auto func = LootFunctionBuilder::furnaceSmelt();
     ASSERT_NE(func, nullptr);
     EXPECT_EQ("furnace_smelt", func->getType());
+}
+
+// ============================================================================
+// CopyNameFunction::apply() 测试
+// ============================================================================
+
+TEST_F(LootTest, CopyNameFunction_EmptyStack) {
+    // 空 ItemStack 应该直接返回
+    CopyNameFunction func(CopyNameFunction::Source::This);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    ItemStack emptyStack;
+    ItemStack result = func.apply(emptyStack, context);
+    EXPECT_TRUE(result.isEmpty());
+}
+
+TEST_F(LootTest, CopyNameFunction_NoEntityInContext) {
+    // 没有 THIS_ENTITY 参数时不应崩溃
+    CopyNameFunction func(CopyNameFunction::Source::This);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    // 没有实体，名称不应改变
+    EXPECT_FALSE(result.hasCustomName());
+}
+
+TEST_F(LootTest, CopyNameFunction_EntityWithoutCustomName) {
+    // 实体没有自定义名称时，不应复制名称
+    CopyNameFunction func(CopyNameFunction::Source::This);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建一个没有自定义名称的实体
+    Entity entity(LegacyEntityType::Pig, EntityId(1), nullptr);
+    context.set(LootParams::THIS_ENTITY, &entity);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    // 实体没有自定义名称，物品不应获得名称
+    EXPECT_FALSE(result.hasCustomName());
+}
+
+TEST_F(LootTest, CopyNameFunction_EntityWithCustomName) {
+    // 从有自定义名称的实体复制名称
+    CopyNameFunction func(CopyNameFunction::Source::This);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建一个有自定义名称的实体
+    Entity entity(LegacyEntityType::Pig, EntityId(1), nullptr);
+    entity.setCustomName("Custom Pig Name");
+    context.set(LootParams::THIS_ENTITY, &entity);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    // 应该复制名称
+    EXPECT_TRUE(result.hasCustomName());
+    EXPECT_EQ("Custom Pig Name", result.getCustomName());
+}
+
+TEST_F(LootTest, CopyNameFunction_KillerEntity) {
+    // 从 KILLER_ENTITY 复制名称
+    CopyNameFunction func(CopyNameFunction::Source::Killer);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建击杀者实体
+    Entity killer(LegacyEntityType::Zombie, EntityId(2), nullptr);
+    killer.setCustomName("Killer Zombie");
+    context.set(LootParams::KILLER_ENTITY, &killer);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    EXPECT_TRUE(result.hasCustomName());
+    EXPECT_EQ("Killer Zombie", result.getCustomName());
+}
+
+TEST_F(LootTest, CopyNameFunction_KillerPlayer) {
+    // 从 KILLER_PLAYER 复制名称（玩家总是有名称）
+    CopyNameFunction func(CopyNameFunction::Source::KillerPlayer);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建玩家
+    Player player(EntityId(3), "TestPlayer");
+    context.set(LootParams::KILLER_PLAYER, &player);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    // 玩家即使没有自定义名称也应该复制显示名称
+    EXPECT_TRUE(result.hasCustomName());
+}
+
+TEST_F(LootTest, CopyNameFunction_KillerPlayerWithCustomName) {
+    // 从有自定义名称的玩家复制
+    CopyNameFunction func(CopyNameFunction::Source::KillerPlayer);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建有自定义名称的玩家
+    Player player(EntityId(4), "OriginalName");
+    player.setCustomName("CustomPlayerName");
+    context.set(LootParams::KILLER_PLAYER, &player);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    EXPECT_TRUE(result.hasCustomName());
+    EXPECT_EQ("CustomPlayerName", result.getCustomName());
+}
+
+TEST_F(LootTest, CopyNameFunction_BlockEntityWithoutCustomName) {
+    // 方块实体没有自定义名称时不应复制
+    CopyNameFunction func(CopyNameFunction::Source::BlockEntity);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建箱子（没有自定义名称）
+    blockentity::ChestEntity chest(BlockPos(0, 64, 0));
+    BlockEntity* blockEntity = &chest;  // 显式转换为基类指针
+    context.set(LootParams::BLOCK_ENTITY, blockEntity);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    // 没有自定义名称，物品不应获得名称
+    EXPECT_FALSE(result.hasCustomName());
+}
+
+TEST_F(LootTest, CopyNameFunction_BlockEntityWithCustomName) {
+    // 从有自定义名称的方块实体复制
+    CopyNameFunction func(CopyNameFunction::Source::BlockEntity);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建有自定义名称的箱子
+    blockentity::ChestEntity chest(BlockPos(0, 64, 0));
+    chest.setCustomName("My Special Chest");
+    BlockEntity* blockEntity = &chest;  // 显式转换为基类指针
+    context.set(LootParams::BLOCK_ENTITY, blockEntity);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    EXPECT_TRUE(result.hasCustomName());
+    EXPECT_EQ("My Special Chest", result.getCustomName());
+}
+
+TEST_F(LootTest, CopyNameFunction_DifferentSourcesIndependent) {
+    // 不同来源应该独立工作
+    math::Random rng(12345);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+
+    // 创建多个实体
+    Entity thisEntity(LegacyEntityType::Pig, EntityId(1), nullptr);
+    thisEntity.setCustomName("This Pig");
+
+    Entity killerEntity(LegacyEntityType::Zombie, EntityId(2), nullptr);
+    killerEntity.setCustomName("Killer Zombie");
+
+    Player player(EntityId(3), "PlayerName");
+    player.setCustomName("Custom Player");
+
+    blockentity::ChestEntity chest(BlockPos(0, 64, 0));
+    chest.setCustomName("Named Chest");
+
+    // 测试 THIS_ENTITY 来源
+    {
+        LootContext context(m_world, rng);
+        context.set(LootParams::THIS_ENTITY, &thisEntity);
+        context.set(LootParams::KILLER_ENTITY, &killerEntity);  // 设置另一个来源，确保不影响
+
+        CopyNameFunction func(CopyNameFunction::Source::This);
+        ItemStack stack(*diamond, 1);
+        ItemStack result = func.apply(stack, context);
+
+        EXPECT_EQ("This Pig", result.getCustomName());
+    }
+
+    // 测试 KILLER_ENTITY 来源
+    {
+        LootContext context(m_world, rng);
+        context.set(LootParams::KILLER_ENTITY, &killerEntity);
+        context.set(LootParams::THIS_ENTITY, &thisEntity);  // 设置另一个来源，确保不影响
+
+        CopyNameFunction func(CopyNameFunction::Source::Killer);
+        ItemStack stack(*diamond, 1);
+        ItemStack result = func.apply(stack, context);
+
+        EXPECT_EQ("Killer Zombie", result.getCustomName());
+    }
+
+    // 测试 KILLER_PLAYER 来源
+    {
+        LootContext context(m_world, rng);
+        context.set(LootParams::KILLER_PLAYER, &player);
+
+        CopyNameFunction func(CopyNameFunction::Source::KillerPlayer);
+        ItemStack stack(*diamond, 1);
+        ItemStack result = func.apply(stack, context);
+
+        EXPECT_EQ("Custom Player", result.getCustomName());
+    }
+
+    // 测试 BLOCK_ENTITY 来源
+    {
+        LootContext context(m_world, rng);
+        BlockEntity* blockEntity = &chest;  // 显式转换为基类指针
+        context.set(LootParams::BLOCK_ENTITY, blockEntity);
+
+        CopyNameFunction func(CopyNameFunction::Source::BlockEntity);
+        ItemStack stack(*diamond, 1);
+        ItemStack result = func.apply(stack, context);
+
+        EXPECT_EQ("Named Chest", result.getCustomName());
+    }
+}
+
+TEST_F(LootTest, CopyNameFunction_OverwritesExistingName) {
+    // 应该覆盖物品已有的自定义名称
+    CopyNameFunction func(CopyNameFunction::Source::This);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建实体
+    Entity entity(LegacyEntityType::Pig, EntityId(1), nullptr);
+    entity.setCustomName("New Name");
+    context.set(LootParams::THIS_ENTITY, &entity);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+
+    // 创建有旧名称的物品
+    ItemStack stack(*diamond, 1);
+    stack.setCustomName("Old Name");
+    EXPECT_EQ("Old Name", stack.getCustomName());
+
+    // 应用函数后应该被覆盖
+    ItemStack result = func.apply(stack, context);
+    EXPECT_EQ("New Name", result.getCustomName());
 }
