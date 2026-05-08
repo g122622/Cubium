@@ -1,6 +1,7 @@
 #include "SweetBerryBushBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../../entity/core/Entity.hpp"
+#include "../../../../entity/core/LivingEntity.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../item/Items.hpp"
@@ -8,6 +9,11 @@
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../physics/PhysicsConstants.hpp"
+#include "../../../../entity/damage/DamageSource.hpp"
+#include "../../../../entity/core/EntityType.hpp"
+#include "../../BlockTags.hpp"
+#include <cmath>
 
 namespace mc {
 namespace blocks {
@@ -126,24 +132,56 @@ void SweetBerryBushBlock::onEntityCollision(const BlockState& state, IWorld& wor
     MC_UNUSED(pos);
 
     // 参考: net.minecraft.block.SweetBerryBushBlock#onEntityCollision
-    // 只对 LivingEntity 生效（需要在 Entity 类中添加 isLiving() 方法）
-    // TODO: 检查实体类型，狐狸和蜜蜂免疫伤害
+    // 只对 LivingEntity 生效，且狐狸和蜜蜂免疫
+
+    // 检查是否为 LivingEntity
+    auto* livingEntity = dynamic_cast<LivingEntity*>(&entity);
+    if (livingEntity == nullptr) {
+        return;
+    }
+
+    // 检查实体类型（狐狸和蜜蜂免疫伤害和减速）
+    // MC 1.16.5: if (entityIn instanceof LivingEntity && entityIn.getType() != EntityType.FOX && entityIn.getType() != EntityType.BEE)
+    const std::string& typeId = entity.getTypeId();
+    if (typeId == "minecraft:fox" || typeId == "minecraft:bee") {
+        return;
+    }
+
+    // 应用减速效果
+    // MC 1.16.5: entityIn.setMotionMultiplier(state, new Vector3d(0.8D, 0.75D, 0.8D));
+    entity.setMotionMultiplier(Vector3(
+        physics::SWEET_BERRY_BUSH_SLOWDOWN_XZ,
+        physics::SWEET_BERRY_BUSH_SLOWDOWN_Y,
+        physics::SWEET_BERRY_BUSH_SLOWDOWN_XZ
+    ));
 
     int age = getAge(state);
 
-    // 减速效果
-    // entity.setMotionMultiplier(state, Vector3d(0.8, 0.75, 0.8));
-    // TODO: 实现 Entity::setMotionMultiplier
+    // 伤害逻辑（只在服务端执行，且 AGE > 0 时）
+    // 参考 MC 1.16.5: if (!worldIn.isRemote && state.get(AGE) > 0 && ...)
+    if (age > 0 && !world.isClientSide()) {
+        // 检查实体是否移动
+        // MC 1.16.5: (entityIn.lastTickPosX != entityIn.getPosX() || entityIn.lastTickPosZ != entityIn.getPosZ())
+        f32 prevX = entity.prevX();
+        f32 prevZ = entity.prevZ();
+        f32 currX = entity.x();
+        f32 currZ = entity.z();
 
-    // 伤害逻辑（只在服务端执行）
-    // 只有 AGE > 0 时才造成伤害
-    if (age > 0) {
-        // TODO: 检查实体是否移动（lastTickPos != currentPos）
-        // TODO: 检查移动距离 >= 0.003
-        // TODO: 检查实体类型（狐狸和蜜蜂免疫）
-        // entity.attackEntityFrom(DamageSource::SWEET_BERRY_BUSH, 1.0F);
-        MC_UNUSED(world);
-        MC_UNUSED(entity);
+        if (prevX != currX || prevZ != currZ) {
+            // 检查移动距离 >= 0.003
+            // MC 1.16.5: double d0 = Math.abs(entityIn.getPosX() - entityIn.lastTickPosX);
+            //           double d1 = Math.abs(entityIn.getPosZ() - entityIn.lastTickPosZ);
+            //           if (d0 >= (double)0.003F || d1 >= (double)0.003F)
+            f32 dx = std::abs(currX - prevX);
+            f32 dz = std::abs(currZ - prevZ);
+
+            if (dx >= physics::MOTION_THRESHOLD || dz >= physics::MOTION_THRESHOLD) {
+                // 造成伤害
+                // MC 1.16.5: entityIn.attackEntityFrom(DamageSource.SWEET_BERRY_BUSH, 1.0F);
+                auto damageSource = DamageSources::sweetBerryBush();
+                livingEntity->hurt(damageSource, 1.0f);
+            }
+        }
     }
 }
 
@@ -200,17 +238,10 @@ bool SweetBerryBushBlock::canSustain(
     MC_UNUSED(world);
     MC_UNUSED(groundPos);
 
+    // 参考 MC 1.16.5 SweetBerryBushBlock#isValidGround
     // 甜浆果丛可以种在草地、泥土、砂土、灰化土、耕地上
-    // 参考: net.minecraft.block.SweetBerryBushBlock#isValidGround
-    const Block* block = &groundState.owner();
-
-    // TODO: 使用 BlockTags 检查
     // return state.isIn(BlockTags.VALID_SWEET_BERRY_BUSH_GROUND);
-
-    // 简化实现：检查具体方块
-    // GRASS_BLOCK, DIRT, COARSE_DIRT, PODZOL, FARMLAND
-    MC_UNUSED(block);
-    return true; // 临时：总是返回 true
+    return BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(groundState);
 }
 
 void SweetBerryBushBlock::initShapes() {

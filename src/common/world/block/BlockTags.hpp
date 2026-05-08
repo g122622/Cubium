@@ -148,6 +148,9 @@ public:
     /// 竹子可种植标签（草、泥土、沙子、沙砾、竹林土）
     static BlockTag& BAMBOO_PLANTABLE_ON();
 
+    /// 甜浆果丛可种植标签（草方块、泥土、粗糙泥土、灰化土、耕地）
+    static BlockTag& VALID_SWEET_BERRY_BUSH_GROUND();
+
     /**
      * @brief 初始化所有内置标签
      *

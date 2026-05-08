@@ -1150,6 +1150,43 @@ public:
      */
     void setNoGravity(bool noGravity);
 
+    // ========== 运动速度乘数（甜浆果丛等减速效果） ==========
+
+    /**
+     * @brief 设置运动速度乘数
+     *
+     * 参考 MC 1.16.5 Entity.setMotionMultiplier(BlockState, Vector3d)
+     * 用于甜浆果丛、蜘蛛网等减速效果。
+     * 每帧在实体移动前，速度会乘以这个乘数。
+     * 退出减速区域时自动清除。
+     *
+     * @param multiplier 速度乘数 (x, y, z 分量)
+     */
+    void setMotionMultiplier(const Vector3& multiplier) {
+        m_motionMultiplier = multiplier;
+        m_hasMotionMultiplier = true;
+    }
+
+    /**
+     * @brief 清除运动速度乘数
+     *
+     * 当实体退出减速方块时调用。
+     */
+    void clearMotionMultiplier() {
+        m_motionMultiplier = Vector3(1.0f, 1.0f, 1.0f);
+        m_hasMotionMultiplier = false;
+    }
+
+    /**
+     * @brief 检查是否有运动速度乘数
+     */
+    [[nodiscard]] bool hasMotionMultiplier() const { return m_hasMotionMultiplier; }
+
+    /**
+     * @brief 获取运动速度乘数
+     */
+    [[nodiscard]] const Vector3& motionMultiplier() const { return m_motionMultiplier; }
+
     // ========== 摔落伤害 ==========
 
     /**
@@ -1626,6 +1663,11 @@ protected:
 
     // 重力
     bool m_noGravity = false;
+
+    // 运动速度乘数（用于甜浆果丛等减速效果）
+    // 参考 MC 1.16.5 Entity.motionMultiplier
+    Vector3 m_motionMultiplier = Vector3(1.0f, 1.0f, 1.0f);
+    bool m_hasMotionMultiplier = false;
 
     // 乘客/骑乘系统
     std::vector<EntityId> m_passengers;  // 乘客列表

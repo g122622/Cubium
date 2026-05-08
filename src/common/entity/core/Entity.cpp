@@ -382,6 +382,11 @@ void Entity::baseTick() {
     // 重新探测地面状态，避免实体在脚下方块被移除后仍然沿用旧的 onGround 缓存。
     checkOnGround();
 
+    // 清除运动速度乘数
+    // 参考 MC 1.16.5 Entity.baseTick(): this.motionMultiplier = Vec3d.ZERO;
+    // 每帧开始时清除，由 onEntityCollision 在需要时重新设置
+    clearMotionMultiplier();
+
     // MC 1.16.5: 如果是乘客，调用 updateRidden()
     // 注意：这里需要子类重写以实现乘客逻辑
     // 在 Vehicle/tick() 中应该调用 updatePassengers()
@@ -673,6 +678,14 @@ void Entity::rotate(f32 deltaYaw, f32 deltaPitch) {
  */
 Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz) {
     Vector3 desiredMovement(dx, dy, dz);
+
+    // MC 1.16.5: 应用运动速度乘数（甜浆果丛、蜘蛛网等减速效果）
+    // 参考 Entity.move() 行: if (this.motionMultiplier.x != 0.0D) { ... }
+    if (m_hasMotionMultiplier) {
+        desiredMovement.x *= m_motionMultiplier.x;
+        desiredMovement.y *= m_motionMultiplier.y;
+        desiredMovement.z *= m_motionMultiplier.z;
+    }
 
     // 重置碰撞状态
     m_collidedHorizontally = false;

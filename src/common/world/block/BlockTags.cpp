@@ -192,6 +192,14 @@ BlockTag& BlockTags::BAMBOO_PLANTABLE_ON() {
     return *tag;
 }
 
+BlockTag& BlockTags::VALID_SWEET_BERRY_BUSH_GROUND() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "valid_sweet_berry_bush_ground"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize() {
     if (s_initialized) {
         return;
@@ -395,6 +403,19 @@ void BlockTags::initialize() {
         ResourceLocation("minecraft", "bamboo_sapling")
     });
     tags[bambooPlantableOn->getId()] = std::move(bambooPlantableOn);
+
+    // 创建 VALID_SWEET_BERRY_BUSH_GROUND 标签
+    // 参考 MC 1.16.5 SweetBerryBushBlock.isValidGround()
+    // Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.COARSE_DIRT, Blocks.PODZOL, Blocks.FARMLAND
+    auto sweetBerryBushGround = std::make_unique<BlockTag>(ResourceLocation("minecraft", "valid_sweet_berry_bush_ground"));
+    sweetBerryBushGround->addAll({
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "farmland")
+    });
+    tags[sweetBerryBushGround->getId()] = std::move(sweetBerryBushGround);
 
     // 将所有原木类型添加到 LOGS 标签
     BlockTag& logsTag = *tags.at(ResourceLocation("minecraft", "logs"));

@@ -152,8 +152,12 @@ Block
 2. 玩家右键 AGE > 1 的灌木可以采摘甜浆果
 3. 采摘掉落数量：AGE 2 掉落 1-2 个，AGE 3 掉落 2-3 个
 4. 采摘后 AGE 重置为 1
-5. 实体穿过时造成伤害（狐狸和蜜蜂免疫）
+5. 实体穿过时：
+   - 狐狸 (`minecraft:fox`) 和蜜蜂 (`minecraft:bee`) 免疫减速和伤害
+   - 其他 LivingEntity 受到减速效果 (XZ: 0.8, Y: 0.75)
+   - 当 AGE > 0 且移动距离 >= 0.003 时造成 1.0 伤害
 6. 使用 `ItemDropHelper::spawnItemEntity()` 掉落物品
+7. 可种植在草地、泥土、粗糙泥土、灰化土、耕地上（通过 `BlockTags::VALID_SWEET_BERRY_BUSH_GROUND()` 标签检查）
 
 ## 使用方法
 
