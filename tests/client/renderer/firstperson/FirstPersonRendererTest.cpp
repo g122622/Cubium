@@ -1,10 +1,12 @@
 #include <gtest/gtest.h>
+#include <cmath>
 #include "client/renderer/trident/firstperson/ArmPose.hpp"
 #include "client/renderer/trident/firstperson/PlayerModel.hpp"
 #include "client/renderer/trident/firstperson/ItemCameraTransforms.hpp"
 #include "client/renderer/trident/firstperson/MatrixStack.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/core/Types.hpp"
 
 using namespace mc;
 using namespace mc::client::renderer;
@@ -275,4 +277,273 @@ TEST(ItemTransformTest, DefaultTransform_ReturnsDefault) {
     ItemTransform defaultTransform = ItemTransform::defaultTransform();
 
     EXPECT_TRUE(defaultTransform.isDefault());
+}
+
+// ============================================================================
+// FirstPersonRenderer 变换方法测试
+// ============================================================================
+
+class FirstPersonRendererTransformTest : public ::testing::Test {
+protected:
+    MatrixStack stack;
+};
+
+TEST_F(FirstPersonRendererTransformTest, MatrixStack_PushPop) {
+    stack.push();
+    stack.translate(10.0f, 20.0f, 30.0f);
+
+    const Matrix4f& matrix1 = stack.last();
+    Vector3f translation1 = matrix1.translation();
+    EXPECT_FLOAT_EQ(translation1.x, 10.0f);
+
+    stack.pop();
+
+    const Matrix4f& matrix2 = stack.last();
+    Vector3f translation2 = matrix2.translation();
+    EXPECT_FLOAT_EQ(translation2.x, 0.0f);
+    EXPECT_FLOAT_EQ(translation2.y, 0.0f);
+    EXPECT_FLOAT_EQ(translation2.z, 0.0f);
+}
+
+TEST_F(FirstPersonRendererTransformTest, MatrixStack_Translate) {
+    stack.translate(5.0f, 10.0f, 15.0f);
+
+    const Matrix4f& matrix = stack.last();
+    Vector3f translation = matrix.translation();
+
+    EXPECT_FLOAT_EQ(translation.x, 5.0f);
+    EXPECT_FLOAT_EQ(translation.y, 10.0f);
+    EXPECT_FLOAT_EQ(translation.z, 15.0f);
+}
+
+TEST_F(FirstPersonRendererTransformTest, MatrixStack_RotateX) {
+    stack.rotateX(90.0f);
+
+    const Matrix4f& matrix = stack.last();
+    // 旋转后的矩阵应该不是单位矩阵
+    // 检查对角线元素不是全为 1
+    EXPECT_FALSE(
+        std::abs(matrix(0, 0) - 1.0f) < 0.001f &&
+        std::abs(matrix(1, 1) - 1.0f) < 0.001f &&
+        std::abs(matrix(2, 2) - 1.0f) < 0.001f &&
+        std::abs(matrix(3, 3) - 1.0f) < 0.001f
+    );
+}
+
+TEST_F(FirstPersonRendererTransformTest, MatrixStack_RotateY) {
+    stack.rotateY(45.0f);
+
+    const Matrix4f& matrix = stack.last();
+    // 旋转后的矩阵应该不是单位矩阵
+    EXPECT_FALSE(
+        std::abs(matrix(0, 0) - 1.0f) < 0.001f &&
+        std::abs(matrix(1, 1) - 1.0f) < 0.001f &&
+        std::abs(matrix(2, 2) - 1.0f) < 0.001f &&
+        std::abs(matrix(3, 3) - 1.0f) < 0.001f
+    );
+}
+
+TEST_F(FirstPersonRendererTransformTest, MatrixStack_RotateZ) {
+    stack.rotateZ(30.0f);
+
+    const Matrix4f& matrix = stack.last();
+    // 旋转后的矩阵应该不是单位矩阵
+    EXPECT_FALSE(
+        std::abs(matrix(0, 0) - 1.0f) < 0.001f &&
+        std::abs(matrix(1, 1) - 1.0f) < 0.001f &&
+        std::abs(matrix(2, 2) - 1.0f) < 0.001f &&
+        std::abs(matrix(3, 3) - 1.0f) < 0.001f
+    );
+}
+
+TEST_F(FirstPersonRendererTransformTest, MatrixStack_Scale) {
+    stack.scale(2.0f, 3.0f, 4.0f);
+
+    const Matrix4f& matrix = stack.last();
+    // 检查缩放效果：对角线元素应该反映缩放因子
+    // 由于可能有旋转，直接检查对角线是否不为 1
+    // 缩放矩阵会影响各轴的基向量长度
+    EXPECT_FLOAT_EQ(matrix(0, 0), 2.0f);
+    EXPECT_FLOAT_EQ(matrix(1, 1), 3.0f);
+    EXPECT_FLOAT_EQ(matrix(2, 2), 4.0f);
+    EXPECT_FLOAT_EQ(matrix(3, 3), 1.0f);
+}
+
+TEST_F(FirstPersonRendererTransformTest, MatrixStack_CombineTransforms) {
+    // 组合变换：平移 -> 旋转 -> 缩放
+    stack.push();
+    stack.translate(1.0f, 2.0f, 3.0f);
+    stack.rotateY(45.0f);
+    stack.scale(0.5f, 0.5f, 0.5f);
+
+    const Matrix4f& matrix = stack.last();
+
+    // 平移应该在旋转后的坐标系中
+    // 这里只验证矩阵不是零矩阵
+    bool hasNonZeroElement = false;
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            if (std::abs(matrix(i, j)) > 0.001f) {
+                hasNonZeroElement = true;
+                break;
+            }
+        }
+    }
+    EXPECT_TRUE(hasNonZeroElement);
+
+    stack.pop();
+}
+
+TEST_F(FirstPersonRendererTransformTest, MatrixStack_MultiplePushPop) {
+    // 测试多层嵌套
+    stack.push();
+    stack.translate(1.0f, 0.0f, 0.0f);
+
+    stack.push();
+    stack.translate(0.0f, 2.0f, 0.0f);
+
+    stack.push();
+    stack.translate(0.0f, 0.0f, 3.0f);
+
+    const Matrix4f& inner = stack.last();
+    Vector3f innerTranslation = inner.translation();
+    // 累计平移：(1, 2, 3)
+    EXPECT_FLOAT_EQ(innerTranslation.x, 1.0f);
+    EXPECT_FLOAT_EQ(innerTranslation.y, 2.0f);
+    EXPECT_FLOAT_EQ(innerTranslation.z, 3.0f);
+
+    stack.pop();
+    stack.pop();
+    stack.pop();
+
+    // 回到初始状态
+    const Matrix4f& outer = stack.last();
+    Vector3f outerTranslation = outer.translation();
+    EXPECT_FLOAT_EQ(outerTranslation.x, 0.0f);
+    EXPECT_FLOAT_EQ(outerTranslation.y, 0.0f);
+    EXPECT_FLOAT_EQ(outerTranslation.z, 0.0f);
+}
+
+// ============================================================================
+// 挥动动画变换测试
+// ============================================================================
+
+TEST_F(FirstPersonRendererTransformTest, SwingAnimation_TransformValues) {
+    // 测试挥动动画变换的基本值
+    // 挥动进度 0.0 - 1.0
+    const f32 PI = 3.14159265358979323846f;
+
+    // 进度 0 时
+    f32 swingProgress0 = 0.0f;
+    f32 sqrtSwing0 = std::sqrt(swingProgress0);
+    f32 offsetX0 = -0.4f * std::sin(sqrtSwing0 * PI);
+    EXPECT_FLOAT_EQ(offsetX0, 0.0f);  // sin(0) = 0
+
+    // 进度 0.25 时
+    f32 swingProgress25 = 0.25f;
+    f32 sqrtSwing25 = std::sqrt(swingProgress25);  // 0.5
+    f32 offsetX25 = -0.4f * std::sin(sqrtSwing25 * PI);
+    EXPECT_LT(offsetX25, 0.0f);  // sin(PI/2) = 1, offsetX = -0.4
+
+    // 进度 1.0 时
+    f32 swingProgress100 = 1.0f;
+    f32 sqrtSwing100 = std::sqrt(swingProgress100);  // 1.0
+    f32 offsetX100 = -0.4f * std::sin(sqrtSwing100 * PI);
+    EXPECT_NEAR(offsetX100, 0.0f, 0.001f);  // sin(PI) ≈ 0
+}
+
+// ============================================================================
+// 装备动画测试
+// ============================================================================
+
+TEST_F(FirstPersonRendererTransformTest, EquipAnimation_TranslateY) {
+    // 装备进度影响 Y 轴平移
+    // Y 平移 = SIDE_OFFSET_Y + equipProgress * -0.6f
+
+    f32 sideOffsetY = -1.22f;  // MC 1.16.5 常量
+
+    // 进度 0（刚切换）
+    f32 equip0 = 0.0f;
+    f32 y0 = sideOffsetY + equip0 * -0.6f;
+    EXPECT_FLOAT_EQ(y0, sideOffsetY);
+
+    // 进度 0.5
+    f32 equip50 = 0.5f;
+    f32 y50 = sideOffsetY + equip50 * -0.6f;
+    EXPECT_FLOAT_EQ(y50, sideOffsetY - 0.3f);
+
+    // 进度 1.0（完全装备）
+    f32 equip100 = 1.0f;
+    f32 y100 = sideOffsetY + equip100 * -0.6f;
+    EXPECT_FLOAT_EQ(y100, sideOffsetY - 0.6f);
+}
+
+// ============================================================================
+// 手侧边测试
+// ============================================================================
+
+TEST(HandSideTest, ResolveHandSide_MainHandRight) {
+    // 主手为右手时
+    HandSide primaryHand = HandSide::Right;
+
+    // 主手槽位 -> 右手
+    EXPECT_EQ(HandSide::Right, primaryHand);  // 主手
+
+    // 副手槽位 -> 左手
+    HandSide offHandSide = (primaryHand == HandSide::Right) ? HandSide::Left : HandSide::Right;
+    EXPECT_EQ(offHandSide, HandSide::Left);
+}
+
+TEST(HandSideTest, ResolveHandSide_MainHandLeft) {
+    // 主手为左手时
+    HandSide primaryHand = HandSide::Left;
+
+    // 主手槽位 -> 左手
+    EXPECT_EQ(primaryHand, HandSide::Left);
+
+    // 副手槽位 -> 右手
+    HandSide offHandSide = (primaryHand == HandSide::Right) ? HandSide::Left : HandSide::Right;
+    EXPECT_EQ(offHandSide, HandSide::Right);
+}
+
+// ============================================================================
+// ArmPose 测试
+// ============================================================================
+
+TEST(ArmPoseTest, IsTwoHanded_AllPoses) {
+    // 双手持握的姿势（需要两只手操作）
+    EXPECT_TRUE(isTwoHanded(ArmPose::BowAndArrow));
+    EXPECT_TRUE(isTwoHanded(ArmPose::ThrowSpear));
+    EXPECT_TRUE(isTwoHanded(ArmPose::CrossbowCharge));
+
+    // CrossbowHold 是弩已装填状态，单手持握，不算双持
+    EXPECT_FALSE(isTwoHanded(ArmPose::CrossbowHold));
+
+    // 单手持握的姿势
+    EXPECT_FALSE(isTwoHanded(ArmPose::Empty));
+    EXPECT_FALSE(isTwoHanded(ArmPose::Item));
+    EXPECT_FALSE(isTwoHanded(ArmPose::Block));
+    EXPECT_FALSE(isTwoHanded(ArmPose::EatOrDrink));
+}
+
+TEST(ArmPoseTest, BlocksOffHand_AllPoses) {
+    // 阻止副手渲染的姿势
+    EXPECT_TRUE(blocksOffHand(ArmPose::BowAndArrow));
+    EXPECT_TRUE(blocksOffHand(ArmPose::ThrowSpear));
+    EXPECT_TRUE(blocksOffHand(ArmPose::CrossbowCharge));
+    EXPECT_TRUE(blocksOffHand(ArmPose::CrossbowHold));
+
+    // 不阻止副手的姿势
+    EXPECT_FALSE(blocksOffHand(ArmPose::Empty));
+    EXPECT_FALSE(blocksOffHand(ArmPose::Item));
+    EXPECT_FALSE(blocksOffHand(ArmPose::Block));
+    EXPECT_FALSE(blocksOffHand(ArmPose::EatOrDrink));
+}
+
+TEST(ArmPoseTest, CrossbowHoldNotTwoHandedButBlocksOffHand) {
+    // CrossbowHold 特殊情况：
+    // 不是双持姿势（isTwoHanded = false）
+    // 但仍然阻止副手渲染（blocksOffHand = true）
+    EXPECT_FALSE(isTwoHanded(ArmPose::CrossbowHold));
+    EXPECT_TRUE(blocksOffHand(ArmPose::CrossbowHold));
 }

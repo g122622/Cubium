@@ -517,3 +517,212 @@ TEST(AttackContextTest, MeleeDamageUsesArmorToughnessFormula) {
 
     EXPECT_FLOAT_EQ(context.calculateFinalDamage(), 3.0f);
 }
+
+// ============================================================================
+// 挥动动画测试
+// ============================================================================
+
+TEST(LivingEntityTest, SwingAnimation_DefaultState) {
+    TestLivingEntity entity;
+
+    // 默认没有挥动
+    EXPECT_EQ(entity.swingProgressInt(), 0);
+    EXPECT_FALSE(entity.isSwingInProgress());
+    EXPECT_EQ(entity.swingingHand(), Hand::MainHand);
+}
+
+TEST(LivingEntityTest, SwingAnimation_TriggerSwing) {
+    TestLivingEntity entity;
+
+    // 触发主手挥动
+    entity.swing(Hand::MainHand);
+
+    EXPECT_TRUE(entity.isSwingInProgress());
+    EXPECT_EQ(entity.swingingHand(), Hand::MainHand);
+    EXPECT_EQ(entity.swingProgressInt(), -1);  // 初始为 -1
+}
+
+TEST(LivingEntityTest, SwingAnimation_TriggerOffHandSwing) {
+    TestLivingEntity entity;
+
+    // 触发副手挥动
+    entity.swing(Hand::OffHand);
+
+    EXPECT_TRUE(entity.isSwingInProgress());
+    EXPECT_EQ(entity.swingingHand(), Hand::OffHand);
+}
+
+TEST(LivingEntityTest, SwingAnimation_TickProgress) {
+    TestLivingEntity entity;
+
+    entity.swing(Hand::MainHand);
+    EXPECT_EQ(entity.swingProgressInt(), -1);
+
+    // 每次tick进度增加
+    entity.tick();
+    EXPECT_EQ(entity.swingProgressInt(), 0);
+
+    entity.tick();
+    EXPECT_EQ(entity.swingProgressInt(), 1);
+
+    entity.tick();
+    EXPECT_EQ(entity.swingProgressInt(), 2);
+}
+
+TEST(LivingEntityTest, SwingAnimation_StopsAfterAnimationEnd) {
+    TestLivingEntity entity;
+
+    entity.swing(Hand::MainHand);
+
+    // 默认动画时长 6 tick
+    // 进度从 -1 开始，所以需要 7 次 tick 才能完成
+    for (int i = 0; i < 7; ++i) {
+        entity.tick();
+    }
+
+    EXPECT_FALSE(entity.isSwingInProgress());
+    EXPECT_EQ(entity.swingProgressInt(), 0);  // 重置为 0
+}
+
+TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_Base) {
+    TestLivingEntity entity;
+
+    // 基础动画时长为 6 tick
+    EXPECT_EQ(entity.getArmSwingAnimationEnd(), 6);
+}
+
+TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_HasteEffect) {
+    TestLivingEntity entity;
+
+    // 添加急迫 I 效果
+    entity.addEffect(mc::entity::effect::EffectInstance(
+        mc::entity::effect::EffectType::Haste,
+        200,  // duration
+        0,    // amplifier (Haste I)
+        false,  // ambient
+        true,   // visible
+        true    // showIcon
+    ));
+
+    // Haste I: 6 - (1 + 1) = 4 tick
+    EXPECT_EQ(entity.getArmSwingAnimationEnd(), 4);
+}
+
+TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_HasteII) {
+    TestLivingEntity entity;
+
+    // 添加急迫 II 效果
+    entity.addEffect(mc::entity::effect::EffectInstance(
+        mc::entity::effect::EffectType::Haste,
+        200,
+        1,  // amplifier (Haste II)
+        false, true, true
+    ));
+
+    // Haste II: 6 - (1 + 2) = 3 tick
+    EXPECT_EQ(entity.getArmSwingAnimationEnd(), 3);
+}
+
+TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_MiningFatigue) {
+    TestLivingEntity entity;
+
+    // 添加挖掘疲劳 I 效果
+    entity.addEffect(mc::entity::effect::EffectInstance(
+        mc::entity::effect::EffectType::MiningFatigue,
+        200,
+        0,  // amplifier (Mining Fatigue I)
+        false, true, true
+    ));
+
+    // Mining Fatigue I: 6 + (1 + 1) * 2 = 10 tick
+    EXPECT_EQ(entity.getArmSwingAnimationEnd(), 10);
+}
+
+TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_MiningFatigueIII) {
+    TestLivingEntity entity;
+
+    // 添加挖掘疲劳 III 效果
+    entity.addEffect(mc::entity::effect::EffectInstance(
+        mc::entity::effect::EffectType::MiningFatigue,
+        200,
+        2,  // amplifier (Mining Fatigue III)
+        false, true, true
+    ));
+
+    // Mining Fatigue III: 6 + (1 + 3) * 2 = 14 tick
+    EXPECT_EQ(entity.getArmSwingAnimationEnd(), 14);
+}
+
+TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_HasteAndFatigue) {
+    TestLivingEntity entity;
+
+    // 同时有急迫 I 和挖掘疲劳 I
+    entity.addEffect(mc::entity::effect::EffectInstance(
+        mc::entity::effect::EffectType::Haste,
+        200, 0, false, true, true
+    ));
+    entity.addEffect(mc::entity::effect::EffectInstance(
+        mc::entity::effect::EffectType::MiningFatigue,
+        200, 0, false, true, true
+    ));
+
+    // Haste I: 6 - 2 = 4
+    // Mining Fatigue I: 4 + 4 = 8
+    EXPECT_EQ(entity.getArmSwingAnimationEnd(), 8);
+}
+
+TEST(LivingEntityTest, SwingAnimation_GetArmSwingAnimationEnd_MinimumOne) {
+    TestLivingEntity entity;
+
+    // 急迫 IV 会产生负数，但最小值为 1
+    entity.addEffect(mc::entity::effect::EffectInstance(
+        mc::entity::effect::EffectType::Haste,
+        200,
+        10,  // Haste XI (非常高的等级)
+        false, true, true
+    ));
+
+    // 即使计算结果为负，最小值也是 1
+    EXPECT_GE(entity.getArmSwingAnimationEnd(), 1);
+}
+
+TEST(LivingEntityTest, SwingAnimation_SwingResetsOnNewSwing) {
+    TestLivingEntity entity;
+
+    // 开始挥动
+    entity.swing(Hand::MainHand);
+    entity.tick();
+    entity.tick();
+    EXPECT_EQ(entity.swingProgressInt(), 1);
+
+    // MC 1.16.5: 只有在动画进行到一半或更多时才能重新触发
+    // 在进度 1/6 时（未到一半），不应该重置
+    entity.swing(Hand::OffHand);
+    EXPECT_EQ(entity.swingProgressInt(), 1);  // 保持不变
+    EXPECT_EQ(entity.swingingHand(), Hand::MainHand);  // 手不变
+
+    // 进行到超过一半（6/2 = 3）
+    entity.tick();  // 2
+    entity.tick();  // 3 - 到达一半
+    entity.tick();  // 4 - 超过一半
+
+    // 现在可以重新触发
+    entity.swing(Hand::OffHand);
+    EXPECT_EQ(entity.swingProgressInt(), -1);  // 重置
+    EXPECT_EQ(entity.swingingHand(), Hand::OffHand);  // 手切换
+}
+
+TEST(LivingEntityTest, SwingAnimation_SwingProgress) {
+    TestLivingEntity entity;
+
+    entity.swing(Hand::MainHand);
+
+    // tick 后获取挥动进度
+    entity.tick();
+    // swingProgress 应该基于进度计算
+    // 初始 swingProgressInt 为 0（tick 后从 -1 变为 0）
+    // m_swingProgress 应该在 tick 中更新
+    f32 progress = entity.swingProgress();
+    EXPECT_GE(progress, 0.0f);
+    EXPECT_LE(progress, 1.0f);
+}
