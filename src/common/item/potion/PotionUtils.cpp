@@ -3,13 +3,282 @@
 #include "Potions.hpp"
 #include "../Items.hpp"
 #include "../core/Item.hpp"
+#include "../../entity/effect/EffectInstance.hpp"
 #include "../../entity/effect/EffectType.hpp"
 #include "../../util/assert/AssertAll.hpp"
+#include "../../util/nbt/Nbt.hpp"
+#include <optional>
 
 namespace mc {
 namespace potion {
 
-// ========== PotionUtils 实现 ==========
+// ============================================================================
+// 从 ItemStack 读取自定义效果
+// ============================================================================
+
+std::vector<entity::effect::EffectInstance> PotionUtils::getCustomEffects(const ItemStack& stack) {
+    std::vector<entity::effect::EffectInstance> effects;
+
+    if (stack.isEmpty()) {
+        return effects;
+    }
+
+    // 从 JSON 自定义数据中读取
+    const nlohmann::json* customData = stack.getTag();
+    if (customData == nullptr || !customData->is_object()) {
+        return effects;
+    }
+
+    auto it = customData->find(NBT_CUSTOM_POTION_EFFECTS);
+    if (it == customData->end() || !it->is_array()) {
+        return effects;
+    }
+
+    const auto& effectsArray = *it;
+    for (const auto& effectJson : effectsArray) {
+        if (!effectJson.is_object()) {
+            continue;
+        }
+
+        // 读取效果类型 ID
+        if (!effectJson.contains("Id") || !effectJson["Id"].is_number()) {
+            continue;
+        }
+        auto type = static_cast<entity::effect::EffectType>(effectJson["Id"].get<i32>());
+
+        // 读取等级
+        i32 amplifier = 0;
+        if (effectJson.contains("Amplifier") && effectJson["Amplifier"].is_number()) {
+            amplifier = effectJson["Amplifier"].get<i32>();
+        }
+
+        // 读取持续时间
+        i32 duration = 600;  // 默认 30 秒
+        if (effectJson.contains("Duration") && effectJson["Duration"].is_number()) {
+            duration = effectJson["Duration"].get<i32>();
+        }
+
+        // 读取标志
+        bool ambient = false;
+        if (effectJson.contains("Ambient") && effectJson["Ambient"].is_boolean()) {
+            ambient = effectJson["Ambient"].get<bool>();
+        }
+
+        bool visible = true;
+        if (effectJson.contains("ShowParticles") && effectJson["ShowParticles"].is_boolean()) {
+            visible = effectJson["ShowParticles"].get<bool>();
+        }
+
+        bool showIcon = true;
+        if (effectJson.contains("ShowIcon") && effectJson["ShowIcon"].is_boolean()) {
+            showIcon = effectJson["ShowIcon"].get<bool>();
+        }
+
+        effects.emplace_back(type, duration, amplifier, ambient, visible, showIcon);
+    }
+
+    return effects;
+}
+
+// ============================================================================
+// 设置自定义效果到 ItemStack
+// ============================================================================
+
+ItemStack& PotionUtils::setCustomEffects(ItemStack& stack, const std::vector<entity::effect::EffectInstance>& effects) {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    if (effects.empty()) {
+        // 移除自定义效果
+        removeCustomEffects(stack);
+        return stack;
+    }
+
+    // 获取或创建自定义数据
+    nlohmann::json& customData = stack.getOrCreateTag();
+
+    // 创建效果数组
+    nlohmann::json effectsArray = nlohmann::json::array();
+    for (const auto& effect : effects) {
+        nlohmann::json effectJson;
+        effectJson["Id"] = static_cast<i32>(effect.type());
+        effectJson["Amplifier"] = effect.amplifier();
+        effectJson["Duration"] = effect.duration();
+        effectJson["Ambient"] = effect.isAmbient();
+        effectJson["ShowParticles"] = effect.isVisible();
+        effectJson["ShowIcon"] = effect.showIcon();
+        effectsArray.push_back(std::move(effectJson));
+    }
+
+    customData[NBT_CUSTOM_POTION_EFFECTS] = std::move(effectsArray);
+    return stack;
+}
+
+// ============================================================================
+// 添加单个自定义效果
+// ============================================================================
+
+ItemStack& PotionUtils::addCustomEffect(ItemStack& stack, const entity::effect::EffectInstance& effect) {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    // 获取现有自定义效果
+    auto existingEffects = getCustomEffects(stack);
+
+    // 查找是否已有相同类型的效果
+    bool merged = false;
+    for (auto& existing : existingEffects) {
+        if (existing.type() == effect.type()) {
+            // 合并效果
+            existing.merge(effect);
+            merged = true;
+            break;
+        }
+    }
+
+    // 如果没有合并，添加新效果
+    if (!merged) {
+        existingEffects.push_back(effect);
+    }
+
+    // 设置回 ItemStack
+    return setCustomEffects(stack, existingEffects);
+}
+
+// ============================================================================
+// 移除所有自定义效果
+// ============================================================================
+
+ItemStack& PotionUtils::removeCustomEffects(ItemStack& stack) {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    nlohmann::json* customData = stack.getTag();
+    if (customData != nullptr && customData->is_object()) {
+        customData->erase(NBT_CUSTOM_POTION_EFFECTS);
+    }
+
+    return stack;
+}
+
+// ============================================================================
+// 检查是否有自定义效果
+// ============================================================================
+
+bool PotionUtils::hasCustomEffects(const ItemStack& stack) {
+    if (stack.isEmpty()) {
+        return false;
+    }
+
+    const nlohmann::json* customData = stack.getTag();
+    if (customData == nullptr || !customData->is_object()) {
+        return false;
+    }
+
+    auto it = customData->find(NBT_CUSTOM_POTION_EFFECTS);
+    return it != customData->end() && it->is_array() && !it->empty();
+}
+
+// ============================================================================
+// 获取自定义药水颜色
+// ============================================================================
+
+std::optional<u32> PotionUtils::getCustomPotionColor(const ItemStack& stack) {
+    if (stack.isEmpty()) {
+        return std::nullopt;
+    }
+
+    const nlohmann::json* customData = stack.getTag();
+    if (customData == nullptr || !customData->is_object()) {
+        return std::nullopt;
+    }
+
+    auto it = customData->find(NBT_CUSTOM_POTION_COLOR);
+    if (it == customData->end() || !it->is_number()) {
+        return std::nullopt;
+    }
+
+    return static_cast<u32>(it->get<i32>());
+}
+
+// ============================================================================
+// 设置自定义药水颜色
+// ============================================================================
+
+ItemStack& PotionUtils::setCustomPotionColor(ItemStack& stack, std::optional<u32> color) {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    if (!color.has_value()) {
+        // 移除自定义颜色
+        nlohmann::json* customData = stack.getTag();
+        if (customData != nullptr && customData->is_object()) {
+            customData->erase(NBT_CUSTOM_POTION_COLOR);
+        }
+        return stack;
+    }
+
+    // 设置自定义颜色
+    nlohmann::json& customData = stack.getOrCreateTag();
+    customData[NBT_CUSTOM_POTION_COLOR] = static_cast<i32>(color.value());
+    return stack;
+}
+
+// ============================================================================
+// 获取 ItemStack 的药水颜色
+// ============================================================================
+
+u32 PotionUtils::getColor(const ItemStack& stack) {
+    // 优先使用自定义颜色
+    auto customColor = getCustomPotionColor(stack);
+    if (customColor.has_value()) {
+        return customColor.value();
+    }
+
+    // 计算效果颜色的平均值
+    auto effects = getEffects(stack);
+    return getColor(effects);
+}
+
+// ============================================================================
+// 从 ItemStack 获取效果列表（包含基础效果和自定义效果）
+// ============================================================================
+
+std::vector<entity::effect::EffectInstance> PotionUtils::getEffects(const ItemStack& stack) {
+    std::vector<entity::effect::EffectInstance> effects;
+
+    // 从药水获取基础效果
+    const Potion* potion = getPotion(stack);
+    if (potion != nullptr && potion->hasEffects()) {
+        const auto& potionEffects = potion->effects();
+        effects.insert(effects.end(), potionEffects.begin(), potionEffects.end());
+    }
+
+    // 从 NBT 获取自定义效果
+    auto customEffects = getCustomEffects(stack);
+    effects.insert(effects.end(), customEffects.begin(), customEffects.end());
+
+    return effects;
+}
+
+// ============================================================================
+// 从药水获取效果列表
+// ============================================================================
+
+std::vector<entity::effect::EffectInstance> PotionUtils::getEffects(const Potion* potion) {
+    if (potion == nullptr) {
+        return {};
+    }
+    return potion->effects();
+}
+
+// ============================================================================
+// 从 ItemStack 获取药水
+// ============================================================================
 
 const Potion* PotionUtils::getPotion(const ItemStack& stack) {
     if (stack.isEmpty()) {
@@ -34,28 +303,9 @@ const Potion* PotionUtils::getPotion(const ItemStack& stack) {
     return potion != nullptr ? potion : Potions::WATER;
 }
 
-std::vector<entity::effect::EffectInstance> PotionUtils::getEffects(const ItemStack& stack) {
-    std::vector<entity::effect::EffectInstance> effects;
-
-    // 从药水获取基础效果
-    const Potion* potion = getPotion(stack);
-    if (potion != nullptr && potion->hasEffects()) {
-        const auto& potionEffects = potion->effects();
-        effects.insert(effects.end(), potionEffects.begin(), potionEffects.end());
-    }
-
-    // TODO: 从NBT获取自定义效果
-    // CustomPotionEffects 标签
-
-    return effects;
-}
-
-std::vector<entity::effect::EffectInstance> PotionUtils::getEffects(const Potion* potion) {
-    if (potion == nullptr) {
-        return {};
-    }
-    return potion->effects();
-}
+// ============================================================================
+// 创建药水物品
+// ============================================================================
 
 ItemStack PotionUtils::createPotionItem(const Potion* potion) {
     if (potion == nullptr || Items::POTION == nullptr) {
@@ -87,6 +337,10 @@ ItemStack PotionUtils::createLingeringPotionItem(const Potion* potion) {
     return stack;
 }
 
+// ============================================================================
+// 设置药水
+// ============================================================================
+
 ItemStack& PotionUtils::setPotion(ItemStack& stack, const Potion* potion) {
     if (stack.isEmpty()) {
         return stack;
@@ -102,6 +356,10 @@ ItemStack& PotionUtils::setPotion(ItemStack& stack, const Potion* potion) {
     return stack;
 }
 
+// ============================================================================
+// 检查是否为药水
+// ============================================================================
+
 bool PotionUtils::isPotion(const ItemStack& stack) {
     if (stack.isEmpty()) {
         return false;
@@ -113,10 +371,18 @@ bool PotionUtils::isPotion(const ItemStack& stack) {
            item == Items::LINGERING_POTION;
 }
 
+// ============================================================================
+// 检查是否为水瓶
+// ============================================================================
+
 bool PotionUtils::isWaterBottle(const ItemStack& stack) {
     const Potion* potion = getPotion(stack);
     return potion == Potions::WATER;
 }
+
+// ============================================================================
+// 获取药水颜色
+// ============================================================================
 
 u32 PotionUtils::getColor(const Potion* potion) {
     if (potion == nullptr || !potion->hasEffects()) {
@@ -126,17 +392,23 @@ u32 PotionUtils::getColor(const Potion* potion) {
     return getColor(potion->effects());
 }
 
+// ============================================================================
+// 获取效果列表的颜色
+// ============================================================================
+
 u32 PotionUtils::getColor(const std::vector<entity::effect::EffectInstance>& effects) {
     if (effects.empty()) {
         return 0x385DC6FF;
     }
 
     // 计算所有效果颜色的平均值
-    f32 r = 0.0f, g = 0.0f, b = 0.0f;
+    // 颜色格式为 ARGB
+    f32 a = 0.0f, r = 0.0f, g = 0.0f, b = 0.0f;
     u32 count = 0;
 
     for (const auto& effect : effects) {
         u32 effectColor = getEffectColor(effect.type());
+        a += static_cast<f32>((effectColor >> 24) & 0xFF);
         r += static_cast<f32>((effectColor >> 16) & 0xFF);
         g += static_cast<f32>((effectColor >> 8) & 0xFF);
         b += static_cast<f32>(effectColor & 0xFF);
@@ -144,16 +416,21 @@ u32 PotionUtils::getColor(const std::vector<entity::effect::EffectInstance>& eff
     }
 
     if (count > 0) {
+        a /= count;
         r /= count;
         g /= count;
         b /= count;
     }
 
-    return (0xFF << 24) |
+    return (static_cast<u32>(a) << 24) |
            (static_cast<u32>(r) << 16) |
            (static_cast<u32>(g) << 8) |
            static_cast<u32>(b);
 }
+
+// ============================================================================
+// 获取单个效果的颜色
+// ============================================================================
 
 u32 PotionUtils::getEffectColor(entity::effect::EffectType type) {
     // 返回各种效果的颜色 (RGB)
@@ -183,7 +460,7 @@ u32 PotionUtils::getEffectColor(entity::effect::EffectType type) {
         case EffectType::HealthBoost:     return 0xF87D23FF;  // 生命提升 - 橙色
         case EffectType::Absorption:      return 0x2552A5FF;  // 伤害吸收 - 蓝色
         case EffectType::Saturation:      return 0xF82423FF;  // 饱和 - 红色
-        case EffectType::Levitation:      return 0xCEFFFFDFF; // 漂浮 - 青白色
+        case EffectType::Levitation:      return 0xFFCEFFFF; // 漂浮 - 青白色
         case EffectType::Luck:            return 0x339900FF;  // 幸运 - 绿色
         case EffectType::BadLuck:         return 0xC0A44DFF;  // 霉运 - 棕黄色
         case EffectType::SlowFalling:     return 0xFEFEFEFF;  // 缓降 - 白色
