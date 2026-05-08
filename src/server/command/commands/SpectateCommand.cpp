@@ -99,11 +99,10 @@ i32 SpectateCommand::startSpectating(CommandContext<ServerCommandSource>& contex
     }
 
     // 检查旁观者模式
-    // TODO: 实现游戏模式检查
-    // if (spectator->gameMode() != GameMode::Spectator) {
-    //     source.sendError("Player must be in spectator mode");
-    //     return 0;
-    // }
+    if (spectator->gameMode != GameMode::Spectator) {
+        source.sendError("Player must be in spectator mode");
+        return 0;
+    }
 
     std::ostringstream ss;
     ss << spectator->username << " is now spectating ";

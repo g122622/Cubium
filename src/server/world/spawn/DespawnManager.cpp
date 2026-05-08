@@ -131,8 +131,9 @@ f64 DespawnManager::getClosestPlayerDistanceSq(::mc::server::ServerWorld& world,
         }
 
         // MC 1.16.5: 观察者模式的玩家不计入距离检查
-        // TODO: 当实现观察者模式时添加检查
-        // if (player->isSpectator()) continue;
+        if (const Player* playerEntity = dynamic_cast<const Player*>(player); playerEntity && playerEntity->isSpectator()) {
+            continue;
+        }
 
         Vector3 playerPos = player->position();
         f64 dx = playerPos.x - pos.x;
