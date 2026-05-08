@@ -412,11 +412,51 @@ bool BrewingStandContainer::stillValid(const Player& player) const {
 }
 ```
 
-2. **背包接口关联的容器**（如箱子、漏斗）：通过 `IInventory::isUsableByPlayer()` 方法
+2. **方块实体关联的容器**（如箱子、漏斗）：通过可选的方块实体参数实现距离检查
 
 ```cpp
+// ChestContainer 支持单箱和双箱的距离检查
 bool ChestContainer::stillValid(const Player& player) const {
-    return m_chestInventory->isUsableByPlayer(player);
+    // 如果没有关联的箱子实体，使用背包的 isUsableByPlayer 方法
+    if (m_chestEntityA == nullptr && m_chestEntityB == nullptr) {
+        return m_chestInventory->isUsableByPlayer(player);
+    }
+
+    // 检查第一个箱子实体的距离
+    if (m_chestEntityA != nullptr) {
+        if (m_chestEntityA->isRemoved()) {
+            return false;
+        }
+        const BlockPos posA = m_chestEntityA->getPos();
+        if (player.distanceSqTo(...) <= 64.0f) {
+            return true;
+        }
+    }
+
+    // 检查第二个箱子实体（双箱情况）
+    if (m_chestEntityB != nullptr) {
+        if (m_chestEntityB->isRemoved()) {
+            return false;
+        }
+        const BlockPos posB = m_chestEntityB->getPos();
+        if (player.distanceSqTo(...) <= 64.0f) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// HopperContainer 同样支持距离检查
+bool HopperContainer::stillValid(const Player& player) const {
+    if (m_hopperEntity == nullptr) {
+        return m_hopperInventory->isUsableByPlayer(player);
+    }
+    const BlockPos pos = m_hopperEntity->getPos();
+    return player.distanceSqTo(
+               static_cast<f32>(pos.x) + 0.5f,
+               static_cast<f32>(pos.y) + 0.5f,
+               static_cast<f32>(pos.z) + 0.5f) <= 64.0f;
 }
 ```
 

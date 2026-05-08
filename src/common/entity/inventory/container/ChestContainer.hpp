@@ -10,6 +10,8 @@ class PlayerInventory;
 
 namespace blockentity {
 
+class ChestEntity;
+
 /**
  * @brief 箱子容器
  *
@@ -34,16 +36,43 @@ public:
     // ========== 构造函数 ==========
 
     /**
-     * @brief 构造箱子容器
+     * @brief 构造箱子容器（单箱，无距离检查）
      * @param id 容器ID
      * @param playerInventory 玩家背包
      * @param chestInventory 箱子背包容器（可以是单箱或双箱）
      * @param rows 箱子行数（3或6）
+     * @deprecated 使用带 ChestEntity 参数的构造函数以支持距离检查
      */
     ChestContainer(ContainerId id,
                    PlayerInventory* playerInventory,
                    IInventory* chestInventory,
                    i32 rows);
+
+    /**
+     * @brief 构造单箱容器（带距离检查）
+     * @param id 容器ID
+     * @param playerInventory 玩家背包
+     * @param chestInventory 箱子背包
+     * @param chestEntity 箱子实体（用于距离检查）
+     */
+    ChestContainer(ContainerId id,
+                   PlayerInventory* playerInventory,
+                   IInventory* chestInventory,
+                   ChestEntity* chestEntity);
+
+    /**
+     * @brief 构造双箱容器（带距离检查）
+     * @param id 容器ID
+     * @param playerInventory 玩家背包
+     * @param chestInventory 双箱背包
+     * @param chestEntityA 第一个箱子实体（用于距离检查）
+     * @param chestEntityB 第二个箱子实体（用于距离检查）
+     */
+    ChestContainer(ContainerId id,
+                   PlayerInventory* playerInventory,
+                   IInventory* chestInventory,
+                   ChestEntity* chestEntityA,
+                   ChestEntity* chestEntityB);
 
     /**
      * @brief 构造拥有箱子背包的容器
@@ -70,6 +99,20 @@ public:
         IInventory* chestInventory);
 
     /**
+     * @brief 创建单箱容器（带距离检查）
+     * @param id 容器ID
+     * @param playerInventory 玩家背包
+     * @param chestInventory 箱子背包
+     * @param chestEntity 箱子实体
+     * @return 容器实例
+     */
+    static std::unique_ptr<ChestContainer> createSingle(
+        ContainerId id,
+        PlayerInventory* playerInventory,
+        IInventory* chestInventory,
+        ChestEntity* chestEntity);
+
+    /**
      * @brief 创建双箱容器
      * @param id 容器ID
      * @param playerInventory 玩家背包
@@ -80,6 +123,22 @@ public:
         ContainerId id,
         PlayerInventory* playerInventory,
         IInventory* chestInventory);
+
+    /**
+     * @brief 创建双箱容器（带距离检查）
+     * @param id 容器ID
+     * @param playerInventory 玩家背包
+     * @param chestInventory 双箱背包
+     * @param chestEntityA 第一个箱子实体
+     * @param chestEntityB 第二个箱子实体
+     * @return 容器实例
+     */
+    static std::unique_ptr<ChestContainer> createDouble(
+        ContainerId id,
+        PlayerInventory* playerInventory,
+        IInventory* chestInventory,
+        ChestEntity* chestEntityA,
+        ChestEntity* chestEntityB);
 
     // ========== 属性访问 ==========
 
@@ -116,6 +175,8 @@ private:
     std::shared_ptr<IInventory> m_chestInventoryOwner;  ///< 箱子背包所有权（可选）
     i32 m_rows;                    ///< 箱子行数
     i32 m_chestSlotCount;          ///< 箱子槽位数量
+    ChestEntity* m_chestEntityA = nullptr;  ///< 第一个箱子实体（可选，用于距离检查）
+    ChestEntity* m_chestEntityB = nullptr;  ///< 第二个箱子实体（可选，双箱时使用）
 };
 
 } // namespace blockentity

@@ -2,6 +2,7 @@
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "world/blockentity/storage/ChestEntity.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc {
@@ -45,6 +46,42 @@ ChestContainer::ChestContainer(ContainerId id,
 
 ChestContainer::ChestContainer(ContainerId id,
                                PlayerInventory* playerInventory,
+                               IInventory* chestInventory,
+                               ChestEntity* chestEntity)
+    : AbstractContainerMenu(id, playerInventory)
+    , m_chestInventory(chestInventory)
+    , m_chestInventoryOwner()
+    , m_rows(SINGLE_CHEST_ROWS)
+    , m_chestEntityA(chestEntity) {
+    MC_ASSERT(playerInventory != nullptr);
+    MC_ASSERT(chestInventory != nullptr);
+    MC_ASSERT(chestInventory->getContainerSize() == SINGLE_CHEST_ROWS * SLOTS_PER_ROW);
+
+    m_chestSlotCount = SINGLE_CHEST_ROWS * SLOTS_PER_ROW;
+    initSlots(playerInventory);
+}
+
+ChestContainer::ChestContainer(ContainerId id,
+                               PlayerInventory* playerInventory,
+                               IInventory* chestInventory,
+                               ChestEntity* chestEntityA,
+                               ChestEntity* chestEntityB)
+    : AbstractContainerMenu(id, playerInventory)
+    , m_chestInventory(chestInventory)
+    , m_chestInventoryOwner()
+    , m_rows(DOUBLE_CHEST_ROWS)
+    , m_chestEntityA(chestEntityA)
+    , m_chestEntityB(chestEntityB) {
+    MC_ASSERT(playerInventory != nullptr);
+    MC_ASSERT(chestInventory != nullptr);
+    MC_ASSERT(chestInventory->getContainerSize() == DOUBLE_CHEST_ROWS * SLOTS_PER_ROW);
+
+    m_chestSlotCount = DOUBLE_CHEST_ROWS * SLOTS_PER_ROW;
+    initSlots(playerInventory);
+}
+
+ChestContainer::ChestContainer(ContainerId id,
+                               PlayerInventory* playerInventory,
                                std::shared_ptr<IInventory> chestInventoryOwner,
                                i32 rows)
     : AbstractContainerMenu(id, playerInventory)
@@ -69,11 +106,28 @@ std::unique_ptr<ChestContainer> ChestContainer::createSingle(
     return std::make_unique<ChestContainer>(id, playerInventory, chestInventory, SINGLE_CHEST_ROWS);
 }
 
+std::unique_ptr<ChestContainer> ChestContainer::createSingle(
+    ContainerId id,
+    PlayerInventory* playerInventory,
+    IInventory* chestInventory,
+    ChestEntity* chestEntity) {
+    return std::make_unique<ChestContainer>(id, playerInventory, chestInventory, chestEntity);
+}
+
 std::unique_ptr<ChestContainer> ChestContainer::createDouble(
     ContainerId id,
     PlayerInventory* playerInventory,
     IInventory* chestInventory) {
     return std::make_unique<ChestContainer>(id, playerInventory, chestInventory, DOUBLE_CHEST_ROWS);
+}
+
+std::unique_ptr<ChestContainer> ChestContainer::createDouble(
+    ContainerId id,
+    PlayerInventory* playerInventory,
+    IInventory* chestInventory,
+    ChestEntity* chestEntityA,
+    ChestEntity* chestEntityB) {
+    return std::make_unique<ChestContainer>(id, playerInventory, chestInventory, chestEntityA, chestEntityB);
 }
 
 // ========== 快速移动 ==========
@@ -120,10 +174,46 @@ void ChestContainer::initSlots(PlayerInventory* playerInventory) {
 }
 
 bool ChestContainer::stillValid(const Player& player) const {
-    // MC 1.16.5: 检查背包是否可用
+    // MC 1.16.5: 检查玩家是否在箱子附近（8格范围内）
     // 参考 net.minecraft.inventory.container.ChestContainer.canInteractWith
     // -> lowerChestInventory.isUsableByPlayer(playerIn)
-    return m_chestInventory->isUsableByPlayer(player);
+
+    // 如果没有关联的箱子实体，使用背包的 isUsableByPlayer 方法
+    if (m_chestEntityA == nullptr && m_chestEntityB == nullptr) {
+        return m_chestInventory->isUsableByPlayer(player);
+    }
+
+    // 检查第一个箱子实体的距离
+    if (m_chestEntityA != nullptr) {
+        if (m_chestEntityA->isRemoved()) {
+            return false;
+        }
+        const BlockPos posA = m_chestEntityA->getPos();
+        f32 distSqA = player.distanceSqTo(
+            static_cast<f32>(posA.x) + 0.5f,
+            static_cast<f32>(posA.y) + 0.5f,
+            static_cast<f32>(posA.z) + 0.5f);
+        if (distSqA <= 64.0f) {
+            return true;
+        }
+    }
+
+    // 检查第二个箱子实体的距离（双箱情况）
+    if (m_chestEntityB != nullptr) {
+        if (m_chestEntityB->isRemoved()) {
+            return false;
+        }
+        const BlockPos posB = m_chestEntityB->getPos();
+        f32 distSqB = player.distanceSqTo(
+            static_cast<f32>(posB.x) + 0.5f,
+            static_cast<f32>(posB.y) + 0.5f,
+            static_cast<f32>(posB.z) + 0.5f);
+        if (distSqB <= 64.0f) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 } // namespace blockentity
