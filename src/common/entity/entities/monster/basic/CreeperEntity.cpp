@@ -2,6 +2,10 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
+#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
+#include "../../../ai/goal/goals/special/SpecialGoals.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/explosion/ExplosionMode.hpp"
@@ -160,35 +164,53 @@ void CreeperEntity::registerGoals() {
     // 2: HurtByTargetGoal (父类已注册)
 
     // 优先级 2: 膨胀爆炸
-    // TODO: 实现 CreeperSwellGoal
-    // m_goalSelector.addGoal(2, new entity::ai::goal::CreeperSwellGoal(this));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::CreeperSwellGoal>(this));
 
-    // 优先级 3: 避开猫/豹猫
-    // TODO: 实现 AvoidEntityGoal
-    // m_goalSelector.addGoal(3, new entity::ai::goal::AvoidEntityGoal<CatEntity>(this, 6.0f, 1.0, 1.2));
-    // m_goalSelector.addGoal(3, new entity::ai::goal::AvoidEntityGoal<OcelotEntity>(this, 6.0f, 1.0, 1.2));
+    // 优先级 3: 避开猫和豹猫
+    // MC 1.16.5: 苦力怕害怕猫和豹猫，会在 6 格内逃跑
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::AvoidEntityGoal>(
+        this,
+        6.0f,    // avoidDistance - 检测距离
+        1.0,     // farSpeed - 远距离逃跑速度
+        1.2,     // nearSpeed - 近距离逃跑速度（更快）
+        [](const LivingEntity* entity) -> bool {
+            if (!entity) return false;
+            // 检查是否为猫或豹猫
+            // MC 1.16.5: instanceof CatEntity || instanceof OcelotEntity
+            auto type = entity->legacyType();
+            return type == LegacyEntityType::Cat || type == LegacyEntityType::Ocelot;
+        }
+    ));
 
     // 优先级 4: 近战攻击（用于接近玩家）
-    m_goalSelector.addGoal(4, new entity::ai::goal::MeleeAttackGoal(this, 1.0, false));
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.0, false));
 
     // 优先级 5: 避水随机行走
-    // TODO: 实现 WaterAvoidingRandomWalkingGoal
-    // m_goalSelector.addGoal(5, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 0.8));
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 0.8));
 
     // 优先级 6: 看向玩家
-    m_goalSelector.addGoal(6, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f,
-        [](const LivingEntity* /*entity*/) -> bool {
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f,
+        [](const LivingEntity* entity) -> bool {
+            if (!entity) return false;
             // 只看向玩家
-            // TODO: 检查是否是玩家
-            return true;
+            return entity->legacyType() == LegacyEntityType::Player;
         }));
 
     // 优先级 6: 随机看向
-    m_goalSelector.addGoal(6, new entity::ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
-    // 目标选择器：攻击玩家
-    // TODO: 实现 NearestAttackableTargetGoal
-    // m_targetSelector.addGoal(1, new entity::ai::goal::NearestAttackableTargetGoal<PlayerEntity>(this, true));
+    // 目标选择器：攻击最近的玩家
+    // 使用 LivingEntity 类型，通过谓词筛选玩家
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
+        this,
+        true,    // checkSight - 需要视线
+        0,       // chance - 每tick都检查
+        [](const LivingEntity* entity) -> bool {
+            // MC 1.16.5: 苦力怕只攻击玩家
+            if (!entity) return false;
+            return entity->legacyType() == LegacyEntityType::Player;
+        }
+    ));
 }
 
 void CreeperEntity::registerAttributes() {

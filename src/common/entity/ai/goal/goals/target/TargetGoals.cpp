@@ -107,6 +107,17 @@ template<typename T>
 NearestAttackableTargetGoal<T>::NearestAttackableTargetGoal(MobEntity* mob, bool checkSight, i32 chance)
     : TargetGoal(mob, checkSight)
     , m_chance(chance)
+    , m_predicate(nullptr)
+{
+    static_assert(std::is_base_of<LivingEntity, T>::value,
+        "NearestAttackableTargetGoal<T> requires T to be derived from LivingEntity");
+}
+
+template<typename T>
+NearestAttackableTargetGoal<T>::NearestAttackableTargetGoal(MobEntity* mob, bool checkSight, i32 chance, TargetPredicate predicate)
+    : TargetGoal(mob, checkSight)
+    , m_chance(chance)
+    , m_predicate(std::move(predicate))
 {
     static_assert(std::is_base_of<LivingEntity, T>::value,
         "NearestAttackableTargetGoal<T> requires T to be derived from LivingEntity");
@@ -148,6 +159,10 @@ bool NearestAttackableTargetGoal<T>::shouldExecute() {
             }
             // 检查视线（如果需要）
             if (m_checkSight && !m_mob->canSee(*candidate)) {
+                return false;
+            }
+            // 如果有自定义谓词，应用它
+            if (m_predicate && !m_predicate(livingTarget)) {
                 return false;
             }
             return true;

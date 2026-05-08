@@ -13,6 +13,14 @@ class MobEntity;
 namespace entity::ai::goal {
 
 /**
+ * @brief 目标筛选谓词类型
+ *
+ * 用于筛选可以作为攻击目标的实体。
+ * 返回 true 表示该实体可以作为目标，false 表示不能。
+ */
+using TargetPredicate = std::function<bool(const LivingEntity*)>;
+
+/**
  * @brief 目标选择目标基类
  *
  * 用于选择攻击目标的目标类型。
@@ -72,9 +80,18 @@ public:
      * @brief 构造函数
      * @param mob 拥有此目标的生物
      * @param checkSight 是否需要视线检查
-     * @param chance 每tick检查的概率（0=每tick都检查）
+     * @param chance 每tick检查的概率倒数（0=每tick都检查）
      */
     NearestAttackableTargetGoal(MobEntity* mob, bool checkSight, i32 chance = 0);
+
+    /**
+     * @brief 构造函数（带目标筛选谓词）
+     * @param mob 拥有此目标的生物
+     * @param checkSight 是否需要视线检查
+     * @param chance 每tick检查的概率倒数（0=每tick都检查）
+     * @param predicate 目标筛选谓词
+     */
+    NearestAttackableTargetGoal(MobEntity* mob, bool checkSight, i32 chance, TargetPredicate predicate);
 
     ~NearestAttackableTargetGoal() override = default;
 
@@ -84,6 +101,7 @@ public:
 private:
     i32 m_chance;
     T* m_targetEntity = nullptr;
+    TargetPredicate m_predicate;  // 目标筛选谓词（可选）
 };
 
 /**

@@ -7,7 +7,9 @@ namespace mc {
 
 // Forward declarations
 class AbstractHorseEntity;
+class CreeperEntity;
 class Player;
+class LivingEntity;
 
 namespace entity::ai::goal {
 
@@ -16,16 +18,42 @@ namespace entity::ai::goal {
  *
  * 当玩家靠近时膨胀并最终爆炸。
  *
- * 参考 MC 1.16.5 CreeperSwellGoal
+ * MC 1.16.5 参考: net.minecraft.entity.ai.goal.CreeperSwellGoal
+ *
+ * 执行条件:
+ * - 苦力怕已经有膨胀状态 (getCreeperState() > 0)，或者
+ * - 攻击目标在 9 格距离内 (3x3 范围)
+ *
+ * tick 行为:
+ * - 如果攻击目标为空：取消膨胀
+ * - 如果攻击目标距离 > 49 格 (7x7 范围)：取消膨胀
+ * - 如果无法看到攻击目标：取消膨胀
+ * - 否则：设置膨胀状态为 1
  */
 class CreeperSwellGoal : public Goal {
 public:
-    explicit CreeperSwellGoal(void* creeper) : Goal(EnumSet<GoalFlag>{GoalFlag::Move}) {}
-    bool shouldExecute() override { return false; }
-    bool shouldContinueExecuting() override { return false; }
-    void startExecuting() override {}
-    void resetTask() override {}
-    void tick() override {}
+    /**
+     * @brief 构造函数
+     * @param creeper 苦力怕实体
+     */
+    explicit CreeperSwellGoal(CreeperEntity* creeper);
+
+    ~CreeperSwellGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "CreeperSwellGoal"; }
+
+private:
+    CreeperEntity* m_creeper;
+    LivingEntity* m_attackTarget = nullptr;
+
+    // MC 1.16.5 常量
+    static constexpr f32 SWELL_TRIGGER_DISTANCE_SQ = 9.0f;   // 3.0 * 3.0
+    static constexpr f32 SWELL_CANCEL_DISTANCE_SQ = 49.0f;  // 7.0 * 7.0
 };
 
 /**

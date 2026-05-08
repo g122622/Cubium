@@ -1,13 +1,116 @@
 #include "SpecialGoals.hpp"
 #include "../../../../entities/passive/horse/AbstractHorseEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
+#include "../../../../entities/monster/basic/CreeperEntity.hpp"
+#include "../../../../core/MobEntity.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
+#include "../../../EntitySenses.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 
 namespace mc::entity::ai::goal {
+
+// ============================================================================
+// CreeperSwellGoal
+// ============================================================================
+
+CreeperSwellGoal::CreeperSwellGoal(CreeperEntity* creeper)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    , m_creeper(creeper)
+{
+    MC_ASSERT(creeper != nullptr);
+}
+
+bool CreeperSwellGoal::shouldExecute() {
+    if (!m_creeper) return false;
+
+    // MC 1.16.5 CreeperSwellGoal.shouldExecute():
+    // LivingEntity livingentity = this.swellingCreeper.getAttackTarget();
+    // return this.swellingCreeper.getCreeperState() > 0
+    //     || livingentity != null && this.swellingCreeper.getDistanceSq(livingentity) < 9.0D;
+
+    // 如果已经在膨胀状态，继续执行
+    if (m_creeper->getCreeperState() > 0) {
+        return true;
+    }
+
+    // 检查是否有攻击目标
+    LivingEntity* target = m_creeper->attackTarget();
+    if (!target) {
+        return false;
+    }
+
+    // 检查目标是否存活
+    if (!target->isAlive()) {
+        return false;
+    }
+
+    // 检查距离是否在触发范围内 (3 格)
+    f32 distSq = m_creeper->distanceSqTo(*target);
+    return distSq < SWELL_TRIGGER_DISTANCE_SQ;
+}
+
+void CreeperSwellGoal::startExecuting() {
+    if (!m_creeper) return;
+
+    // MC 1.16.5: 清除导航路径，停止移动
+    m_creeper->clearNavigation();
+
+    // 记录攻击目标
+    m_attackTarget = m_creeper->attackTarget();
+}
+
+void CreeperSwellGoal::resetTask() {
+    // MC 1.16.5: 清除攻击目标引用
+    m_attackTarget = nullptr;
+}
+
+void CreeperSwellGoal::tick() {
+    if (!m_creeper) return;
+
+    // MC 1.16.5 CreeperSwellGoal.tick():
+    // if (this.creeperAttackTarget == null) {
+    //     this.swellingCreeper.setCreeperState(-1);
+    // } else if (this.swellingCreeper.getDistanceSq(this.creeperAttackTarget) > 49.0D) {
+    //     this.swellingCreeper.setCreeperState(-1);
+    // } else if (!this.swellingCreeper.getEntitySenses().canSee(this.creeperAttackTarget)) {
+    //     this.swellingCreeper.setCreeperState(-1);
+    // } else {
+    //     this.swellingCreeper.setCreeperState(1);
+    // }
+
+    // 情况1: 攻击目标为空 -> 取消膨胀
+    if (!m_attackTarget) {
+        m_creeper->setCreeperState(-1);
+        return;
+    }
+
+    // 情况2: 目标已死亡 -> 取消膨胀
+    if (!m_attackTarget->isAlive()) {
+        m_creeper->setCreeperState(-1);
+        m_attackTarget = nullptr;
+        return;
+    }
+
+    // 情况3: 距离超过 7 格 -> 取消膨胀
+    f32 distSq = m_creeper->distanceSqTo(*m_attackTarget);
+    if (distSq > SWELL_CANCEL_DISTANCE_SQ) {
+        m_creeper->setCreeperState(-1);
+        return;
+    }
+
+    // 情况4: 无法看到目标 -> 取消膨胀
+    // 使用 EntitySenses 缓存的视线检测
+    if (!m_creeper->senses()->canSee(*m_attackTarget)) {
+        m_creeper->setCreeperState(-1);
+        return;
+    }
+
+    // 情况5: 所有条件满足 -> 开始/继续膨胀
+    m_creeper->setCreeperState(1);
+}
 
 // ============================================================================
 // RunAroundLikeCrazyGoal
