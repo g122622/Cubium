@@ -6,6 +6,11 @@
 #include "CombatTracker.hpp"
 #include "../core/LivingEntity.hpp"
 #include "../core/Entity.hpp"
+#include "../../world/IWorld.hpp"
+#include "../../world/block/Block.hpp"
+#include "../../world/block/BlockPos.hpp"
+#include "../../world/block/VanillaBlocks.hpp"
+#include "../../resource/ResourceLocation.hpp"
 #include <algorithm>
 #include <limits>
 
@@ -263,16 +268,82 @@ void CombatTracker::calculateFallSuffix() {
         return;
     }
 
-    // MC 1.16.5: 根据位置确定摔落后缀
+    // MC 1.16.5: 根据攀爬位置确定摔落后缀
+    // 参考: CombatTracker.calculateFallSuffix()
     // 如果在梯子、藤蔓、脚手架等上面摔落，后缀不同
-    // TODO: 实现方块检测
 
-    f32 fallDistance = m_owner->fallDistance();
-    if (fallDistance > 0.0f) {
-        m_fallSuffix = "fall";
-    } else {
-        m_fallSuffix.clear();
+    // 重置摔落后缀
+    m_fallSuffix.clear();
+
+    // 获取攀爬位置
+    const std::optional<BlockPos>& climbPos = m_owner->getLastClimbPos();
+
+    if (climbPos.has_value()) {
+        // 有攀爬位置，检查该位置的方块类型
+        IWorld* world = m_owner->world();
+        if (world == nullptr) {
+            return;
+        }
+
+        const BlockState* blockState = world->getBlockState(*climbPos);
+        if (blockState == nullptr) {
+            return;
+        }
+
+        const Block& block = blockState->getBlock();
+        const ResourceLocation& blockId = block.blockLocation();
+
+        // 检查方块类型
+        // MC 1.16.5: 优先检查梯子和活板门
+        if (blockId == ResourceLocation("minecraft", "ladder")) {
+            m_fallSuffix = "ladder";
+            return;
+        }
+
+        // 检查是否是活板门（通过BlockTags检查）
+        // MC 1.16.5: TRAPDOORS tag 包含所有类型的活板门
+        // 由于活板门在isLadder中检查了OPEN状态，攀爬位置记录的活板门一定是打开的
+        const String& namespace_ = blockId.namespace_();
+        const String& path = blockId.path();
+        if (namespace_ == "minecraft" &&
+            (path.find("trapdoor") != String::npos || path.find("_trapdoor") != String::npos)) {
+            m_fallSuffix = "ladder";
+            return;
+        }
+
+        // 检查藤蔓
+        if (blockId == ResourceLocation("minecraft", "vine")) {
+            m_fallSuffix = "vines";
+            return;
+        }
+
+        // 检查垂泪藤
+        if (blockId == ResourceLocation("minecraft", "weeping_vines") ||
+            blockId == ResourceLocation("minecraft", "weeping_vines_plant")) {
+            m_fallSuffix = "weeping_vines";
+            return;
+        }
+
+        // 检查扭曲藤
+        if (blockId == ResourceLocation("minecraft", "twisting_vines") ||
+            blockId == ResourceLocation("minecraft", "twisting_vines_plant")) {
+            m_fallSuffix = "twisting_vines";
+            return;
+        }
+
+        // 检查脚手架
+        if (blockId == ResourceLocation("minecraft", "scaffolding")) {
+            m_fallSuffix = "scaffolding";
+            return;
+        }
+
+        // 其他可攀爬方块
+        m_fallSuffix = "other_climbable";
+    } else if (m_owner->isInWater()) {
+        // 如果在水中，返回 water 后缀
+        m_fallSuffix = "water";
     }
+    // 没有攀爬位置也不在水中，保持空后缀
 }
 
 void CombatTracker::cleanupOldEntries(i32 currentTime) {

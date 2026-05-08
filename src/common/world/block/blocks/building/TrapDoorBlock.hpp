@@ -140,6 +140,26 @@ public:
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 
+    // ========== 攀爬 ==========
+
+    /**
+     * @brief 检查方块是否可攀爬
+     *
+     * MC 1.16.5: 打开的活板门可以攀爬。
+     * 参考: net.minecraft.block.TrapDoorBlock.isLadder()
+     *
+     * @param state 方块状态
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param entity 实体（用于检查实体位置）
+     * @return 如果活板门打开且实体在正确位置返回 true
+     */
+    [[nodiscard]] bool isLadder(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr,
+        const Entity* entity = nullptr) const override;
+
 private:
     /**
      * @brief 播放开关音效

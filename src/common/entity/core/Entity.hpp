@@ -16,6 +16,7 @@
 #include <memory>
 #include <array>
 #include <functional>
+#include <optional>
 
 namespace mc {
 
@@ -426,7 +427,24 @@ public:
      */
     void moveRelative(f32 factor, f32 strafe, f32 vertical, f32 forward);
 
-    void setOnGround(bool onGround) { m_onGround = onGround; }
+    /**
+     * @brief 设置是否在地面上
+     *
+     * 当实体落地时（onGround从false变为true），
+     * 会清空攀爬位置追踪。
+     *
+     * 参考: MC 1.16.5 LivingEntity.setOnGround()
+     *
+     * @param onGround 是否在地面上
+     */
+    void setOnGround(bool onGround) {
+        if (onGround && !m_onGround) {
+            // 落地时清空攀爬位置
+            // MC 1.16.5: this.field_233624_bE_ = Optional.empty();
+            m_lastClimbPos = std::nullopt;
+        }
+        m_onGround = onGround;
+    }
     void setPose(EntityPose pose);
     void setFlags(EntityFlags flags);
 
@@ -834,6 +852,31 @@ public:
      * @return 如果实体在可攀爬方块上返回 true
      */
     [[nodiscard]] virtual bool isOnLadder() const;
+
+    /**
+     * @brief 获取最后攀爬位置
+     *
+     * 当实体在攀爬方块（梯子、藤蔓、脚手架等）上时，
+     * 记录攀爬位置。用于摔落死亡消息的生成。
+     *
+     * 参考: MC 1.16.5 LivingEntity.func_233644_dn_()
+     *
+     * @return 攀爬位置，如果没有攀爬则返回空
+     */
+    [[nodiscard]] const std::optional<BlockPos>& getLastClimbPos() const { return m_lastClimbPos; }
+
+    /**
+     * @brief 设置最后攀爬位置
+     * @param pos 攀爬位置
+     */
+    void setLastClimbPos(const BlockPos& pos) { m_lastClimbPos = pos; }
+
+    /**
+     * @brief 清空最后攀爬位置
+     *
+     * 在实体落地时调用。
+     */
+    void clearLastClimbPos() { m_lastClimbPos = std::nullopt; }
 
     /**
      * @brief 获取实体浸入水的高度
@@ -1493,6 +1536,9 @@ protected:
     f32 m_waterHeight = 0.0f;      // 水浸入高度（0.0-1.0）
     f32 m_lavaHeight = 0.0f;       // 岩浆浸入高度（0.0-1.0）
     i32 m_fire = 0;                // 着火时间（tick）
+
+    // 攀爬追踪（用于摔落死亡消息）
+    std::optional<BlockPos> m_lastClimbPos;  // 最后攀爬位置
 
     // 空气值
     i32 m_air = 300;            // 默认最大空气值

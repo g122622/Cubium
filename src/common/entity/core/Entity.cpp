@@ -431,8 +431,8 @@ bool Entity::onPortalTriggered() {
 }
 
 bool Entity::isOnLadder() const {
-    // 缓存结果，避免每帧多次查询
-    // 在 updateEnvironmentState() 中更新缓存
+    // 参考 MC 1.16.5 LivingEntity.isOnLadder()
+    // 检查实体碰撞箱内的方块是否为可攀爬方块
 
     if (m_world == nullptr) {
         return false;
@@ -457,6 +457,10 @@ bool Entity::isOnLadder() const {
                     const Block& block = blockState->getBlock();
                     BlockPos pos(x, y, z);
                     if (block.isLadder(*blockState, m_world, &pos, this)) {
+                        // 记录攀爬位置
+                        // 注意：这里需要const_cast因为isOnLadder是const方法
+                        // MC 1.16.5: field_233624_bE_ = pos
+                        const_cast<Entity*>(this)->m_lastClimbPos = pos;
                         return true;
                     }
                 }
@@ -706,7 +710,14 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz) {
     // 优先使用”向下移动时发生垂直碰撞”的判定，避免纯接触检测抖动。
     bool groundedByCollision = m_collidedVertically && desiredMovement.y < 0.0f;
     bool groundedByContact = physics->isOnGround(entityBox);
+    bool wasOnGround = m_onGround;
     m_onGround = groundedByCollision || groundedByContact;
+
+    // MC 1.16.5: 落地时清空攀爬位置
+    // 参考: LivingEntity.func_233644_dn_() 在 setOnGround(true) 时清空
+    if (m_onGround && !wasOnGround) {
+        m_lastClimbPos = std::nullopt;
+    }
 
     // MC 1.16.5: 碰撞后速度重置
     // 参考Entity.move() 行601-608

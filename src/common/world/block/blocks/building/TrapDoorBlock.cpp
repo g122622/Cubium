@@ -4,6 +4,7 @@
 #include "../../WaterLoggableHelpers.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../entity/core/Entity.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 
@@ -270,6 +271,45 @@ size_t TrapDoorBlock::getShapeIndex(Direction facing, bool open, BlockStatePrope
 const fluid::FluidState* TrapDoorBlock::getFluidState(const BlockState& state) const {
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
+}
+
+// ========== 攀爬实现 ==========
+
+bool TrapDoorBlock::isLadder(
+    const BlockState& state,
+    IWorld* world,
+    const BlockPos* pos,
+    const Entity* entity) const {
+
+    // MC 1.16.5: 只有打开的活板门才能攀爬
+    // 参考: net.minecraft.block.TrapDoorBlock.isLadder()
+    if (!state.get(BlockStateProperties::OPEN())) {
+        return false;
+    }
+
+    // 如果没有实体信息，只检查是否打开
+    if (entity == nullptr || pos == nullptr) {
+        return true;
+    }
+
+    // MC 1.16.5: 检查实体是否在活板门的正确侧
+    // 活板门在下半部分时，实体需要从下方攀爬
+    // 活板门在上半部分时，实体需要从上方攀爬
+    const auto half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+
+    // 获取实体Y坐标
+    const f32 entityY = entity->position().y;
+    const f32 trapdoorY = static_cast<f32>(pos->y);
+
+    if (half == BlockStateProperties::DoubleBlockHalf::Lower) {
+        // 下半部分活板门：实体需要在活板门下方才能攀爬
+        // 实体的眼睛位置应该在活板门下方
+        return entityY + entity->eyeHeight() < trapdoorY + 0.5f;
+    } else {
+        // 上半部分活板门：实体需要在活板门上方才能攀爬
+        // 实体的脚位置应该在活板门上方
+        return entityY > trapdoorY + 0.5f;
+    }
 }
 
 } // namespace blocks
