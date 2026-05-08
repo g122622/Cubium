@@ -128,6 +128,14 @@ public:
      */
     [[nodiscard]] bool isEnchantmentOptionAvailable(i32 index) const;
 
+    /**
+     * @brief 检查玩家是否是创造模式
+     * @return 如果关联的玩家是创造模式返回true
+     *
+     * 参考 MC 1.16.5 EnchantmentContainer.player.isCreative()
+     */
+    [[nodiscard]] bool isPlayerCreative() const;
+
     // ========== 附魔操作 ==========
 
     /**

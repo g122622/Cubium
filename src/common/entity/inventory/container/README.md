@@ -515,9 +515,9 @@ bool ContainerBlockEntity::isUsableByPlayer(const Player& player, f32 maxDistanc
 - `ChestContainerTest.cpp` - 箱子菜单测试，覆盖槽位布局和快速移动
 - `FurnaceContainerTest.cpp` - 熔炉菜单测试，覆盖槽位布局和快速移动
 - `HopperContainerTest.cpp` - 漏斗容器测试
-- `EnchantmentContainerTest.cpp` - 附魔台菜单测试，覆盖槽位布局、附魔选项API
+- `EnchantmentContainerTest.cpp` - 附魔台菜单测试，覆盖槽位布局、附魔选项API、创造模式检查
 - `BrewingStandContainerTest.cpp` - 酿造台菜单测试，覆盖槽位布局、酿造状态API
-- `AnvilContainerTest.cpp` - 铁砧菜单测试，覆盖槽位布局、修复成本API
+- `AnvilContainerTest.cpp` - 铁砧菜单测试，覆盖槽位布局、修复成本API、创造模式检查
 
 ### 测试覆盖
 
@@ -533,8 +533,9 @@ bool ContainerBlockEntity::isUsableByPlayer(const Player& player, f32 maxDistanc
 - 铁砧修复成本计算
 - 附魔合并逻辑
 - **创造模式特殊权限检查**
-  - AnvilContainer: isPlayerCreative() 方法
+  - AnvilContainer: isPlayerCreative() 方法（含生存/创造/观察者/冒险模式测试）
   - AnvilContainer: 结果槽取出权限检查
   - AnvilContainer: 40级费用上限绕过
   - AnvilContainer: 附魔物品限制绕过
+  - EnchantmentContainer: isPlayerCreative() 方法（含生存/创造/观察者/冒险模式测试）
   - EnchantmentContainer: 经验消耗豁免

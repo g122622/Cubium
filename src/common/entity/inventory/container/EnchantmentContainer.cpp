@@ -210,6 +210,14 @@ bool EnchantmentContainer::isEnchantmentOptionAvailable(i32 index) const {
     return true;
 }
 
+bool EnchantmentContainer::isPlayerCreative() const {
+    if (m_playerInventory == nullptr) {
+        return false;
+    }
+    Player* player = m_playerInventory->getPlayer();
+    return player != nullptr && player->isCreative();
+}
+
 bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex) {
     if (!isEnchantmentOptionAvailable(optionIndex)) {
         return false;

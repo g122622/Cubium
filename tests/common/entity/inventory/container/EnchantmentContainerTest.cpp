@@ -145,3 +145,67 @@ TEST_F(EnchantmentTableContainerTest, SlotConstants_AreCorrect) {
     EXPECT_EQ(EnchantmentContainer::SLOT_LAPIS, 1);
     EXPECT_EQ(EnchantmentContainer::ENCHANTMENT_SLOTS, 2);
 }
+
+// ========== 带Player的EnchantmentContainer测试 ==========
+
+class EnchantmentContainerWithPlayerTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        Items::initialize();
+        player_ = std::make_unique<Player>(EntityId(1), "TestPlayer");
+        playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
+    }
+
+    std::unique_ptr<Player> player_;
+    std::unique_ptr<PlayerInventory> playerInventory_;
+};
+
+TEST_F(EnchantmentContainerWithPlayerTest, CreateWithPlayer_HasCorrectSlotCount) {
+    BlockPos pos(0, 0, 0);
+    EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
+    EXPECT_EQ(container.getSlotCount(), 38);
+}
+
+TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ReturnsFalseInSurvivalMode) {
+    // 默认生存模式
+    BlockPos pos(0, 0, 0);
+    EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
+    EXPECT_FALSE(container.isPlayerCreative());
+}
+
+TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ReturnsTrueInCreativeMode) {
+    player_->setGameMode(GameMode::Creative);
+    BlockPos pos(0, 0, 0);
+    EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
+    EXPECT_TRUE(container.isPlayerCreative());
+}
+
+TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ReturnsFalseInSpectatorMode) {
+    player_->setGameMode(GameMode::Spectator);
+    BlockPos pos(0, 0, 0);
+    EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
+    EXPECT_FALSE(container.isPlayerCreative());
+}
+
+TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ReturnsFalseInAdventureMode) {
+    player_->setGameMode(GameMode::Adventure);
+    BlockPos pos(0, 0, 0);
+    EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
+    EXPECT_FALSE(container.isPlayerCreative());
+}
+
+TEST_F(EnchantmentContainerWithPlayerTest, IsPlayerCreative_ChangesWithGameMode) {
+    BlockPos pos(0, 0, 0);
+    EnchantmentContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
+
+    // 默认生存模式
+    EXPECT_FALSE(container.isPlayerCreative());
+
+    // 切换到创造模式
+    player_->setGameMode(GameMode::Creative);
+    EXPECT_TRUE(container.isPlayerCreative());
+
+    // 切换回生存模式
+    player_->setGameMode(GameMode::Survival);
+    EXPECT_FALSE(container.isPlayerCreative());
+}

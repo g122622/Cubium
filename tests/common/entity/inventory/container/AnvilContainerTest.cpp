@@ -7,8 +7,6 @@
 
 using namespace mc;
 
-// ========== AnvilContainer 测试 ==========
-
 class AnvilContainerTest : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -159,4 +157,62 @@ TEST_F(AnvilContainerTest, RepairCostConstants_AreCorrect) {
     // 验证修复成本序列在达到上限前正确增长
     // 注意：getNewRepairCost 是私有方法，这里测试公开的行为
     // 通过设置高修复成本的物品来验证上限
+}
+
+// ========== 带Player的AnvilContainer测试 ==========
+
+class AnvilContainerWithPlayerTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        Items::initialize();
+        player_ = std::make_unique<Player>(EntityId(1), "TestPlayer");
+        playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
+    }
+
+    std::unique_ptr<Player> player_;
+    std::unique_ptr<PlayerInventory> playerInventory_;
+};
+
+TEST_F(AnvilContainerWithPlayerTest, IsPlayerCreative_ReturnsFalseInSurvivalMode) {
+    // 默认生存模式
+    BlockPos pos(0, 0, 0);
+    AnvilContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
+    EXPECT_FALSE(container.isPlayerCreative());
+}
+
+TEST_F(AnvilContainerWithPlayerTest, IsPlayerCreative_ReturnsTrueInCreativeMode) {
+    player_->setGameMode(GameMode::Creative);
+    BlockPos pos(0, 0, 0);
+    AnvilContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
+    EXPECT_TRUE(container.isPlayerCreative());
+}
+
+TEST_F(AnvilContainerWithPlayerTest, IsPlayerCreative_ReturnsFalseInSpectatorMode) {
+    player_->setGameMode(GameMode::Spectator);
+    BlockPos pos(0, 0, 0);
+    AnvilContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
+    EXPECT_FALSE(container.isPlayerCreative());
+}
+
+TEST_F(AnvilContainerWithPlayerTest, IsPlayerCreative_ReturnsFalseInAdventureMode) {
+    player_->setGameMode(GameMode::Adventure);
+    BlockPos pos(0, 0, 0);
+    AnvilContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
+    EXPECT_FALSE(container.isPlayerCreative());
+}
+
+TEST_F(AnvilContainerWithPlayerTest, IsPlayerCreative_ChangesWithGameMode) {
+    BlockPos pos(0, 0, 0);
+    AnvilContainer container(ContainerId(1), playerInventory_.get(), pos, nullptr);
+
+    // 默认生存模式
+    EXPECT_FALSE(container.isPlayerCreative());
+
+    // 切换到创造模式
+    player_->setGameMode(GameMode::Creative);
+    EXPECT_TRUE(container.isPlayerCreative());
+
+    // 切换回生存模式
+    player_->setGameMode(GameMode::Survival);
+    EXPECT_FALSE(container.isPlayerCreative());
 }
