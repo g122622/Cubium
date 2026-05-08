@@ -14,6 +14,8 @@ src/server/command/
 └── commands/                  # 具体命令实现
     ├── ClearCommand.hpp       # /clear 命令
     ├── ClearCommand.cpp
+    ├── ForceLoadCommand.hpp   # /forceload 命令
+    ├── ForceLoadCommand.cpp
     ├── GameModeCommand.hpp    # /gamemode 命令
     ├── GameModeCommand.cpp
     ├── GiveCommand.hpp        # /give 命令
@@ -465,15 +467,41 @@ public:
 
 #### ForceLoadCommand - /forceload 命令
 
-强制加载区块。
+强制加载区块，使其始终加载而不受玩家视距影响。
 
 **用法：**
 
-- `/forceload add <pos>` - 添加强制加载区块
-- `/forceload remove <pos>` - 移除强制加载区块
-- `/forceload query` - 查询强制加载区块
+- `/forceload add <from> [to]` - 添加强制加载区块（支持范围选择）
+- `/forceload remove <from> [to]` - 移除强制加载区块（支持范围选择）
+- `/forceload remove all` - 移除当前维度所有强制加载区块
+- `/forceload query [<pos>]` - 查询单个区块是否强制加载，或列出所有强制加载区块
+
+**参数：**
+
+- `from` - 起始坐标（方块坐标）
+- `to` - 结束坐标（可选，用于范围选择）
+- `pos` - 查询坐标（可选，不指定则列出所有）
+
+**限制：**
+
+- 单次操作最多 256 个区块
+- 坐标必须在世界边界内 [-30000000, 30000000)
+- 每个维度独立管理强制加载区块
+
+**示例：**
+
+- `/forceload add 0 64 0` - 强制加载区块 (0, 0)
+- `/forceload add 0 64 0 100 64 100` - 强制加载从 (0, 0) 到 (6, 6) 的区块范围
+- `/forceload remove 0 64 0` - 移除区块 (0, 0) 的强制加载
+- `/forceload remove all` - 移除当前维度所有强制加载区块
+- `/forceload query` - 列出当前维度所有强制加载区块
+- `/forceload query 0 64 0` - 查询区块 (0, 0) 是否被强制加载
 
 **权限等级：** 2
+
+**实现状态：** ✅ 完整实现
+
+**注意：** 强制加载区块在服务器重启后会丢失（当前未实现持久化）
 
 #### LootCommand - /loot 命令
 

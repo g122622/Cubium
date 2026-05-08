@@ -1586,3 +1586,218 @@ TEST_F(ChunkTicketSetExtendedTest, ExpirationPreservesMinLevel) {
     set.removeExpired(10);
     EXPECT_EQ(set.getMinLevel(), 33);  // 只剩永久票据
 }
+
+// ============================================================================
+// getForcedChunks / isForcedChunk 测试
+// ============================================================================
+
+class ForcedChunkQueryTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        TicketTypes::initializeTicketTypes();
+    }
+};
+
+TEST_F(ForcedChunkQueryTest, GetForcedChunksEmpty) {
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
+
+    // 没有强制加载区块时，返回空列表
+    std::vector<ChunkPos> forcedChunks = manager.getForcedChunks();
+    EXPECT_TRUE(forcedChunks.empty());
+}
+
+TEST_F(ForcedChunkQueryTest, GetForcedChunksSingleChunk) {
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
+
+    // 强制加载单个区块
+    manager.forceChunk(10, 20, true);
+    manager.processUpdates();
+
+    std::vector<ChunkPos> forcedChunks = manager.getForcedChunks();
+    ASSERT_EQ(forcedChunks.size(), 1u);
+    EXPECT_EQ(forcedChunks[0].x, 10);
+    EXPECT_EQ(forcedChunks[0].z, 20);
+}
+
+TEST_F(ForcedChunkQueryTest, GetForcedChunksMultipleChunks) {
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
+
+    // 强制加载多个区块
+    manager.forceChunk(0, 0, true);
+    manager.forceChunk(10, 20, true);
+    manager.forceChunk(-5, 15, true);
+    manager.processUpdates();
+
+    std::vector<ChunkPos> forcedChunks = manager.getForcedChunks();
+    EXPECT_EQ(forcedChunks.size(), 3u);
+
+    // 验证所有强制加载的区块都在列表中
+    bool found00 = false, found1020 = false, foundMinus515 = false;
+    for (const auto& pos : forcedChunks) {
+        if (pos.x == 0 && pos.z == 0) found00 = true;
+        if (pos.x == 10 && pos.z == 20) found1020 = true;
+        if (pos.x == -5 && pos.z == 15) foundMinus515 = true;
+    }
+    EXPECT_TRUE(found00);
+    EXPECT_TRUE(found1020);
+    EXPECT_TRUE(foundMinus515);
+}
+
+TEST_F(ForcedChunkQueryTest, GetForcedChunksAfterRemoval) {
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
+
+    // 强制加载多个区块
+    manager.forceChunk(0, 0, true);
+    manager.forceChunk(10, 20, true);
+    manager.processUpdates();
+
+    EXPECT_EQ(manager.getForcedChunks().size(), 2u);
+
+    // 移除一个
+    manager.forceChunk(0, 0, false);
+    manager.processUpdates();
+
+    std::vector<ChunkPos> forcedChunks = manager.getForcedChunks();
+    ASSERT_EQ(forcedChunks.size(), 1u);
+    EXPECT_EQ(forcedChunks[0].x, 10);
+    EXPECT_EQ(forcedChunks[0].z, 20);
+}
+
+TEST_F(ForcedChunkQueryTest, GetForcedChunksOnlyReturnsForced) {
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
+
+    // 添加玩家（产生 PLAYER 票据）
+    manager.updatePlayerPosition(1, 0, 0);
+
+    // 强制加载一个区块
+    manager.forceChunk(100, 100, true);
+    manager.processUpdates();
+
+    // 只应该返回强制加载的区块，不包含玩家区块
+    std::vector<ChunkPos> forcedChunks = manager.getForcedChunks();
+    ASSERT_EQ(forcedChunks.size(), 1u);
+    EXPECT_EQ(forcedChunks[0].x, 100);
+    EXPECT_EQ(forcedChunks[0].z, 100);
+}
+
+TEST_F(ForcedChunkQueryTest, IsForcedChunkBasic) {
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
+
+    // 未强制加载时返回 false
+    EXPECT_FALSE(manager.isForcedChunk(10, 20));
+
+    // 强制加载后返回 true
+    manager.forceChunk(10, 20, true);
+    manager.processUpdates();
+    EXPECT_TRUE(manager.isForcedChunk(10, 20));
+
+    // 其他区块仍返回 false
+    EXPECT_FALSE(manager.isForcedChunk(10, 21));
+    EXPECT_FALSE(manager.isForcedChunk(11, 20));
+
+    // 取消强制加载后返回 false
+    manager.forceChunk(10, 20, false);
+    manager.processUpdates();
+    EXPECT_FALSE(manager.isForcedChunk(10, 20));
+}
+
+TEST_F(ForcedChunkQueryTest, IsForcedChunkWithPlayerTickets) {
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
+
+    // 添加玩家（产生 PLAYER 票据）
+    manager.updatePlayerPosition(1, 50, 50);
+    manager.processUpdates();
+
+    // 玩家区块应该加载，但不是强制加载
+    EXPECT_TRUE(manager.shouldChunkLoad(50, 50));
+    EXPECT_FALSE(manager.isForcedChunk(50, 50));
+
+    // 强制加载另一个区块
+    manager.forceChunk(100, 100, true);
+    manager.processUpdates();
+
+    EXPECT_FALSE(manager.isForcedChunk(50, 50));  // 玩家区块仍不是强制加载
+    EXPECT_TRUE(manager.isForcedChunk(100, 100)); // 强制加载区块
+}
+
+TEST_F(ForcedChunkQueryTest, IsForcedChunkNegativeCoordinates) {
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
+
+    // 测试负坐标
+    manager.forceChunk(-100, -200, true);
+    manager.forceChunk(-50, 50, true);
+    manager.processUpdates();
+
+    EXPECT_TRUE(manager.isForcedChunk(-100, -200));
+    EXPECT_TRUE(manager.isForcedChunk(-50, 50));
+    EXPECT_FALSE(manager.isForcedChunk(-100, -201));
+}
+
+TEST_F(ForcedChunkQueryTest, IsForcedChunkAfterPlayerRemoval) {
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
+
+    // 强制加载区块
+    manager.forceChunk(100, 100, true);
+
+    // 添加玩家
+    manager.updatePlayerPosition(1, 0, 0);
+    manager.processUpdates();
+
+    // 移除玩家
+    manager.removePlayer(1);
+    manager.processUpdates();
+
+    // 强制加载区块仍然存在
+    EXPECT_TRUE(manager.isForcedChunk(100, 100));
+    EXPECT_TRUE(manager.shouldChunkLoad(100, 100));
+}
+
+TEST_F(ForcedChunkQueryTest, MultipleForcedChunksConsistency) {
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
+
+    // 强制加载多个区块
+    for (int x = 0; x < 5; ++x) {
+        for (int z = 0; z < 5; ++z) {
+            manager.forceChunk(x * 10, z * 10, true);
+        }
+    }
+    manager.processUpdates();
+
+    // 验证一致性
+    std::vector<ChunkPos> forcedChunks = manager.getForcedChunks();
+    EXPECT_EQ(forcedChunks.size(), 25u);
+
+    for (const auto& pos : forcedChunks) {
+        // 每个返回的区块都应该是强制加载的
+        EXPECT_TRUE(manager.isForcedChunk(pos.x, pos.z));
+        // 每个返回的区块都应该加载
+        EXPECT_TRUE(manager.shouldChunkLoad(pos.x, pos.z));
+    }
+}
+
+TEST_F(ForcedChunkQueryTest, IsForcedChunkDoesNotAffectTickets) {
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(5);
+
+    // 强制加载区块
+    manager.forceChunk(10, 20, true);
+    manager.processUpdates();
+
+    // 调用 isForcedChunk 不应该影响票据
+    EXPECT_TRUE(manager.isForcedChunk(10, 20));
+    EXPECT_TRUE(manager.isForcedChunk(10, 20));
+    EXPECT_TRUE(manager.isForcedChunk(10, 20));
+
+    // 仍然只有一个强制加载区块
+    EXPECT_EQ(manager.getForcedChunks().size(), 1u);
+}

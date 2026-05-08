@@ -306,6 +306,24 @@ public:
      */
     [[nodiscard]] const ChunkTicketSet* getChunkTickets(ChunkCoord x, ChunkCoord z) const;
 
+    /**
+     * @brief 获取所有强制加载的区块
+     *
+     * 遍历所有票据，找出包含 FORCED 票据的区块。
+     *
+     * @return 强制加载区块的坐标列表
+     */
+    [[nodiscard]] std::vector<ChunkPos> getForcedChunks() const;
+
+    /**
+     * @brief 检查指定区块是否被强制加载
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @return true 表示该区块有强制加载票据
+     */
+    [[nodiscard]] bool isForcedChunk(ChunkCoord x, ChunkCoord z) const;
+
 private:
     /// 内部票据操作
     void addTicket(ChunkPos pos, ChunkLoadTicket ticket);

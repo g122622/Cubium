@@ -500,4 +500,37 @@ bool ChunkLoadTicketManager::hasTrackingPlayers(u64 chunkKey) const {
     return it != m_chunkTrackingPlayers.end() && !it->second.empty();
 }
 
+std::vector<ChunkPos> ChunkLoadTicketManager::getForcedChunks() const {
+    std::vector<ChunkPos> result;
+
+    // 遍历所有票据集合，找出包含 FORCED 票据的区块
+    for (const auto& [key, ticketSet] : m_chunkTickets) {
+        for (const auto& ticket : ticketSet.tickets()) {
+            if (ticket.typeName() == "forced") {
+                ChunkCoord x = static_cast<ChunkCoord>(key >> 32);
+                ChunkCoord z = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
+                result.emplace_back(x, z);
+                break;  // 一个区块只需添加一次
+            }
+        }
+    }
+
+    return result;
+}
+
+bool ChunkLoadTicketManager::isForcedChunk(ChunkCoord x, ChunkCoord z) const {
+    const ChunkTicketSet* tickets = getChunkTickets(x, z);
+    if (tickets == nullptr) {
+        return false;
+    }
+
+    for (const auto& ticket : tickets->tickets()) {
+        if (ticket.typeName() == "forced") {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 } // namespace mc::world

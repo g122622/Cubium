@@ -306,6 +306,14 @@ manager.setViewDistance(10);
 
 // 获取追踪某区块的玩家
 auto players = manager.getTrackingPlayers(x, z);
+
+// 强制加载区块
+manager.forceChunk(x, z, true);   // 添加强制加载
+manager.forceChunk(x, z, false);  // 移除强制加载
+
+// 查询强制加载区块
+std::vector<ChunkPos> forced = manager.getForcedChunks();  // 获取所有强制加载区块
+bool isForced = manager.isForcedChunk(x, z);               // 检查单个区块是否强制加载
 ```
 
 **追踪系统**：
