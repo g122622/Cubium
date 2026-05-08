@@ -85,11 +85,39 @@ ItemStack result = PotionBrewing::brew(potionStack, reagentStack);
 // 获取药水
 const Potion* potion = PotionUtils::getPotion(stack);
 
-// 获取效果
+// 获取效果（基础效果 + 自定义效果）
 auto effects = PotionUtils::getEffects(stack);
+
+// 获取仅自定义效果
+auto customEffects = PotionUtils::getCustomEffects(stack);
+
+// 设置自定义效果
+std::vector<EffectInstance> effects;
+effects.emplace_back(EffectType::Speed, 600, 0);
+PotionUtils::setCustomEffects(stack, effects);
+
+// 添加单个自定义效果（会自动合并同类型效果）
+EffectInstance speedEffect(EffectType::Speed, 600, 1);
+PotionUtils::addCustomEffect(stack, speedEffect);
+
+// 移除所有自定义效果
+PotionUtils::removeCustomEffects(stack);
+
+// 检查是否有自定义效果
+bool hasCustom = PotionUtils::hasCustomEffects(stack);
+
+// 获取/设置自定义颜色
+auto color = PotionUtils::getCustomPotionColor(stack);
+PotionUtils::setCustomPotionColor(stack, 0xFF00FF00);
+PotionUtils::setCustomPotionColor(stack, std::nullopt);  // 移除自定义颜色
+
+// 获取物品堆的颜色（优先自定义颜色）
+u32 color = PotionUtils::getColor(stack);
 
 // 创建药水物品
 ItemStack potionItem = PotionUtils::createPotionItem(Potions::NIGHT_VISION);
+ItemStack splashItem = PotionUtils::createSplashPotionItem(Potions::HEALING);
+ItemStack lingeringItem = PotionUtils::createLingeringPotionItem(Potions::POISON);
 
 // 获取颜色
 u32 color = PotionUtils::getColor(potion);
@@ -174,3 +202,4 @@ u32 color = PotionUtils::getColor(potion);
 | 文件 | 说明 |
 |------|------|
 | `tests/common/item/potion/GlassBottleItemTest.cpp` | 验证玻璃瓶对水源和炼药锅的装水逻辑 |
+| `tests/common/item/potion/PotionUtilsTest.cpp` | 验证药水工具类的自定义效果、颜色等功能 |

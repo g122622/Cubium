@@ -264,6 +264,14 @@ item/
    - SplashPotionItem (喷溅药水) ✅ 完成 - 继承ThrowablePotionItem
    - LingeringPotionItem (滞留药水) ✅ 完成 - 继承ThrowablePotionItem
    - GlassBottleItem (玻璃瓶)
+   - **PotionUtils 自定义效果** ✅ 完成
+     - `getCustomEffects()` - 从 ItemStack 读取自定义药水效果
+     - `setCustomEffects()` - 设置自定义效果到 ItemStack
+     - `addCustomEffect()` - 添加单个效果（支持合并）
+     - `removeCustomEffects()` - 移除所有自定义效果
+     - `hasCustomEffects()` - 检查是否有自定义效果
+     - `getCustomPotionColor()` - 获取自定义药水颜色
+     - `setCustomPotionColor()` - 设置自定义药水颜色
 
 8. **药水箭** (items/weapon/)
    - ArrowItem (普通箭矢)
