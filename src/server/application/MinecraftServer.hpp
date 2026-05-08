@@ -545,7 +545,7 @@ protected:
                           sound::SoundCategory category,
                           const Vector3& position,
                           f32 volume = 1.0f,
-                          f32 pitch = 1.0f);
+                          f32 pitch = 1.0f) override;
 
     // ========== 粒子广播方法 ==========
 

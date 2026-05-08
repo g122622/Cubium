@@ -2,6 +2,9 @@
 
 #include "common/core/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 
 namespace mc {
@@ -243,6 +246,23 @@ public:
      * @brief 向所有在线玩家广播服务器系统消息。
      */
     virtual void broadcastServerMessage(std::string_view message) = 0;
+
+    /**
+     * @brief 发送声音给指定玩家
+     *
+     * @param playerId 玩家ID
+     * @param soundEventId 声音事件ID
+     * @param category 声音类别
+     * @param position 声音位置
+     * @param volume 音量倍率
+     * @param pitch 音调倍率
+     */
+    virtual void sendSoundToPlayer(PlayerId playerId,
+                                   const ResourceLocation& soundEventId,
+                                   sound::SoundCategory category,
+                                   const Vector3& position,
+                                   f32 volume = 1.0f,
+                                   f32 pitch = 1.0f) = 0;
 
     /**
      * @brief 请求服务器优雅停机。

@@ -4,17 +4,25 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "server/application/IServer.hpp"
+#include "server/application/MinecraftServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <sstream>
 
 namespace mc {
@@ -93,7 +101,14 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
             continue;
         }
 
+        // 获取玩家实体用于位置和音效
+        Player* player = server->playerEntityManager().getPlayerEntity(playerId, server->world());
+        if (player == nullptr) {
+            continue;
+        }
+
         i32 remaining = count;
+        i32 totalAdded = 0;
 
         // 按堆叠大小分批给予物品
         while (remaining > 0) {
@@ -105,32 +120,49 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
             // 尝试添加到背包
             const i32 notAdded = inventory->add(stack);
 
-            // 如果有剩余，说明背包满了
+            const i32 added = stackSize - notAdded;
+            totalAdded += added;
+
+            // 如果有剩余，说明背包满了，掉落在地上
             if (notAdded > 0) {
-                // TODO: 在玩家位置掉落物品实体
-                // ItemEntity* droppedItem = player.dropItem(stack, false);
-                // if (droppedItem != nullptr) {
-                //     droppedItem->setNoPickupDelay();
-                //     droppedItem->setOwnerId(player.getUniqueID());
-                // }
-                // 目前简化实现：剩余物品被丢弃
+                ItemStack dropStack(item, notAdded);
+                // 在玩家位置掉落物品
+                // 参考 MC 1.16.5: player.dropItem(stack, false) 并设置 noPickupDelay 和 owner
+                math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+                ItemEntity* droppedItem = ItemDropHelper::spawnItemEntity(
+                    &server->world(),
+                    dropStack,
+                    player->x(), player->y() + 0.5, player->z(),
+                    rng,
+                    0,  // noPickupDelay - 立即可拾取
+                    player->uuid()  // owner UUID
+                );
+                (void)droppedItem;  // 避免未使用警告
             }
 
-            remaining -= (stackSize - notAdded);
+            remaining -= added;
         }
 
-        // 同步背包到客户端
-        syncInventoryToClient(source, playerId, *inventory);
+        // 如果有物品被添加，同步背包并播放音效
+        if (totalAdded > 0) {
+            // 同步背包到客户端
+            syncInventoryToClient(source, playerId, *inventory);
 
-        // TODO: 播放拾取音效
-        // server->world().playSound(
-        //     nullptr,
-        //     player.x(), player.y(), player.z(),
-        //     SoundEvents::ENTITY_ITEM_PICKUP,
-        //     SoundCategory::PLAYERS,
-        //     0.2f,
-        //     (random.nextFloat() - random.nextFloat()) * 0.7f + 1.0f) * 2.0f
-        // );
+            // 播放拾取音效
+            // 参考 MC 1.16.5: world.playSound(null, player.getPosX(), player.getPosY(), player.getPosZ(),
+            //              SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2F,
+            //              ((random.nextFloat() - random.nextFloat()) * 0.7F + 1.0F) * 2.0F)
+            math::Random rng(static_cast<u64>(playerId) * static_cast<u64>(count));
+            const f32 pitch = (rng.nextFloat() - rng.nextFloat()) * 0.7f + 1.0f;
+            server->sendSoundToPlayer(
+                playerId,
+                SoundEvents::ENTITY_ITEM_PICKUP,
+                sound::SoundCategory::Players,
+                Vector3(player->x(), player->y(), player->z()),
+                0.2f,
+                pitch * 2.0f
+            );
+        }
 
         successCount++;
     }
