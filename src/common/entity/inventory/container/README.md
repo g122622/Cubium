@@ -11,6 +11,7 @@
 - ✅ **特殊槽位类型** - ArmorSlot、ResultSlot、FurnaceFuelSlot、FurnaceResultSlot 已实现
 - ✅ **槽位回调** - onTake、onSwapCraft、onCrafting 回调已实现
 - ✅ **快速移动** - Shift+点击快速移动物品已实现
+- ✅ **创造模式特殊权限** - 铁砧和附魔台的创造模式玩家特殊权限已实现
 
 ## 目录结构
 
@@ -85,6 +86,7 @@ container/
 - 青金石槽：消耗青金石作为附魔材料
 - 附魔选项生成：基于书架力量和随机种子
 - 附魔等级计算：MC 1.16.5 公式
+- **创造模式特殊权限**
 
 **槽位布局**：
 ```
@@ -111,6 +113,12 @@ container/
 - 后续附魔：`rand(50) < level` 概率添加
 - 每添加一个附魔，等级减半
 - 移除与已选附魔不兼容的选项
+
+**创造模式特殊权限**（MC 1.16.5 `EnchantmentContainer`）：
+| 功能 | 生存模式 | 创造模式 |
+|------|----------|----------|
+| 经验消耗 | 扣除经验等级 | 不消耗经验 |
+| 青金石消耗 | 扣除青金石 | 扣除青金石（与MC一致）|
 
 ### BrewingStandContainer.hpp/cpp
 
@@ -143,6 +151,7 @@ container/
 - 输出槽：修复/合并后的结果
 - 修复成本计算（最大40级）
 - 附魔合并逻辑
+- **创造模式特殊权限**
 
 **槽位布局**：
 ```
@@ -159,6 +168,15 @@ container/
 - 附魔合并：根据附魔稀有度计算
 - 修复耐久：+2级
 - 最大成本：40级（超过则"太贵"）
+
+**创造模式特殊权限**（MC 1.16.5 `RepairContainer`）：
+| 功能 | 生存模式 | 创造模式 |
+|------|----------|----------|
+| 取出物品权限 | 需要足够经验等级 | 无视经验等级要求 |
+| 费用上限 | 超过40级无法操作 | 绕过40级费用上限 |
+| 附魔物品限制 | 仅限附魔书或兼容物品 | 可给任何物品应用任何附魔 |
+| 铁砧损坏 | 12%概率损坏 | 永不损坏 |
+| 经验消耗 | 扣除经验等级 | 不消耗 |
 
 ### HopperContainer.hpp/cpp
 
@@ -514,3 +532,9 @@ bool ContainerBlockEntity::isUsableByPlayer(const Player& player, f32 maxDistanc
 - 酿造台燃料消耗
 - 铁砧修复成本计算
 - 附魔合并逻辑
+- **创造模式特殊权限检查**
+  - AnvilContainer: isPlayerCreative() 方法
+  - AnvilContainer: 结果槽取出权限检查
+  - AnvilContainer: 40级费用上限绕过
+  - AnvilContainer: 附魔物品限制绕过
+  - EnchantmentContainer: 经验消耗豁免

@@ -17,6 +17,8 @@
 - ✅ **FurnaceFuelSlot/FurnaceResultSlot** - 特殊槽位实现
 - ✅ **stillValid距离检查** - isWithinDistance() 方法用于容器访问距离验证
 - ✅ **容器槽位坐标** - 所有容器槽位坐标已与 MC 1.16.5 对齐
+- ✅ **创造模式特殊权限** - 铁砧和附魔台的创造模式玩家特殊权限已实现
+- ✅ **PlayerInventory::isUsableByPlayer** - 使用 Entity::isAlive() 检查玩家存活状态
 
 ## 目录结构
 

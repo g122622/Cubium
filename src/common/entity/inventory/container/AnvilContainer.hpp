@@ -114,6 +114,14 @@ public:
      */
     [[nodiscard]] bool isRenameOnly() const;
 
+    /**
+     * @brief 检查玩家是否是创造模式
+     * @return 如果关联的玩家是创造模式返回true
+     *
+     * 参考 MC 1.16.5 RepairContainer.field_234645_f_.abilities.isCreativeMode
+     */
+    [[nodiscard]] bool isPlayerCreative() const;
+
     // ========== 槽位访问 ==========
 
     /**
@@ -180,12 +188,6 @@ private:
      * @return 如果兼容返回true
      */
     [[nodiscard]] bool areEnchantmentsCompatible(const std::string& ench1, const std::string& ench2) const;
-
-    /**
-     * @brief 检查玩家是否是创造模式
-     * @return 如果关联的玩家是创造模式返回true
-     */
-    [[nodiscard]] bool isPlayerCreative() const;
 
 private:
     std::unique_ptr<IInventory> m_anvilInventory;  ///< 铁砧背包
