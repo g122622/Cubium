@@ -18,6 +18,7 @@ fish/
 - `AbstractFishEntity`
   - 对齐 1.16.5 `AbstractFishEntity` 的基础层。
   - 负责空气供应、游泳状态、离水扑腾状态。
+  - **FromBucket 标签**：支持从桶放出的鱼不会消失的功能。
   - 不再承载群游字段。
 - `AbstractGroupFishEntity`
   - 对齐 1.16.5 `AbstractGroupFishEntity`。
@@ -101,6 +102,39 @@ if (follower.hasGroupLeader() && follower.inRangeOfGroupLeader()) {
   - `FollowSchoolLeaderGoal` 已接入，使用 `EntityUtils::findEntities<AbstractGroupFishEntity>()` 搜索附近鱼群。
   - 初始生成分组逻辑和桶/NBT 同步仍未实现。
 
+## FromBucket 机制（MC 1.16.5）
+
+从桶放出的鱼永远不会消失，这是通过 `FromBucket` 标签实现的：
+
+### 核心逻辑
+
+```cpp
+// AbstractFishEntity 中的消失检查
+[[nodiscard]] bool preventDespawn() const override {
+    return WaterMobEntity::preventDespawn() || m_fromBucket;
+}
+
+[[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override {
+    return !m_fromBucket && !hasCustomName();
+}
+```
+
+### 设置时机
+
+`FishBucketItem.spawnFish()` 在生成鱼实体后调用 `setFromBucket(true)`：
+
+```cpp
+auto* abstractFish = dynamic_cast<AbstractFishEntity*>(fish.get());
+if (abstractFish != nullptr) {
+    abstractFish->setFromBucket(true);
+}
+```
+
+### 与命名牌的关系
+
+- 有自定义名称的鱼也不会消失（`canDespawn` 检查 `hasCustomName()`）
+- `preventDespawn()` 在消失检查中首先被调用，如果返回 `true` 则跳过整个消失逻辑
+
 ## 测试用例
 
 - `tests/entity/FishSupportTypesTest.cpp`
@@ -118,6 +152,18 @@ if (follower.hasGroupLeader() && follower.inRangeOfGroupLeader()) {
     - `ShouldRespectMaxGroupSize` - 遵守最大群体限制
     - `RecruitFollowersWorks` - 招募功能正常
     - `MoveToGroupLeaderWorks` - 导航功能正常
+  - **覆盖 `AbstractFishEntity FromBucket` 测试**:
+    - `DefaultFromBucketIsFalse` - 默认不是从桶放出
+    - `SetFromBucketToTrue` - 设置 FromBucket 标签
+    - `FromBucketFishPreventsDespawn` - 从桶放出的鱼不会消失
+    - `FromBucketFishCannotDespawn` - canDespawn 返回 false
+    - `AllFishTypesSupportFromBucket` - 所有鱼类都支持 FromBucket
+
+- `tests/common/item/special/FishBucketItemTest.cpp`
+  - 覆盖鱼桶物品注册。
+  - 覆盖各类鱼桶的类型名称。
+  - 覆盖 FromBucket 标签与消失机制的关联。
+  - 覆盖 ItemDropHelper 在实体位置生成物品。
 
 ## Mermaid 图表
 

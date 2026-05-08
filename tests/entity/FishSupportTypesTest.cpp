@@ -407,5 +407,108 @@ TEST_F(FollowSchoolLeaderGoalTest, MoveToGroupLeaderWorks) {
     EXPECT_EQ(follower->getGroupLeader(), leader.get());
 }
 
+// ============================================================================
+// AbstractFishEntity FromBucket Tests
+// ============================================================================
+
+class AbstractFishEntityFromBucketTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        m_world = std::make_unique<TestFishWorld>();
+    }
+
+    void TearDown() override {
+        m_world.reset();
+    }
+
+    std::unique_ptr<TestFishWorld> m_world;
+};
+
+TEST_F(AbstractFishEntityFromBucketTest, DefaultFromBucketIsFalse) {
+    CodEntity cod(LegacyEntityType::Cod, 1);
+    EXPECT_FALSE(cod.isFromBucket());
+}
+
+TEST_F(AbstractFishEntityFromBucketTest, SetFromBucketToTrue) {
+    CodEntity cod(LegacyEntityType::Cod, 1);
+    cod.setFromBucket(true);
+    EXPECT_TRUE(cod.isFromBucket());
+}
+
+TEST_F(AbstractFishEntityFromBucketTest, SetFromBucketToFalse) {
+    CodEntity cod(LegacyEntityType::Cod, 1);
+    cod.setFromBucket(true);
+    cod.setFromBucket(false);
+    EXPECT_FALSE(cod.isFromBucket());
+}
+
+TEST_F(AbstractFishEntityFromBucketTest, FromBucketFishPreventsDespawn) {
+    CodEntity cod(LegacyEntityType::Cod, 1);
+
+    // 默认情况下，鱼不在被骑乘状态，preventDespawn 返回 false
+    EXPECT_FALSE(cod.preventDespawn());
+
+    // 设置 FromBucket 后，preventDespawn 应该返回 true
+    cod.setFromBucket(true);
+    EXPECT_TRUE(cod.preventDespawn());
+
+    // 再次设置 false，preventDespawn 应该返回 false
+    cod.setFromBucket(false);
+    EXPECT_FALSE(cod.preventDespawn());
+}
+
+TEST_F(AbstractFishEntityFromBucketTest, FromBucketFishCannotDespawn) {
+    CodEntity cod(LegacyEntityType::Cod, 1);
+
+    // 默认情况下，鱼可以消失（没有自定义名称）
+    EXPECT_TRUE(cod.canDespawn(128.0));
+
+    // 设置 FromBucket 后，canDespawn 应该返回 false
+    cod.setFromBucket(true);
+    EXPECT_FALSE(cod.canDespawn(128.0));
+    EXPECT_FALSE(cod.canDespawn(0.0));  // 即使玩家很近
+
+    // 设置自定义名称也阻止消失
+    cod.setFromBucket(false);
+    cod.setCustomName("Nemo");  // 使用 setCustomName(String) 重载
+    EXPECT_FALSE(cod.canDespawn(128.0));
+}
+
+TEST_F(AbstractFishEntityFromBucketTest, AllFishTypesSupportFromBucket) {
+    // 测试所有鱼类实体都支持 FromBucket
+    CodEntity cod(LegacyEntityType::Cod, 1);
+    SalmonEntity salmon(LegacyEntityType::Salmon, 2);
+    PufferfishEntity pufferfish(LegacyEntityType::Pufferfish, 3);
+    TropicalFishEntity tropicalFish(LegacyEntityType::TropicalFish, 4);
+
+    // 所有鱼类默认不是从桶放出的
+    EXPECT_FALSE(cod.isFromBucket());
+    EXPECT_FALSE(salmon.isFromBucket());
+    EXPECT_FALSE(pufferfish.isFromBucket());
+    EXPECT_FALSE(tropicalFish.isFromBucket());
+
+    // 设置后都能正确响应
+    cod.setFromBucket(true);
+    salmon.setFromBucket(true);
+    pufferfish.setFromBucket(true);
+    tropicalFish.setFromBucket(true);
+
+    EXPECT_TRUE(cod.isFromBucket());
+    EXPECT_TRUE(salmon.isFromBucket());
+    EXPECT_TRUE(pufferfish.isFromBucket());
+    EXPECT_TRUE(tropicalFish.isFromBucket());
+
+    // 设置 FromBucket 后都能阻止消失
+    EXPECT_TRUE(cod.preventDespawn());
+    EXPECT_TRUE(salmon.preventDespawn());
+    EXPECT_TRUE(pufferfish.preventDespawn());
+    EXPECT_TRUE(tropicalFish.preventDespawn());
+
+    EXPECT_FALSE(cod.canDespawn(128.0));
+    EXPECT_FALSE(salmon.canDespawn(128.0));
+    EXPECT_FALSE(pufferfish.canDespawn(128.0));
+    EXPECT_FALSE(tropicalFish.canDespawn(128.0));
+}
+
 } // namespace
 } // namespace mc
