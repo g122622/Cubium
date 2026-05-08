@@ -286,3 +286,6 @@ auto redCarpet = std::make_unique<CarpetBlock>(
   - 含水状态测试
   - DISTANCE_0_7 属性范围测试
   - BOTTOM 属性切换测试
+  - Tick 行为测试（distance=7 物品掉落、FallingBlockEntity 创建、状态更新）
+  - 距离计算测试（直接支撑、无支撑、水平支撑）
+  - spawnEntity 失败恢复测试

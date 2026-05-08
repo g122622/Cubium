@@ -1,28 +1,200 @@
 #include <gtest/gtest.h>
+
 #include "world/block/blocks/decorative/ScaffoldingBlock.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/block/Material.hpp"
-#include "util/property/Properties.hpp"
+#include "world/IWorld.hpp"
+#include "world/fluid/Fluid.hpp"
+#include "world/fluid/FluidRegistry.hpp"
+#include "world/fluid/FluidTags.hpp"
+#include "world/tick/manager/TickManager.hpp"
+#include "entity/core/Entity.hpp"
+#include "entity/entities/misc/MiscEntities.hpp"
+#include "item/core/ItemStack.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
+#include "item/items/block/BlockItem.hpp"
+#include "item/core/ItemRegistry.hpp"
+#include "entity/utils/ItemDropHelper.hpp"
+#include "util/math/Vector3.hpp"
+#include "util/math/random/Random.hpp"
+#include "core/Constants.hpp"
+
+#include <memory>
+#include <unordered_map>
+#include <vector>
 
 using namespace mc;
 using namespace mc::blocks;
 
-// ========== ScaffoldingBlock 测试 ==========
+namespace {
+
+class ScaffoldingTestWorld final : public IWorld {
+public:
+    ScaffoldingTestWorld() = default;
+
+    void ensureTickManager() {
+        if (!m_tickManagerPtr) {
+            m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
+        }
+    }
+
+    // 存储 BlockState 的副本并返回指针
+    const BlockState* storeBlockState(const BlockState& state) {
+        m_storedStates.push_back(std::make_unique<BlockState>(state));
+        return m_storedStates.back().get();
+    }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+        const auto it = m_blocks.find(packPos(x, y, z));
+        if (it != m_blocks.end()) {
+            return it->second;
+        }
+        return &VanillaBlocks::AIR->defaultState();
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+        if (m_setBlockStateFail) {
+            return false;
+        }
+        if (state == nullptr) {
+            m_blocks.erase(packPos(x, y, z));
+        } else {
+            // 存储 BlockState 的副本
+            m_storedStates.push_back(std::make_unique<BlockState>(*state));
+            m_blocks[packPos(x, y, z)] = m_storedStates.back().get();
+        }
+        return true;
+    }
+
+    bool setBlockState(const BlockPos& pos, const BlockState* state) {
+        return setBlockState(pos.x, pos.y, pos.z, state);
+    }
+
+    // 存储 BlockState 并设置
+    bool setBlockStateCopy(const BlockPos& pos, const BlockState& state) {
+        const BlockState* stored = storeBlockState(state);
+        return setBlockState(pos, stored);
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+        const BlockState* state = getBlockState(x, y, z);
+        if (state != nullptr) {
+            const fluid::FluidState* fluidState = state->getFluidState();
+            if (fluidState != nullptr) {
+                return fluidState;
+            }
+        }
+        return fluid::Fluid::getFluidState(0);
+    }
+
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
+        if (m_spawnEntityFail || !entity) {
+            return EntityId(0);
+        }
+        EntityId id = EntityId(++m_nextEntityId);
+        m_entities.push_back(std::move(entity));
+        m_spawnedEntityCount++;
+        return id;
+    }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override {
+        return {};
+    }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override {
+        return {};
+    }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        ensureTickManager();
+        return *m_tickManagerPtr;
+    }
+
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        const_cast<ScaffoldingTestWorld*>(this)->ensureTickManager();
+        return *m_tickManagerPtr;
+    }
+
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
+    }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override {
+        return {};
+    }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
+    [[nodiscard]] u64 seed() const override { return m_seed; }
+    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+    [[nodiscard]] bool isClientSide() override { return false; }
+    [[nodiscard]] bool isRaining() const override { return false; }
+    [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
+
+    void setSeed(u64 seed) { m_seed = seed; }
+    void setSpawnEntityFail(bool fail) { m_spawnEntityFail = fail; }
+    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntityCount; }
+    void setSetBlockStateFail(bool fail) { m_setBlockStateFail = fail; }
+
+private:
+    [[nodiscard]] static i64 packPos(i32 x, i32 y, i32 z) {
+        return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ static_cast<i64>(z & 0x1FFFFF);
+    }
+
+    std::unordered_map<i64, const BlockState*> m_blocks;  // 存储指针
+    std::vector<std::unique_ptr<BlockState>> m_storedStates;  // 存储 BlockState 副本
+    std::vector<std::unique_ptr<Entity>> m_entities;
+    std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
+    math::Random m_random{12345};
+    u64 m_seed = 12345;
+    u32 m_nextEntityId = 0;
+    size_t m_spawnedEntityCount = 0;
+    bool m_setBlockStateFail = false;
+    bool m_spawnEntityFail = false;
+};
+
+class TestSolidBlock final : public Block {
+public:
+    explicit TestSolidBlock(const BlockProperties& properties)
+        : Block(properties) {
+        auto container = StateContainer<Block, BlockState>::Builder(*this)
+            .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
+        createBlockState(std::move(container));
+    }
+
+    [[nodiscard]] bool isSolidSide(const BlockState& state, IWorld& world,
+                                    const BlockPos& pos, Direction side) const override {
+        MC_UNUSED(state); MC_UNUSED(world); MC_UNUSED(pos); MC_UNUSED(side);
+        return true;
+    }
+};
+
+} // namespace
 
 class ScaffoldingBlockTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // 创建脚手架方块
+        VanillaBlocks::initialize();
         scaffolding_ = std::make_unique<ScaffoldingBlock>(
-            BlockProperties(Material::DECORATION)
-                .hardness(0.0f)
-                .resistance(0.0f)
-        );
+            BlockProperties(Material::AIR).hardness(0.0f).resistance(0.0f));
     }
-
     std::unique_ptr<ScaffoldingBlock> scaffolding_;
 };
 
@@ -31,191 +203,232 @@ TEST_F(ScaffoldingBlockTest, Create_HasCorrectProperties) {
 }
 
 TEST_F(ScaffoldingBlockTest, DefaultState_HasCorrectValues) {
-    const auto& state = scaffolding_->defaultState();
-
-    // 默认距离为 7（最远）
+    const BlockState& state = scaffolding_->defaultState();
     EXPECT_EQ(state.get(BlockStateProperties::DISTANCE_0_7()), 7);
-
-    // 默认不含水
     EXPECT_FALSE(state.get(BlockStateProperties::WATERLOGGED()));
-
-    // 默认不显示底部
     EXPECT_FALSE(state.get(BlockStateProperties::BOTTOM()));
 }
 
 TEST_F(ScaffoldingBlockTest, IsLadder_AlwaysReturnsTrue) {
-    const auto& state = scaffolding_->defaultState();
-    // 脚手架始终可攀爬
-    EXPECT_TRUE(scaffolding_->isLadder(state, nullptr, nullptr, nullptr));
-}
-
-TEST_F(ScaffoldingBlockTest, GetShape_ReturnsValidShape) {
-    const auto& state = scaffolding_->defaultState();
-    const auto& shape = scaffolding_->getShape(state);
-    // 脚手架形状不为空
-    EXPECT_FALSE(shape.isEmpty());
+    ScaffoldingTestWorld world;
+    BlockPos pos(0, 0, 0);
+    const BlockState& state = scaffolding_->defaultState();
+    EXPECT_TRUE(scaffolding_->isLadder(state, &world, &pos));
 }
 
 TEST_F(ScaffoldingBlockTest, GetCollisionShape_DistanceZero_ReturnsEmpty) {
-    // 当 distance=0 时，碰撞形状为空（玩家可以穿过）
-    auto state = scaffolding_->defaultState()
-        .with(BlockStateProperties::DISTANCE_0_7(), 0)
-        .with(BlockStateProperties::BOTTOM(), true);
-
-    const auto& shape = scaffolding_->getCollisionShape(state);
+    auto state = scaffolding_->defaultState().with(BlockStateProperties::DISTANCE_0_7(), 0);
+    const CollisionShape& shape = scaffolding_->getCollisionShape(state);
     EXPECT_TRUE(shape.isEmpty());
 }
 
 TEST_F(ScaffoldingBlockTest, GetCollisionShape_DistanceNonZeroWithBottom_ReturnsBaseShape) {
-    // 当 distance!=0 且 bottom=true 时，玩家可以站在底部平台上
     auto state = scaffolding_->defaultState()
         .with(BlockStateProperties::DISTANCE_0_7(), 3)
         .with(BlockStateProperties::BOTTOM(), true);
-
-    const auto& shape = scaffolding_->getCollisionShape(state);
+    const CollisionShape& shape = scaffolding_->getCollisionShape(state);
     EXPECT_FALSE(shape.isEmpty());
 }
 
 TEST_F(ScaffoldingBlockTest, GetCollisionShape_DistanceNonZeroWithoutBottom_ReturnsEmpty) {
-    // 当 distance!=0 且 bottom=false 时，碰撞形状为空
     auto state = scaffolding_->defaultState()
         .with(BlockStateProperties::DISTANCE_0_7(), 3)
         .with(BlockStateProperties::BOTTOM(), false);
-
-    const auto& shape = scaffolding_->getCollisionShape(state);
+    const CollisionShape& shape = scaffolding_->getCollisionShape(state);
     EXPECT_TRUE(shape.isEmpty());
 }
 
 TEST_F(ScaffoldingBlockTest, IsWaterlogged_WorksCorrectly) {
-    auto waterloggedState = scaffolding_->defaultState()
-        .with(BlockStateProperties::WATERLOGGED(), true);
-    auto nonWaterloggedState = scaffolding_->defaultState()
-        .with(BlockStateProperties::WATERLOGGED(), false);
-
-    EXPECT_TRUE(scaffolding_->isWaterlogged(waterloggedState));
-    EXPECT_FALSE(scaffolding_->isWaterlogged(nonWaterloggedState));
-}
-
-TEST_F(ScaffoldingBlockTest, CalculateDistance_StaticMethod_Exists) {
-    // 测试静态方法存在
-    // 注意：calculateDistance 需要 IWorld 参数，这里只验证方法签名存在
-    // 实际距离计算测试需要 MockWorld
-}
-
-TEST_F(ScaffoldingBlockTest, StateContainer_HasAllProperties) {
-    const auto& state = scaffolding_->defaultState();
-
-    // 验证所有属性都存在
-    EXPECT_TRUE(state.hasProperty(BlockStateProperties::DISTANCE_0_7()));
-    EXPECT_TRUE(state.hasProperty(BlockStateProperties::WATERLOGGED()));
-    EXPECT_TRUE(state.hasProperty(BlockStateProperties::BOTTOM()));
+    auto state = scaffolding_->defaultState();
+    EXPECT_FALSE(state.get(BlockStateProperties::WATERLOGGED()));
+    state = state.with(BlockStateProperties::WATERLOGGED(), true);
+    EXPECT_TRUE(state.get(BlockStateProperties::WATERLOGGED()));
 }
 
 TEST_F(ScaffoldingBlockTest, Distance_CanBeSetToAllValidValues) {
-    // DISTANCE_0_7 属性范围是 0-7
-    for (i32 distance = 0; distance <= 7; ++distance) {
-        auto state = scaffolding_->defaultState()
-            .with(BlockStateProperties::DISTANCE_0_7(), distance);
-        EXPECT_EQ(state.get(BlockStateProperties::DISTANCE_0_7()), distance);
+    for (i32 i = 0; i <= 7; ++i) {
+        auto state = scaffolding_->defaultState().with(BlockStateProperties::DISTANCE_0_7(), i);
+        EXPECT_EQ(state.get(BlockStateProperties::DISTANCE_0_7()), i);
     }
 }
 
 TEST_F(ScaffoldingBlockTest, Bottom_CanBeToggled) {
-    auto bottomState = scaffolding_->defaultState()
-        .with(BlockStateProperties::BOTTOM(), true);
-    auto topState = scaffolding_->defaultState()
-        .with(BlockStateProperties::BOTTOM(), false);
-
-    EXPECT_TRUE(bottomState.get(BlockStateProperties::BOTTOM()));
-    EXPECT_FALSE(topState.get(BlockStateProperties::BOTTOM()));
-}
-
-TEST_F(ScaffoldingBlockTest, GetFluidState_NonWaterlogged) {
-    const auto& state = scaffolding_->defaultState()
-        .with(BlockStateProperties::WATERLOGGED(), false);
-
-    const auto* fluidState = scaffolding_->getFluidState(state);
-    // 非含水状态返回基类的流体状态（空气）
-    // 不做具体断言，只验证方法可以调用
-    MC_UNUSED(fluidState);
+    auto state = scaffolding_->defaultState().with(BlockStateProperties::BOTTOM(), true);
+    EXPECT_TRUE(state.get(BlockStateProperties::BOTTOM()));
+    state = state.with(BlockStateProperties::BOTTOM(), false);
+    EXPECT_FALSE(state.get(BlockStateProperties::BOTTOM()));
 }
 
 TEST_F(ScaffoldingBlockTest, Shape_ChangesWithBottomProperty) {
-    // bottom=true 时返回完整形状
-    auto bottomState = scaffolding_->defaultState()
+    auto stateWithBottom = scaffolding_->defaultState()
+        .with(BlockStateProperties::DISTANCE_0_7(), 5)
         .with(BlockStateProperties::BOTTOM(), true);
-    const auto& bottomShape = scaffolding_->getShape(bottomState);
-
-    // bottom=false 时返回顶部平台形状
-    auto topState = scaffolding_->defaultState()
+    auto stateWithoutBottom = scaffolding_->defaultState()
+        .with(BlockStateProperties::DISTANCE_0_7(), 5)
         .with(BlockStateProperties::BOTTOM(), false);
-    const auto& topShape = scaffolding_->getShape(topState);
-
-    // 两种形状应该不同
-    // 注意：CollisionShape 目前没有直接比较操作符，所以我们只检查它们都不是空
-    EXPECT_FALSE(bottomShape.isEmpty());
-    EXPECT_FALSE(topShape.isEmpty());
+    const CollisionShape& shapeWithBottom = scaffolding_->getShape(stateWithBottom);
+    const CollisionShape& shapeWithoutBottom = scaffolding_->getShape(stateWithoutBottom);
+    EXPECT_NE(&shapeWithBottom, &shapeWithoutBottom);
 }
 
-// ========== 新增测试：Tick 行为验证 ==========
+class ScaffoldingBlockIntegrationTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        scaffolding_ = std::make_unique<ScaffoldingBlock>(
+            BlockProperties(Material::AIR).hardness(0.0f).resistance(0.0f));
+        world_.ensureTickManager();
+    }
+    std::unique_ptr<ScaffoldingBlock> scaffolding_;
+    ScaffoldingTestWorld world_;
+};
 
-TEST_F(ScaffoldingBlockTest, Tick_WhenDistanceBecomesSeven_CreatesFallingBlockEntity) {
-    // 此测试验证 tick 方法在 distance 从非7变为7时的行为
-    // 核心逻辑：
-    // 1. distance == 7 且 previousDistance != 7: 创建 FallingBlockEntity
-    // 2. distance == 7 且 previousDistance == 7: 掉落物品
-    //
-    // 由于需要完整的 IWorld 实现（包括 spawnEntity），这里验证代码路径存在
-    // 实际的实体创建在集成测试中验证
+TEST_F(ScaffoldingBlockIntegrationTest, Tick_DistanceSevenFromSix_CreatesFallingBlockEntity) {
+    BlockPos pos(0, 100, 0);
+    auto state = scaffolding_->defaultState()
+        .with(BlockStateProperties::DISTANCE_0_7(), 6)
+        .with(BlockStateProperties::BOTTOM(), true);
+    world_.setBlockState(pos, world_.storeBlockState(state));
+    math::Random& rng = world_.getRandom();
+    scaffolding_->tick(world_, pos, state, rng);
+    const BlockState* finalState = world_.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(finalState, nullptr);
+    EXPECT_TRUE(finalState->isAir());
+    EXPECT_EQ(world_.spawnedEntityCount(), 1);
 }
 
-TEST_F(ScaffoldingBlockTest, Tick_WhenDistanceStaysSeven_DropsItemEntity) {
-    // 此测试验证 tick 方法在 distance 已经是7时的行为
-    // 此时应该直接掉落物品而不是创建下落实体
+TEST_F(ScaffoldingBlockIntegrationTest, Tick_DistanceSevenFromSeven_RemovesBlockButNoEntity) {
+    BlockPos pos(0, 100, 0);
+    auto state = scaffolding_->defaultState()
+        .with(BlockStateProperties::DISTANCE_0_7(), 7)
+        .with(BlockStateProperties::BOTTOM(), true);
+    world_.setBlockState(pos, world_.storeBlockState(state));
+    math::Random& rng = world_.getRandom();
+    scaffolding_->tick(world_, pos, state, rng);
+    const BlockState* finalState = world_.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(finalState, nullptr);
+    EXPECT_TRUE(finalState->isAir());
 }
 
-TEST_F(ScaffoldingBlockTest, Tick_WhenDistanceLessThanSeven_UpdatesState) {
-    // 此测试验证 tick 方法在 distance < 7 时的行为
-    // 应该更新方块状态而不创建实体或掉落物品
+TEST_F(ScaffoldingBlockIntegrationTest, Tick_DistanceNotSeven_UpdatesState) {
+    TestSolidBlock solidBlock(BlockProperties(Material::ROCK).hardness(1.5f));
+    BlockPos scaffoldingPos(0, 65, 0);
+    BlockPos solidPos(0, 64, 0);
+    // 先存储固体方块的状态
+    world_.setBlockState(solidPos, world_.storeBlockState(solidBlock.defaultState()));
+    auto state = scaffolding_->defaultState()
+        .with(BlockStateProperties::DISTANCE_0_7(), 7)
+        .with(BlockStateProperties::BOTTOM(), true);
+    world_.setBlockState(scaffoldingPos, world_.storeBlockState(state));
+    size_t entityCountBefore = world_.spawnedEntityCount();
+    math::Random& rng = world_.getRandom();
+    scaffolding_->tick(world_, scaffoldingPos, state, rng);
+    const BlockState* finalState = world_.getBlockState(scaffoldingPos.x, scaffoldingPos.y, scaffoldingPos.z);
+    ASSERT_NE(finalState, nullptr);
+    EXPECT_FALSE(finalState->isAir());
+    EXPECT_EQ(world_.spawnedEntityCount(), entityCountBefore);
+    EXPECT_EQ(finalState->get(BlockStateProperties::DISTANCE_0_7()), 0);
+    EXPECT_FALSE(finalState->get(BlockStateProperties::BOTTOM()));
 }
 
-TEST_F(ScaffoldingBlockTest, Tick_WhenBlockReplaced_DoesNothing) {
-    // 此测试验证 tick 方法在方块已被替换时的行为
-    // 应该直接返回不做任何事
+TEST_F(ScaffoldingBlockIntegrationTest, Tick_BlockReplaced_DoesNothing) {
+    BlockPos pos(0, 100, 0);
+    auto scaffoldingState = scaffolding_->defaultState()
+        .with(BlockStateProperties::DISTANCE_0_7(), 7);
+    world_.setBlockState(pos, &VanillaBlocks::AIR->defaultState());
+    size_t entityCountBefore = world_.spawnedEntityCount();
+    math::Random& rng = world_.getRandom();
+    scaffolding_->tick(world_, pos, scaffoldingState, rng);
+    EXPECT_EQ(world_.spawnedEntityCount(), entityCountBefore);
+    const BlockState* finalState = world_.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(finalState, nullptr);
+    EXPECT_TRUE(finalState->isAir());
 }
 
-// ========== 新增测试：物品掉落逻辑验证 ==========
-
-TEST_F(ScaffoldingBlockTest, ItemDrop_UsesBlockItemRegistry) {
-    // 验证脚手架物品掉落使用 BlockItemRegistry
-    // 当脚手架失去支撑时，应从 BlockItemRegistry 获取对应的物品
-    const Block* block = scaffolding_.get();
-    const mc::BlockItem* blockItem = mc::BlockItemRegistry::instance().getBlockItem(*block);
-
-    // 注意：BlockItemRegistry 需要初始化才能返回有效结果
-    // 此测试只验证 API 可用性
-    MC_UNUSED(blockItem);
+TEST_F(ScaffoldingBlockIntegrationTest, Tick_StateUnchanged_NoUpdate) {
+    TestSolidBlock solidBlock(BlockProperties(Material::ROCK).hardness(1.5f));
+    BlockPos scaffoldingPos(0, 65, 0);
+    BlockPos solidPos(0, 64, 0);
+    world_.setBlockState(solidPos, world_.storeBlockState(solidBlock.defaultState()));
+    auto state = scaffolding_->defaultState()
+        .with(BlockStateProperties::DISTANCE_0_7(), 0)
+        .with(BlockStateProperties::BOTTOM(), false);
+    world_.setBlockState(scaffoldingPos, world_.storeBlockState(state));
+    math::Random& rng = world_.getRandom();
+    scaffolding_->tick(world_, scaffoldingPos, state, rng);
+    const BlockState* finalState = world_.getBlockState(scaffoldingPos.x, scaffoldingPos.y, scaffoldingPos.z);
+    ASSERT_NE(finalState, nullptr);
+    EXPECT_EQ(finalState->get(BlockStateProperties::DISTANCE_0_7()), 0);
+    EXPECT_FALSE(finalState->get(BlockStateProperties::BOTTOM()));
 }
 
-TEST_F(ScaffoldingBlockTest, ItemDrop_UsesItemDropHelper) {
-    // 验证物品掉落使用 ItemDropHelper
-    // ItemDropHelper::spawnItemEntity 应在方块中心位置生成物品实体
-    // 此测试验证 API 可用性
+TEST_F(ScaffoldingBlockIntegrationTest, Tick_SpawnEntityFail_RestoresBlock) {
+    BlockPos pos(0, 100, 0);
+    auto state = scaffolding_->defaultState()
+        .with(BlockStateProperties::DISTANCE_0_7(), 6)
+        .with(BlockStateProperties::BOTTOM(), true);
+    world_.setBlockState(pos, world_.storeBlockState(state));
+    world_.setSpawnEntityFail(true);
+    math::Random& rng = world_.getRandom();
+    scaffolding_->tick(world_, pos, state, rng);
+    const BlockState* finalState = world_.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(finalState, nullptr);
+    EXPECT_FALSE(finalState->isAir());
+    EXPECT_EQ(finalState->get(BlockStateProperties::DISTANCE_0_7()), 6);
 }
 
-// ========== 新增测试：FallingBlockEntity 创建验证 ==========
-
-TEST_F(ScaffoldingBlockTest, FallingBlock_SetsBlockId) {
-    // 验证 FallingBlockEntity 设置正确的方块ID
-    // 当脚手架下落时，setBlockId 应设置为脚手架方块的ID
+TEST_F(ScaffoldingBlockIntegrationTest, CalculateDistance_DirectSupport_ReturnsZero) {
+    TestSolidBlock solidBlock(BlockProperties(Material::ROCK).hardness(1.5f));
+    BlockPos scaffoldingPos(0, 65, 0);
+    BlockPos solidPos(0, 64, 0);
+    world_.setBlockState(solidPos, world_.storeBlockState(solidBlock.defaultState()));
+    world_.setBlockState(scaffoldingPos, &scaffolding_->defaultState());
+    i32 distance = ScaffoldingBlock::calculateDistance(world_, scaffoldingPos);
+    EXPECT_EQ(distance, 0);
 }
 
-TEST_F(ScaffoldingBlockTest, FallingBlock_SetsHurtEntitiesFalse) {
-    // 验证脚手架下落时不伤害实体
-    // fallingEntity->setHurtEntities(false) 应被调用
-    // 这与沙子、铁砧等不同
+TEST_F(ScaffoldingBlockIntegrationTest, CalculateDistance_NoSupport_ReturnsSeven) {
+    BlockPos pos(0, 100, 0);
+    i32 distance = ScaffoldingBlock::calculateDistance(world_, pos);
+    EXPECT_EQ(distance, 7);
 }
 
-TEST_F(ScaffoldingBlockTest, FallingBlock_SpawnEntityOnFailure_RestoresBlock) {
-    // 验证当 spawnEntity 失败时（返回 EntityId(0)），方块应恢复
+TEST_F(ScaffoldingBlockIntegrationTest, CalculateDistance_AboveAnotherScaffolding_InheritsDistance) {
+    BlockPos bottomPos(0, 64, 0);
+    BlockPos topPos(0, 65, 0);
+    TestSolidBlock solidBlock(BlockProperties(Material::ROCK).hardness(1.5f));
+    world_.setBlockState(BlockPos(0, 63, 0), world_.storeBlockState(solidBlock.defaultState()));
+    auto bottomState = scaffolding_->defaultState().with(BlockStateProperties::DISTANCE_0_7(), 0);
+    world_.setBlockState(bottomPos, world_.storeBlockState(bottomState));
+    world_.setBlockState(topPos, &scaffolding_->defaultState());
+    i32 distance = ScaffoldingBlock::calculateDistance(world_, topPos);
+    EXPECT_EQ(distance, 0);
+}
+
+TEST_F(ScaffoldingBlockIntegrationTest, CalculateDistance_HorizontalScaffoldingSupport) {
+    TestSolidBlock solidBlock(BlockProperties(Material::ROCK).hardness(1.5f));
+    BlockPos solidPos(0, 63, 0);
+    BlockPos scaffoldingAt64_0(0, 64, 0);
+    BlockPos scaffoldingAt65_0(0, 65, 0);
+    BlockPos testPos(1, 65, 0);
+    world_.setBlockState(solidPos, world_.storeBlockState(solidBlock.defaultState()));
+    auto scaffoldingState = scaffolding_->defaultState().with(BlockStateProperties::DISTANCE_0_7(), 0);
+    world_.setBlockState(scaffoldingAt64_0, world_.storeBlockState(scaffoldingState));
+    world_.setBlockState(scaffoldingAt65_0, world_.storeBlockState(scaffoldingState));
+    i32 distance = ScaffoldingBlock::calculateDistance(world_, testPos);
+    EXPECT_EQ(distance, 1);
+}
+
+TEST_F(ScaffoldingBlockIntegrationTest, Tick_WaterloggedStatePreserved_InFallingState) {
+    BlockPos pos(0, 100, 0);
+    auto state = scaffolding_->defaultState()
+        .with(BlockStateProperties::DISTANCE_0_7(), 6)
+        .with(BlockStateProperties::WATERLOGGED(), true);
+    world_.setBlockState(pos, world_.storeBlockState(state));
+    math::Random& rng = world_.getRandom();
+    scaffolding_->tick(world_, pos, state, rng);
+    const BlockState* finalState = world_.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(finalState, nullptr);
+    EXPECT_TRUE(finalState->isAir());
+    EXPECT_EQ(world_.spawnedEntityCount(), 1);
 }

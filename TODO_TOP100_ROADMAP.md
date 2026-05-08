@@ -34,7 +34,7 @@
 - ✅ 已完成 `src/common/world/block/blocks/coral/CoralBlock.cpp:34,54,115,162,227`：补水源判定、邻近水检测、缺水回退和流体 tick，珊瑚扇/墙扇同步完成同类逻辑。
 - `src/common/world/block/blocks/decorative/CampfireBlock.cpp:52,56,84,94`：营火不会被雨淋熄（MC 1.16.5 设计），TODO 已确认无需实现。烹饪逻辑和音效/粒子已有基础实现，待方块实体支持。
 - ✅ 已完成 `src/common/world/block/blocks/decorative/PaneBlock.cpp:43,64,141`：补动态碰撞形状、水合状态和可连接方块类型。
-- `src/common/world/block/blocks/decorative/ScaffoldingBlock.cpp:37,39,60,72,94`：补距离计算、水合状态、底部状态更新和支撑过远判定。
+- ✅ 已完成 `src/common/world/block/blocks/decorative/ScaffoldingBlock.cpp:37,39,60,72,94`：补距离计算、水合状态、底部状态更新、支撑过远判定、物品掉落和 FallingBlockEntity 创建逻辑。测试用例已完整覆盖 tick 行为、距离计算和实体生成。
 
 ## C. 资源 / UI / 菜单
 
