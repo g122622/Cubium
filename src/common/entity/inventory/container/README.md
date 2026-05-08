@@ -7,7 +7,7 @@
 ## MC 1.16.5 对齐状态
 
 - ✅ **槽位坐标** - 所有容器槽位坐标已与 MC 1.16.5 对齐
-- ✅ **stillValid距离检查** - 使用 `isWithinDistance()` 方法验证玩家与方块的距离
+- ✅ **stillValid距离检查** - 所有容器都实现了距离检查，验证玩家是否在方块附近（8格范围内）
 - ✅ **特殊槽位类型** - ArmorSlot、ResultSlot、FurnaceFuelSlot、FurnaceResultSlot 已实现
 - ✅ **槽位回调** - onTake、onSwapCraft、onCrafting 回调已实现
 - ✅ **快速移动** - Shift+点击快速移动物品已实现
@@ -390,6 +390,65 @@ if (repairCost >= 40) {
     return;
 }
 ```
+
+### 7. stillValid 距离检查
+
+所有容器都需要实现 `stillValid()` 方法，检查玩家是否仍在方块附近：
+
+**实现方式**：
+
+1. **方块实体关联的容器**（如熔炉、酿造台）：通过 `BlockEntity::getPos()` 获取位置并计算距离
+
+```cpp
+bool BrewingStandContainer::stillValid(const Player& player) const {
+    if (m_brewingStandEntity == nullptr) {
+        return true;  // 无方块实体时始终有效
+    }
+    const BlockPos pos = m_brewingStandEntity->getPos();
+    return player.distanceSqTo(
+               static_cast<f32>(pos.x) + 0.5f,
+               static_cast<f32>(pos.y) + 0.5f,
+               static_cast<f32>(pos.z) + 0.5f) <= 64.0f;  // 8^2 = 64
+}
+```
+
+2. **背包接口关联的容器**（如箱子、漏斗）：通过 `IInventory::isUsableByPlayer()` 方法
+
+```cpp
+bool ChestContainer::stillValid(const Player& player) const {
+    return m_chestInventory->isUsableByPlayer(player);
+}
+```
+
+3. **位置关联的容器**（如附魔台、铁砧）：通过存储的位置计算距离
+
+```cpp
+bool EnchantmentContainer::stillValid(const Player& player) const {
+    return isWithinDistance(player, m_position);
+}
+```
+
+**ContainerBlockEntity::isUsableByPlayer()**：
+
+`ContainerBlockEntity` 提供了通用的距离检查方法：
+
+```cpp
+bool ContainerBlockEntity::isUsableByPlayer(const Player& player, f32 maxDistanceSq) const {
+    if (isRemoved()) {
+        return false;
+    }
+    const BlockPos pos = getPos();
+    return player.distanceSqTo(
+               static_cast<f32>(pos.x) + 0.5f,
+               static_cast<f32>(pos.y) + 0.5f,
+               static_cast<f32>(pos.z) + 0.5f) <= maxDistanceSq;
+}
+```
+
+**距离检查规则**（MC 1.16.5）：
+- 有效距离：8格（距离平方 ≤ 64）
+- 检查点：方块中心（x+0.5, y+0.5, z+0.5）
+- 方块实体被移除时返回 false
 
 ## 测试用例
 

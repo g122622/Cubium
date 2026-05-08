@@ -91,7 +91,7 @@ public:
 BrewingStandContainer::BrewingStandContainer(ContainerId id,
                                              PlayerInventory* playerInventory,
                                              IInventory* brewingStandInventory,
-                                             BrewingStandEntity* brewingStandEntity)
+                                             blockentity::BrewingStandEntity* brewingStandEntity)
     : AbstractContainerMenu(id, playerInventory)
     , m_brewingStandInventory(brewingStandInventory)
     , m_brewingStandEntity(brewingStandEntity) {
@@ -106,9 +106,19 @@ BrewingStandContainer::BrewingStandContainer(ContainerId id,
 // ========== 容器接口 ==========
 
 bool BrewingStandContainer::stillValid(const Player& player) const {
-    (void)player;
-    // TODO: 检查玩家是否在酿造台附近
-    return true;
+    // MC 1.16.5: 如果没有关联的方块实体，玩家背包可访问
+    if (m_brewingStandEntity == nullptr) {
+        return true;
+    }
+
+    // MC 1.16.5: 检查玩家是否在酿造台附近（8格范围内）
+    // 参考 net.minecraft.inventory.container.BrewingStandContainer.canInteractWith()
+    // -> tileBrewingStand.isUsableByPlayer(playerIn)
+    const BlockPos pos = m_brewingStandEntity->getPos();
+    return player.distanceSqTo(
+               static_cast<f32>(pos.x) + 0.5f,
+               static_cast<f32>(pos.y) + 0.5f,
+               static_cast<f32>(pos.z) + 0.5f) <= 64.0f;  // 8^2 = 64
 }
 
 void BrewingStandContainer::slotsChanged(IInventory* inventory) {

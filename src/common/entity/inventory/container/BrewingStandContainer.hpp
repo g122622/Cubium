@@ -7,7 +7,10 @@
 namespace mc {
 
 class PlayerInventory;
+
+namespace blockentity {
 class BrewingStandEntity;
+}
 
 /**
  * @brief 酿造台容器
@@ -65,7 +68,7 @@ public:
     BrewingStandContainer(ContainerId id,
                          PlayerInventory* playerInventory,
                          IInventory* brewingStandInventory,
-                         BrewingStandEntity* brewingStandEntity = nullptr);
+                         blockentity::BrewingStandEntity* brewingStandEntity = nullptr);
 
     /**
      * @brief 析构函数
@@ -125,10 +128,10 @@ private:
     void initSlots(PlayerInventory* playerInventory);
 
 private:
-    IInventory* m_brewingStandInventory;       ///< 酿造台背包
-    BrewingStandEntity* m_brewingStandEntity;  ///< 酿造台实体
-    i32 m_brewTime = 0;                        ///< 酿造时间
-    i32 m_fuel = 0;                            ///< 燃料等级
+    IInventory* m_brewingStandInventory;             ///< 酿造台背包
+    blockentity::BrewingStandEntity* m_brewingStandEntity;  ///< 酿造台实体
+    i32 m_brewTime = 0;                              ///< 酿造时间
+    i32 m_fuel = 0;                                  ///< 燃料等级
 };
 
 } // namespace mc

@@ -120,8 +120,10 @@ void ChestContainer::initSlots(PlayerInventory* playerInventory) {
 }
 
 bool ChestContainer::stillValid(const Player& player) const {
-    (void)player;
-    return true;
+    // MC 1.16.5: 检查背包是否可用
+    // 参考 net.minecraft.inventory.container.ChestContainer.canInteractWith
+    // -> lowerChestInventory.isUsableByPlayer(playerIn)
+    return m_chestInventory->isUsableByPlayer(player);
 }
 
 } // namespace blockentity

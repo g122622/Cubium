@@ -81,6 +81,17 @@ public:
     }
 
     /**
+     * @brief 检查玩家是否可以使用此容器
+     * @param player 玩家
+     * @param maxDistanceSq 最大距离的平方（默认64.0，即8格）
+     * @return 如果玩家在范围内返回true
+     *
+     * 参考 MC 1.16.5: net.minecraft.tileentity.LockableTileEntity.isUsableByPlayer
+     * 检查玩家与方块的距离是否在指定范围内。
+     */
+    [[nodiscard]] bool isUsableByPlayer(const Player& player, f32 maxDistanceSq = 64.0f) const;
+
+    /**
      * @brief 保存数据到JSON
      * @param data 输出JSON数据
      */

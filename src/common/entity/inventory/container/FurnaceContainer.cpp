@@ -85,8 +85,19 @@ void FurnaceContainer::grantExperienceForOutput(i32 extractedCount) {
 // ========== 快速移动 ==========
 
 bool FurnaceContainer::stillValid(const Player& player) const {
-    (void)player;
-    return true;
+    // MC 1.16.5: 如果没有关联的方块实体，背包可访问
+    if (m_furnaceEntity == nullptr) {
+        return true;
+    }
+
+    // MC 1.16.5: 检查玩家是否在熔炉附近（8格范围内）
+    // 参考 net.minecraft.inventory.container.AbstractFurnaceContainer.canInteractWith
+    // -> furnaceInventory.isUsableByPlayer(playerIn)
+    const BlockPos pos = m_furnaceEntity->getPos();
+    return player.distanceSqTo(
+               static_cast<f32>(pos.x) + 0.5f,
+               static_cast<f32>(pos.y) + 0.5f,
+               static_cast<f32>(pos.z) + 0.5f) <= 64.0f;  // 8^2 = 64
 }
 
 ItemStack FurnaceContainer::quickMoveStack(i32 slotIndex, Player& player) {
