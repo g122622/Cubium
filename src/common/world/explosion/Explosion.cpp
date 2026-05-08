@@ -10,7 +10,10 @@
 #include "../../entity/entities/player/GameModeUtils.hpp"
 #include "../../entity/damage/DamageSource.hpp"
 #include "../../entity/utils/ItemDropHelper.hpp"
+#include "../../entity/loot/LootTable.hpp"
+#include "../../entity/loot/LootContext.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
+#include "../../item/core/ItemStack.hpp"
 #include "../../util/AxisAlignedBB.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include "../../util/math/ray/Raycast.hpp"
@@ -39,7 +42,8 @@ Explosion::Explosion(IWorld& world,
                      ExplosionMode mode,
                      bool causesFire,
                      Entity* source,
-                     std::unique_ptr<DamageSource> damageSource)
+                     std::unique_ptr<DamageSource> damageSource,
+                     const loot::LootTableManager* lootTableManager)
     : m_world(world)
     , m_position(position)
     , m_radius(radius)
@@ -48,6 +52,7 @@ Explosion::Explosion(IWorld& world,
     , m_source(source)
     , m_damageSource(std::move(damageSource))
     , m_context(std::make_unique<EntityExplosionContext>(source))
+    , m_lootTableManager(lootTableManager)
     , m_random(static_cast<u64>(std::abs(position.x * 3129871.0 + position.y * 116129781.0 + position.z * 172917.0))) {
 }
 
@@ -297,6 +302,10 @@ void Explosion::destroyBlocks() {
     // 获取空气方块引用
     const BlockState* airState = &VanillaBlocks::AIR->defaultState();
 
+    // 收集所有掉落物（用于合并）
+    // 参考 MC 1.16.5 Explosion.doExplosionB 中的 ObjectArrayList
+    std::vector<std::pair<ItemStack, BlockPos>> allDrops;
+
     for (const BlockPos& pos : m_affectedBlocks) {
         const BlockState* state = m_world.getBlockState(pos);
         if (!state || state->isAir()) {
@@ -320,13 +329,58 @@ void Explosion::destroyBlocks() {
         } else if (m_mode == ExplosionMode::Destroy && canDrop) {
             // 破坏并掉落
             // 参考 MC 1.16.5 Explosion.doExplosionB 中的掉落逻辑
-            // 注意：爆炸掉落需要通过 LootTable 系统，这里暂时使用简化实现
-            // 完整实现需要 LootTableManager 支持
-            // TODO: 集成 LootTableManager 获取正确的掉落表
+            if (m_lootTableManager != nullptr) {
+                // 生成掉落物
+                auto drops = generateBlockDrops(pos, *state);
+                if (!drops.empty()) {
+                    for (auto& drop : drops) {
+                        // 尝试与已有掉落物合并
+                        // 参考 MC 1.16.5 Explosion.func_229976_a_
+                        bool merged = false;
+                        for (auto& [existingStack, existingPos] : allDrops) {
+                            // 检查是否可以合并（相同物品、相同位置附近）
+                            if (existingStack.canMergeWith(drop) &&
+                                existingPos.distanceSq(pos) <= 4) {  // 2格范围内
+                                // 尝试合并
+                                i32 space = existingStack.getMaxStackSize() - existingStack.getCount();
+                                if (space > 0) {
+                                    i32 toAdd = std::min(space, drop.getCount());
+                                    existingStack.grow(toAdd);
+                                    drop.shrink(toAdd);
+                                    if (drop.isEmpty()) {
+                                        merged = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (!merged && !drop.isEmpty()) {
+                            allDrops.emplace_back(std::move(drop), pos);
+                        }
+                    }
+                }
+            }
             m_world.setBlockState(pos, airState, 3);
         } else {
             // DESTROY 模式但方块不掉落（如玻璃）
             m_world.setBlockState(pos, airState, 3);
+        }
+    }
+
+    // 在世界中生成所有物品实体
+    for (const auto& [drop, pos] : allDrops) {
+        if (!drop.isEmpty()) {
+            // 使用 ItemDropHelper 生成物品实体
+            std::vector<ItemStack> singleDrop;
+            singleDrop.push_back(drop.copy());
+
+            String throwerUuid;
+            if (m_source != nullptr) {
+                throwerUuid = m_source->uuid();
+            }
+
+            ItemDropHelper::spawnItemEntities(
+                &m_world, pos, singleDrop, m_random, throwerUuid);
         }
     }
 }
@@ -473,6 +527,101 @@ void Explosion::spawnFire() {
             }
         }
     }
+}
+
+std::vector<ItemStack> Explosion::generateBlockDrops(
+    const BlockPos& pos,
+    const BlockState& state) {
+
+    if (m_lootTableManager == nullptr) {
+        return {};
+    }
+
+    const Block& block = state.getBlock();
+
+    // 获取方块的掉落表
+    String lootTableId = block.getLootTableId();
+    if (lootTableId.empty()) {
+        return {};
+    }
+
+    const loot::LootTable* lootTable = m_lootTableManager->getTable(lootTableId);
+    if (lootTable == nullptr) {
+        return {};
+    }
+
+    // 构建掉落上下文
+    // 参考 MC 1.16.5 Explosion.doExplosionB
+    BlockState* mutableState = const_cast<BlockState*>(&state);
+    BlockPos* mutablePos = const_cast<BlockPos*>(&pos);
+    ItemStack emptyTool;  // 空工具（爆炸不使用工具）
+
+    auto contextBuilder = loot::LootContextBuilder(m_world)
+        .withRandom(m_random)
+        .withParameter(loot::LootParams::BLOCK_STATE, mutableState)
+        .withParameter(loot::LootParams::BLOCK_POS, mutablePos)
+        .withParameter(loot::LootParams::TOOL, &emptyTool)
+        .withOwnedValue(loot::LootParams::EXPLOSION_RADIUS, m_radius);  // 爆炸半径参数
+
+    // 设置掉落表解析器（用于处理嵌套掉落表）
+    contextBuilder.withLootTableResolver([this](const String& id) -> const loot::LootTable* {
+        if (m_lootTableManager == nullptr) {
+            return nullptr;
+        }
+        return m_lootTableManager->getTable(id);
+    });
+
+    // 如果有爆炸源实体，添加到上下文
+    if (m_source != nullptr) {
+        contextBuilder.withNullableParameter(loot::LootParams::THIS_ENTITY, m_source);
+    }
+
+    // 创建掉落参数集（方块类型）
+    loot::LootParameterSet paramSet(loot::LootParameterSet::Type::Block);
+    paramSet.addRequired(loot::LootParams::BLOCK_STATE);
+    paramSet.addRequired(loot::LootParams::BLOCK_POS);
+
+    std::unique_ptr<loot::LootContext> context = contextBuilder.build(paramSet);
+    if (!context) {
+        return {};
+    }
+
+    // 生成掉落物
+    std::vector<ItemStack> drops = lootTable->generate(*context);
+
+    // 应用爆炸衰减函数
+    // 参考 MC 1.16.5: explosion_decay 条件
+    // 爆炸时物品有概率消失
+    for (auto& drop : drops) {
+        // 爆炸衰减：每个物品有 (1 - 1/explosionRadius) 的概率存活
+        // 参考 MC 1.16.5 Explosion.doExplosionB 中的 explosion_decay
+        f32 survivalChance = 1.0f - 1.0f / m_radius;
+        survivalChance = std::max(0.0f, std::min(1.0f, survivalChance));
+
+        // 对每个物品进行存活判定
+        i32 survivingCount = 0;
+        for (i32 i = 0; i < drop.getCount(); ++i) {
+            if (m_random.nextFloat() < survivalChance) {
+                ++survivingCount;
+            }
+        }
+        drop.setCount(survivingCount);
+    }
+
+    // 移除空掉落物
+    drops.erase(
+        std::remove_if(drops.begin(), drops.end(),
+            [](const ItemStack& stack) { return stack.isEmpty(); }),
+        drops.end());
+
+    return drops;
+}
+
+void Explosion::spawnItemEntities(const BlockPos& pos, const std::vector<ItemStack>& drops) {
+    // 此方法已被 destroyBlocks 中的内联实现替代
+    // 保留此方法以供未来可能的扩展使用
+    MC_UNUSED(pos);
+    MC_UNUSED(drops);
 }
 
 } // namespace world::explosion

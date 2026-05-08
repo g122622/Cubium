@@ -151,6 +151,11 @@ std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& /
         context->m_params[id] = value;
     }
 
+    // 转移拥有所有权的值
+    for (auto& ownedPtr : m_ownedValues) {
+        context->m_ownedValues.push_back(std::move(ownedPtr));
+    }
+
     // 设置掉落表解析器
     if (m_lootTableResolver) {
         context->setLootTableResolver(std::move(m_lootTableResolver));

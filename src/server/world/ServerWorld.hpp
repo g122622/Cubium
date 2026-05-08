@@ -39,6 +39,10 @@ namespace server::core {
 class TimeManager;  // 前向声明
 }
 
+namespace loot {
+class LootTableManager;  // 前向声明
+}
+
 namespace server {
 
 // ============================================================================
@@ -372,6 +376,22 @@ public:
         bool causesFire = false,
         Entity* source = nullptr) override;
 
+    /**
+     * @brief 设置掉落表管理器
+     *
+     * 掉落表管理器由 MinecraftServer 持有，ServerWorld 通过此方法获取引用。
+     * 用于爆炸时的方块掉落生成。
+     *
+     * @param lootTableManager 掉落表管理器指针（非拥有）
+     */
+    void setLootTableManager(const loot::LootTableManager* lootTableManager) {
+        m_lootTableManager = lootTableManager;
+    }
+
+    [[nodiscard]] const loot::LootTableManager* lootTableManager() const {
+        return m_lootTableManager;
+    }
+
     // ========== 物理引擎 ==========
 
     [[nodiscard]] PhysicsEngine* physicsEngine() override { return m_physicsEngine.get(); }
@@ -599,6 +619,9 @@ private:
     math::Random m_random;            ///< 世界随机数生成器
     i64 m_updateLCG = 0;              ///< 用于随机刻位置的 LCG 状态
     i32 m_randomTickSpeed = 3;        ///< 随机刻速度（游戏规则可配置）
+
+    // 掉落表管理器（非拥有，由 MinecraftServer 持有）
+    const loot::LootTableManager* m_lootTableManager = nullptr;
 };
 
 } // namespace server

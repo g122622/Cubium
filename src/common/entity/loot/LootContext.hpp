@@ -342,6 +342,24 @@ public:
     }
 
     /**
+     * @brief 设置拥有所有权的参数值
+     *
+     * 存储值的副本到构建器，在构建时传递给 LootContext。
+     * 适用于简单的值类型（如 i32, f32 等）。
+     *
+     * @tparam T 参数值的类型
+     * @param param 参数标识符
+     * @param value 参数值
+     */
+    template<typename T>
+    LootContextBuilder& withOwnedValue(const LootParameter<T>& param, T value) {
+        auto ownedPtr = std::make_shared<T>(std::move(value));
+        m_ownedValues.push_back(ownedPtr);
+        m_params[param.getId()] = static_cast<void*>(ownedPtr.get());
+        return *this;
+    }
+
+    /**
      * @brief 设置掉落表解析器
      */
     LootContextBuilder& withLootTableResolver(LootContext::LootTableResolver resolver) {
@@ -362,6 +380,7 @@ private:
     f32 m_luck = 0.0f;
     i32 m_lootingModifier = 0;
     std::unordered_map<String, void*> m_params;
+    std::vector<std::shared_ptr<void>> m_ownedValues;  // 拥有所有权的值存储
     LootContext::LootTableResolver m_lootTableResolver;
 };
 

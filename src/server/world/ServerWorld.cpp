@@ -1405,7 +1405,8 @@ void ServerWorld::createExplosion(
         mode,
         causesFire,
         source,
-        nullptr  // 使用默认伤害来源
+        nullptr,  // 使用默认伤害来源
+        m_lootTableManager  // 传递掉落表管理器用于生成方块掉落
     );
 
     // 执行爆炸

@@ -20,6 +20,11 @@ class Entity;
 class Player;
 class BlockState;
 class AxisAlignedBB;
+class ItemStack;
+
+namespace loot {
+class LootTableManager;
+}
 
 namespace world::explosion {
 
@@ -52,6 +57,7 @@ public:
      * @param causesFire 是否生成火焰
      * @param source 爆炸源实体（可能为空）
      * @param damageSource 自定义伤害来源（可能为空，默认使用爆炸伤害）
+     * @param lootTableManager 掉落表管理器（可能为空，为空时不掉落物品）
      */
     Explosion(IWorld& world,
               const Vector3& position,
@@ -59,7 +65,8 @@ public:
               ExplosionMode mode = ExplosionMode::Destroy,
               bool causesFire = false,
               Entity* source = nullptr,
-              std::unique_ptr<DamageSource> damageSource = nullptr);
+              std::unique_ptr<DamageSource> damageSource = nullptr,
+              const loot::LootTableManager* lootTableManager = nullptr);
 
     /**
      * @brief 执行爆炸
@@ -201,6 +208,30 @@ private:
      */
     void spawnFire();
 
+    /**
+     * @brief 生成方块掉落物
+     *
+     * 在 DESTROY 模式下为可掉落的方块生成 ItemEntity。
+     * 参考 MC 1.16.5 Explosion.doExplosionB 中的掉落逻辑。
+     *
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @return 生成的掉落物列表
+     */
+    [[nodiscard]] std::vector<ItemStack> generateBlockDrops(
+        const BlockPos& pos,
+        const BlockState& state);
+
+    /**
+     * @brief 在世界中生成物品实体
+     *
+     * 将掉落物列表转换为 ItemEntity 并在世界中生成。
+     *
+     * @param pos 方块位置
+     * @param drops 掉落物列表
+     */
+    void spawnItemEntities(const BlockPos& pos, const std::vector<ItemStack>& drops);
+
 private:
     IWorld& m_world;
     Vector3 m_position;
@@ -211,6 +242,7 @@ private:
     Entity* m_source;
     std::unique_ptr<DamageSource> m_damageSource;
     std::unique_ptr<ExplosionContext> m_context;
+    const loot::LootTableManager* m_lootTableManager;
 
     std::vector<BlockPos> m_affectedBlocks;
     std::unordered_map<u64, Vector3> m_playerKnockback;

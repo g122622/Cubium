@@ -40,6 +40,10 @@ namespace world::village {
 class VillageManager;  // 前向声明
 }
 
+namespace loot {
+class LootTableManager;  // 前向声明
+}
+
 namespace server {
 class ServerWorld;  // 前向声明，用于asServerWorld()
 }
