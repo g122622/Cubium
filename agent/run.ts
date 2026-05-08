@@ -297,7 +297,6 @@ ${STOP_HOOK_PROMPT}
     // "/align 容器系统",
     // "/align 下界与主世界之间的传送",
 
-    "执行ls命令，然后停下来",
     "/fix-todo",
     "/fix-todo",
     "/fix-todo",
