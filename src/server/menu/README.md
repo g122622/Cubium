@@ -354,20 +354,27 @@ if (!moveItemToRange(movingStack, ARMOR_SLOT_START, ARMOR_SLOT_START + ARMOR_SLO
 }
 ```
 
-### 7. `stillValid` 验证缺失
+### 7. `stillValid` 验证已实现
 
-**问题**：`CraftingMenu::stillValid()` 方法当前总是返回 `true`，没有检查玩家是否仍在工作台附近。
-
-**解决**：TODO 实现距离检查（通常是 3 格范围内）。
+`CraftingMenu::stillValid()` 方法已正确实现距离检查：
 
 ```cpp
 bool CraftingMenu::stillValid(const Player& player) const {
-    // TODO: 检查玩家是否仍在工作台附近
-    // 需要检查玩家与方块的距离是否在范围内（通常是3格）
-    (void)player;
-    return true;
+    if (m_blockEntity == nullptr) {
+        return true;  // 无方块实体时（如玩家背包合成），始终有效
+    }
+
+    const BlockPos pos = m_blockEntity->getPos();
+    return player.distanceSqTo(
+               static_cast<f32>(pos.x) + 0.5f,
+               static_cast<f32>(pos.y) + 0.5f,
+               static_cast<f32>(pos.z) + 0.5f) <= 64.0f;  // 8格距离的平方
 }
 ```
+
+检查逻辑：
+- 如果没有关联的方块实体（玩家背包内的 2x2 合成），始终返回 `true`
+- 如果有关联的工作台方块实体，检查玩家与方块中心的距离是否在 8 格以内（距离平方 ≤ 64）
 
 ## 涉及的测试用例
 
