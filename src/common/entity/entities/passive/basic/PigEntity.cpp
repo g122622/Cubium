@@ -247,13 +247,13 @@ void PigEntity::setEquipment(i32 slot, const ItemStack& item) {
     }
 
     // 检查是否是鞍
-    // TODO: 检查 item.getItem() == Items::SADDLE
-    bool isSaddle = !item.isEmpty();  // 暂时假设任何物品都是鞍
+    bool isSaddle = !item.isEmpty() && item.getItem() == Items::SADDLE;
 
     // 设置鞍状态
     setSaddle(isSaddle);
 
-    // TODO: 当物品系统完善后实现实际的库存存储
+    // MC 1.16.5: 存储鞍物品到槽位
+    // 当物品系统完善后，这里应该更新内部库存
     MC_UNUSED(item);
 }
 
@@ -267,9 +267,8 @@ bool PigEntity::canEquip(const ItemStack& item, i32 slot) const {
         return false;
     }
 
-    // TODO: 检查 item.getItem() == Items::SADDLE
-    // 暂时假设任何物品都可以装备
-    return true;
+    // 检查是否是鞍物品
+    return item.getItem() == Items::SADDLE;
 }
 
 } // namespace mc

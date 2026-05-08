@@ -358,6 +358,7 @@ add_library(mc_common STATIC
     item/items/special/MilkBucketItem.cpp
     item/items/special/EnchantedBookItem.cpp
     item/items/special/NameTagItem.cpp
+    item/items/special/SaddleItem.cpp
 
     # Item - Vehicle Items
     item/items/vehicle/MinecartItem.cpp

@@ -4,6 +4,7 @@
 #include "../../model/core/ModelRenderer.hpp"
 #include "../../model/base/BipedModel.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/item/Items.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -118,9 +119,7 @@ bool SaddleLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const {
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
         // 检查胸部槽位是否有鞍物品
         const auto& chestItem = entity.getEquipment(::mc::EquipmentSlot::Chest);
-        if (!chestItem.isEmpty()) {
-            // TODO: 检查物品是否为鞍 (Items.SADDLE)
-            // 目前简化实现：只要胸部槽位有物品就渲染
+        if (!chestItem.isEmpty() && chestItem.getItem() == ::mc::Items::SADDLE) {
             return true;
         }
     }

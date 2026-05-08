@@ -13,6 +13,7 @@ special/
 ├── FishBucketItem.cpp/hpp # 鱼桶
 ├── MilkBucketItem.cpp/hpp # 牛奶桶
 ├── NameTagItem.cpp/hpp   # 命名牌
+├── SaddleItem.cpp/hpp    # 鞍
 ├── ShearsItem.cpp/hpp    # 剪刀
 ```
 
@@ -26,6 +27,7 @@ special/
 | `FishBucketItem` | 鱼桶 | 完成 |
 | `MilkBucketItem` | 牛奶桶 | 完成 |
 | `NameTagItem` | 命名牌 | 完成 |
+| `SaddleItem` | 鞍 | 完成 |
 | `ShearsItem` | 剪刀 | 完成 |
 
 ## 核心机制
@@ -156,6 +158,31 @@ ItemStack MilkBucketItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entit
     }
     return stack;
 }
+
+### SaddleItem (MC 1.16.5)
+鞍物品，用于装备可骑乘实体（猪、炽足兽、马等）。
+
+**主要功能：**
+- 通过 `itemInteractionForEntity()` 实现与实体的交互
+- 检查目标实体是否实现了 `IEquipable` 和 `IRideable` 接口
+- 装备鞍后调用 `IRideable::setSaddle(true)` 设置鞍状态
+- 播放鞍装备音效
+- 非创造模式下消耗一个鞍物品
+
+**支持鞍的实体：**
+| 实体类型 | 接口实现 | 驯服要求 |
+|----------|----------|----------|
+| 猪 (PigEntity) | IEquipable, IRideable | 无需驯服 |
+| 炽足兽 (StriderEntity) | IRideable | 无需驯服 |
+| 马 (AbstractHorseEntity) | IEquipable, IRideable | 需要驯服 |
+| 驴/骡 | IEquipable, IRideable | 需要驯服 |
+
+**使用示例：**
+```cpp
+// 玩家右键点击猪时，自动调用
+// PigEntity 实现了 IEquipable 和 IRideable 接口
+// SaddleItem::itemInteractionForEntity() 处理鞍装备逻辑
+```
 
 ## 已注册的鱼桶物品
 

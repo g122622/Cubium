@@ -264,6 +264,7 @@ public:
     static Item* FLINT_AND_STEEL;
     static Item* SHEARS;                // 剪刀
     static Item* NAME_TAG;              // 命名牌
+    static Item* SADDLE;                // 鞍
     static Item* STRING;
     static Item* FEATHER;
     static Item* GUNPOWDER;
