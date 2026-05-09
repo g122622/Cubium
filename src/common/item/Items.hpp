@@ -432,5 +432,6 @@ private:
     static void registerSponges();
     static void registerMinecarts();
     static void registerHangingItems();
+};
 
 } // namespace mc

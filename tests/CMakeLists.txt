@@ -62,6 +62,7 @@ add_executable(mc_tests
     common/entity/entities/passive/basic/ChickenEntityTest.cpp
     common/entity/entities/passive/basic/RabbitEntityTest.cpp
     common/entity/entities/monster/SlimeEntityTest.cpp
+    common/entity/entities/HangingEntityTest.cpp
     # ItemDropHelper 测试
     common/entity/utils/ItemDropHelperTest.cpp
     # 经验系统测试
