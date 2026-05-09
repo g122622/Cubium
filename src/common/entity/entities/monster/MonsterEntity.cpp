@@ -9,6 +9,7 @@
 #include "../../combat/DifficultyHelper.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/BlockPos.hpp"
+#include <cmath>
 
 namespace mc {
 
@@ -74,8 +75,19 @@ bool MonsterEntity::isInDaylight() const {
         return false;
     }
 
-    // TODO: 检查天空是否可见 (需要 IWorld::canSeeSky 方法)
-    // TODO: 检查是否在水中或在雨中（这些情况下不会燃烧）
+    // 检查天空是否可见
+    BlockPos pos(static_cast<i32>(std::floor(x())),
+                 static_cast<i32>(std::floor(y())),
+                 static_cast<i32>(std::floor(z())));
+    if (!worldPtr->canSeeSky(pos)) {
+        return false;
+    }
+
+    // 检查是否在水中或在雨中（这些情况下不会燃烧）
+    if (isInWater() || isInRain()) {
+        return false;
+    }
+
     return true;
 }
 
@@ -119,8 +131,8 @@ void MonsterEntity::handleDaylightBurning() {
             auto fireDamage = DamageSources::onFire();
             hurt(fireDamage, 1.0f);
 
-            // TODO: 设置视觉上的燃烧效果
-            // setOnFireFor(8); // 燃烧8秒
+            // MC 1.16.5: 设置视觉上的燃烧效果
+            setFire(8);  // 燃烧8秒
         }
     } else {
         m_burnTime = 0;
@@ -130,11 +142,17 @@ void MonsterEntity::handleDaylightBurning() {
 void MonsterEntity::updateIdleTimeBasedOnBrightness() {
     // MC 1.16.5 MonsterEntity.func_213623_ec()
     // 如果亮度大于 0.5，增加空闲时间（用于 despawn 逻辑）
-    // TODO: 需要获取亮度方法
-    // f32 brightness = getBrightness();
-    // if (brightness > 0.5f) {
-    //     setIdleTime(idleTime() + 2);
-    // }
+    if (!world()) {
+        return;
+    }
+
+    BlockPos pos(static_cast<i32>(std::floor(x())),
+                 static_cast<i32>(std::floor(y())),
+                 static_cast<i32>(std::floor(z())));
+    f32 brightness = world()->getBrightness(pos);
+    if (brightness > 0.5f) {
+        setIdleTime(idleTime() + 2);
+    }
 }
 
 // ========== 静态生成方法 ==========

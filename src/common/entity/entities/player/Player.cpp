@@ -18,6 +18,7 @@
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../../item/enchantment/enchantments/AllEnchantments.hpp"
 #include "../../../item/items/tool/SwordItem.hpp"
+#include "../../../item/items/armor/ArmorItem.hpp"
 #include "../../../item/core/ActionResult.hpp"
 #include "spdlog/spdlog.h"
 
@@ -976,11 +977,9 @@ network::PlayerPosition Player::playerPosition() const {
 }
 
 i32 Player::armorValue() const {
-    // TODO: 当护甲物品实现 getArmorValue() 后，计算总护甲值
-    // 目前返回占位值0
-    // 参考 MC: PlayerEntity.getTotalArmorValue()
+    // MC 1.16.5: PlayerEntity.getTotalArmorValue()
     // 护甲值 = 头盔护甲值 + 胸甲护甲值 + 护腿护甲值 + 靴子护甲值
-    return 0;
+    return item::items::ArmorItem::getTotalArmorValue(*this);
 }
 
 void Player::setCreativeModeInventory() {

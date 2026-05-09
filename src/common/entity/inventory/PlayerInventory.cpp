@@ -713,10 +713,7 @@ float PlayerInventory::getDestroySpeed(const BlockState& blockState) const {
         return 1.0f;
     }
 
-    // TODO: 需要 ItemStack::getDestroySpeed 方法
-    // return selected.getDestroySpeed(blockState);
-    (void)blockState;
-    return 1.0f;
+    return selected.getDestroySpeed(blockState);
 }
 
 } // namespace mc

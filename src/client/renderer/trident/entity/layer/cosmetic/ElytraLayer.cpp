@@ -3,6 +3,7 @@
 #include "../../pipeline/EntityPipeline.hpp"
 #include "../../model/core/ModelRenderer.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/item/Items.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <cmath>
@@ -117,8 +118,11 @@ bool ElytraLayer<TEntity>::shouldRender(const TEntity& entity) const {
             return false;
         }
 
-        // TODO: 检查物品是否为鞘翅 (Items.ELYTRA)
-        // 当前简化实现：只要胸甲槽非空且有纹理就渲染
+        // MC 1.16.5: 检查物品是否为鞘翅
+        if (chest.getItem() != ::mc::Items::ELYTRA) {
+            return false;
+        }
+
         return m_customElytraRegion != nullptr || m_capeRegion != nullptr;
     }
 
