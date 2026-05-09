@@ -11,6 +11,13 @@ src/server/command/
 ├── ServerCommandSource.hpp    # 服务端命令源头文件
 ├── ServerCommandSource.cpp    # 服务端命令源实现
 ├── README.md                  # 本文档
+├── support/                   # 命令支持工具
+│   ├── PlayerResolver.hpp     # 玩家选择器解析器
+│   ├── PlayerResolver.cpp     # 玩家选择器解析实现
+│   ├── EffectResolver.hpp     # 效果选择器解析器
+│   ├── EffectResolver.cpp     # 效果选择器解析实现
+│   ├── CommandMetadata.hpp    # 命令元数据定义
+│   └── README.md              # support 模块文档
 └── commands/                  # 具体命令实现
     ├── ClearCommand.hpp       # /clear 命令
     ├── ClearCommand.cpp
