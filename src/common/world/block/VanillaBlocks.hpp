@@ -475,6 +475,7 @@ public:
     static Block* RESPAWN_ANCHOR;      // 重生锚
     static Block* MAGMA;              // 岩浆块 (发光)
     static Block* NETHER_WART_BLOCK;  // 地狱疣块
+    static Block* WARPED_WART_BLOCK;  // 诡异疣块
     static Block* FIRE;               // 火
     static Block* SOUL_FIRE;          // 灵魂火
     static Block* NETHER_WART;        // 下界疣（作物）

@@ -122,7 +122,9 @@ std::unordered_set<const Block*> HoeItem::initializeEffectiveBlocks() {
 
     // MC 1.16.5: 地狱疣块
     if (VanillaBlocks::NETHER_WART_BLOCK) blocks.insert(VanillaBlocks::NETHER_WART_BLOCK);
-    // TODO: WARPED_WART_BLOCK (诡异疣块) 待添加到 VanillaBlocks
+
+    // MC 1.16.5: 诡异疣块
+    if (VanillaBlocks::WARPED_WART_BLOCK) blocks.insert(VanillaBlocks::WARPED_WART_BLOCK);
 
     // MC 1.16.5: 干海带块
     if (VanillaBlocks::DRIED_KELP_BLOCK) blocks.insert(VanillaBlocks::DRIED_KELP_BLOCK);

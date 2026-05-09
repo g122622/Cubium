@@ -332,6 +332,13 @@ TEST(MaterialTest, PredefinedMaterials) {
     // 树叶
     EXPECT_TRUE(Material::LEAVES.isSolid());
     EXPECT_TRUE(Material::LEAVES.isFlammable());
+
+    // 有机材质（草方块、干草块、疣块等）
+    EXPECT_TRUE(Material::ORGANIC.isSolid());
+    EXPECT_TRUE(Material::ORGANIC.isOpaque());
+    EXPECT_FALSE(Material::ORGANIC.isFlammable());
+    EXPECT_FALSE(Material::ORGANIC.isLiquid());
+    EXPECT_FALSE(Material::ORGANIC.isReplaceable());
 }
 
 TEST(MaterialTest, MaterialBuilder) {
@@ -934,6 +941,9 @@ TEST(BlockRegistryTest, NetherBlocksRegistration) {
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:basalt")), nullptr);
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:glowstone")), nullptr);
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:end_stone")), nullptr);
+    // 验证地狱疣块和诡异疣块已注册
+    EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:nether_wart_block")), nullptr);
+    EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:warped_wart_block")), nullptr);
 }
 
 TEST(BlockStateComparisonTest, IsComparisonWorks) {
@@ -1318,4 +1328,59 @@ TEST(SpecialBlocksLadder, LadderSpeedConstants) {
     EXPECT_FLOAT_EQ(physics::LADDER_SPEED_MAX, 0.15f);
     EXPECT_FLOAT_EQ(physics::LADDER_CLIMB_SPEED, 0.15f);
     EXPECT_FLOAT_EQ(physics::LADDER_SLIDE_SPEED, -0.15f);
+}
+
+// ============================================================================
+// Nether Wart Block 和 Warped Wart Block 测试
+// ============================================================================
+
+TEST(NetherWartBlocksTest, NetherWartBlockProperties) {
+    VanillaBlocks::initialize();
+
+    ASSERT_NE(VanillaBlocks::NETHER_WART_BLOCK, nullptr);
+
+    const Block& block = *VanillaBlocks::NETHER_WART_BLOCK;
+
+    // 验证使用 ORGANIC 材料
+    EXPECT_EQ(&block.material(), &Material::ORGANIC);
+
+    // 验证硬度和抗性（MC 1.16.5: hardnessAndResistance(1.0F)）
+    EXPECT_FLOAT_EQ(block.hardness(), 1.0f);
+    EXPECT_FLOAT_EQ(block.resistance(), 1.0f);
+
+    // 验证可以注册和查找
+    EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:nether_wart_block")), nullptr);
+}
+
+TEST(NetherWartBlocksTest, WarpedWartBlockProperties) {
+    VanillaBlocks::initialize();
+
+    ASSERT_NE(VanillaBlocks::WARPED_WART_BLOCK, nullptr);
+
+    const Block& block = *VanillaBlocks::WARPED_WART_BLOCK;
+
+    // 验证使用 ORGANIC 材料
+    EXPECT_EQ(&block.material(), &Material::ORGANIC);
+
+    // 验证硬度和抗性（MC 1.16.5: hardnessAndResistance(1.0F)）
+    EXPECT_FLOAT_EQ(block.hardness(), 1.0f);
+    EXPECT_FLOAT_EQ(block.resistance(), 1.0f);
+
+    // 验证可以注册和查找
+    EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:warped_wart_block")), nullptr);
+}
+
+TEST(NetherWartBlocksTest, BothWartBlocksHaveSameProperties) {
+    VanillaBlocks::initialize();
+
+    ASSERT_NE(VanillaBlocks::NETHER_WART_BLOCK, nullptr);
+    ASSERT_NE(VanillaBlocks::WARPED_WART_BLOCK, nullptr);
+
+    // 两种疣块应该有相同的物理属性
+    EXPECT_EQ(&VanillaBlocks::NETHER_WART_BLOCK->material(), &VanillaBlocks::WARPED_WART_BLOCK->material());
+    EXPECT_FLOAT_EQ(VanillaBlocks::NETHER_WART_BLOCK->hardness(), VanillaBlocks::WARPED_WART_BLOCK->hardness());
+    EXPECT_FLOAT_EQ(VanillaBlocks::NETHER_WART_BLOCK->resistance(), VanillaBlocks::WARPED_WART_BLOCK->resistance());
+
+    // 两种疣块应该是不同的方块
+    EXPECT_NE(VanillaBlocks::NETHER_WART_BLOCK->blockId(), VanillaBlocks::WARPED_WART_BLOCK->blockId());
 }

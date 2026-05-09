@@ -26,7 +26,7 @@ static const std::unordered_set<BlockId>& getNetherCarvableBlocks()
         VanillaBlocks::CRIMSON_NYLIUM->blockId(),
         VanillaBlocks::WARPED_NYLIUM->blockId(),
         VanillaBlocks::NETHER_WART_BLOCK->blockId(),
-        // VanillaBlocks::WARPED_WART_BLOCK->blockId(), // TODO: 添加 WARPED_WART_BLOCK
+        VanillaBlocks::WARPED_WART_BLOCK->blockId(),
         VanillaBlocks::BASALT->blockId(),
         VanillaBlocks::BLACKSTONE->blockId()
     };

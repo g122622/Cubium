@@ -346,6 +346,7 @@ Block* VanillaBlocks::CRYING_OBSIDIAN = nullptr;
 Block* VanillaBlocks::RESPAWN_ANCHOR = nullptr;
 Block* VanillaBlocks::MAGMA = nullptr;
 Block* VanillaBlocks::NETHER_WART_BLOCK = nullptr;
+Block* VanillaBlocks::WARPED_WART_BLOCK = nullptr;
 Block* VanillaBlocks::FIRE = nullptr;
 Block* VanillaBlocks::SOUL_FIRE = nullptr;
 Block* VanillaBlocks::NETHER_WART = nullptr;
@@ -2146,10 +2147,18 @@ void VanillaBlocks::registerNetherExtensionBlocks() {
     );
 
     // 地狱疣块
-    // 参考: new Block(Properties.create(Material.ORGANIC).hardnessAndResistance(1.0F))
+    // 参考: new Block(Properties.create(Material.ORGANIC).hardnessAndResistance(1.0F).sound(SoundType.WART))
     NETHER_WART_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:nether_wart_block"),
-        BlockProperties(Material::EARTH).hardness(1.0f));
+        BlockProperties(Material::ORGANIC).hardness(1.0f).resistance(1.0f)
+            .soundType(BlockSoundTypes::WART));
+
+    // 诡异疣块
+    // 参考: new Block(Properties.create(Material.ORGANIC, MaterialColor.WARPED_WART).hardnessAndResistance(1.0F).sound(SoundType.WART))
+    WARPED_WART_BLOCK = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:warped_wart_block"),
+        BlockProperties(Material::ORGANIC).hardness(1.0f).resistance(1.0f)
+            .soundType(BlockSoundTypes::WART));
 
     // 绯红菌柄
     CRIMSON_STEM = &registry.registerBlock<RotatedPillarBlock>(

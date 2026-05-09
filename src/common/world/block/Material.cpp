@@ -347,6 +347,15 @@ namespace {
             .opaque(false)
             .build();
     }
+
+    Material makeOrganicMaterial() {
+        // 有机材质：用于草方块、干草块、地狱疣块、诡异疣块等
+        // 参考 MC 1.16.5: Material.ORGANIC - 固体、不透明、不可燃
+        return MaterialBuilder()
+            .solid()
+            .opaque()
+            .build();
+    }
 }
 
 // 静态常量定义
@@ -526,6 +535,11 @@ const Material& Material::NETHER_WOOD = []() -> const Material& {
 
 const Material& Material::MOSS = []() -> const Material& {
     static Material material = makeMossMaterial();
+    return material;
+}();
+
+const Material& Material::ORGANIC = []() -> const Material& {
+    static Material material = makeOrganicMaterial();
     return material;
 }();
 

@@ -161,8 +161,8 @@ block/
   - `getPushReaction()`：推动反应类型
   - `materialColor()`：材质颜色索引
 
-- **预定义材质**（26种）：
-  - 基础：`AIR`, `STRUCTURE_VOID`, `ROCK`, `EARTH`, `WOOD`, `PLANT`, `REPLACEABLE_PLANT`
+- **预定义材质**（27种）：
+  - 基础：`AIR`, `STRUCTURE_VOID`, `ROCK`, `EARTH`, `WOOD`, `PLANT`, `REPLACEABLE_PLANT`, `ORGANIC`
   - 液体：`WATER`, `LAVA`
   - 特殊：`LEAVES`, `GLASS`, `ICE`, `WOOL`, `SAND`, `IRON`, `SNOW`, `SLIME`, `TNT`, `SPONGE`, `CORAL`, `WEB`
   - 功能：`REDSTONE_LIGHT`, `PISTON`, `DECORATION`, `PORTAL`, `OCEAN_PLANT`, `SEA_GRASS`, `FIRE`
@@ -365,7 +365,7 @@ const fluid::FluidState* getFluidState(const BlockState& state) const {
 - **混凝土（16色）**：WHITE_CONCRETE ~ BLACK_CONCRETE
 - **混凝土粉末（16色）**：WHITE_CONCRETE_POWDER ~ BLACK_CONCRETE_POWDER
 - **陶瓦（17色）**：WHITE_TERRACOTTA ~ BLACK_TERRACOTTA, TERRACOTTA
-- **下界方块**：SOUL_SAND, SOUL_SOIL, BASALT, POLISHED_BASALT, BLACKSTONE, POLISHED_BLACKSTONE, CRYING_OBSIDIAN, MAGMA, NETHER_WART_BLOCK
+- **下界方块**：SOUL_SAND, SOUL_SOIL, BASALT, POLISHED_BASALT, BLACKSTONE, POLISHED_BLACKSTONE, CRYING_OBSIDIAN, MAGMA, NETHER_WART_BLOCK, WARPED_WART_BLOCK
 - **自然方块扩展**：CLAY, MYCELIUM, GRASS_PATH, PACKED_ICE, SLIME_BLOCK, CACTUS, DEAD_BUSH, LILY_PAD, VINE, COBWEB, SUGAR_CANE
 - **海洋方块扩展**：SEA_PICKLE, KELP, KELP_PLANT, SEAGRASS, TALL_SEAGRASS，并补齐 BUBBLE_COLUMN、TURTLE_EGG
 - **珊瑚方块扩展**：TUBE/BRAIN/BUBBLE/FIRE/HORN 的 coral_block、coral_fan、coral_wall_fan，并补齐 dead_* 对应 block/fan/wall_fan
@@ -800,7 +800,7 @@ constexpr u8 Pickaxe = 1;  // 必须与 ToolType::Pickaxe 值相同
 ### 测试分类
 
 1. **Material 测试**
-   - `MaterialTest.PredefinedMaterials`：预定义材质属性验证
+   - `MaterialTest.PredefinedMaterials`：预定义材质属性验证（包括 ORGANIC）
    - `MaterialTest.MaterialBuilder`：材质构建器功能验证
 
 2. **BlockProperties 测试**
@@ -853,6 +853,11 @@ constexpr u8 Pickaxe = 1;  // 必须与 ToolType::Pickaxe 值相同
 
 8. **BlockStateComparison 测试**
    - `BlockStateComparisonTest.IsComparisonWorks`：is() 方法比较测试
+
+9. **NetherWartBlocks 测试**
+   - `NetherWartBlocksTest.NetherWartBlockProperties`：地狱疣块属性验证
+   - `NetherWartBlocksTest.WarpedWartBlockProperties`：诡异疣块属性验证
+   - `NetherWartBlocksTest.BothWartBlocksHaveSameProperties`：两种疣块属性一致性测试
 
 ## 参考资料
 
