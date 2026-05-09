@@ -244,26 +244,21 @@ f32 LivingEntity::applyPotionDamageCalculations(DamageSource& source, f32 damage
 
     // 2. 附魔保护减伤
     // MC 1.16.5: 遍历所有护甲槽位，计算保护附魔的 EPF 总和
-    // 伤害类型映射需要根据 DamageSource 确定
-    u32 damageTypeFlags = 0;
-    if (source.isFire()) damageTypeFlags |= 0x01;      // 火焰
-    if (source.isLava()) damageTypeFlags |= 0x01;       // 岩浆也属于火焰
-    if (source.type() == DamageType::Fall) damageTypeFlags |= 0x04;  // 摔落
-    if (source.type() == DamageType::Explosion ||
-        source.type() == DamageType::ExplosionPlayer) damageTypeFlags |= 0x08;  // 爆炸
-    if (source.isProjectile()) damageTypeFlags |= 0x10; // 弹射物
-    // 其他类型由全保护处理
+    // 参考: EnchantmentHelper.getEnchantmentModifierDamage()
+    // 只有非 isDamageAbsolute 的伤害才受附魔保护影响
+    if (!source.isDamageAbsolute()) {
+        u32 damageTypeFlags = 0;
+        if (source.isFire()) damageTypeFlags |= DamageFlags::FIRE;
+        if (source.isFall()) damageTypeFlags |= DamageFlags::FALL;
+        if (source.isExplosion()) damageTypeFlags |= DamageFlags::EXPLOSION;
+        if (source.isProjectile()) damageTypeFlags |= DamageFlags::PROJECTILE;
+        // 其他类型由全保护附魔处理 (ProtectionEnchantment::Type::All)
 
-    std::array<const ItemStack*, 4> armorSlots = {
-        &getEquipment(EquipmentSlot::Head),    // 头盔
-        &getEquipment(EquipmentSlot::Chest),   // 胸甲
-        &getEquipment(EquipmentSlot::Legs),    // 护腿
-        &getEquipment(EquipmentSlot::Feet)     // 靴子
-    };
-
-    i32 protectionEPF = item::enchant::EnchantmentHelper::getTotalArmorProtection(armorSlots, damageTypeFlags);
-    if (protectionEPF > 0) {
-        damage = entity::combat::CombatRules::getDamageAfterMagicAbsorb(damage, static_cast<f32>(protectionEPF));
+        auto armorSlots = getArmorSlots();
+        i32 protectionEPF = item::enchant::EnchantmentHelper::getTotalArmorProtection(armorSlots, damageTypeFlags);
+        if (protectionEPF > 0) {
+            damage = entity::combat::CombatRules::getDamageAfterMagicAbsorb(damage, static_cast<f32>(protectionEPF));
+        }
     }
 
     return damage;

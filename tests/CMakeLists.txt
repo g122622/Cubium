@@ -71,6 +71,8 @@ add_executable(mc_tests
     common/entity/combat/DifficultyHelperTest.cpp
     # 战斗追踪器测试
     common/entity/combat/CombatTrackerTest.cpp
+    # CombatRules EPF 测试
+    common/entity/combat/CombatRulesEPFTest.cpp
     common/world/blockentity/BlockEntityTest.cpp
     common/world/blockentity/ChestEntityTest.cpp
     common/world/blockentity/FurnaceEntityTest.cpp

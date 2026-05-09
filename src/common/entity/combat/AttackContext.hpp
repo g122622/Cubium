@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include "../../entity/damage/DamageSource.hpp"
 #include <memory>
 
 namespace mc {
@@ -10,7 +11,6 @@ class Entity;
 class LivingEntity;
 class Player;
 class ItemStack;
-class DamageSource;
 
 namespace entity::combat {
 
@@ -101,6 +101,27 @@ public:
     [[nodiscard]] bool bypassesArmor() const { return m_bypassArmor; }
     void setBypassArmor(bool bypass) { m_bypassArmor = bypass; }
 
+    // ========== 伤害类型标志位（用于保护附魔计算） ==========
+
+    /**
+     * @brief 获取伤害类型标志位
+     *
+     * 用于保护附魔计算，由 DamageFlags 定义。
+     */
+    [[nodiscard]] u32 getDamageFlags() const { return m_damageFlags; }
+
+    /**
+     * @brief 设置伤害类型标志位
+     * @param flags 伤害类型标志位
+     */
+    void setDamageFlags(u32 flags) { m_damageFlags = flags; }
+
+    /**
+     * @brief 从伤害来源提取伤害类型标志位
+     * @param source 伤害来源
+     */
+    void setDamageFlagsFromSource(const DamageSource& source);
+
 private:
     Entity* m_attacker = nullptr;
     Player* m_attackerPlayer = nullptr;
@@ -121,6 +142,7 @@ private:
     bool m_bypassArmor = false;
 
     f32 m_cooldownProgress = 1.0f;
+    u32 m_damageFlags = 0;  // 伤害类型标志位，用于保护附魔计算
 };
 
 } // namespace entity::combat

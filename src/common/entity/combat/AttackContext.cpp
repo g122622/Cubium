@@ -1,8 +1,10 @@
 #include "AttackContext.hpp"
+#include "CombatRules.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../attribute/Attributes.hpp"
 #include "../effect/EffectType.hpp"
 #include "../core/LivingEntity.hpp"
+#include "../../item/enchantment/EnchantmentHelper.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -87,8 +89,21 @@ f32 AttackContext::calculateFinalDamage() const {
     }
 
     // ========== 7. 附魔保护减伤 ==========
-    // TODO: 附魔保护减伤（保护、火焰保护、摔落保护等）
-    // 需要在目标装备上计算 EPF (Enchantment Protection Factor)
+    // MC 1.16.5: 计算护甲附魔的 EPF (Enchantment Protection Factor)
+    // 参考: LivingEntity.applyPotionDamageCalculations() 中调用 EnchantmentHelper.getEnchantmentModifierDamage()
+    if (m_target && m_damageFlags != 0) {
+        // 获取护甲槽位
+        auto armorSlots = m_target->getArmorSlots();
+
+        // 计算 EPF 总和
+        i32 totalEPF = item::enchant::EnchantmentHelper::getTotalArmorProtection(armorSlots, m_damageFlags);
+
+        if (totalEPF > 0) {
+            // 使用 CombatRules 计算附魔保护减伤
+            // EPF 上限为 20，对应 80% 减伤
+            damage = CombatRules::getDamageAfterMagicAbsorb(damage, static_cast<f32>(totalEPF));
+        }
+    }
 
     // ========== 8. 吸收值处理（金苹果）==========
     // 吸收值在 LivingEntity::actuallyHurt() 中处理，这里不重复
@@ -129,6 +144,29 @@ std::unique_ptr<DamageSource> AttackContext::createDamageSource() const {
 
     // 默认返回通用伤害
     return std::make_unique<EnvironmentalDamage>(DamageType::Generic);
+}
+
+void AttackContext::setDamageFlagsFromSource(const DamageSource& source) {
+    m_damageFlags = 0;
+
+    // 根据伤害来源设置对应的标志位
+    // 参考 MC 1.16.5 ProtectionEnchantment.calcModifierDamage()
+    if (source.isFire()) {
+        m_damageFlags |= DamageFlags::FIRE;
+    }
+    if (source.isFall()) {
+        m_damageFlags |= DamageFlags::FALL;
+    }
+    if (source.isExplosion()) {
+        m_damageFlags |= DamageFlags::EXPLOSION;
+    }
+    if (source.isProjectile()) {
+        m_damageFlags |= DamageFlags::PROJECTILE;
+    }
+
+    // 如果没有任何特殊标志，则认为是通用伤害
+    // 保护附魔对通用伤害有效（Type::All），EPF = level
+    // 这里不需要设置任何标志，因为 ProtectionEnchantment::Type::All 对所有伤害都有效
 }
 
 } // namespace mc::entity::combat
