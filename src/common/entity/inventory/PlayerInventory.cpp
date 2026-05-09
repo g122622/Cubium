@@ -1,5 +1,7 @@
 #include "PlayerInventory.hpp"
 #include "../entities/player/Player.hpp"
+#include "../damage/DamageSource.hpp"
+#include "../../item/core/Item.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -601,15 +603,13 @@ void PlayerInventory::tick() {
 
 void PlayerInventory::dropAllItems() {
     // MC 1.16.5: 遍历所有槽位并掉落物品
-    // TODO: 需要通过 Player::dropItem 方法实际掉落
-    // if (m_player == nullptr) {
-    //     return;
-    // }
+    if (m_player == nullptr) {
+        return;
+    }
 
     for (auto& item : m_items) {
         if (!item.isEmpty()) {
-            // TODO: m_player->dropItem(item, true, false);
-            item = ItemStack::EMPTY;
+            m_player->dropItem(item, true, false);
         }
     }
 }
@@ -671,8 +671,8 @@ bool PlayerInventory::placeItemBackInInventory(ItemStack& stack,
 // 护甲操作
 // ============================================================================
 
-void PlayerInventory::damageArmor(float damage) {
-    // MC 1.16.5: 对护甲造成伤害
+void PlayerInventory::damageArmor(DamageSource& source, f32 damage) {
+    // MC 1.16.5: PlayerInventory.damageArmor(DamageSource, float)
     if (damage <= 0.0f) {
         return;
     }
@@ -685,18 +685,27 @@ void PlayerInventory::damageArmor(float damage) {
 
     for (i32 i = InventorySlots::ARMOR_START; i <= InventorySlots::ARMOR_END; ++i) {
         ItemStack& armor = m_items[i];
-        if (!armor.isEmpty()) {
-            // TODO: 检查护甲是否可以被燃烧（如果伤害来自火焰）
-            // TODO: 需要 ItemStack::damageItem 方法
-            // if (damageSource.isFireDamage() && armor.getItem()->isBurnable()) {
-            //     continue;
-            // }
+        if (armor.isEmpty()) {
+            continue;
+        }
 
-            // if (armor.getItem() instanceof ArmorItem) {
-            //     armor.damageItem(static_cast<i32>(damage), m_player, [i](Player& p) {
-            //         p.sendBreakAnimation(EquipmentSlot::fromSlotTypeAndIndex(EquipmentSlot::Group::Armor, i - InventorySlots::ARMOR_START));
-            //     });
-            // }
+        // MC 1.16.5: 火焰伤害不损坏可燃烧的护甲
+        if (source.isFire() && armor.getItem()->isBurnable()) {
+            continue;
+        }
+
+        // 对护甲造成耐久损耗
+        // MC 1.16.5: 只有 ArmorItem 才会损坏
+        // 这里简化实现：所有可损坏的物品都会损耗
+        if (armor.isDamageable()) {
+            i32 damageAmount = static_cast<i32>(damage);
+            armor.attemptDamageItem(damageAmount, m_player);
+
+            // 物品损坏后清空槽位
+            if (armor.isEmpty()) {
+                // MC 1.16.5: 发送装备损坏动画
+                // m_player->sendBreakAnimation(EquipmentSlot::fromIndex(i));
+            }
         }
     }
 }

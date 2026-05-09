@@ -173,11 +173,12 @@ inventory/
 - 统计：`countItem()`, `hasItem()`
 - 序列化：`serialize()`, `deserialize()`
 - **新增方法**（MC 1.16.5 对齐）：
-  - `tick()`: 背包 tick 处理（用于物品冷却、耐久恢复等）
-  - `dropAllItems()`: 丢弃所有物品
+  - `tick()`: 背包 tick 处理，调用所有物品的 `inventoryTick()` 和护甲的 `onArmorTick()`
+  - `dropAllItems()`: 丢弃所有物品（使用 `Player::dropItem()` 生成物品实体）
   - `deleteStack()`: 删除指定物品堆
   - `placeItemBackInInventory()`: 将物品放回背包
-  - `damageArmor()`: 护甲损伤处理
+  - `damageArmor(DamageSource&, float)`: 护甲损伤处理，火焰伤害不损坏可燃烧护甲
+  - `getDestroySpeed(const BlockState&)`: 获取当前手持物品的挖掘速度
   - `containsAny()`: 检查是否包含指定物品集合中的任意物品
   - `isUsableByPlayer()`: 检查玩家是否可用（覆盖 IInventory 接口）
 

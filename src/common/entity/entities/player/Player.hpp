@@ -23,6 +23,8 @@
 namespace mc {
 
 class AbstractContainerMenu;
+class ItemEntity;
+class DamageSource;
 
 // ============================================================================
 // 玩家能力标志
@@ -337,6 +339,41 @@ public:
      * 玩家死亡时掉落 min(level * 7, 100) 点经验。
      */
     void dropExperience() override;
+
+    /**
+     * @brief 丢弃物品
+     *
+     * 在玩家位置生成物品实体。
+     * 参考: MC 1.16.5 PlayerEntity.dropItem(ItemStack, boolean, boolean)
+     *
+     * @param stack 要丢弃的物品堆
+     * @param dropAround 是否向四周散射（Q键丢弃 vs Ctrl+Q丢弃）
+     * @param traceItem 是否追踪物品（设置 thrower UUID）
+     * @return 生成的物品实体，如果物品为空则返回 nullptr
+     */
+    ItemEntity* dropItem(ItemStack& stack, bool dropAround, bool traceItem = true);
+
+    /**
+     * @brief 丢弃物品（简化版本）
+     *
+     * 在玩家位置生成物品实体，使用默认参数。
+     *
+     * @param stack 要丢弃的物品堆
+     * @param unused 未使用参数（用于签名匹配）
+     * @return 生成的物品实体
+     */
+    ItemEntity* dropItem(ItemStack& stack, bool unused = false);
+
+    /**
+     * @brief 受伤时损坏护甲
+     *
+     * 重写 LivingEntity::damageArmor()，委托给 PlayerInventory::damageArmor()。
+     * 参考 MC 1.16.5 PlayerEntity.damageArmor()
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量
+     */
+    void damageArmor(DamageSource& source, f32 amount) override;
 
     // ========== XP 冷却 ==========
 

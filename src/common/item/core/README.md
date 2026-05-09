@@ -42,6 +42,56 @@ if (!stack.isEmpty()) {
 }
 ```
 
+## Tick 更新方法
+
+### Item::inventoryTick()
+
+物品在背包中每 tick 调用，用于更新地图、时钟等物品。
+
+```cpp
+virtual void inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
+                           i32 itemSlot, bool isSelected) const;
+```
+
+**参数**：
+- `stack` - 物品堆引用
+- `world` - 世界引用
+- `entity` - 持有实体（通常是玩家）
+- `itemSlot` - 物品栏槽位索引
+- `isSelected` - 是否为当前选中的物品
+
+**子类实现**：
+- `ElytraItem` - 鞘翅滑翔时消耗耐久度
+
+### Item::onArmorTick()
+
+护甲物品在护甲栏中每 tick 调用，用于实现护甲特殊效果。
+
+```cpp
+virtual void onArmorTick(ItemStack& stack, IWorld& world, LivingEntity& player) const;
+```
+
+**参数**：
+- `stack` - 物品堆引用
+- `world` - 世界引用
+- `player` - 穿戴护甲的玩家
+
+### ItemStack::inventoryTick()
+
+委托给 `Item::inventoryTick()`：
+
+```cpp
+void inventoryTick(IWorld& world, Entity& entity, i32 itemSlot, bool isSelected);
+```
+
+### ItemStack::onArmorTick()
+
+委托给 `Item::onArmorTick()`：
+
+```cpp
+void onArmorTick(IWorld& world, LivingEntity& player);
+```
+
 ## 注意事项
 
 - Item类是抽象基类，不应直接实例化

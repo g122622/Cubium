@@ -20,6 +20,8 @@
 #include "../../../item/items/tool/SwordItem.hpp"
 #include "../../../item/items/armor/ArmorItem.hpp"
 #include "../../../item/core/ActionResult.hpp"
+#include "../../entities/item/ItemEntity.hpp"
+#include "../../utils/ItemDropHelper.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -181,6 +183,54 @@ void Player::dropExperience() {
             );
         }
     }
+}
+
+ItemEntity* Player::dropItem(ItemStack& stack, bool dropAround, bool traceItem) {
+    // MC 1.16.5: PlayerEntity.dropItem(ItemStack, boolean, boolean)
+    if (stack.isEmpty() || m_world == nullptr) {
+        return nullptr;
+    }
+
+    // 获取随机数生成器
+    math::Random rng(static_cast<u64>(m_id) ^ static_cast<u64>(std::chrono::system_clock::now().time_since_epoch().count()));
+
+    // 计算掉落位置（玩家眼睛高度 - 0.3）
+    f64 dropY = static_cast<f64>(y()) + static_cast<f64>(eyeHeight()) - 0.3;
+
+    // 获取掉落速度
+    Vector3 velocity = ItemDropHelper::getPlayerDropVelocity(rng, dropAround, m_yaw, m_pitch);
+
+    // 生成物品实体
+    ItemEntity* itemEntity = ItemDropHelper::spawnItemEntity(
+        m_world,
+        stack,
+        x(), dropY, z(),
+        velocity.x, velocity.y, velocity.z,
+        ItemDropHelper::DEFAULT_PICKUP_DELAY,
+        traceItem ? uuid() : ""
+    );
+
+    if (itemEntity != nullptr) {
+        // 挥手动画（客户端）
+        // MC 1.16.5: this.swingArm(Hand.MAIN_HAND);
+
+        // 清空物品堆
+        stack = ItemStack::EMPTY;
+    }
+
+    return itemEntity;
+}
+
+ItemEntity* Player::dropItem(ItemStack& stack, bool unused) {
+    (void)unused;
+    // MC 1.16.5: dropItem(ItemStack, boolean) -> ForgeHooks.onPlayerTossEvent
+    // 简化实现：直接调用完整版本
+    return dropItem(stack, false, true);
+}
+
+void Player::damageArmor(DamageSource& source, f32 amount) {
+    // MC 1.16.5: PlayerEntity.damageArmor() -> PlayerInventory.damageArmor()
+    m_inventory.damageArmor(source, amount);
 }
 
 // ============================================================================

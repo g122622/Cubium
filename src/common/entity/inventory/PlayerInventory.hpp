@@ -12,6 +12,7 @@ namespace mc {
 class Player;
 class Item;
 class BlockState;
+class DamageSource;
 
 /**
  * @brief 玩家背包
@@ -352,12 +353,13 @@ public:
 
     /**
      * @brief 对护甲造成伤害
-     * @param damageSource 伤害来源
+     * @param source 伤害来源（用于检查火焰伤害）
      * @param damage 伤害值
      *
      * 护甲会根据伤害值损耗耐久度。
+     * 参考 MC 1.16.5 PlayerInventory.damageArmor(DamageSource, float)
      */
-    void damageArmor(float damage);
+    void damageArmor(DamageSource& source, f32 damage);
 
     // ========== 复制和比较 ==========
 
