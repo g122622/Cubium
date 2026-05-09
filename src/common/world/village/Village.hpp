@@ -241,9 +241,9 @@ public:
      * @brief 每游戏tick更新
      * @param world 世界接口
      * @param gameTime 当前游戏时间
-     * @param poiStorage POI存储（可选，用于更新POI统计）
+     * @param poiStorage POI存储（可选，用于更新POI统计和工作站绑定）
      */
-    void tick(IWorld& world, i64 gameTime, const poi::PointOfInterestStorage* poiStorage = nullptr);
+    void tick(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage = nullptr);
 
     // ========== 序列化 ==========
 
@@ -261,13 +261,14 @@ private:
     /**
      * @brief 检查并更新村民列表
      *
-     * 移除离开村庄范围超过指定时间的村民。
+     * 移除离开村庄范围超过指定时间的村民，并释放其占用的 POI。
      * 参考 MC 1.16.5: 没有显式的村民移除逻辑，村民离开后由 VillageManager 管理重新分配。
      *
      * @param world 世界接口（用于获取实体）
      * @param gameTime 当前游戏时间
+     * @param poiStorage POI存储（用于释放离开村民的占用）
      */
-    void tickVillagerCheck(IWorld& world, i64 gameTime);
+    void tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage);
 
     /**
      * @brief 更新 POI 统计

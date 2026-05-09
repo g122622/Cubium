@@ -135,12 +135,12 @@ bool Village::canBreed() const {
     return getAvailableBeds() > 0 && getPopulation() > 0;
 }
 
-void Village::tick(IWorld& world, i64 gameTime, const poi::PointOfInterestStorage* poiStorage) {
+void Village::tick(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage) {
     // 1. 更新流言（衰减）
     m_gossipManager.tick(gameTime);
 
-    // 2. 检查村民是否仍在范围内
-    tickVillagerCheck(world, gameTime);
+    // 2. 检查村民是否仍在范围内，释放离开村民的 POI
+    tickVillagerCheck(world, gameTime, poiStorage);
 
     // 3. 定期更新 POI 统计（如果提供了 POI 存储）
     if (poiStorage != nullptr && gameTime - m_lastPOIStatUpdateTime >= POI_STAT_UPDATE_INTERVAL) {
@@ -152,7 +152,7 @@ void Village::tick(IWorld& world, i64 gameTime, const poi::PointOfInterestStorag
     tickRaidCheck(world, gameTime);
 }
 
-void Village::tickVillagerCheck(IWorld& world, i64 gameTime) {
+void Village::tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage) {
     // 参考 MC 1.16.5: 村庄不直接管理村民列表的移除，由 VillageManager 通过
     // 村民的 Brain 记忆模块和工作站绑定来管理村民与村庄的关联。
     // 这里实现简化的范围检查：记录村民最后出现时间，超时的村民从列表移除。
@@ -210,8 +210,13 @@ void Village::tickVillagerCheck(IWorld& world, i64 gameTime) {
         }
     }
 
-    // 移除超时的村民
+    // 移除超时的村民，并释放其占用的 POI
     for (u64 villagerId : villagersToRemove) {
+        // 释放该村民占用的所有 POI（床位、工作站等）
+        if (poiStorage != nullptr) {
+            poiStorage->releaseAllByOwner(villagerId);
+        }
+
         m_villagers.erase(villagerId);
         m_villagerLastSeenTime.erase(villagerId);
     }

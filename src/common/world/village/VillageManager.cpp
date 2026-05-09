@@ -210,7 +210,7 @@ Village* VillageManager::getVillageUnderRaid(BlockPos pos) {
 // ========== Tick更新 ==========
 
 void VillageManager::tick(i64 gameTime) {
-    // 更新所有村庄
+    // 更新所有村庄，传递可修改的 POI 存储
     for (auto& village : m_villages) {
         village->tick(m_world, gameTime, &m_poiStorage);
     }
