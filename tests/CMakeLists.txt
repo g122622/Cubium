@@ -514,7 +514,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/village/poi/PointOfInterestType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/Raid.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/RaidManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/RaidWave.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/RaiderType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffers.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/noise/ImprovedNoiseGenerator.cpp
@@ -1134,6 +1134,80 @@ set_target_properties(mc_command_tests PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
+# ============================================================================
+# 村庄系统独立测试
+# ============================================================================
 
+add_executable(mc_village_tests
+    common/world/village/VillageTest.cpp
+    common/world/village/trade/MerchantOfferTest.cpp
+    common/world/village/raid/RaidHeroTrackingTest.cpp
+)
+
+target_sources(mc_village_tests
+    PRIVATE
+        # 村庄系统源文件
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/Village.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/VillageManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/VillageGossip.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/poi/PointOfInterest.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/poi/PointOfInterestStorage.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/poi/PointOfInterestType.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/Raid.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/RaidManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/RaiderType.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffer.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffers.cpp
+        # 实体系统（用于测试）
+        ${CMAKE_SOURCE_DIR}/src/common/entity/core/Entity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/entity/utils/EntityUtils.cpp
+        # 方块系统
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/BlockRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/VanillaBlocks.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/AirBlock.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
+        # 物品系统
+        ${CMAKE_SOURCE_DIR}/src/common/item/core/Item.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemStack.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/Items.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/items/block/BlockItem.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/items/block/BlockItemRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/context/ItemUseContext.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/context/BlockItemUseContext.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTag.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTags.cpp
+        # NBT 系统
+        ${CMAKE_SOURCE_DIR}/src/common/util/nbt/Nbt.cpp
+        # 流体系统
+        ${CMAKE_SOURCE_DIR}/src/common/world/fluid/Fluid.cpp
+        # 资源定位
+        ${CMAKE_SOURCE_DIR}/src/common/resource/ResourceLocation.cpp
+)
+
+target_link_libraries(mc_village_tests
+    PRIVATE
+        mc_common
+        GTest::gtest_main
+        nlohmann_json::nlohmann_json
+        glm::glm
+)
+
+target_include_directories(mc_village_tests
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/include
+)
+
+mc_set_compiler_warnings(mc_village_tests)
+
+gtest_discover_tests(mc_village_tests)
+
+set_target_properties(mc_village_tests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
 
 
