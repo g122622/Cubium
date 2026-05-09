@@ -56,7 +56,7 @@ public:
      * @param isSelected 是否被选中
      */
     void inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
-                        i32 itemSlot, bool isSelected) override;
+                        i32 itemSlot, bool isSelected) const override;
 
     // ========== 鞘翅特有方法 ==========
 

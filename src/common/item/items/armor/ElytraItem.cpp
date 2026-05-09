@@ -33,7 +33,7 @@ ItemActionResult ElytraItem::onItemRightClick(IWorld& world, Player& player, Han
 }
 
 void ElytraItem::inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
-                                i32 itemSlot, bool isSelected) {
+                                i32 itemSlot, bool isSelected) const {
     LivingEntity* living = dynamic_cast<LivingEntity*>(&entity);
     if (living != nullptr && itemSlot == InventorySlots::ARMOR_CHEST && isGliding(*living)) {
         if (world.currentTick() % 20 == 0) {

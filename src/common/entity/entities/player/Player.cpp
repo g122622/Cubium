@@ -977,8 +977,8 @@ network::PlayerPosition Player::playerPosition() const {
 }
 
 i32 Player::armorValue() const {
-    // MC 1.16.5: PlayerEntity.getTotalArmorValue()
-    // 护甲值 = 头盔护甲值 + 胸甲护甲值 + 护腿护甲值 + 靴子护甲值
+    // MC 1.16.5: 计算总护甲值
+    // 参考: PlayerEntity.getTotalArmorValue() -> ArmorItem.getTotalArmorValue()
     return item::items::ArmorItem::getTotalArmorValue(*this);
 }
 

@@ -486,7 +486,19 @@ public:
      * @param isSelected 是否被选中
      */
     virtual void inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
-                               i32 itemSlot, bool isSelected);
+                               i32 itemSlot, bool isSelected) const;
+
+    /**
+     * @brief 护甲物品每tick调用
+     *
+     * 当物品在护甲栏时每tick调用。用于实现护甲特殊效果（如鞘翅飞行）。
+     * 参考: net.minecraft.item.Item#onArmorTick (Forge)
+     *
+     * @param stack 物品堆
+     * @param world 世界引用
+     * @param player 穿戴护甲的玩家
+     */
+    virtual void onArmorTick(ItemStack& stack, IWorld& world, LivingEntity& player) const;
 
     /**
      * @brief 添加物品提示信息

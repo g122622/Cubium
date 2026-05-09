@@ -3,6 +3,9 @@
 #include "ItemRegistry.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../world/block/Block.hpp"
+#include "../../world/IWorld.hpp"
+#include "../../entity/core/Entity.hpp"
+#include "../../entity/core/LivingEntity.hpp"
 #include "../../util/text/StringTextComponent.hpp"
 #include "../../util/text/TextParser.hpp"
 #include "../enchantment/EnchantmentHelper.hpp"
@@ -370,6 +373,20 @@ bool ItemStack::canHarvestBlock(const BlockState& state) const {
         return false;
     }
     return m_item->canHarvestBlock(state);
+}
+
+void ItemStack::inventoryTick(IWorld& world, Entity& entity, i32 itemSlot, bool isSelected) {
+    if (isEmpty()) {
+        return;
+    }
+    m_item->inventoryTick(*this, world, entity, itemSlot, isSelected);
+}
+
+void ItemStack::onArmorTick(IWorld& world, LivingEntity& player) {
+    if (isEmpty()) {
+        return;
+    }
+    m_item->onArmorTick(*this, world, player);
 }
 
 // ============================================================================

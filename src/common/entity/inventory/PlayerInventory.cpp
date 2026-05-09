@@ -571,21 +571,28 @@ bool PlayerInventory::isUsableByPlayer(const Player& player) const {
 // ============================================================================
 
 void PlayerInventory::tick() {
+    if (m_player == nullptr) {
+        return;
+    }
+
+    IWorld* world = m_player->world();
+    if (world == nullptr) {
+        return;
+    }
+
     // MC 1.16.5: 调用所有物品的 inventoryTick
-    // TODO: 需要 ItemStack::inventoryTick 方法
-    // for (i32 i = 0; i < TOTAL_SIZE; ++i) {
-    //     if (!m_items[i].isEmpty()) {
-    //         m_items[i].inventoryTick(m_player->getWorld(), *m_player, i, i == m_selectedSlot);
-    //     }
-    // }
+    for (i32 i = 0; i < TOTAL_SIZE; ++i) {
+        if (!m_items[i].isEmpty()) {
+            m_items[i].inventoryTick(*world, *m_player, i, i == m_selectedSlot);
+        }
+    }
 
     // MC 1.16.5: 调用护甲的 onArmorTick
-    // TODO: 需要 ItemStack::onArmorTick 方法
-    // for (i32 i = InventorySlots::ARMOR_START; i <= InventorySlots::ARMOR_END; ++i) {
-    //     if (!m_items[i].isEmpty()) {
-    //         m_items[i].onArmorTick(m_player->getWorld(), *m_player);
-    //     }
-    // }
+    for (i32 i = InventorySlots::ARMOR_START; i <= InventorySlots::ARMOR_END; ++i) {
+        if (!m_items[i].isEmpty()) {
+            m_items[i].onArmorTick(*world, *m_player);
+        }
+    }
 }
 
 // ============================================================================
@@ -706,7 +713,7 @@ void PlayerInventory::copyInventory(const PlayerInventory& other) {
     m_timesChanged++;
 }
 
-float PlayerInventory::getDestroySpeed(const BlockState& blockState) const {
+f32 PlayerInventory::getDestroySpeed(const BlockState& blockState) const {
     // MC 1.16.5: 获取当前手持物品的挖掘速度
     const ItemStack& selected = getSelectedStack();
     if (selected.isEmpty()) {

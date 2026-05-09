@@ -199,7 +199,7 @@ void Item::onPlayerStoppedUsing(ItemStack& stack, IWorld& world,
 // ============================================================================
 
 void Item::inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
-                          i32 itemSlot, bool isSelected) {
+                          i32 itemSlot, bool isSelected) const {
     // 默认实现：不做任何操作
     // 地图、时钟等会重写此方法
     (void)stack;
@@ -207,6 +207,14 @@ void Item::inventoryTick(ItemStack& stack, IWorld& world, Entity& entity,
     (void)entity;
     (void)itemSlot;
     (void)isSelected;
+}
+
+void Item::onArmorTick(ItemStack& stack, IWorld& world, LivingEntity& player) const {
+    // 默认实现：不做任何操作
+    // 鞘翅等特殊护甲会重写此方法
+    (void)stack;
+    (void)world;
+    (void)player;
 }
 
 void Item::addInformation(const ItemStack& stack, IWorld& world,
