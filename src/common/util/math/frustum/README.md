@@ -112,10 +112,10 @@ void Renderer::renderFrame(const Camera& camera) {
 
 ```cpp
 struct FrustumPlane {
-    Vector3 normal;   // 平面法向量（归一化，指向视锥内部）
+    Vector3f normal;   // 平面法向量（归一化，指向视锥内部）
     f32 distance;     // 平面到原点的距离
 
-    f32 distanceToPoint(const Vector3& point) const;  // 计算点到平面的距离
+    f32 distanceToPoint(const Vector3f& point) const;  // 计算点到平面的距离
     void normalize();                                  // 归一化平面方程
 };
 ```
@@ -132,12 +132,12 @@ public:
     void extractFromMatrices(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix);
 
     // 相机位置设置
-    void setCameraPosition(const Vector3& position);
+    void setCameraPosition(const Vector3f& position);
     void setCameraPosition(const glm::vec3& position);
 
     // 可见性测试
-    bool isPointVisible(const Vector3& point) const;
-    bool isSphereVisible(const Vector3& center, f32 radius) const;
+    bool isPointVisible(const Vector3f& point) const;
+    bool isSphereVisible(const Vector3f& center, f32 radius) const;
     bool isAABBVisible(const AxisAlignedBB& aabb) const;          // 相机相对坐标
     bool isAABBVisibleWorld(const AxisAlignedBB& aabb) const;     // 世界坐标
     bool isChunkVisible(i32 chunkX, i32 chunkZ, i32 minY, i32 maxY) const;
@@ -145,7 +145,7 @@ public:
 
     // 访问器
     const FrustumPlane& getPlane(PlaneIndex index) const;
-    const Vector3& getCameraPosition() const;
+    const Vector3f& getCameraPosition() const;
     bool isValid() const;
 };
 ```
@@ -156,7 +156,7 @@ public:
 namespace FrustumUtils {
     AxisAlignedBB createChunkAABB(i32 chunkX, i32 chunkZ, i32 minY, i32 maxY);
     AxisAlignedBB createSectionAABB(i32 chunkX, i32 sectionY, i32 chunkZ, i32 sectionHeight = 16);
-    AxisAlignedBB createEntityAABB(const Vector3& position, f32 width, f32 height);
+    AxisAlignedBB createEntityAABB(const Vector3f& position, f32 width, f32 height);
     AxisAlignedBB createBlockAABB(i32 x, i32 y, i32 z);
     AxisAlignedBB expandAABB(const AxisAlignedBB& aabb, f32 margin);
 }

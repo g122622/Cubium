@@ -19,7 +19,7 @@ namespace mc::math::frustum {
  * 法向量归一化后，distanceToPoint() 返回点到平面的真实距离。
  */
 struct FrustumPlane {
-    Vector3 normal{0.0f, 0.0f, 0.0f};  ///< 平面法向量（归一化，指向视锥内部）
+    Vector3f normal{0.0f, 0.0f, 0.0f};  ///< 平面法向量（归一化，指向视锥内部）
     f32 distance = 0.0f;               ///< 平面到原点的距离（D 系数）
 
     /**
@@ -28,7 +28,7 @@ struct FrustumPlane {
      * @param point 点坐标
      * @return 正值表示点在平面内侧（视锥内），负值表示在外侧
      */
-    [[nodiscard]] f32 distanceToPoint(const Vector3& point) const noexcept {
+    [[nodiscard]] f32 distanceToPoint(const Vector3f& point) const noexcept {
         return normal.dot(point) + distance;
     }
 
@@ -138,7 +138,7 @@ public:
      *
      * @param position 相机世界位置
      */
-    void setCameraPosition(const Vector3& position) noexcept {
+    void setCameraPosition(const Vector3f& position) noexcept {
         m_cameraPosition = position;
     }
 
@@ -147,7 +147,7 @@ public:
      * @param position 相机世界位置
      */
     void setCameraPosition(const glm::vec3& position) noexcept {
-        m_cameraPosition = Vector3(position.x, position.y, position.z);
+        m_cameraPosition = Vector3f(position.x, position.y, position.z);
     }
 
     // ========== 可见性测试 ==========
@@ -158,7 +158,7 @@ public:
      * @param point 点坐标（世界坐标）
      * @return true 如果点在视锥内或边界上
      */
-    [[nodiscard]] bool isPointVisible(const Vector3& point) const noexcept;
+    [[nodiscard]] bool isPointVisible(const Vector3f& point) const noexcept;
 
     /**
      * @brief 测试点是否在视锥内（glm 版本）
@@ -177,7 +177,7 @@ public:
      * @param radius 球半径
      * @return true 如果球与视锥相交或在视锥内
      */
-    [[nodiscard]] bool isSphereVisible(const Vector3& center, f32 radius) const noexcept;
+    [[nodiscard]] bool isSphereVisible(const Vector3f& center, f32 radius) const noexcept;
 
     /**
      * @brief 测试球是否与视锥相交（glm 版本）
@@ -270,7 +270,7 @@ public:
      * @brief 获取相机位置
      * @return 相机世界位置
      */
-    [[nodiscard]] const Vector3& getCameraPosition() const noexcept {
+    [[nodiscard]] const Vector3f& getCameraPosition() const noexcept {
         return m_cameraPosition;
     }
 
@@ -284,7 +284,7 @@ public:
 
 private:
     std::array<FrustumPlane, PLANE_COUNT> m_planes;
-    Vector3 m_cameraPosition{0.0f, 0.0f, 0.0f};
+    Vector3f m_cameraPosition{0.0f, 0.0f, 0.0f};
     bool m_valid = false;
 };
 
@@ -331,7 +331,7 @@ namespace FrustumUtils {
  * @return 实体 AABB
  */
 [[nodiscard]] AxisAlignedBB createEntityAABB(
-    const Vector3& position,
+    const Vector3f& position,
     f32 width,
     f32 height
 ) noexcept;

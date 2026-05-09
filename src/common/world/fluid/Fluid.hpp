@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include "../../util/math/Vector3.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../util/property/StateContainer.hpp"
 #include <memory>
@@ -11,7 +12,6 @@ namespace mc {
 // 前向声明
 class BlockState;
 class BlockPos;
-class Vector3;
 class CollisionShape;
 class IWorld;
 class IBlockReader;

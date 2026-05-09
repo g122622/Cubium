@@ -32,7 +32,7 @@ Vector3 PhysicsEngine::moveEntity(AxisAlignedBB& entityBox, const Vector3& movem
     if (movement.x == 0.0f && movement.y == 0.0f && movement.z == 0.0f) {
         m_collidedVertically = false;
         m_collidedHorizontally = false;
-        return Vector3::ZERO;
+        return Vector3::zero();
     }
 
     // 保存原始位置用于步进

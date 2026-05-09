@@ -3,12 +3,9 @@
 #include "TargetInfo.hpp"
 
 #include "common/core/BlockRaycastResult.hpp"
+#include "common/util/math/Vector3.hpp"
 
 #include <functional>
-
-namespace mc {
-class Vector3;
-}
 
 namespace mc::client {
 class ClientEntityManager;

@@ -42,41 +42,14 @@ using PtrDiff = std::ptrdiff_t;
 // ============================================================================
 // 向量类型（前向声明）
 // ============================================================================
+// Vector2 和 Vector3 模板类定义在 src/common/util/math/Vector2.hpp 和 Vector3.hpp
+// 完整定义需要包含对应的头文件
 
-// 简单向量类型，用于命令系统等
-// TODO 全部移除，统一使用Z:\mc_dev\branch1\minecraft-reborn\src\common\util\math\Vector3.hpp中的Vector3<T>模板类
-struct Vector3i {
-    i32 x, y, z;
-    Vector3i() : x(0), y(0), z(0) {}
-    Vector3i(i32 x, i32 y, i32 z) : x(x), y(y), z(z) {}
-    bool operator==(const Vector3i& other) const { return x == other.x && y == other.y && z == other.z; }
-    bool operator!=(const Vector3i& other) const { return !(*this == other); }
-};
-
-struct Vector3d {
-    f64 x, y, z;
-    Vector3d() : x(0), y(0), z(0) {}
-    Vector3d(f64 x, f64 y, f64 z) : x(x), y(y), z(z) {}
-    bool operator==(const Vector3d& other) const { return x == other.x && y == other.y && z == other.z; }
-    bool operator!=(const Vector3d& other) const { return !(*this == other); }
-    Vector3d operator-(const Vector3d& other) const { return Vector3d(x - other.x, y - other.y, z - other.z); }
-};
-
-struct Vector3f {
-    f32 x, y, z;
-    Vector3f() : x(0), y(0), z(0) {}
-    Vector3f(f32 x, f32 y, f32 z) : x(x), y(y), z(z) {}
-    bool operator==(const Vector3f& other) const { return x == other.x && y == other.y && z == other.z; }
-    bool operator!=(const Vector3f& other) const { return !(*this == other); }
-};
-
-struct Vector2f {
-    f32 x, y;
-    Vector2f() : x(0), y(0) {}
-    Vector2f(f32 x, f32 y) : x(x), y(y) {}
-    bool operator==(const Vector2f& other) const { return x == other.x && y == other.y; }
-    bool operator!=(const Vector2f& other) const { return !(*this == other); }
-};
+// 前向声明
+namespace math {
+template<typename T> class Vector2;
+template<typename T> class Vector3;
+}
 
 // ============================================================================
 // 游戏特定类型

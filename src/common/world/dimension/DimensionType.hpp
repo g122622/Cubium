@@ -2,6 +2,7 @@
 
 #include "../../core/Types.hpp"
 #include "../../core/Constants.hpp"
+#include "../../util/math/Vector3.hpp"
 #include <string>
 #include <optional>
 

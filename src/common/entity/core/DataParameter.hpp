@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include "../../util/math/Vector2.hpp"
+#include "../../util/math/Vector3.hpp"
 #include <functional>
 #include <variant>
 #include <vector>

@@ -1,49 +1,46 @@
 #pragma once
 
 #include "../../core/Types.hpp"
-#include "MathUtils.hpp"
-
 #include <cmath>
-#include <functional>
+#include <type_traits>
 
 namespace mc {
+namespace math {
 
 /**
- * @brief 2D向量类
+ * @brief 2D向量模板类
  *
  * 用于表示平面位置、方向、UV坐标等2D量。
- * 移动输入（forward, strafe）等场景使用。
+ *
+ * @tparam T 标量类型 (f32, f64, i32, u32 等)
  */
+template<typename T>
 class Vector2 {
 public:
-    f32 x, y;
+    T x, y;
 
     // 构造函数
     Vector2() noexcept
-        : x(0.0f)
-        , y(0.0f)
+        : x(static_cast<T>(0))
+        , y(static_cast<T>(0))
     {
     }
 
-    Vector2(f32 x, f32 y) noexcept
+    Vector2(T x, T y) noexcept
         : x(x)
         , y(y)
     {
     }
 
-    explicit Vector2(f32 value) noexcept
+    explicit Vector2(T value) noexcept
         : x(value)
         , y(value)
     {
     }
 
     // 静态常量
-    static const Vector2 ZERO;
-    static const Vector2 ONE;
-    static const Vector2 UP;
-    static const Vector2 DOWN;
-    static const Vector2 LEFT;
-    static const Vector2 RIGHT;
+    static Vector2 zero() { return Vector2(static_cast<T>(0), static_cast<T>(0)); }
+    static Vector2 one() { return Vector2(static_cast<T>(1), static_cast<T>(1)); }
 
     // 算术运算
     [[nodiscard]] Vector2 operator+(const Vector2& other) const noexcept
@@ -56,7 +53,7 @@ public:
         return {x - other.x, y - other.y};
     }
 
-    [[nodiscard]] Vector2 operator*(f32 scalar) const noexcept
+    [[nodiscard]] Vector2 operator*(T scalar) const noexcept
     {
         return {x * scalar, y * scalar};
     }
@@ -66,7 +63,7 @@ public:
         return {x * other.x, y * other.y};
     }
 
-    [[nodiscard]] Vector2 operator/(f32 scalar) const noexcept
+    [[nodiscard]] Vector2 operator/(T scalar) const noexcept
     {
         return {x / scalar, y / scalar};
     }
@@ -78,29 +75,25 @@ public:
 
     Vector2& operator+=(const Vector2& other) noexcept
     {
-        x += other.x;
-        y += other.y;
+        x += other.x; y += other.y;
         return *this;
     }
 
     Vector2& operator-=(const Vector2& other) noexcept
     {
-        x -= other.x;
-        y -= other.y;
+        x -= other.x; y -= other.y;
         return *this;
     }
 
-    Vector2& operator*=(f32 scalar) noexcept
+    Vector2& operator*=(T scalar) noexcept
     {
-        x *= scalar;
-        y *= scalar;
+        x *= scalar; y *= scalar;
         return *this;
     }
 
-    Vector2& operator/=(f32 scalar) noexcept
+    Vector2& operator/=(T scalar) noexcept
     {
-        x /= scalar;
-        y /= scalar;
+        x /= scalar; y /= scalar;
         return *this;
     }
 
@@ -112,8 +105,7 @@ public:
     // 比较运算
     [[nodiscard]] bool operator==(const Vector2& other) const noexcept
     {
-        return math::approxEqual(x, other.x) &&
-               math::approxEqual(y, other.y);
+        return x == other.x && y == other.y;
     }
 
     [[nodiscard]] bool operator!=(const Vector2& other) const noexcept
@@ -121,33 +113,37 @@ public:
         return !(*this == other);
     }
 
-    // 向量运算
-    [[nodiscard]] f32 length() const noexcept
+    // 向量运算 (仅浮点类型)
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] T length() const noexcept
     {
-        return std::sqrt(x * x + y * y);
+        return static_cast<T>(std::sqrt(static_cast<f64>(x * x + y * y)));
     }
 
-    [[nodiscard]] f32 lengthSquared() const noexcept
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] T lengthSquared() const noexcept
     {
         return x * x + y * y;
     }
 
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] Vector2 normalized() const noexcept
     {
-        const f32 len = length();
-        if (len > math::EPSILON) {
-            const f32 invLen = 1.0f / len;
+        const T len = length();
+        if (len > static_cast<T>(0)) {
+            const T invLen = static_cast<T>(1) / len;
             return {x * invLen, y * invLen};
         }
-        return ZERO;
+        return zero();
     }
 
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     void normalize() noexcept
     {
         *this = normalized();
     }
 
-    [[nodiscard]] f32 dot(const Vector2& other) const noexcept
+    [[nodiscard]] T dot(const Vector2& other) const noexcept
     {
         return x * other.x + y * other.y;
     }
@@ -158,92 +154,110 @@ public:
      * 结果为 this.x * other.y - this.y * other.x
      * 正值表示 other 在 this 的逆时针方向
      */
-    [[nodiscard]] f32 cross(const Vector2& other) const noexcept
+    [[nodiscard]] T cross(const Vector2& other) const noexcept
     {
         return x * other.y - y * other.x;
     }
 
-    [[nodiscard]] f32 distance(const Vector2& other) const noexcept
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] T distance(const Vector2& other) const noexcept
     {
         return (*this - other).length();
     }
 
-    [[nodiscard]] f32 distanceSquared(const Vector2& other) const noexcept
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] T distanceSquared(const Vector2& other) const noexcept
     {
         return (*this - other).lengthSquared();
     }
 
-    [[nodiscard]] Vector2 lerp(const Vector2& target, f32 t) const noexcept
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] Vector2 lerp(const Vector2& target, T t) const noexcept
     {
         return {
-            math::lerp(x, target.x, t),
-            math::lerp(y, target.y, t)
+            x + (target.x - x) * t,
+            y + (target.y - y) * t
         };
     }
 
-    /**
-     * @brief 旋转向量
-     * @param angle 弧度角
-     * @return 旋转后的向量
-     */
-    [[nodiscard]] Vector2 rotated(f32 angle) const noexcept
+    // 浮点类型特化方法
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] Vector2 rotated(T angle) const noexcept
     {
-        const f32 c = std::cos(angle);
-        const f32 s = std::sin(angle);
+        const T c = static_cast<T>(std::cos(static_cast<f64>(angle)));
+        const T s = static_cast<T>(std::sin(static_cast<f64>(angle)));
         return {x * c - y * s, x * s + y * c};
     }
 
-    /**
-     * @brief 获取垂直向量（逆时针旋转90度）
-     */
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] Vector2 perpendicular() const noexcept
     {
         return {-y, x};
     }
 
-    /**
-     * @brief 获取向量角度（弧度）
-     */
-    [[nodiscard]] f32 angle() const noexcept
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] T angle() const noexcept
     {
-        return std::atan2(y, x);
+        return static_cast<T>(std::atan2(static_cast<f64>(y), static_cast<f64>(x)));
     }
 
-    /**
-     * @brief 从角度创建单位向量
-     * @param angle 弧度角
-     * @return 单位向量
-     */
-    [[nodiscard]] static Vector2 fromAngle(f32 angle) noexcept
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] static Vector2 fromAngle(T angle) noexcept
     {
-        return {std::cos(angle), std::sin(angle)};
+        return {static_cast<T>(std::cos(static_cast<f64>(angle))),
+                static_cast<T>(std::sin(static_cast<f64>(angle)))};
+    }
+
+    // 访问器
+    [[nodiscard]] T& operator[](size_t index) noexcept
+    {
+        return index == 0 ? x : y;
+    }
+
+    [[nodiscard]] const T& operator[](size_t index) const noexcept
+    {
+        return index == 0 ? x : y;
+    }
+
+    // 类型转换
+    template<typename U>
+    [[nodiscard]] Vector2<U> cast() const noexcept
+    {
+        return {static_cast<U>(x), static_cast<U>(y)};
     }
 };
 
 // 标量 * 向量
-[[nodiscard]] inline Vector2 operator*(f32 scalar, const Vector2& vec) noexcept
+template<typename T>
+[[nodiscard]] inline Vector2<T> operator*(T scalar, const Vector2<T>& vec) noexcept
 {
     return vec * scalar;
 }
 
-// 静态常量定义
-inline const Vector2 Vector2::ZERO{0.0f, 0.0f};
-inline const Vector2 Vector2::ONE{1.0f, 1.0f};
-inline const Vector2 Vector2::UP{0.0f, 1.0f};
-inline const Vector2 Vector2::DOWN{0.0f, -1.0f};
-inline const Vector2 Vector2::LEFT{-1.0f, 0.0f};
-inline const Vector2 Vector2::RIGHT{1.0f, 0.0f};
+// 类型别名
+using Vector2f = Vector2<f32>;
+using Vector2d = Vector2<f64>;
+using Vector2i = Vector2<i32>;
+
+} // namespace math
+
+// 为了方便使用，在 mc 命名空间也提供别名
+using Vector2f = math::Vector2f;
+using Vector2d = math::Vector2d;
+using Vector2i = math::Vector2i;
+// 向后兼容别名
+using Vector2 = math::Vector2f;
 
 } // namespace mc
 
 // 哈希函数支持
 namespace std {
-template<>
-struct hash<mc::Vector2> {
-    size_t operator()(const mc::Vector2& v) const noexcept
+template<typename T>
+struct hash<mc::math::Vector2<T>> {
+    size_t operator()(const mc::math::Vector2<T>& v) const noexcept
     {
-        size_t h1 = std::hash<float>{}(v.x);
-        size_t h2 = std::hash<float>{}(v.y);
+        size_t h1 = hash<T>{}(v.x);
+        size_t h2 = hash<T>{}(v.y);
         return h1 ^ (h2 << 1);
     }
 };

@@ -16,8 +16,8 @@ namespace mc {
  */
 class Ray {
 public:
-    Vector3 origin;
-    Vector3 direction;
+    Vector3f origin;
+    Vector3f direction;
 
     Ray() = default;
 
@@ -26,7 +26,7 @@ public:
      * @param origin 起点
      * @param direction 方向（应该归一化）
      */
-    Ray(const Vector3& origin, const Vector3& direction)
+    Ray(const Vector3f& origin, const Vector3f& direction)
         : origin(origin)
         , direction(direction)
     {
@@ -37,7 +37,7 @@ public:
      * @param t 距离参数
      * @return 射线上的点 origin + direction * t
      */
-    [[nodiscard]] Vector3 at(f32 t) const noexcept
+    [[nodiscard]] Vector3f at(f32 t) const noexcept
     {
         return origin + direction * t;
     }
@@ -54,18 +54,18 @@ public:
      * @return 射线对象
      */
     [[nodiscard]] static Ray fromAngles(
-        const Vector3& origin, f32 pitchDeg, f32 yawDeg) noexcept
+        const Vector3f& origin, f32 pitchDeg, f32 yawDeg) noexcept
     {
         // 转换为弧度
         const f32 pitchRad = math::toRadians(pitchDeg);
         const f32 yawRad = math::toRadians(yawDeg);
 
-        // 使用Vector3::fromAngles
+        // 使用Vector3f::fromAngles
         // 注意：MC的yaw是从南开始顺时针，我们需要调整
         // MC中 yaw=0 看向南方(正Z)，yaw=90 看向西方(负X)
-        // Vector3::fromAngles: yaw=0 看向X正方向
+        // Vector3f::fromAngles: yaw=0 看向X正方向
         // 所以我们需要将MC的yaw转换为数学角度
-        const Vector3 dir = Vector3::fromAngles(-pitchRad, -yawRad + math::PI * 0.5f);
+        const Vector3f dir = Vector3f::fromAngles(-pitchRad, -yawRad + math::PI * 0.5f);
         return Ray(origin, dir.normalized());
     }
 };

@@ -8,7 +8,6 @@ namespace mc {
 
 // Forward declarations
 class Player;
-class Vector3;
 class BoostHelper;
 class MobEntity;  // MobEntity 定义在 mc 命名空间
 

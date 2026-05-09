@@ -2,6 +2,8 @@
 
 #include "common/core/Types.hpp"
 #include "common/core/Constants.hpp"
+#include "common/util/math/Vector2.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"

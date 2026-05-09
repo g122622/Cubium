@@ -71,7 +71,7 @@ void Frustum::extractFromMatrices(const glm::mat4& projectionMatrix, const glm::
     extractFromMatrix(viewProjection);
 }
 
-bool Frustum::isPointVisible(const Vector3& point) const noexcept {
+bool Frustum::isPointVisible(const Vector3f& point) const noexcept {
     // 点在视锥内当且仅当它在所有 6 个平面的内侧
     for (const auto& plane : m_planes) {
         if (plane.distanceToPoint(point) < 0.0f) {
@@ -90,7 +90,7 @@ bool Frustum::isPointVisible(const glm::vec3& point) const noexcept {
     return true;
 }
 
-bool Frustum::isSphereVisible(const Vector3& center, f32 radius) const noexcept {
+bool Frustum::isSphereVisible(const Vector3f& center, f32 radius) const noexcept {
     // 球与视锥相交当且仅当它不完全在任何平面的外侧
     for (const auto& plane : m_planes) {
         const f32 distance = plane.distanceToPoint(center);
@@ -122,7 +122,7 @@ bool Frustum::isAABBVisible(const AxisAlignedBB& aabb) const noexcept {
 
     for (const auto& plane : m_planes) {
         // 计算 p-vertex
-        const Vector3 pVertex(
+        const Vector3f pVertex(
             plane.normal.x > 0.0f ? aabb.maxX : aabb.minX,
             plane.normal.y > 0.0f ? aabb.maxY : aabb.minY,
             plane.normal.z > 0.0f ? aabb.maxZ : aabb.minZ
@@ -220,7 +220,7 @@ AxisAlignedBB createSectionAABB(i32 chunkX, i32 sectionY, i32 chunkZ, i32 sectio
     );
 }
 
-AxisAlignedBB createEntityAABB(const Vector3& position, f32 width, f32 height) noexcept {
+AxisAlignedBB createEntityAABB(const Vector3f& position, f32 width, f32 height) noexcept {
     const f32 halfWidth = width * 0.5f;
     return AxisAlignedBB(
         position.x - halfWidth,

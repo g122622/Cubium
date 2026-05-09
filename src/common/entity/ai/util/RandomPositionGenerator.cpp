@@ -23,7 +23,7 @@ bool RandomPositionGenerator::findRandomTarget(
     i32 yRange,
     Vector3& outPos
 ) {
-    return findRandomTargetTowards(creature, xzRange, yRange, Vector3::ZERO, outPos);
+    return findRandomTargetTowards(creature, xzRange, yRange, Vector3::zero(), outPos);
 }
 
 bool RandomPositionGenerator::findRandomTargetBlockAwayFrom(
@@ -268,7 +268,7 @@ Vector3 RandomPositionGenerator::generateRandomOffset(
     i32 yRange,
     const Vector3& directionBias
 ) {
-    if (!creature) return Vector3::ZERO;
+    if (!creature) return Vector3::zero();
 
     Random rng = creature->getRandom();
 

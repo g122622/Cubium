@@ -4,50 +4,49 @@
 #include "MathUtils.hpp"
 
 #include <cmath>
+#include <type_traits>
 #include <functional>
 
 namespace mc {
+namespace math {
 
 /**
- * @brief 3D向量类
+ * @brief 3D向量模板类
  *
  * 用于表示位置、方向、速度等3D量
+ *
+ * @tparam T 标量类型 (f32, f64, i32, u32 等)
  */
+template<typename T>
 class Vector3 {
 public:
-    f32 x, y, z;
+    T x, y, z;
 
     // 构造函数
     Vector3() noexcept
-        : x(0.0f)
-        , y(0.0f)
-        , z(0.0f)
+        : x(static_cast<T>(0))
+        , y(static_cast<T>(0))
+        , z(static_cast<T>(0))
     {
     }
 
-    Vector3(f32 x, f32 y, f32 z) noexcept
+    Vector3(T x, T y, T z) noexcept
         : x(x)
         , y(y)
         , z(z)
     {
     }
 
-    explicit Vector3(f32 value) noexcept
+    explicit Vector3(T value) noexcept
         : x(value)
         , y(value)
         , z(value)
     {
     }
 
-    // 静态常量
-    static const Vector3 ZERO;
-    static const Vector3 ONE;
-    static const Vector3 UP;
-    static const Vector3 DOWN;
-    static const Vector3 LEFT;
-    static const Vector3 RIGHT;
-    static const Vector3 FORWARD;
-    static const Vector3 BACK;
+    // 静态常量方法
+    static Vector3 zero() { return Vector3(static_cast<T>(0), static_cast<T>(0), static_cast<T>(0)); }
+    static Vector3 one() { return Vector3(static_cast<T>(1), static_cast<T>(1), static_cast<T>(1)); }
 
     // 算术运算
     [[nodiscard]] Vector3 operator+(const Vector3& other) const noexcept
@@ -60,7 +59,7 @@ public:
         return {x - other.x, y - other.y, z - other.z};
     }
 
-    [[nodiscard]] Vector3 operator*(f32 scalar) const noexcept
+    [[nodiscard]] Vector3 operator*(T scalar) const noexcept
     {
         return {x * scalar, y * scalar, z * scalar};
     }
@@ -70,7 +69,7 @@ public:
         return {x * other.x, y * other.y, z * other.z};
     }
 
-    [[nodiscard]] Vector3 operator/(f32 scalar) const noexcept
+    [[nodiscard]] Vector3 operator/(T scalar) const noexcept
     {
         return {x / scalar, y / scalar, z / scalar};
     }
@@ -82,33 +81,25 @@ public:
 
     Vector3& operator+=(const Vector3& other) noexcept
     {
-        x += other.x;
-        y += other.y;
-        z += other.z;
+        x += other.x; y += other.y; z += other.z;
         return *this;
     }
 
     Vector3& operator-=(const Vector3& other) noexcept
     {
-        x -= other.x;
-        y -= other.y;
-        z -= other.z;
+        x -= other.x; y -= other.y; z -= other.z;
         return *this;
     }
 
-    Vector3& operator*=(f32 scalar) noexcept
+    Vector3& operator*=(T scalar) noexcept
     {
-        x *= scalar;
-        y *= scalar;
-        z *= scalar;
+        x *= scalar; y *= scalar; z *= scalar;
         return *this;
     }
 
-    Vector3& operator/=(f32 scalar) noexcept
+    Vector3& operator/=(T scalar) noexcept
     {
-        x /= scalar;
-        y /= scalar;
-        z /= scalar;
+        x /= scalar; y /= scalar; z /= scalar;
         return *this;
     }
 
@@ -120,9 +111,7 @@ public:
     // 比较运算
     [[nodiscard]] bool operator==(const Vector3& other) const noexcept
     {
-        return math::approxEqual(x, other.x) &&
-               math::approxEqual(y, other.y) &&
-               math::approxEqual(z, other.z);
+        return x == other.x && y == other.y && z == other.z;
     }
 
     [[nodiscard]] bool operator!=(const Vector3& other) const noexcept
@@ -130,38 +119,43 @@ public:
         return !(*this == other);
     }
 
-    // 向量运算
-    [[nodiscard]] f32 length() const noexcept
+    // 向量运算 (仅浮点类型)
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] T length() const noexcept
     {
-        return std::sqrt(x * x + y * y + z * z);
+        return static_cast<T>(std::sqrt(static_cast<f64>(x * x + y * y + z * z)));
     }
 
-    [[nodiscard]] f32 lengthSquared() const noexcept
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] T lengthSquared() const noexcept
     {
         return x * x + y * y + z * z;
     }
 
-    [[nodiscard]] f32 lengthHorizontal() const noexcept
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] T lengthHorizontal() const noexcept
     {
-        return std::sqrt(x * x + z * z);
+        return static_cast<T>(std::sqrt(static_cast<f64>(x * x + z * z)));
     }
 
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] Vector3 normalized() const noexcept
     {
-        const f32 len = length();
-        if (len > math::EPSILON) {
-            const f32 invLen = 1.0f / len;
+        const T len = length();
+        if (len > static_cast<T>(EPSILON)) {
+            const T invLen = static_cast<T>(1) / len;
             return {x * invLen, y * invLen, z * invLen};
         }
-        return ZERO;
+        return zero();
     }
 
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     void normalize() noexcept
     {
         *this = normalized();
     }
 
-    [[nodiscard]] f32 dot(const Vector3& other) const noexcept
+    [[nodiscard]] T dot(const Vector3& other) const noexcept
     {
         return x * other.x + y * other.y + z * other.z;
     }
@@ -175,106 +169,150 @@ public:
         };
     }
 
-    [[nodiscard]] f32 distance(const Vector3& other) const noexcept
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] T distance(const Vector3& other) const noexcept
     {
         return (*this - other).length();
     }
 
-    [[nodiscard]] f32 distanceSquared(const Vector3& other) const noexcept
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] T distanceSquared(const Vector3& other) const noexcept
     {
         return (*this - other).lengthSquared();
     }
 
-    [[nodiscard]] f32 distanceHorizontal(const Vector3& other) const noexcept
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] T distanceHorizontal(const Vector3& other) const noexcept
     {
-        const f32 dx = x - other.x;
-        const f32 dz = z - other.z;
-        return std::sqrt(dx * dx + dz * dz);
+        const T dx = x - other.x;
+        const T dz = z - other.z;
+        return static_cast<T>(std::sqrt(static_cast<f64>(dx * dx + dz * dz)));
     }
 
-    [[nodiscard]] Vector3 lerp(const Vector3& target, f32 t) const noexcept
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] Vector3 lerp(const Vector3& target, T t) const noexcept
     {
         return {
-            math::lerp(x, target.x, t),
-            math::lerp(y, target.y, t),
-            math::lerp(z, target.z, t)
+            lerp(x, target.x, t),
+            lerp(y, target.y, t),
+            lerp(z, target.z, t)
         };
     }
 
-    // 角度计算
-    [[nodiscard]] f32 pitch() const noexcept
+    // 角度计算 (仅浮点类型)
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] T pitch() const noexcept
     {
-        return -std::asin(y / length());
+        return static_cast<T>(-std::asin(static_cast<f64>(y / length())));
     }
 
-    [[nodiscard]] f32 yaw() const noexcept
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] T yaw() const noexcept
     {
-        return std::atan2(z, x);
+        return static_cast<T>(std::atan2(static_cast<f64>(z), static_cast<f64>(x)));
     }
 
-    // 从角度创建方向向量
-    [[nodiscard]] static Vector3 fromAngles(f32 pitch, f32 yaw) noexcept
+    // 从角度创建方向向量 (仅浮点类型)
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] static Vector3 fromAngles(T pitch, T yaw) noexcept
     {
-        const f32 cosPitch = std::cos(pitch);
+        const T cosPitch = static_cast<T>(std::cos(static_cast<f64>(pitch)));
         return {
-            cosPitch * std::cos(yaw),
-            -std::sin(pitch),
-            cosPitch * std::sin(yaw)
+            cosPitch * static_cast<T>(std::cos(static_cast<f64>(yaw))),
+            static_cast<T>(-std::sin(static_cast<f64>(pitch))),
+            cosPitch * static_cast<T>(std::sin(static_cast<f64>(yaw)))
         };
     }
 
-    // 坐标转换
+    // 浮点类型特化方法：坐标转换（向下取整到方块坐标）
+    // 对于整数类型 Vector3i，直接访问 x/y/z 成员即可
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] BlockCoord blockX() const noexcept { return static_cast<BlockCoord>(std::floor(x)); }
+
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] BlockCoord blockY() const noexcept { return static_cast<BlockCoord>(std::floor(y)); }
+
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] BlockCoord blockZ() const noexcept { return static_cast<BlockCoord>(std::floor(z)); }
 
-    // 取整
+    // 浮点类型特化方法：取整
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] Vector3 floored() const noexcept
     {
-        return {static_cast<f32>(std::floor(x)),
-                static_cast<f32>(std::floor(y)),
-                static_cast<f32>(std::floor(z))};
+        return {static_cast<T>(std::floor(x)),
+                static_cast<T>(std::floor(y)),
+                static_cast<T>(std::floor(z))};
     }
 
+    template<typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] Vector3 ceiled() const noexcept
     {
-        return {static_cast<f32>(std::ceil(x)),
-                static_cast<f32>(std::ceil(y)),
-                static_cast<f32>(std::ceil(z))};
+        return {static_cast<T>(std::ceil(x)),
+                static_cast<T>(std::ceil(y)),
+                static_cast<T>(std::ceil(z))};
+    }
+
+    // 访问器
+    [[nodiscard]] T& operator[](size_t index) noexcept
+    {
+        switch (index) {
+            case 0: return x;
+            case 1: return y;
+            default: return z;
+        }
+    }
+
+    [[nodiscard]] const T& operator[](size_t index) const noexcept
+    {
+        switch (index) {
+            case 0: return x;
+            case 1: return y;
+            default: return z;
+        }
+    }
+
+    // 类型转换
+    template<typename U>
+    [[nodiscard]] Vector3<U> cast() const noexcept
+    {
+        return {static_cast<U>(x), static_cast<U>(y), static_cast<U>(z)};
     }
 };
 
 // 标量 * 向量
-[[nodiscard]] inline Vector3 operator*(f32 scalar, const Vector3& vec) noexcept
+template<typename T>
+[[nodiscard]] inline Vector3<T> operator*(T scalar, const Vector3<T>& vec) noexcept
 {
     return vec * scalar;
 }
 
-// 静态常量定义
-inline const Vector3 Vector3::ZERO{0.0f, 0.0f, 0.0f};
-inline const Vector3 Vector3::ONE{1.0f, 1.0f, 1.0f};
-inline const Vector3 Vector3::UP{0.0f, 1.0f, 0.0f};
-inline const Vector3 Vector3::DOWN{0.0f, -1.0f, 0.0f};
-inline const Vector3 Vector3::LEFT{-1.0f, 0.0f, 0.0f};
-inline const Vector3 Vector3::RIGHT{1.0f, 0.0f, 0.0f};
-inline const Vector3 Vector3::FORWARD{0.0f, 0.0f, 1.0f};
-inline const Vector3 Vector3::BACK{0.0f, 0.0f, -1.0f};
-
 // 类型别名
-using Position = Vector3;
-using Velocity = Vector3;
+using Vector3f = Vector3<f32>;
+using Vector3d = Vector3<f64>;
+using Vector3i = Vector3<i32>;
+
+} // namespace math
+
+// 为了方便使用，在 mc 命名空间也提供别名
+using Vector3f = math::Vector3f;
+using Vector3d = math::Vector3d;
+using Vector3i = math::Vector3i;
+// 向后兼容别名
+using Vector3 = math::Vector3f;
+using Position = math::Vector3f;
+using Velocity = math::Vector3f;
 
 } // namespace mc
 
 // 哈希函数支持
 namespace std {
-template<>
-struct hash<mc::Vector3> {
-    size_t operator()(const mc::Vector3& v) const noexcept
+template<typename T>
+struct hash<mc::math::Vector3<T>> {
+    size_t operator()(const mc::math::Vector3<T>& v) const noexcept
     {
-        size_t h1 = std::hash<float>{}(v.x);
-        size_t h2 = std::hash<float>{}(v.y);
-        size_t h3 = std::hash<float>{}(v.z);
+        size_t h1 = hash<T>{}(v.x);
+        size_t h2 = hash<T>{}(v.y);
+        size_t h3 = hash<T>{}(v.z);
         return h1 ^ (h2 << 1) ^ (h3 << 2);
     }
 };
