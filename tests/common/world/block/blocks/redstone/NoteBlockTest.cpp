@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "common/world/IWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
@@ -109,6 +110,14 @@ public:
 
     [[nodiscard]] const math::Random& getRandom() const override {
         throw std::runtime_error("NoteBlockTestWorld::getRandom const not implemented");
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("NoteBlockTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("NoteBlockTestWorld::worldBorder not implemented");
     }
 
     void setBlockAt(const BlockPos& pos, const BlockState& state) {

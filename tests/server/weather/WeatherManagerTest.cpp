@@ -4,6 +4,7 @@
 #include "common/world/weather/WeatherConstants.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/chunk/ChunkData.hpp"
@@ -94,6 +95,14 @@ public:
     }
     [[nodiscard]] const math::Random& getRandom() const override {
         throw std::runtime_error("WeatherUtilsTestWorld::getRandom not implemented");
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("WeatherUtilsTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("WeatherUtilsTestWorld::worldBorder not implemented");
     }
 
 private:

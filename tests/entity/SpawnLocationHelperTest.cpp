@@ -2,6 +2,7 @@
 
 #include "common/entity/entities/player/SpawnLocationHelper.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
@@ -125,6 +126,14 @@ public:
     }
     [[nodiscard]] const math::Random& getRandom() const override {
         throw std::runtime_error("SpawnLocationTestWorld::getRandom not implemented");
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("SpawnLocationTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("SpawnLocationTestWorld::worldBorder not implemented");
     }
 
 private:

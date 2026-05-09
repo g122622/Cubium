@@ -5,6 +5,7 @@
 #include "common/util/property/FluidProperties.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/util/property/Properties.hpp"
@@ -87,6 +88,14 @@ public:
     }
     [[nodiscard]] const math::Random& getRandom() const override {
         throw std::runtime_error("FlowingFluidTestWorld::getRandom not implemented");
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("FlowingFluidTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("FlowingFluidTestWorld::worldBorder not implemented");
     }
 
 private:

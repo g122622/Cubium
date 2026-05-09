@@ -6,6 +6,7 @@
 #include "common/item/Items.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/blocks/CauldronBlock.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -74,6 +75,14 @@ public:
     }
     [[nodiscard]] const math::Random& getRandom() const override {
         throw std::runtime_error("GlassBottleTestWorld::getRandom not implemented");
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("GlassBottleTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("GlassBottleTestWorld::worldBorder not implemented");
     }
 
 private:

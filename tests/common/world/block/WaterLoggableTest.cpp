@@ -16,6 +16,7 @@
 #include "world/block/VanillaBlocks.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/IWorld.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include "world/fluid/FluidTags.hpp"
@@ -129,6 +130,14 @@ public:
 
     [[nodiscard]] math::Random& getRandom() override { return m_random; }
     [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("WaterlogTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("WaterlogTestWorld::worldBorder not implemented");
+    }
 
 private:
     [[nodiscard]] static i64 packPos(i32 x, i32 y, i32 z) {

@@ -3,6 +3,7 @@
 #include "common/world/village/Village.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -87,6 +88,14 @@ public:
     }
     [[nodiscard]] const math::Random& getRandom() const override {
         return m_random;
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("VillageTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("VillageTestWorld::worldBorder not implemented");
     }
 
     // 实体管理

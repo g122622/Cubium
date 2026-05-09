@@ -6,6 +6,7 @@
 #include "world/block/BlockRegistry.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include "world/IWorld.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "world/IWorldWriter.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/chunk/ChunkData.hpp"
@@ -151,6 +152,14 @@ public:
     [[nodiscard]] const math::Random& getRandom() const override {
         static math::Random rng(0);
         return rng;
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("EnchantingTableTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("EnchantingTableTestWorld::worldBorder not implemented");
     }
 
 private:

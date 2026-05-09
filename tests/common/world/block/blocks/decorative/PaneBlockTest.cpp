@@ -6,6 +6,7 @@
 #include "world/block/VanillaBlocks.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/IWorld.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include "world/fluid/FluidTags.hpp"
@@ -117,6 +118,14 @@ public:
     }
     [[nodiscard]] const math::Random& getRandom() const override {
         return m_random;
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("PaneTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("PaneTestWorld::worldBorder not implemented");
     }
 
 private:

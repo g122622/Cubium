@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../settings/DimensionSettings.hpp"
+#include "../../border/WorldBorder.hpp"
 #include "../../chunk/ChunkStatus.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../../biome/Biome.hpp"
@@ -362,6 +363,13 @@ public:
     [[nodiscard]] math::Random& getRandom() override { return m_random; }
     [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
 
+    /**
+     * @brief 获取世界边界
+     * @note 生成区域使用默认世界边界
+     */
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+
     // === 生成区域特有方法 ===
 
     /**
@@ -426,6 +434,7 @@ private:
     bool m_hardcore = false;
     Difficulty m_difficulty = Difficulty::Normal;
     math::Random m_random;
+    world::border::WorldBorder m_worldBorder;
 
     // 将世界坐标转换为区块索引
     [[nodiscard]] i32 worldToChunkIndex(i32 x, i32 z) const;

@@ -11,6 +11,7 @@
 #include "../src/common/item/core/ItemRegistry.hpp"
 #include "../src/common/item/Items.hpp"
 #include "../src/common/world/IWorld.hpp"
+#include "../src/common/world/border/WorldBorder.hpp"
 #include "../src/common/world/chunk/ChunkData.hpp"
 #include "../src/common/world/fluid/Fluid.hpp"
 #include "../src/common/world/tick/manager/TickManager.hpp"
@@ -81,6 +82,14 @@ public:
     }
     [[nodiscard]] const math::Random& getRandom() const override {
         throw std::runtime_error("ArmorTestWorld::getRandom not implemented");
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("ArmorTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("ArmorTestWorld::worldBorder not implemented");
     }
 
 private:

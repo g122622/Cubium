@@ -3,6 +3,7 @@
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "world/IWorld.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/block/blocks/functional/LecternBlock.hpp"
@@ -104,6 +105,14 @@ public:
     }
     [[nodiscard]] const math::Random& getRandom() const override {
         throw std::runtime_error("LecternTestWorld::getRandom not implemented");
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("LecternTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("LecternTestWorld::worldBorder not implemented");
     }
 
 private:

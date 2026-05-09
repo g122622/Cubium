@@ -5,6 +5,7 @@
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -80,6 +81,14 @@ public:
     }
     [[nodiscard]] math::Random& getRandom() override {
         throw std::runtime_error("DespawnTestWorld::getRandom not implemented");
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("DespawnTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("DespawnTestWorld::worldBorder not implemented");
     }
 
     void setCurrentTick(u64 tick) { m_currentTick = tick; }

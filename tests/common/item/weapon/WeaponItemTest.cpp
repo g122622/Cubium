@@ -9,6 +9,7 @@
 #include "common/item/core/UseAction.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -61,6 +62,14 @@ public:
 
     [[nodiscard]] math::Random& getRandom() override { return m_random; }
     [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("WeaponTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("WeaponTestWorld::worldBorder not implemented");
+    }
 
     [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
         m_spawnedEntities.push_back(entity.get());

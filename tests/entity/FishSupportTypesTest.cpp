@@ -7,6 +7,7 @@
 #include "common/entity/entities/passive/fish/TropicalFishEntity.hpp"
 #include "common/entity/ai/goal/goals/movement/FollowSchoolLeaderGoal.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/util/math/random/Random.hpp"
 
 namespace mc {
@@ -88,6 +89,14 @@ public:
     }
     [[nodiscard]] const math::Random& getRandom() const override {
         return m_random;
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("TestFishWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("TestFishWorld::worldBorder not implemented");
     }
 
 private:

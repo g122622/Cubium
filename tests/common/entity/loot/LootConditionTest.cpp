@@ -9,6 +9,7 @@
 #include "item/core/ItemRegistry.hpp"
 #include "item/Items.hpp"
 #include "world/IWorld.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "world/chunk/ChunkData.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/VanillaBlocks.hpp"
@@ -64,6 +65,14 @@ public:
     }
     [[nodiscard]] const math::Random& getRandom() const override {
         throw std::runtime_error("LootConditionTestWorld::getRandom not implemented");
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("LootConditionTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("LootConditionTestWorld::worldBorder not implemented");
     }
 };
 

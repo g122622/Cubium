@@ -4,6 +4,7 @@
 #include "entity/damage/DamageSource.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "physics/PhysicsEngine.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/chunk/ChunkData.hpp"
@@ -129,6 +130,14 @@ public:
     }
     [[nodiscard]] const math::Random& getRandom() const override {
         throw std::runtime_error("GroundSupportWorld::getRandom not implemented");
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("GroundSupportWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("GroundSupportWorld::worldBorder not implemented");
     }
 
 private:

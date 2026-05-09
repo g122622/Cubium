@@ -1,6 +1,9 @@
 #include "RabbitEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/Items.hpp"
+#include "../../../../item/items/block/BlockItemRegistry.hpp"
+#include "../../../../world/block/VanillaBlocks.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
@@ -12,7 +15,9 @@
 #include "../../../ai/goal/goals/LookAtGoal.hpp"  // 包含 LookRandomlyGoal
 #include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../entities/monster/MonsterEntity.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../player/Player.hpp"
 
 namespace mc {
 
@@ -47,21 +52,63 @@ void RabbitEntity::setRandomRabbitType() {
 }
 
 bool RabbitEntity::isBreedingItem(const ItemStack& itemStack) const {
-    // TODO: 检查是否是胡萝卜、金胡萝卜或蒲公英
-    // return itemStack.getItem() == Items::CARROT
-    //     || itemStack.getItem() == Items::GOLDEN_CARROT
-    //     || itemStack.getItem() == Items::DANDELION;
-    (void)itemStack;
+    // MC 1.16.5: RabbitEntity.isBreedingItem()
+    // 兔子用胡萝卜、金胡萝卜、蒲公英繁殖
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) return false;
+
+    // 检查胡萝卜和金胡萝卜
+    if (item == Items::CARROT || item == Items::GOLDEN_CARROT) {
+        return true;
+    }
+
+    // 检查蒲公英（方块物品）
+    // DANDELION 是方块，需要通过 BlockItemRegistry 获取对应的物品
+    const Block* block = BlockItemRegistry::instance().getBlock(item->itemId());
+    if (block != nullptr && block == VanillaBlocks::DANDELION) {
+        return true;
+    }
+
     return false;
 }
 
-std::unique_ptr<AnimalEntity> RabbitEntity::spawnBaby(AnimalEntity& /*partner*/) {
-    // TODO: 创建小兔子
-    // auto baby = std::make_unique<RabbitEntity>(LegacyEntityType::Unknown, 0);
-    // baby->setChild(true);
-    // baby->setRabbitType(m_rabbitType); // 继承父母的皮肤类型
-    // return baby;
-    return nullptr;
+std::unique_ptr<AnimalEntity> RabbitEntity::spawnBaby(AnimalEntity& partner) {
+    // MC 1.16.5: RabbitEntity.createChild()
+    auto baby = std::make_unique<RabbitEntity>(LegacyEntityType::Unknown, 0);
+
+    // 设置为幼体
+    baby->setChild(true);
+
+    // MC 1.16.5: 类型继承逻辑
+    // 5% 概率随机生成类型（根据群系），95% 从父母继承
+    math::Random rng = getRandom();
+    RabbitType babyType;
+
+    if (rng.nextInt(20) == 0) {
+        // 5% 概率：随机类型（实际应该根据群系决定，这里简化处理）
+        baby->setRandomRabbitType();
+        babyType = baby->getRabbitType();
+    } else {
+        // 95% 概率：从父母继承
+        // 50% 概率继承自己，50% 概率继承配偶
+        if (rng.nextBoolean()) {
+            babyType = m_rabbitType;
+        } else {
+            // 尝试从配偶获取类型
+            RabbitEntity* partnerRabbit = dynamic_cast<RabbitEntity*>(&partner);
+            if (partnerRabbit != nullptr) {
+                babyType = partnerRabbit->getRabbitType();
+            } else {
+                babyType = m_rabbitType;
+            }
+        }
+        baby->setRabbitType(babyType);
+    }
+
+    // 设置位置
+    baby->setPosition(x(), y(), z());
+
+    return baby;
 }
 
 void RabbitEntity::setJumping(bool jumping) {
@@ -112,14 +159,73 @@ void RabbitEntity::registerGoals() {
     // 优先级 1: 恐慌逃跑（兔子逃跑速度更快）
     m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 2.2));
 
-    // 优先级 2: 逃离玩家（野生兔子） - TODO: 需要 AvoidEntityGoal
-    // m_goalSelector.addGoal(2, new entity::ai::goal::AvoidEntityGoal(this, Player.class, 8.0f, 2.2, 2.2));
+    // MC 1.16.5: 兔子逃离玩家、狼和怪物（杀手兔不逃离）
+    // 优先级 2: 逃离玩家（8格，速度2.2）
+    m_goalSelector.addGoal(2, new entity::ai::goal::AvoidEntityGoal(
+        this,
+        8.0f,   // avoidDistance - 检测玩家的距离
+        2.2,    // farSpeed - 远距离逃跑速度
+        2.2,    // nearSpeed - 近距离逃跑速度
+        [this](const LivingEntity* entity) -> bool {
+            // 杀手兔不逃离
+            if (isKillerRabbit()) return false;
+            // 检查是否是玩家
+            return dynamic_cast<const Player*>(entity) != nullptr;
+        }
+    ));
+
+    // 优先级 2: 逃离狼（10格，速度2.2）
+    // 注意：狼是 WolfEntity，需要检查 LegacyEntityType::Wolf
+    m_goalSelector.addGoal(2, new entity::ai::goal::AvoidEntityGoal(
+        this,
+        10.0f,  // avoidDistance - 检测狼的距离
+        2.2,    // farSpeed
+        2.2,    // nearSpeed
+        [this](const LivingEntity* entity) -> bool {
+            if (isKillerRabbit()) return false;
+            return entity->legacyType() == LegacyEntityType::Wolf;
+        }
+    ));
+
+    // 优先级 2: 逃离怪物（4格，速度2.2）
+    m_goalSelector.addGoal(2, new entity::ai::goal::AvoidEntityGoal(
+        this,
+        4.0f,   // avoidDistance - 检测怪物的距离
+        2.2,    // farSpeed
+        2.2,    // nearSpeed
+        [this](const LivingEntity* entity) -> bool {
+            if (isKillerRabbit()) return false;
+            // 检查是否是敌对生物（MonsterEntity 的子类）
+            // MC 1.16.5: MonsterEntity.class
+            return dynamic_cast<const MonsterEntity*>(entity) != nullptr;
+        }
+    ));
 
     // 优先级 3: 繁殖
     m_goalSelector.addGoal(3, new entity::ai::goal::BreedGoal(this, 1.0));
 
     // 优先级 4: 食物诱惑（胡萝卜、金胡萝卜、蒲公英）
-    // TODO: 实现兔子的食物诱惑
+    // MC 1.16.5: TemptGoal 使用 TemptGoal(this, 1.0D, Ingredient.fromItems(Items.CARROT, Items.GOLDEN_CARROT, Blocks.DANDELION), false)
+    m_goalSelector.addGoal(4, std::make_unique<::mc::entity::ai::goal::TemptGoal>(
+        this, 1.0,
+        [](const ItemStack& stack) -> bool {
+            const Item* item = stack.getItem();
+            if (item == nullptr) return false;
+
+            // 胡萝卜和金胡萝卜
+            if (item == Items::CARROT || item == Items::GOLDEN_CARROT) {
+                return true;
+            }
+
+            // 蒲公英（方块物品）
+            const Block* block = BlockItemRegistry::instance().getBlock(item->itemId());
+            if (block != nullptr && block == VanillaBlocks::DANDELION) {
+                return true;
+            }
+
+            return false;
+        },
+        false));  // scaredByMovement = false
 
     // 优先级 5: 跟随父母
     m_goalSelector.addGoal(5, new entity::ai::goal::FollowParentGoal(this, 1.1));

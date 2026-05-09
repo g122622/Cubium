@@ -6,6 +6,7 @@
 #include "item/core/ItemRegistry.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "world/WorldConstants.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
@@ -150,6 +151,14 @@ public:
     }
     [[nodiscard]] const math::Random& getRandom() const override {
         throw std::runtime_error("DummyWorld::getRandom not implemented");
+    }
+
+    // WorldBorder interface (stubbed)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("DummyWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("DummyWorld::worldBorder not implemented");
     }
 
 private:

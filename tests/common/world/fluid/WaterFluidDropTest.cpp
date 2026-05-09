@@ -5,6 +5,7 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/entity/EntityManager.hpp"
@@ -136,6 +137,15 @@ public:
 
     [[nodiscard]] math::Random& getRandom() override { return m_random; }
     [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+    // ========== WorldBorder 接口 ==========
+
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("WaterFluidTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("WaterFluidTestWorld::worldBorder not implemented");
+    }
 
     // ========== Entity 管理 ==========
 
