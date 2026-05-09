@@ -195,6 +195,7 @@ enum class PathNodeType : u8 {
  * - DAMAGE_FIRE, DANGER_FIRE -> DANGER_FIRE
  * - DAMAGE_CACTUS, DANGER_CACTUS -> DANGER_CACTUS
  * - DAMAGE_OTHER, DANGER_OTHER -> DANGER_OTHER
+ * - DANGER_BERRY -> DANGER_BERRY (MC 1.15+)
  * - LAVA -> DAMAGE_FIRE
  * - 其他 -> null
  *
@@ -212,6 +213,8 @@ enum class PathNodeType : u8 {
         case PathNodeType::DamageOther:
         case PathNodeType::DangerOther:
             return PathNodeType::DangerOther;
+        case PathNodeType::DangerBerry:
+            return PathNodeType::DangerBerry;
         case PathNodeType::Lava:
             return PathNodeType::DamageFire;
         default:

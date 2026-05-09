@@ -1,6 +1,10 @@
 #include "WalkNodeProcessor.hpp"
 #include "../../../core/Constants.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
+#include "../../../world/block/BlockTags.hpp"
+#include "../../../world/block/blocks/decorative/CampfireBlock.hpp"
 #include "../../core/LivingEntity.hpp"
 #include <cmath>
 
@@ -26,6 +30,38 @@ PathNodeType WalkNodeProcessor::getNodeType(i32 x, i32 y, i32 z) {
     // 检查岩浆
     if (m_region->isLava(x, y, z)) {
         return PathNodeType::Lava;
+    }
+
+    // MC 1.16.5 func_237238_b_: 检查危险方块类型
+    // 获取方块状态进行更详细的检查
+    const BlockState* state = m_region->getBlockState(x, y, z);
+    if (state != nullptr) {
+        const Block& block = state->getBlock();
+
+        // 仙人掌 - 直接站在仙人掌上（DAMAGE_CACTUS）
+        if (VanillaBlocks::CACTUS != nullptr && &block == VanillaBlocks::CACTUS) {
+            return PathNodeType::DamageCactus;
+        }
+
+        // 甜浆果丛 - 直接站在甜浆果丛上（DAMAGE_OTHER）
+        Block* sweetBerryBush = Block::getBlock(ResourceLocation("minecraft", "sweet_berry_bush"));
+        if (sweetBerryBush != nullptr && &block == sweetBerryBush) {
+            return PathNodeType::DamageOther;
+        }
+
+        // 火焰/岩浆块/点燃的营火 - 直接站在危险火源上（DAMAGE_FIRE）
+        if (BlockTags::FIRE().contains(block)) {
+            return PathNodeType::DamageFire;
+        }
+        if (VanillaBlocks::MAGMA != nullptr && &block == VanillaBlocks::MAGMA) {
+            return PathNodeType::DamageFire;
+        }
+        if ((VanillaBlocks::CAMPFIRE != nullptr && &block == VanillaBlocks::CAMPFIRE) ||
+            (VanillaBlocks::SOUL_CAMPFIRE != nullptr && &block == VanillaBlocks::SOUL_CAMPFIRE)) {
+            if (blocks::CampfireBlock::isLit(*state)) {
+                return PathNodeType::DamageFire;
+            }
+        }
     }
 
     // 检查是否可行走
@@ -56,6 +92,60 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z) {
 
     if (type == PathNodeType::Blocked) {
         return PathNodeType::Blocked;
+    }
+
+    // MC 1.16.5 func_237232_a_: 检查相邻危险方块
+    // 当当前位置是可行走的或开放的时，检查周围是否有危险方块
+    if (type == PathNodeType::Walkable || type == PathNodeType::Open) {
+        // 检查 3x3x3 相邻区域（包括上下）
+        for (i32 dx = -1; dx <= 1; ++dx) {
+            for (i32 dy = -1; dy <= 1; ++dy) {
+                for (i32 dz = -1; dz <= 1; ++dz) {
+                    // 跳过自身
+                    if (dx == 0 && dy == 0 && dz == 0) continue;
+
+                    i32 nx = x + dx;
+                    i32 ny = y + dy;
+                    i32 nz = z + dz;
+
+                    // 检查危险方块类型
+                    const BlockState* neighborState = m_region->getBlockState(nx, ny, nz);
+                    if (neighborState == nullptr) continue;
+
+                    const Block& neighborBlock = neighborState->getBlock();
+
+                    // 仙人掌相邻 - DANGER_CACTUS
+                    if (VanillaBlocks::CACTUS != nullptr && &neighborBlock == VanillaBlocks::CACTUS) {
+                        return PathNodeType::DangerCactus;
+                    }
+
+                    // 甜浆果丛相邻 - DANGER_OTHER (MC 1.15+ 使用 DANGER_BERRY，但我们的枚举有这个)
+                    Block* sweetBerryBush = Block::getBlock(ResourceLocation("minecraft", "sweet_berry_bush"));
+                    if (sweetBerryBush != nullptr && &neighborBlock == sweetBerryBush) {
+                        return PathNodeType::DangerBerry;
+                    }
+
+                    // 火焰/岩浆块/点燃的营火相邻 - DANGER_FIRE
+                    if (BlockTags::FIRE().contains(neighborBlock)) {
+                        return PathNodeType::DangerFire;
+                    }
+                    if (VanillaBlocks::MAGMA != nullptr && &neighborBlock == VanillaBlocks::MAGMA) {
+                        return PathNodeType::DangerFire;
+                    }
+                    if ((VanillaBlocks::CAMPFIRE != nullptr && &neighborBlock == VanillaBlocks::CAMPFIRE) ||
+                        (VanillaBlocks::SOUL_CAMPFIRE != nullptr && &neighborBlock == VanillaBlocks::SOUL_CAMPFIRE)) {
+                        if (blocks::CampfireBlock::isLit(*neighborState)) {
+                            return PathNodeType::DangerFire;
+                        }
+                    }
+
+                    // 水边检查 - WATER_BORDER
+                    if (m_region->isWater(nx, ny, nz)) {
+                        type = PathNodeType::WaterBorder;
+                    }
+                }
+            }
+        }
     }
 
     // MC 1.16.5: 检查实体高度范围内的所有方块
@@ -277,21 +367,62 @@ bool WalkNodeProcessor::isDangerous(i32 x, i32 y, i32 z) const {
     if (!m_region) return false;
 
     // MC 1.16.5 func_237233_a_:
-    // 检查火焰、岩浆、岩浆块、营火等危险方块
-    // 目前简化实现，只检查岩浆
-    // TODO: 需要Region接口扩展以支持更详细的方块类型检查
+    // 检查火焰、岩浆、岩浆块、点燃的营火等危险方块
 
-    // 岩浆
+    // 1. 岩浆（流体）
     if (m_region->isLava(x, y, z)) {
         return true;
     }
 
-    // TODO: 添加更多危险方块检查
-    // - 火焰 (Blocks.FIRE)
-    // - 岩浆块 (Blocks.MAGMA_BLOCK)
-    // - 点燃的营火 (CampfireBlock.isLit)
-    // - 仙人掌 (Blocks.CACTUS)
-    // - 甜浆果丛 (Blocks.SWEET_BERRY_BUSH)
+    // 2. 获取方块状态进行更详细的检查
+    const BlockState* state = m_region->getBlockState(x, y, z);
+    if (state == nullptr) {
+        // 空气方块，不是危险方块
+        return false;
+    }
+
+    const Block& block = state->getBlock();
+
+    // 3. 火焰方块（普通火、灵魂火）
+    // 使用 BlockTags::FIRE 标签检查
+    if (BlockTags::FIRE().contains(block)) {
+        return true;
+    }
+
+    // 4. 岩浆块（MAGMA_BLOCK）
+    // 站在上面会造成伤害（HotFloor 伤害）
+    if (VanillaBlocks::MAGMA != nullptr && &block == VanillaBlocks::MAGMA) {
+        return true;
+    }
+
+    // 5. 点燃的营火（CampfireBlock、SoulCampfireBlock）
+    // 只有点燃状态下才危险
+    if (VanillaBlocks::CAMPFIRE != nullptr && &block == VanillaBlocks::CAMPFIRE) {
+        if (blocks::CampfireBlock::isLit(*state)) {
+            return true;
+        }
+    }
+    if (VanillaBlocks::SOUL_CAMPFIRE != nullptr && &block == VanillaBlocks::SOUL_CAMPFIRE) {
+        if (blocks::CampfireBlock::isLit(*state)) {
+            return true;
+        }
+    }
+
+    // 6. 仙人掌（CACTUS）
+    // 接触会造成伤害
+    if (VanillaBlocks::CACTUS != nullptr && &block == VanillaBlocks::CACTUS) {
+        return true;
+    }
+
+    // 7. 甜浆果丛（SWEET_BERRY_BUSH）
+    // 接触会造成伤害和减速（通过 ResourceLocation 查找，因为可能未在 VanillaBlocks 中注册）
+    // MC 1.16.5: 只有年龄大于0的甜浆果丛才造成伤害
+    // 参考: SweetBerryBushBlock.onEntityCollision
+    // 由于甜浆果丛在 VanillaBlocks 中尚未注册，暂时通过 ResourceLocation 查找
+    Block* sweetBerryBush = Block::getBlock(ResourceLocation("minecraft", "sweet_berry_bush"));
+    if (sweetBerryBush != nullptr && &block == sweetBerryBush) {
+        return true;
+    }
 
     return false;
 }

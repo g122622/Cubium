@@ -149,7 +149,24 @@ public:
 - 攀爬（梯子、藤蔓）
 - 水中移动（游泳）
 
-### Region.hpp
+**危险方块检测**：
+
+`WalkNodeProcessor::isDangerous()` 方法检测以下危险方块：
+
+| 方块类型 | 检测方式 | 路径节点类型 |
+|----------|----------|--------------|
+| 岩浆（流体） | `isLava()` | `Lava` / `DamageFire` |
+| 火焰（火、灵魂火） | `BlockTags::FIRE()` | `DamageFire` / `DangerFire` |
+| 岩浆块 | `VanillaBlocks::MAGMA` | `DamageFire` / `DangerFire` |
+| 点燃的营火 | `CampfireBlock::isLit()` | `DamageFire` / `DangerFire` |
+| 仙人掌 | `VanillaBlocks::CACTUS` | `DamageCactus` / `DangerCactus` |
+| 甜浆果丛 | `Block::getBlock("minecraft:sweet_berry_bush")` | `DamageOther` / `DangerBerry` |
+
+`getNodeType()` 方法直接站在危险方块上时返回 `Damage*` 类型，代价惩罚为 -1.0（不可通行）或 16.0（极高代价）。
+
+`getNodeTypeWithEntity()` 方法检查相邻位置的危险方块，返回 `Danger*` 类型，代价惩罚为 8.0（高代价但可通行）。
+
+### Region.hpp / Region.cpp
 
 世界区域访问抽象接口，允许寻路算法安全访问世界数据。
 
@@ -160,6 +177,9 @@ public:
 
     // 获取方块状态ID
     virtual u32 getBlockStateId(i32 x, i32 y, i32 z) const = 0;
+
+    // 获取方块状态（默认实现，通过 Block::getBlockState 转换）
+    virtual const BlockState* getBlockState(i32 x, i32 y, i32 z) const;
 
     // 检查区块是否加载
     virtual bool isLoaded(i32 x, i32 z) const = 0;
@@ -178,6 +198,10 @@ public:
     virtual f32 getBlockTopY(i32 x, i32 y, i32 z) const;
 };
 ```
+
+**新增的 `getBlockState()` 方法**：
+
+该方法提供对 `BlockState` 的直接访问，支持更详细的方块类型检查。默认实现通过 `getBlockStateId()` 获取状态ID，然后调用 `Block::getBlockState()` 转换为 `BlockState*`。
 
 ### PathFinder.hpp / PathFinder.cpp
 

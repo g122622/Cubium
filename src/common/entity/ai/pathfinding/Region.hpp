@@ -2,6 +2,11 @@
 
 #include "../../../core/Types.hpp"
 
+// 前向声明
+namespace mc {
+class BlockState;
+}
+
 namespace mc::entity::ai::pathfinding {
 
 /**
@@ -24,6 +29,15 @@ public:
      * @return 方块状态ID，如果位置无效返回0（空气）
      */
     [[nodiscard]] virtual u32 getBlockStateId(i32 x, i32 y, i32 z) const = 0;
+
+    /**
+     * @brief 获取指定位置的方块状态
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @return 方块状态指针，如果位置无效或为空气返回nullptr
+     */
+    [[nodiscard]] virtual const BlockState* getBlockState(i32 x, i32 y, i32 z) const;
 
     /**
      * @brief 检查位置是否在加载范围内
