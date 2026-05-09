@@ -13,6 +13,7 @@
 #include "common/world/village/raid/RaidManager.hpp"
 #include "common/world/storage/WorldStorageService.hpp"
 #include "common/world/storage/save/SaveManager.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/physics/CollisionCache.hpp"
 #include "common/world/WorldConfig.hpp"
@@ -542,6 +543,16 @@ public:
      */
     [[nodiscard]] bool isDebugWorld() const { return m_config.isDebugWorld; }
 
+    // ========== 世界边界 ==========
+
+    /**
+     * @brief 获取世界边界
+     *
+     * @return 世界边界对象
+     */
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+
     // ========== 村庄管理 ==========
 
     [[nodiscard]] ::mc::world::village::VillageManager* villageManager() override { return m_villageManager.get(); }
@@ -648,6 +659,9 @@ private:
     math::Random m_random;            ///< 世界随机数生成器
     i64 m_updateLCG = 0;              ///< 用于随机刻位置的 LCG 状态
     i32 m_randomTickSpeed = 3;        ///< 随机刻速度（游戏规则可配置）
+
+    // 世界边界
+    world::border::WorldBorder m_worldBorder;  ///< 世界边界
 
     // 掉落表管理器（非拥有，由 MinecraftServer 持有）
     const loot::LootTableManager* m_lootTableManager = nullptr;

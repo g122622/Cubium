@@ -4,7 +4,10 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include <sstream>
+#include <cmath>
 
 namespace mc {
 namespace command {
@@ -28,7 +31,7 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     auto setSizeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
         "size",
-        FloatArgumentType::floatArg(1.0f));
+        FloatArgumentType::floatArg(1.0f, static_cast<f32>(world::border::WorldBorder::MAX_SIZE)));
     auto setTimeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
         "time",
         IntegerArgumentType::integer(0));
@@ -65,7 +68,7 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
         "damagePerBlock",
         FloatArgumentType::floatArg(0.0f));
     amountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setDamage(ctx);
+        return setDamageAmount(ctx);
     });
     amountNode->addChild(amountArg);
     damageNode->addChild(amountNode);
@@ -75,7 +78,7 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
         "distance",
         FloatArgumentType::floatArg(0.0f));
     bufferArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setDamage(ctx);
+        return setDamageBuffer(ctx);
     });
     bufferNode->addChild(bufferArg);
     damageNode->addChild(bufferNode);
@@ -88,7 +91,7 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
         "seconds",
         IntegerArgumentType::integer(0));
     warnTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setWarning(ctx);
+        return setWarningTime(ctx);
     });
     timeNode->addChild(warnTimeArg);
     warningNode->addChild(timeNode);
@@ -98,7 +101,7 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
         "blocks",
         IntegerArgumentType::integer(0));
     warnDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setWarning(ctx);
+        return setWarningDistance(ctx);
     });
     distanceNode->addChild(warnDistArg);
     warningNode->addChild(distanceNode);
@@ -120,12 +123,12 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
         "time",
         IntegerArgumentType::integer(0));
     addTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setBorder(ctx);
+        return addBorder(ctx);
     });
     addDistArg->addChild(addTimeArg);
     // 默认时间为 0（立即）
     addDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return setBorder(ctx);
+        return addBorder(ctx);
     });
     addNode->addChild(addDistArg);
     borderNode->addChild(addNode);
@@ -136,16 +139,33 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
 i32 WorldBorderCommand::setBorder(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
+    auto* world = source.world();
+
+    if (world == nullptr) {
+        source.sendError("No world available.");
+        return 0;
+    }
+
+    auto& border = world->worldBorder();
     const f32 size = context.getArgument<f32>("size");
 
-    std::ostringstream ss;
-    ss << "World border size set to " << static_cast<i32>(size) << " blocks";
-    source.sendMessage(ss.str());
+    // 检查是否有时间参数（渐变）
+    if (context.hasArgument("time")) {
+        const i32 timeSeconds = context.getArgument<i32>("time");
+        const u64 timeMs = static_cast<u64>(timeSeconds) * 1000;
+        border.setSizeLerp(border.getSize(), static_cast<double>(size), timeMs);
 
-    // TODO: 实现世界边界系统
-    // 1. 存储边界大小
-    // 2. 如果有时间参数，渐变到目标大小
-    // 3. 通知所有客户端边界变更
+        std::ostringstream ss;
+        ss << "World border size will change to " << static_cast<i64>(size)
+           << " blocks over " << timeSeconds << " seconds";
+        source.sendMessage(ss.str());
+    } else {
+        border.setSize(static_cast<double>(size));
+
+        std::ostringstream ss;
+        ss << "World border size set to " << static_cast<i64>(size) << " blocks";
+        source.sendMessage(ss.str());
+    }
 
     return 1;
 }
@@ -153,9 +173,15 @@ i32 WorldBorderCommand::setBorder(CommandContext<ServerCommandSource>& context)
 i32 WorldBorderCommand::getBorder(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
+    auto* world = source.world();
 
-    // TODO: 从世界边界管理器获取当前大小
-    f32 currentSize = 60000000.0f; // 默认值
+    if (world == nullptr) {
+        source.sendError("No world available.");
+        return 0;
+    }
+
+    auto& border = world->worldBorder();
+    double currentSize = border.getSize();
 
     std::ostringstream ss;
     ss << "World border is currently " << static_cast<i64>(currentSize) << " blocks wide";
@@ -167,58 +193,149 @@ i32 WorldBorderCommand::getBorder(CommandContext<ServerCommandSource>& context)
 i32 WorldBorderCommand::setCenter(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
+    auto* world = source.world();
+
+    if (world == nullptr) {
+        source.sendError("No world available.");
+        return 0;
+    }
+
+    auto& border = world->worldBorder();
     const f32 x = context.getArgument<f32>("x");
     const f32 z = context.getArgument<f32>("z");
+
+    border.setCenter(static_cast<double>(x), static_cast<double>(z));
 
     std::ostringstream ss;
     ss << "World border center set to " << x << ", " << z;
     source.sendMessage(ss.str());
 
-    // TODO: 实现世界边界中心设置
+    return 1;
+}
+
+i32 WorldBorderCommand::setDamageAmount(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    auto* world = source.world();
+
+    if (world == nullptr) {
+        source.sendError("No world available.");
+        return 0;
+    }
+
+    auto& border = world->worldBorder();
+    const f32 damage = context.getArgument<f32>("damagePerBlock");
+
+    border.setDamagePerBlock(static_cast<double>(damage));
+
+    std::ostringstream ss;
+    ss << "World border damage per block set to " << damage;
+    source.sendMessage(ss.str());
 
     return 1;
 }
 
-i32 WorldBorderCommand::setDamage(CommandContext<ServerCommandSource>& context)
+i32 WorldBorderCommand::setDamageBuffer(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
+    auto* world = source.world();
 
-    // 判断是 amount 还是 buffer
-    if (context.hasArgument("damagePerBlock")) {
-        const f32 damage = context.getArgument<f32>("damagePerBlock");
-        std::ostringstream ss;
-        ss << "World border damage per block set to " << damage;
-        source.sendMessage(ss.str());
-    } else if (context.hasArgument("distance")) {
-        const f32 distance = context.getArgument<f32>("distance");
-        std::ostringstream ss;
-        ss << "World border damage buffer set to " << distance << " blocks";
-        source.sendMessage(ss.str());
+    if (world == nullptr) {
+        source.sendError("No world available.");
+        return 0;
     }
 
-    // TODO: 实现世界边界伤害设置
+    auto& border = world->worldBorder();
+    const f32 distance = context.getArgument<f32>("distance");
+
+    border.setDamageBuffer(static_cast<double>(distance));
+
+    std::ostringstream ss;
+    ss << "World border damage buffer set to " << distance << " blocks";
+    source.sendMessage(ss.str());
 
     return 1;
 }
 
-i32 WorldBorderCommand::setWarning(CommandContext<ServerCommandSource>& context)
+i32 WorldBorderCommand::setWarningTime(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
+    auto* world = source.world();
 
-    // 判断是时间还是距离
-    if (context.hasArgument("seconds")) {
-        const i32 seconds = context.getArgument<i32>("seconds");
-        std::ostringstream ss;
-        ss << "World border warning time set to " << seconds << " seconds";
-        source.sendMessage(ss.str());
-    } else if (context.hasArgument("blocks")) {
-        const i32 blocks = context.getArgument<i32>("blocks");
-        std::ostringstream ss;
-        ss << "World border warning distance set to " << blocks << " blocks";
-        source.sendMessage(ss.str());
+    if (world == nullptr) {
+        source.sendError("No world available.");
+        return 0;
     }
 
-    // TODO: 实现世界边界警告设置
+    auto& border = world->worldBorder();
+    const i32 seconds = context.getArgument<i32>("seconds");
+
+    border.setWarningTime(seconds);
+
+    std::ostringstream ss;
+    ss << "World border warning time set to " << seconds << " seconds";
+    source.sendMessage(ss.str());
+
+    return 1;
+}
+
+i32 WorldBorderCommand::setWarningDistance(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    auto* world = source.world();
+
+    if (world == nullptr) {
+        source.sendError("No world available.");
+        return 0;
+    }
+
+    auto& border = world->worldBorder();
+    const i32 blocks = context.getArgument<i32>("blocks");
+
+    border.setWarningDistance(blocks);
+
+    std::ostringstream ss;
+    ss << "World border warning distance set to " << blocks << " blocks";
+    source.sendMessage(ss.str());
+
+    return 1;
+}
+
+i32 WorldBorderCommand::addBorder(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    auto* world = source.world();
+
+    if (world == nullptr) {
+        source.sendError("No world available.");
+        return 0;
+    }
+
+    auto& border = world->worldBorder();
+    const f32 distance = context.getArgument<f32>("distance");
+
+    double newSize = border.getSize() + static_cast<double>(distance);
+    // 限制最大值
+    newSize = std::min(newSize, world::border::WorldBorder::MAX_SIZE);
+    newSize = std::max(newSize, 1.0);
+
+    // 检查是否有时间参数（渐变）
+    if (context.hasArgument("time")) {
+        const i32 timeSeconds = context.getArgument<i32>("time");
+        const u64 timeMs = static_cast<u64>(timeSeconds) * 1000;
+        border.setSizeLerp(border.getSize(), newSize, timeMs);
+
+        std::ostringstream ss;
+        ss << "World border size will change to " << static_cast<i64>(newSize)
+           << " blocks over " << timeSeconds << " seconds";
+        source.sendMessage(ss.str());
+    } else {
+        border.setSize(newSize);
+
+        std::ostringstream ss;
+        ss << "World border size set to " << static_cast<i64>(newSize) << " blocks";
+        source.sendMessage(ss.str());
+    }
 
     return 1;
 }

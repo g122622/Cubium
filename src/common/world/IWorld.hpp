@@ -10,6 +10,7 @@
 #include "../util/math/random/Random.hpp"
 #include "tick/base/TickPriority.hpp"
 #include "explosion/ExplosionMode.hpp"
+#include "border/WorldBorder.hpp"
 #include <vector>
 #include <memory>
 
@@ -806,6 +807,18 @@ public:
      * @return LootTableManager指针，如果不存在返回nullptr
      */
     [[nodiscard]] virtual const loot::LootTableManager* lootTableManager() const { return nullptr; }
+
+    // ========== 世界边界 ==========
+
+    /**
+     * @brief 获取世界边界
+     *
+     * 返回世界边界对象，用于边界检测和伤害计算。
+     *
+     * @return 世界边界引用
+     */
+    [[nodiscard]] virtual world::border::WorldBorder& worldBorder() = 0;
+    [[nodiscard]] virtual const world::border::WorldBorder& worldBorder() const = 0;
 
     // ========== 实体状态广播 ==========
 

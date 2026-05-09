@@ -778,6 +778,9 @@ void ServerWorld::tick()
         m_raidManager->tick();
     }
 
+    // 更新世界边界（渐变动画）
+    m_worldBorder.tick();
+
     // EntityManager 由 MinecraftServer 驱动
     // EntityTracker 和 ItemPickupManager 由 MinecraftServer::tickEntities() 驱动
 }

@@ -107,6 +107,9 @@ enum class PacketType : u16 {
 
     // 标题包 (S->C)
     Title = 520,                // 标题显示
+
+    // 世界边界包 (S->C)
+    WorldBorder = 530,          // 世界边界同步
 };
 
 // 数据包头

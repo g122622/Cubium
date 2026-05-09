@@ -359,6 +359,8 @@ add_executable(mc_tests
     common/world/village/trade/MerchantOfferTest.cpp
     # 袭击系统测试
     common/world/village/raid/RaidHeroTrackingTest.cpp
+    # 世界边界测试
+    common/world/border/WorldBorderTest.cpp
 )
 
 # 娣诲姞鏈嶅姟绔簮鏂囦欢

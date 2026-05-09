@@ -21,8 +21,11 @@ private:
     static i32 setBorder(CommandContext<ServerCommandSource>& context);
     static i32 getBorder(CommandContext<ServerCommandSource>& context);
     static i32 setCenter(CommandContext<ServerCommandSource>& context);
-    static i32 setDamage(CommandContext<ServerCommandSource>& context);
-    static i32 setWarning(CommandContext<ServerCommandSource>& context);
+    static i32 setDamageAmount(CommandContext<ServerCommandSource>& context);
+    static i32 setDamageBuffer(CommandContext<ServerCommandSource>& context);
+    static i32 setWarningTime(CommandContext<ServerCommandSource>& context);
+    static i32 setWarningDistance(CommandContext<ServerCommandSource>& context);
+    static i32 addBorder(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

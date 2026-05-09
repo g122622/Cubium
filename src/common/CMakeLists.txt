@@ -53,6 +53,7 @@ add_library(mc_common STATIC
     network/packet/SpawnPositionPacket.cpp
     network/packet/SetPassengersPacket.cpp
     network/packet/TitlePacket.cpp
+    network/packet/WorldBorderPacket.cpp
 
     # Network - Sync
     network/sync/ChunkSync.cpp
@@ -762,6 +763,9 @@ add_library(mc_common STATIC
 
     # World - Weather
     world/weather/WeatherUtils.cpp
+
+    # World - Border
+    world/border/WorldBorder.cpp
 
     # World - Storage
     world/storage/WorldStorageService.cpp

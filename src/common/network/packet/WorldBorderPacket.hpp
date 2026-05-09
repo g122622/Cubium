@@ -1,0 +1,153 @@
+#pragma once
+
+#include "Packet.hpp"
+#include "../../core/Types.hpp"
+#include "../../world/border/WorldBorder.hpp"
+
+namespace mc::network {
+
+/**
+ * @brief 世界边界包动作类型
+ *
+ * 参考 MC 1.16.5 SWorldBorderPacket.Action
+ */
+enum class WorldBorderAction : u8 {
+    SetSize = 0,            // 设置大小（立即）
+    LerpSize = 1,           // 渐变大小
+    SetCenter = 2,          // 设置中心
+    Initialize = 3,         // 完整初始化
+    SetWarningTime = 4,     // 设置警告时间
+    SetWarningDistance = 5, // 设置警告距离
+    SetDamageBuffer = 6,    // 设置伤害缓冲（MC 1.16.5 没有这个动作，但我们添加）
+    SetDamagePerBlock = 7   // 设置每格伤害（MC 1.16.5 没有这个动作，但我们添加）
+};
+
+/**
+ * @brief 世界边界同步包
+ *
+ * 用于服务端向客户端同步世界边界状态，支持：
+ * - 设置边界大小（立即或渐变）
+ * - 设置边界中心
+ * - 设置伤害参数
+ * - 设置警告参数
+ * - 完整初始化
+ *
+ * 参考 MC 1.16.5 SWorldBorderPacket
+ */
+class WorldBorderPacket : public Packet {
+public:
+    WorldBorderPacket();
+    ~WorldBorderPacket() override = default;
+
+    // ========================================================================
+    // 静态工厂方法
+    // ========================================================================
+
+    /**
+     * @brief 创建设置大小包
+     * @param size 新的边界大小
+     */
+    static WorldBorderPacket setSize(double size);
+
+    /**
+     * @brief 创建渐变大小包
+     * @param oldSize 起始大小
+     * @param newSize 目标大小
+     * @param timeMs 过渡时间（毫秒）
+     */
+    static WorldBorderPacket lerpSize(double oldSize, double newSize, u64 timeMs);
+
+    /**
+     * @brief 创建设置中心包
+     * @param x 中心 X 坐标
+     * @param z 中心 Z 坐标
+     */
+    static WorldBorderPacket setCenter(double x, double z);
+
+    /**
+     * @brief 创建完整初始化包
+     * @param border 世界边界对象
+     */
+    static WorldBorderPacket initialize(const world::border::WorldBorder& border);
+
+    /**
+     * @brief 创建设置警告时间包
+     * @param warningTime 警告时间（秒）
+     */
+    static WorldBorderPacket setWarningTime(i32 warningTime);
+
+    /**
+     * @brief 创建设置警告距离包
+     * @param warningDistance 警告距离（格）
+     */
+    static WorldBorderPacket setWarningDistance(i32 warningDistance);
+
+    /**
+     * @brief 创建设置伤害缓冲包
+     * @param damageBuffer 伤害缓冲距离
+     */
+    static WorldBorderPacket setDamageBuffer(double damageBuffer);
+
+    /**
+     * @brief 创建设置每格伤害包
+     * @param damagePerBlock 每格伤害量
+     */
+    static WorldBorderPacket setDamagePerBlock(double damagePerBlock);
+
+    // ========================================================================
+    // 序列化
+    // ========================================================================
+
+    [[nodiscard]] Result<std::vector<u8>> serialize() const override;
+    [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
+    size_t expectedSize() const override;
+
+    // ========================================================================
+    // 访问器
+    // ========================================================================
+
+    WorldBorderAction action() const { return m_action; }
+
+    // 大小相关
+    double size() const { return m_size; }
+    double oldSize() const { return m_oldSize; }
+    double newSize() const { return m_newSize; }
+    u64 timeMs() const { return m_timeMs; }
+
+    // 中心相关
+    double centerX() const { return m_centerX; }
+    double centerZ() const { return m_centerZ; }
+
+    // 伤害相关
+    double damagePerBlock() const { return m_damagePerBlock; }
+    double damageBuffer() const { return m_damageBuffer; }
+
+    // 警告相关
+    i32 warningTime() const { return m_warningTime; }
+    i32 warningDistance() const { return m_warningDistance; }
+
+private:
+    explicit WorldBorderPacket(WorldBorderAction action);
+
+    WorldBorderAction m_action = WorldBorderAction::SetSize;
+
+    // 大小
+    double m_size = 0.0;
+    double m_oldSize = 0.0;
+    double m_newSize = 0.0;
+    u64 m_timeMs = 0;
+
+    // 中心
+    double m_centerX = 0.0;
+    double m_centerZ = 0.0;
+
+    // 伤害
+    double m_damagePerBlock = 0.2;
+    double m_damageBuffer = 5.0;
+
+    // 警告
+    i32 m_warningTime = 15;
+    i32 m_warningDistance = 5;
+};
+
+} // namespace mc::network

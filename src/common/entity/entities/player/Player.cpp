@@ -328,6 +328,30 @@ void Player::tick() {
     // 参考 MC 1.16.5 PlayerEntity.tick() -> cooldownTracker.tick()
     m_cooldownTracker.tick();
 
+    // 世界边界伤害检测
+    // 参考 MC 1.16.5 LivingEntity.baseTick() 第306-318行
+    // 只有玩家会受到边界伤害（flag = this instanceof PlayerEntity）
+    if (m_world != nullptr && !isSpectator() && !m_abilities.invulnerable) {
+        const auto& border = m_world->worldBorder();
+
+        // 检查玩家碰撞箱是否与边界相交
+        if (!border.intersects(boundingBox())) {
+            // 玩家在边界外，计算伤害
+            // MC: distance = getClosestDistance(entity) + damageBuffer
+            double distance = border.getClosestDistance(boundingBox()) + border.getDamageBuffer();
+
+            // 距离为负表示超出缓冲区
+            if (distance < 0.0 && border.getDamagePerBlock() > 0.0) {
+                // 计算伤害：max(1, floor(-distance * damagePerBlock))
+                i32 damage = std::max(1, static_cast<i32>(std::floor(-distance * border.getDamagePerBlock())));
+
+                // 应用 IN_WALL 伤害
+                auto damageSource = DamageSources::inWall();
+                hurt(damageSource, static_cast<f32>(damage));
+            }
+        }
+    }
+
     // 睡眠计时器逻辑
     // 参考 MC 1.16.5 PlayerEntity.tick()
     // 睡眠时：每 tick 递增，上限 100
