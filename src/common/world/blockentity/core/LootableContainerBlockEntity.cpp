@@ -87,6 +87,29 @@ void LootableContainerBlockEntity::save(nlohmann::json& data) const {
 
 // ========== 战利品填充 ==========
 
+void LootableContainerBlockEntity::fillWithLoot(Player* player) {
+    // 如果没有战利品表或已填充，不执行
+    if (!m_hasLootTable || m_lootFilled) {
+        return;
+    }
+
+    // 需要有世界引用来获取 LootTableManager
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 获取战利品表管理器
+    const loot::LootTableManager* lootTableManager = m_world->lootTableManager();
+    if (lootTableManager == nullptr) {
+        // 在客户端或未初始化的服务端，无法填充
+        return;
+    }
+
+    // 调用实际的填充方法
+    // 注：const_cast 是安全的，因为 fillWithLootFromTable 不修改管理器
+    fillWithLootFromTable(const_cast<loot::LootTableManager&>(*lootTableManager), player);
+}
+
 bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager& lootTableManager, Player* player) {
     // 如果没有战利品表或已填充，不执行
     if (!m_hasLootTable || m_lootFilled) {

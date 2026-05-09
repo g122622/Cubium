@@ -343,30 +343,6 @@ void ChestEntity::playSound(IWorld& world, bool open) {
     broadcastChestState(world, open);
 }
 
-// ========== 战利品表 ==========
-
-void ChestEntity::fillWithLoot(Player* player) {
-    // 需要世界引用来获取服务器
-    if (m_world == nullptr) {
-        return;
-    }
-
-    // 获取战利品表管理器（需要从服务器获取）
-    // 注：目前简化实现，待服务器基础设施完善后改进
-    // MC 1.16.5: this.world.getServer().getLootTableManager()
-    MC_UNUSED(player);
-
-    // 如果没有战利品表，不执行
-    if (!hasLootTable()) {
-        return;
-    }
-
-    // TODO: 需要从服务器获取 LootTableManager
-    // 目前使用 fillWithLootFromTable 作为占位符
-    // 当 LootTableManager 可用时，应该调用：
-    // fillWithLootFromTable(lootTableManager, player);
-}
-
 } // namespace blockentity
 } // namespace mc
 

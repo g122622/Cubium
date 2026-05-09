@@ -398,7 +398,7 @@ public:
      * @brief 设置掉落表管理器
      *
      * 掉落表管理器由 MinecraftServer 持有，ServerWorld 通过此方法获取引用。
-     * 用于爆炸时的方块掉落生成。
+     * 用于爆炸时的方块掉落生成和方块实体的战利品表填充。
      *
      * @param lootTableManager 掉落表管理器指针（非拥有）
      */
@@ -406,7 +406,17 @@ public:
         m_lootTableManager = lootTableManager;
     }
 
-    [[nodiscard]] const loot::LootTableManager* lootTableManager() const {
+    /**
+     * @brief 获取战利品表管理器（IWorld 接口实现）
+     *
+     * 只有 ServerWorld 会返回有效的指针。
+     * 用于方块实体填充战利品表。
+     *
+     * 参考 MC 1.16.5: World.getLootTableManager()
+     *
+     * @return LootTableManager指针，如果不存在返回nullptr
+     */
+    [[nodiscard]] const loot::LootTableManager* lootTableManager() const override {
         return m_lootTableManager;
     }
 

@@ -412,6 +412,10 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     blocks::DispenseItemBehaviorRegistry::instance().initDefaultBehaviors();
     spdlog::info("Dispense item behaviors initialized");
 
+    // 初始化战利品表管理器
+    m_lootTableManager.initializeDefaultTables();
+    spdlog::info("Loot tables initialized");
+
     // 加载配方
     RecipeLoader recipeLoader;
     auto recipeLoadResult = recipeLoader.loadFromDirectory("data/minecraft/recipes");

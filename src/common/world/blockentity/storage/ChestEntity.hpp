@@ -127,17 +127,7 @@ public:
     // ========== 战利品表接口 ==========
 
     // 注：hasLootTable(), getLootTable(), getLootTableSeed(), setLootTable(), needsLootFill()
-    // 继承自 LootableContainerBlockEntity
-
-    /**
-     * @brief 填充战利品（实现基类纯虚函数）
-     *
-     * 如果设置了战利品表且尚未填充，则填充物品。
-     * 在玩家首次打开时自动调用。
-     *
-     * @param player 触发填充的玩家（可为nullptr）
-     */
-    void fillWithLoot(Player* player) override;
+    // fillWithLoot() 继承自 LootableContainerBlockEntity，无需重写
 
     // ========== 动画支持 ==========
 

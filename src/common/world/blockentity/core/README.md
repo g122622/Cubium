@@ -94,7 +94,8 @@ LockableBlockEntity
 - `hasLootTable()` - 检查是否设置了战利品表
 - `getLootTable()` / `getLootTableSeed()` - 获取战利品表信息
 - `setLootTable()` - 设置战利品表（结构生成时调用）
-- `fillWithLoot()` - 填充战利品（子类实现，玩家打开时自动调用）
+- `fillWithLoot()` - 填充战利品（已实现，通过 IWorld::lootTableManager() 获取战利品表管理器）
+- `fillWithLootFromTable()` - 使用指定的战利品表管理器填充
 - `isEmpty()` - 重写，自动触发战利品表填充
 - `openContainer()` - 重写，打开时自动填充
 
@@ -109,6 +110,7 @@ LockableBlockEntity
 - 参考 `LockableLootTileEntity.java`
 - `isEmpty()`, `getStackInSlot()`, `decrStackSize()`, `removeStackFromSlot()`, `setInventorySlotContents()` 都会触发填充
 - `createMenu()` 打开容器时填充
+- 通过 `IWorld::lootTableManager()` 获取战利品表管理器（ServerWorld 会返回有效指针）
 
 ### SimpleInventory.hpp/cpp
 
@@ -221,19 +223,29 @@ DoubleSidedInventory getDoubleInventory() {
 
 ### 4. 战利品表填充时机
 
-`LootableContainerBlockEntity` 的 `fillWithLoot()` 是纯虚函数，子类必须实现：
+`LootableContainerBlockEntity` 的 `fillWithLoot()` 已在基类中实现，子类无需重写。
+
+填充流程：
+1. 子类调用 `openContainer()` 或 `isEmpty()` 触发填充
+2. 基类 `fillWithLoot()` 通过 `IWorld::lootTableManager()` 获取战利品表管理器
+3. 只有 ServerWorld 会返回有效的 `LootTableManager` 指针
+4. 调用 `fillWithLootFromTable()` 执行实际的物品生成
 
 ```cpp
-// 正确：子类实现 fillWithLoot
-void ChestEntity::fillWithLoot(Player* player) {
-    if (!hasLootTable() || m_world == nullptr) {
+// 基类已实现，子类无需重写
+void LootableContainerBlockEntity::fillWithLoot(Player* player) {
+    if (!m_hasLootTable || m_lootFilled) {
         return;
     }
-    // 获取 LootTableManager 并填充
-    fillWithLootFromTable(lootTableManager, player);
+    if (m_world == nullptr) {
+        return;
+    }
+    const loot::LootTableManager* lootTableManager = m_world->lootTableManager();
+    if (lootTableManager == nullptr) {
+        return;  // 客户端或未初始化的服务端
+    }
+    fillWithLootFromTable(const_cast<loot::LootTableManager&>(*lootTableManager), player);
 }
-
-// 错误：忘记实现，编译失败
 ```
 
 ### 5. 注册时序

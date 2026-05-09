@@ -793,6 +793,20 @@ public:
     [[nodiscard]] virtual world::village::VillageManager* villageManager() { return nullptr; }
     [[nodiscard]] virtual const world::village::VillageManager* villageManager() const { return nullptr; }
 
+    // ========== 战利品表管理 ==========
+
+    /**
+     * @brief 获取战利品表管理器
+     *
+     * 只有ServerWorld会返回有效的指针，其他实现返回nullptr。
+     * 用于方块实体填充战利品表。
+     *
+     * 参考 MC 1.16.5: World.getLootTableManager()
+     *
+     * @return LootTableManager指针，如果不存在返回nullptr
+     */
+    [[nodiscard]] virtual const loot::LootTableManager* lootTableManager() const { return nullptr; }
+
     // ========== 实体状态广播 ==========
 
     /**

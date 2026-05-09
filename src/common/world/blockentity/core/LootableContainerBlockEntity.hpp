@@ -108,14 +108,14 @@ protected:
     /**
      * @brief 填充战利品
      *
-     * 如果设置了战利品表且尚未填充，则填充物品。
-     * 子类需要实现具体的填充逻辑。
+     * 如果设置了战利品表且尚未填充，则从战利品表生成物品并填充到容器中。
+     * 该方法已实现完整逻辑，子类无需重写。
      *
-     * 参考 MC 1.16.5: LockableLootTileEntity.fillWithLoot
+     * 参考 MC 1.16.5: LockableLootTileEntity.fillWithLoot(PlayerEntity)
      *
      * @param player 触发填充的玩家（可为nullptr）
      */
-    virtual void fillWithLoot(Player* player) = 0;
+    void fillWithLoot(Player* player);
 
     /**
      * @brief 填充战利品（使用指定的战利品表管理器）
