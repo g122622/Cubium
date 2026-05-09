@@ -3,6 +3,8 @@
 #include "../entities/player/Player.hpp"
 #include "../../item/items/armor/ArmorItem.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
+#include "../../item/Items.hpp"
+#include "../../world/blockentity/processing/AbstractFurnaceEntity.hpp"
 
 namespace mc {
 
@@ -255,17 +257,23 @@ i32 FurnaceFuelSlot::getMaxStackSize(const ItemStack& stack) const {
 }
 
 bool FurnaceFuelSlot::isFuel(const ItemStack& stack) {
-    // TODO: 需要实现燃料检查
-    // return AbstractFurnaceBlockEntity::isFuel(stack);
-    (void)stack;
-    return false;
+    // MC 1.16.5: 委托给 AbstractFurnaceEntity::isFuel()
+    return blockentity::AbstractFurnaceEntity::isFuel(stack);
 }
 
 bool FurnaceFuelSlot::isBucket(const ItemStack& stack) {
-    // TODO: 检查物品是否是桶
-    // return stack.getItem() == Items.BUCKET;
-    (void)stack;
-    return false;
+    // MC 1.16.5: 检查物品是否是任何类型的桶
+    // 参考: FurnaceFuelSlot.isBucket() - 只检查空桶，但这里我们需要检查所有桶
+    // 因为岩浆桶也可以作为燃料放入燃料槽
+    const Item* item = stack.getItem();
+    return item == Items::BUCKET ||
+           item == Items::WATER_BUCKET ||
+           item == Items::LAVA_BUCKET ||
+           item == Items::COD_BUCKET ||
+           item == Items::SALMON_BUCKET ||
+           item == Items::PUFFERFISH_BUCKET ||
+           item == Items::TROPICAL_FISH_BUCKET ||
+           item == Items::MILK_BUCKET;
 }
 
 // ============================================================================

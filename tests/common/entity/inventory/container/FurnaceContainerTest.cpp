@@ -45,14 +45,11 @@ TEST_F(FurnaceFuelSlotTest, CreateSlot_Success) {
 TEST_F(FurnaceFuelSlotTest, MayPlace_AcceptsFuel) {
     FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
 
-    // TODO: 燃料检查需要 AbstractFurnaceBlockEntity::isFuel 实现
-    // 煤炭是燃料，但目前 isFuel 返回 false（未实现）
+    // 煤炭是燃料，FurnaceFuelSlot::isFuel() 现在已正确实现
     Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
     if (coal != nullptr) {
         ItemStack coalStack(*coal, 1);
-        // 暂时跳过：待燃料系统实现后启用
-        // EXPECT_TRUE(slot.mayPlace(coalStack));
-        EXPECT_FALSE(slot.mayPlace(coalStack)); // 当前实现返回 false
+        EXPECT_TRUE(slot.mayPlace(coalStack)) << "Coal should be accepted as fuel";
     }
 }
 
@@ -79,25 +76,17 @@ TEST_F(FurnaceFuelSlotTest, GetMaxStackSize_FuelItems) {
 }
 
 TEST_F(FurnaceFuelSlotTest, IsFuel_ChecksItem) {
-    // TODO: 燃料检查需要 AbstractFurnaceBlockEntity::isFuel 实现
-    // 暂时跳过：待燃料系统实现后启用
-    // Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
-    // if (coal != nullptr) {
-    //     ItemStack coalStack(*coal, 1);
-    //     EXPECT_TRUE(FurnaceFuelSlot::isFuel(coalStack));
-    // }
-
-    // Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
-    // if (diamond != nullptr) {
-    //     ItemStack diamondStack(*diamond, 1);
-    //     EXPECT_FALSE(FurnaceFuelSlot::isFuel(diamondStack));
-    // }
-
-    // 当前实现返回 false
+    // FurnaceFuelSlot::isFuel() 现在已正确实现
     Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
     if (coal != nullptr) {
         ItemStack coalStack(*coal, 1);
-        EXPECT_FALSE(FurnaceFuelSlot::isFuel(coalStack));
+        EXPECT_TRUE(FurnaceFuelSlot::isFuel(coalStack)) << "Coal should be detected as fuel";
+    }
+
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    if (diamond != nullptr) {
+        ItemStack diamondStack(*diamond, 1);
+        EXPECT_FALSE(FurnaceFuelSlot::isFuel(diamondStack)) << "Diamond should not be detected as fuel";
     }
 }
 
@@ -359,6 +348,111 @@ TEST_F(FurnaceFuelSlotEdgeCaseTest, RemoveFromSlot) {
     ItemStack removed = slot.remove(10);
     EXPECT_EQ(removed.getCount(), 10);
     EXPECT_EQ(inventory_->getItem(0).getCount(), 22);
+}
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_DetectsAllBucketTypes) {
+    // 空桶
+    Item* bucket = ItemRegistry::instance().getItem(ResourceLocation("minecraft:bucket"));
+    if (bucket != nullptr) {
+        ItemStack bucketStack(*bucket, 1);
+        EXPECT_TRUE(FurnaceFuelSlot::isBucket(bucketStack)) << "Empty bucket should be detected";
+    }
+
+    // 水桶
+    Item* waterBucket = ItemRegistry::instance().getItem(ResourceLocation("minecraft:water_bucket"));
+    if (waterBucket != nullptr) {
+        ItemStack waterBucketStack(*waterBucket, 1);
+        EXPECT_TRUE(FurnaceFuelSlot::isBucket(waterBucketStack)) << "Water bucket should be detected";
+    }
+
+    // 岩浆桶
+    Item* lavaBucket = ItemRegistry::instance().getItem(ResourceLocation("minecraft:lava_bucket"));
+    if (lavaBucket != nullptr) {
+        ItemStack lavaBucketStack(*lavaBucket, 1);
+        EXPECT_TRUE(FurnaceFuelSlot::isBucket(lavaBucketStack)) << "Lava bucket should be detected";
+    }
+}
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, IsBucket_RejectsNonBucketItems) {
+    // 煤炭不是桶
+    Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
+    if (coal != nullptr) {
+        ItemStack coalStack(*coal, 1);
+        EXPECT_FALSE(FurnaceFuelSlot::isBucket(coalStack)) << "Coal should not be detected as bucket";
+    }
+
+    // 钻石不是桶
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    if (diamond != nullptr) {
+        ItemStack diamondStack(*diamond, 1);
+        EXPECT_FALSE(FurnaceFuelSlot::isBucket(diamondStack)) << "Diamond should not be detected as bucket";
+    }
+}
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, MaxStackSize_BucketIsOne) {
+    FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
+
+    // 岩浆桶堆叠上限应为1
+    Item* lavaBucket = ItemRegistry::instance().getItem(ResourceLocation("minecraft:lava_bucket"));
+    if (lavaBucket != nullptr) {
+        ItemStack lavaBucketStack(*lavaBucket, 1);
+        EXPECT_EQ(slot.getMaxStackSize(lavaBucketStack), 1) << "Lava bucket should have max stack size 1";
+    }
+
+    // 空桶堆叠上限应为1（在 FurnaceFuelSlot 中）
+    Item* bucket = ItemRegistry::instance().getItem(ResourceLocation("minecraft:bucket"));
+    if (bucket != nullptr) {
+        ItemStack bucketStack(*bucket, 1);
+        EXPECT_EQ(slot.getMaxStackSize(bucketStack), 1) << "Bucket should have max stack size 1 in fuel slot";
+    }
+}
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, MayPlace_AcceptsBucket) {
+    FurnaceFuelSlot slot(inventory_.get(), 0, 10, 10);
+
+    // 空桶可以放入燃料槽（用于接收岩浆桶燃烧后的空桶）
+    Item* bucket = ItemRegistry::instance().getItem(ResourceLocation("minecraft:bucket"));
+    if (bucket != nullptr) {
+        ItemStack bucketStack(*bucket, 1);
+        EXPECT_TRUE(slot.mayPlace(bucketStack)) << "Empty bucket should be accepted in fuel slot";
+    }
+}
+
+TEST_F(FurnaceFuelSlotEdgeCaseTest, IsFuel_DetectsVariousFuelTypes) {
+    // 煤炭是燃料
+    Item* coal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:coal"));
+    if (coal != nullptr) {
+        ItemStack coalStack(*coal, 1);
+        EXPECT_TRUE(FurnaceFuelSlot::isFuel(coalStack)) << "Coal should be fuel";
+    }
+
+    // 木炭是燃料
+    Item* charcoal = ItemRegistry::instance().getItem(ResourceLocation("minecraft:charcoal"));
+    if (charcoal != nullptr) {
+        ItemStack charcoalStack(*charcoal, 1);
+        EXPECT_TRUE(FurnaceFuelSlot::isFuel(charcoalStack)) << "Charcoal should be fuel";
+    }
+
+    // 烈焰棒是燃料
+    Item* blazeRod = ItemRegistry::instance().getItem(ResourceLocation("minecraft:blaze_rod"));
+    if (blazeRod != nullptr) {
+        ItemStack blazeRodStack(*blazeRod, 1);
+        EXPECT_TRUE(FurnaceFuelSlot::isFuel(blazeRodStack)) << "Blaze rod should be fuel";
+    }
+
+    // 岩浆桶是燃料
+    Item* lavaBucket = ItemRegistry::instance().getItem(ResourceLocation("minecraft:lava_bucket"));
+    if (lavaBucket != nullptr) {
+        ItemStack lavaBucketStack(*lavaBucket, 1);
+        EXPECT_TRUE(FurnaceFuelSlot::isFuel(lavaBucketStack)) << "Lava bucket should be fuel";
+    }
+
+    // 木棍是燃料
+    Item* stick = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stick"));
+    if (stick != nullptr) {
+        ItemStack stickStack(*stick, 1);
+        EXPECT_TRUE(FurnaceFuelSlot::isFuel(stickStack)) << "Stick should be fuel";
+    }
 }
 
 TEST_F(FurnaceContainerTest, Create_HasCorrectSlotCount) {
