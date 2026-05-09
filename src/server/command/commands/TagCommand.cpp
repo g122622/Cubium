@@ -2,11 +2,16 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/PlayerManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <sstream>
+#include <algorithm>
 
 namespace mc {
 namespace command {
@@ -63,6 +68,28 @@ void TagCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     dispatcher.registerCommand(tagNode);
 }
 
+/**
+ * @brief 获取实体指针
+ *
+ * 当前实现仅支持玩家实体。未来可通过 EntityResolver 扩展支持所有实体。
+ *
+ * @param source 命令源
+ * @param playerId 玩家ID
+ * @return Entity指针，如果找不到返回 nullptr
+ */
+static Entity* getEntityFromPlayerId(const ServerCommandSource& source, PlayerId playerId)
+{
+    auto* server = source.server();
+    auto* world = source.world();
+    if (server == nullptr || world == nullptr) {
+        return nullptr;
+    }
+
+    // 通过 ServerPlayerEntityManager 获取玩家实体
+    Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
+    return player;  // Player 继承自 Entity
+}
+
 i32 TagCommand::addTag(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
@@ -77,11 +104,17 @@ i32 TagCommand::addTag(CommandContext<ServerCommandSource>& context)
 
     i32 successCount = 0;
     for (PlayerId playerId : playerIds) {
-        auto player = source.server()->playerManager().getPlayer(playerId);
-        if (player) {
-            // TODO: 实现实体标签系统
-            successCount++;
+        Entity* entity = getEntityFromPlayerId(source, playerId);
+        if (entity != nullptr) {
+            if (entity->addTag(tag)) {
+                successCount++;
+            }
         }
+    }
+
+    if (successCount == 0) {
+        source.sendError("All entities already have the tag '" + tag + "' or reached tag limit (1024)");
+        return 0;
     }
 
     std::ostringstream ss;
@@ -105,11 +138,17 @@ i32 TagCommand::removeTag(CommandContext<ServerCommandSource>& context)
 
     i32 successCount = 0;
     for (PlayerId playerId : playerIds) {
-        auto player = source.server()->playerManager().getPlayer(playerId);
-        if (player) {
-            // TODO: 实现实体标签系统
-            successCount++;
+        Entity* entity = getEntityFromPlayerId(source, playerId);
+        if (entity != nullptr) {
+            if (entity->removeTag(tag)) {
+                successCount++;
+            }
         }
+    }
+
+    if (successCount == 0) {
+        source.sendError("No entities had the tag '" + tag + "'");
+        return 0;
     }
 
     std::ostringstream ss;
@@ -130,17 +169,62 @@ i32 TagCommand::listTags(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    // TODO: 实现实体标签系统
-    if (playerIds.size() == 1) {
-        auto player = source.server()->playerManager().getPlayer(playerIds[0]);
-        if (player) {
-            source.sendMessage(player->username + " has no tags");
+    // 收集所有唯一的标签
+    std::set<std::string> allTags;
+    std::vector<std::pair<std::string, std::set<std::string>>> entityTags;
+
+    for (PlayerId playerId : playerIds) {
+        Entity* entity = getEntityFromPlayerId(source, playerId);
+        if (entity != nullptr) {
+            const auto& tags = entity->getTags();
+            std::string entityName;
+
+            // 尝试获取实体名称
+            Player* player = dynamic_cast<Player*>(entity);
+            if (player != nullptr) {
+                entityName = player->username();
+            } else if (entity->hasCustomName()) {
+                entityName = entity->customNameText();
+            } else {
+                entityName = entity->getTypeId();
+            }
+
+            entityTags.emplace_back(entityName, tags);
+            for (const auto& tag : tags) {
+                allTags.insert(tag);
+            }
         }
-    } else {
-        source.sendMessage("Listing tags for " + std::to_string(playerIds.size()) + " entities");
     }
 
-    return 1;
+    // 输出结果
+    if (playerIds.size() == 1) {
+        // 单个实体：显示该实体的所有标签
+        if (entityTags.empty() || entityTags[0].second.empty()) {
+            source.sendMessage(entityTags.empty() ? "Entity has no tags" : entityTags[0].first + " has no tags");
+        } else {
+            const auto& [name, tags] = entityTags[0];
+            std::ostringstream ss;
+            ss << name << " has " << tags.size() << " tag" << (tags.size() == 1 ? "" : "s") << ":";
+            for (const auto& tag : tags) {
+                ss << " " << tag;
+            }
+            source.sendMessage(ss.str());
+        }
+    } else {
+        // 多个实体：显示所有实体的标签总数
+        if (allTags.empty()) {
+            source.sendMessage("No tags found on " + std::to_string(playerIds.size()) + " entities");
+        } else {
+            std::ostringstream ss;
+            ss << "There are " << allTags.size() << " unique tag" << (allTags.size() == 1 ? "" : "s") << " on " << playerIds.size() << " entities:";
+            for (const auto& tag : allTags) {
+                ss << " " << tag;
+            }
+            source.sendMessage(ss.str());
+        }
+    }
+
+    return static_cast<i32>(allTags.size());
 }
 
 } // namespace command

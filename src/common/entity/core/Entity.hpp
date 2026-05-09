@@ -17,6 +17,7 @@
 #include <array>
 #include <functional>
 #include <optional>
+#include <set>
 
 namespace mc {
 
@@ -1158,6 +1159,59 @@ public:
      */
     void setNoGravity(bool noGravity);
 
+    // ========== 实体标签 ==========
+
+    /**
+     * @brief 获取实体的所有标签
+     *
+     * 参考 MC 1.16.5 Entity.getTags()
+     * 标签用于命令系统和数据包谓词。
+     *
+     * @return 标签集合的常量引用
+     */
+    [[nodiscard]] const std::set<std::string>& getTags() const { return m_tags; }
+
+    /**
+     * @brief 添加标签
+     *
+     * 参考 MC 1.16.5 Entity.addTag()
+     * 每个实体最多可以有 1024 个标签。
+     *
+     * @param tag 标签名称
+     * @return 如果成功添加返回 true（标签不存在且未达到上限）
+     */
+    bool addTag(const std::string& tag);
+
+    /**
+     * @brief 移除标签
+     *
+     * 参考 MC 1.16.5 Entity.removeTag()
+     *
+     * @param tag 标签名称
+     * @return 如果成功移除返回 true（标签存在）
+     */
+    bool removeTag(const std::string& tag);
+
+    /**
+     * @brief 检查是否拥有指定标签
+     *
+     * @param tag 标签名称
+     * @return 如果拥有该标签返回 true
+     */
+    [[nodiscard]] bool hasTag(const std::string& tag) const;
+
+    /**
+     * @brief 获取标签数量
+     *
+     * @return 当前标签数量
+     */
+    [[nodiscard]] size_t getTagCount() const { return m_tags.size(); }
+
+    /**
+     * @brief 清空所有标签
+     */
+    void clearTags() { m_tags.clear(); }
+
     // ========== 运动速度乘数（甜浆果丛等减速效果） ==========
 
     /**
@@ -1671,6 +1725,10 @@ protected:
 
     // 重力
     bool m_noGravity = false;
+
+    // 实体标签
+    // 参考 MC 1.16.5 Entity.tags，最多1024个标签
+    std::set<std::string> m_tags;
 
     // 运动速度乘数（用于甜浆果丛等减速效果）
     // 参考 MC 1.16.5 Entity.motionMultiplier

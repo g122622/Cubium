@@ -313,6 +313,7 @@ src/common/entity/
 - **传送门系统**：传送门计时、传送冷却、维度切换
 - **传送系统**：安全传送、随机传送、位置验证
 - **运动速度乘数**：甜浆果丛、蜘蛛网等减速效果
+- **实体标签**：命令系统和数据包谓词使用的标签系统
 
 ```cpp
 // 创建实体
@@ -416,6 +417,59 @@ boat.removePassengers();
 - `VehicleMovePacket` - 服务端校正载具位置
 - `PlayerInputPacket` - 客户端发送骑乘输入（移动、跳跃）
 - `EntityActionPacket` - 实体动作（马跳跃蓄力、下马）
+
+#### 实体标签系统 (Entity Tags)
+
+Entity 提供标签系统，用于命令系统和数据包谓词：
+
+**核心方法**：
+- `getTags()` - 获取标签集合（只读）
+- `addTag(tag)` - 添加标签（最多1024个）
+- `removeTag(tag)` - 移除标签
+- `hasTag(tag)` - 检查是否拥有标签
+- `getTagCount()` - 获取标签数量
+- `clearTags()` - 清空所有标签
+
+**标签限制**：
+- 每个实体最多 1024 个标签（参考 MC 1.16.5）
+- 标签使用 `std::set<std::string>` 存储，自动去重
+- 空字符串是有效的标签名
+
+```cpp
+// 添加标签
+entity.addTag("marked");
+entity.addTag("quest_target");
+
+// 检查标签
+if (entity.hasTag("marked")) {
+    // 处理标记的实体
+}
+
+// 移除标签
+entity.removeTag("quest_target");
+
+// 列出所有标签
+for (const auto& tag : entity.getTags()) {
+    std::cout << tag << std::endl;
+}
+```
+
+**命令系统使用**：
+- `/tag @e[type=pig] add marked` - 给所有猪添加 "marked" 标签
+- `/tag @e remove marked` - 移除 "marked" 标签
+- `/tag @e list` - 列出实体的所有标签
+
+**数据包谓词**：
+标签可用于数据包中的实体谓词判断，例如：
+```json
+{
+  "condition": "minecraft:entity_properties",
+  "entity": "this",
+  "predicate": {
+    "nbt": "{Tags:[\"boss\"]}"
+  }
+}
+```
 
 #### EntityType (实体类型)
 

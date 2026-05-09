@@ -165,6 +165,33 @@ void Entity::setNoGravity(bool noGravity) {
     m_dataManager.set(NO_GRAVITY_PARAM, m_noGravity);
 }
 
+// ============================================================================
+// 实体标签实现
+// ============================================================================
+
+namespace {
+    // MC 1.16.5 定义的标签数量上限
+    constexpr size_t MAX_TAGS = 1024;
+}
+
+bool Entity::addTag(const std::string& tag) {
+    // MC 1.16.5: return this.tags.size() >= 1024 ? false : this.tags.add(tag);
+    if (m_tags.size() >= MAX_TAGS) {
+        return false;
+    }
+    auto result = m_tags.insert(tag);
+    return result.second;  // 如果插入成功返回 true
+}
+
+bool Entity::removeTag(const std::string& tag) {
+    // MC 1.16.5: return this.tags.remove(tag);
+    return m_tags.erase(tag) > 0;
+}
+
+bool Entity::hasTag(const std::string& tag) const {
+    return m_tags.count(tag) > 0;
+}
+
 std::string Entity::getTypeId() const {
     if (!m_typeId.empty()) {
         return m_typeId;
