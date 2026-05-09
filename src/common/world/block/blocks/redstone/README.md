@@ -125,7 +125,7 @@ redstone/
 
 | 文件 | 职责 |
 |------|------|
-| `TripWireBlock.hpp/cpp` | 绊线，检测实体穿越 |
+| `TripWireBlock.hpp/cpp` | 绊线，检测实体穿越，潜行玩家不触发 |
 | `TripWireHookBlock.hpp/cpp` | 绊线钩，绊线连接点 |
 | `NoteBlock.hpp/cpp` | 音符盒，播放音符 |
 | `TNTBlock.hpp/cpp` | TNT，红石触发爆炸 |
@@ -529,6 +529,47 @@ bool shouldOff = wallTorchBlock.shouldBeOff(world, pos, state);
 // 放置时自动选择合适的墙面
 BlockState placementState = wallTorchBlock.getStateForPlacement(context);
 ```
+
+### 绊线
+
+绊线检测实体穿越并输出红石信号：
+
+```cpp
+// 绊线通过实体碰撞检测触发
+// MC 1.16.5: 潜行的玩家不会触发绊线
+
+// 检测实体碰撞
+bool TripWireBlock::checkEntityCollision(IWorld& world, const BlockPos& pos) const {
+    AxisAlignedBB detectionBox(
+        static_cast<f32>(pos.x), static_cast<f32>(pos.y),
+        static_cast<f32>(pos.z), static_cast<f32>(pos.x) + 1.0f,
+        static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 1.0f
+    );
+
+    for (Entity* entity : world.getEntitiesInAABB(detectionBox, nullptr)) {
+        if (entity && !entity->isSneaking()) {
+            return true;  // 触发绊线
+        }
+    }
+    return false;
+}
+
+// 检查是否被充能
+bool powered = TripWireBlock::isPowered(state);
+
+// 检查连接状态
+bool connected = TripWireBlock::isConnected(state, Direction::North);
+```
+
+**特性说明**：
+
+| 特性 | 描述 |
+|------|------|
+| 检测范围 | 方块内向上 0.5 格 |
+| 触发条件 | 任何非潜行实体穿越 |
+| 潜行玩家 | **不会触发绊线**（使用 `entity->isSneaking()` 检测） |
+| 连接 | 与绊线钩连接形成完整绊线系统 |
+| 信号输出 | 充能时输出 15 强度 |
 
 ## 容易踩的坑
 

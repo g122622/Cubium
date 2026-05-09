@@ -70,6 +70,27 @@ public:
 };
 ```
 
+### 阴影渲染条件
+
+`shouldRenderShadow()` 方法检测实体是否应该渲染阴影：
+
+1. **隐身状态检测**：使用 `entity.hasFlag(EntityFlags::Invisible)` 检查实体是否处于隐身状态，隐身实体不渲染阴影
+2. **阴影大小检测**：`m_shadowSize > 0` 且 `m_shadowAlpha > 0`
+
+```cpp
+bool EntityRenderer::shouldRenderShadow(Entity& entity) const {
+    // 隐身实体不渲染阴影
+    if (entity.hasFlag(EntityFlags::Invisible)) {
+        return false;
+    }
+    // 阴影参数有效才渲染
+    if (m_shadowSize <= 0.0f || m_shadowAlpha <= 0.0f) {
+        return false;
+    }
+    return true;
+}
+```
+
 ## LivingRenderer 模板
 
 生物渲染器模板类，支持层渲染器系统和动画参数计算。
