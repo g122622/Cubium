@@ -352,6 +352,8 @@ add_executable(mc_tests
     # 存储系统测试
     common/world/storage/SectionCodecTest.cpp
     common/world/storage/WorldStorageServiceTest.cpp
+    # 村庄系统测试
+    common/world/village/VillageTest.cpp
     # 村庄交易系统测试
     common/world/village/trade/MerchantOfferTest.cpp
     # 袭击系统测试
@@ -503,6 +505,18 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/save/DirtyTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/save/AutoSave.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/save/SaveManager.cpp
+        # 村庄系统
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/Village.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/VillageManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/VillageGossip.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/poi/PointOfInterest.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/poi/PointOfInterestStorage.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/poi/PointOfInterestType.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/Raid.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/RaidManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/RaidWave.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffer.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffers.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/noise/ImprovedNoiseGenerator.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/noise/OctavesNoiseGenerator.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/chunk/IChunkGenerator.cpp

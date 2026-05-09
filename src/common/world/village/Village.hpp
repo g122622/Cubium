@@ -245,6 +245,16 @@ public:
      */
     void tick(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage = nullptr);
 
+    // ========== 常量 ==========
+
+    /// POI 统计更新间隔（每 1200 tick = 1 分钟更新一次）
+    static constexpr i64 POI_STAT_UPDATE_INTERVAL = 1200;
+
+    /// 村民超时时间（6000 tick = 5 分钟不在村庄范围内视为离开）
+    /// MC 1.16.5 中村民通过 Brain 记忆和工作站绑定自动与村庄关联，
+    /// 这里使用超时作为简化的离开检测
+    static constexpr i64 VILLAGER_TIMEOUT = 6000;
+
     // ========== 序列化 ==========
 
     /**
@@ -337,14 +347,6 @@ private:
 
     /// 上次 POI 统计更新时间
     i64 m_lastPOIStatUpdateTime = 0;
-
-    /// POI 统计更新间隔（每 1200 tick = 1 分钟更新一次）
-    static constexpr i64 POI_STAT_UPDATE_INTERVAL = 1200;
-
-    /// 村民超时时间（6000 tick = 5 分钟不在村庄范围内视为离开）
-    /// MC 1.16.5 中村民通过 Brain 记忆和工作站绑定自动与村庄关联，
-    /// 这里使用超时作为简化的离开检测
-    static constexpr i64 VILLAGER_TIMEOUT = 6000;
 };
 
 } // namespace village
