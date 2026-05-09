@@ -217,7 +217,7 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
         }
     }
 
-    // TODO: 引雷附魔
+    // 引雷附魔
     // 参考 MC 1.16.5 第154-164行
     if (m_world != nullptr && !m_world->isClientSide() && livingTarget != nullptr) {
         // 检查是否有引雷附魔
