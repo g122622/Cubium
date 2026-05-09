@@ -228,8 +228,8 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
             BlockPos targetPos(static_cast<i32>(target->x()),
                               static_cast<i32>(target->y()),
                               static_cast<i32>(target->z()));
-            bool isThundering = true; // TODO: 实现天气系统后替换为 m_world->isThundering()
-            bool canSeeSky = true;    // TODO: 实现天空可见性检查后替换为 m_world->canSeeSky(targetPos)
+            bool isThundering = m_world->isThundering();
+            bool canSeeSky = m_world->canSeeSky(targetPos);
 
             if (isThundering && canSeeSky) {
                 // 创建闪电实体
