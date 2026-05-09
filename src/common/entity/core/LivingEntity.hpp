@@ -230,14 +230,14 @@ public:
      * @brief 获取装备
      * @param slot 装备槽位
      */
-    [[nodiscard]] virtual const ItemStack& getEquipment(EquipmentSlot slot) const;
+    [[nodiscard]] const ItemStack& getEquipment(EquipmentSlot slot) const;
 
     /**
      * @brief 设置装备
      * @param slot 装备槽位
      * @param stack 物品堆
      */
-    virtual void setEquipment(EquipmentSlot slot, const ItemStack& stack);
+    void setEquipment(EquipmentSlot slot, const ItemStack& stack);
 
     /**
      * @brief 获取主手物品

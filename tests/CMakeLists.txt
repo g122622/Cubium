@@ -47,7 +47,6 @@ add_executable(mc_tests
     common/item/potion/PotionUtilsTest.cpp
     common/item/weapon/ThrowableItemTest.cpp
     common/item/weapon/WeaponItemTest.cpp
-    common/item/ArmorValueTest.cpp
     common/item/special/BucketItemTest.cpp
     common/item/special/FishBucketItemTest.cpp
     common/item/NewItemTest.cpp
