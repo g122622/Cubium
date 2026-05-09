@@ -1007,6 +1007,16 @@ void asyncTask() {
 
 **解决方案**：客户端本地 `Player` 不会在这条链路里跑 `Player::tick()`；客户端只会 tick 代理实体和本地物理。
 
+### 22. SlimeEntity 分裂时机和经验值
+
+**问题**：史莱姆分裂逻辑容易放错位置，经验值更新容易遗漏。
+
+**解决方案**：
+- 分裂逻辑应在 `remove()` 中执行，而非 `die()`，因为 `die()` 时实体还未被标记为移除
+- `Entity::remove()` 现在是虚函数，允许子类重写实现自定义移除逻辑
+- 经验值更新应在 `updateSizeAttributes()` 中执行，确保通过 `registerAttributes()` 初始化时也能正确设置
+- `setSlimeSize()` 中对相同尺寸会提前返回，所以经验值更新必须在 `updateSizeAttributes()` 中完成
+
 ## 涉及的测试用例
 
 测试文件位于 `tests/entity/` 和 `tests/common/entity/` 目录：
@@ -1032,6 +1042,7 @@ void asyncTask() {
 | `tests/common/item/tool/ShearsItemTest.cpp` | 剪刀物品与羊剪毛交互测试 |
 | `tests/common/item/special/BucketItemTest.cpp` | 桶物品与牛挤奶交互测试 |
 | `tests/common/entity/utils/ItemDropHelperTest.cpp` | 物品掉落速度和实体生成测试 |
+| `tests/common/entity/entities/monster/SlimeEntityTest.cpp` | 史莱姆尺寸系统、分裂机制、声音、伤害、经验值测试 |
 
 ## 参考
 
