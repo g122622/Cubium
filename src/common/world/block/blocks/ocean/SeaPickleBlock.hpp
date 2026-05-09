@@ -2,7 +2,6 @@
 
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
-#include "../../Material.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include <array>
@@ -22,9 +21,14 @@ namespace blocks {
  * 放置在水中的海泡菜会发光。
  * 实现 IWaterLoggable 接口支持含水功能。
  *
- * 状态属性：
+ * ## 状态属性
  * - PICKLES_1_4: 海泡菜数量 (1-4)
  * - WATERLOGGED: 是否含水
+ *
+ * ## 发光机制
+ * - 在水中时发光
+ * - 亮度随数量增加：1个=6, 2个=9, 3个=12, 4个=15
+ * - 离开水不发光
  *
  * 参考: net.minecraft.block.SeaPickleBlock
  */
@@ -35,7 +39,18 @@ public:
 
     // ========== 状态属性 ==========
 
+    /**
+     * @brief 获取海泡菜数量
+     * @param state 方块状态
+     * @return i32 数量（1-4）
+     */
     [[nodiscard]] i32 getPickles(const BlockState& state) const;
+
+    /**
+     * @brief 设置海泡菜数量
+     * @param count 数量（1-4）
+     * @return BlockState 更新后的状态
+     */
     [[nodiscard]] BlockState withPickles(i32 count) const;
 
     // ========== 放置逻辑 ==========
@@ -57,6 +72,18 @@ public:
 
     // ========== 光照 ==========
 
+    /**
+     * @brief 获取发光等级
+     *
+     * 只有在水中时才发光，亮度随数量增加：
+     * - 1个: 6
+     * - 2个: 9
+     * - 3个: 12
+     * - 4个: 15
+     *
+     * @param state 方块状态
+     * @return u8 发光等级（0-15）
+     */
     [[nodiscard]] u8 getLightLevel(const BlockState& state) const;
 
     // ========== 形状 ==========
@@ -83,228 +110,8 @@ public:
     }
 
 private:
-    /// 各数量的形状
+    /// 各数量的形状（索引0=1个，索引1=2个，...）
     std::array<CollisionShape, 4> m_shapesByCount;
-};
-
-/**
- * @brief 海带方块
- * TODO 这个类应该移到单独文件中
- *
- * 水下生长的植物，可以堆叠到很高。
- * 从海带方块可以获得海带物品。
- *
- * 状态属性：
- * - AGE_0_25: 年龄 (0-25)
- * - WATERLOGGED: 是否含水
- *
- * 参考: net.minecraft.block.KelpBlock
- */
-class KelpBlock : public Block {
-public:
-    explicit KelpBlock(const BlockProperties& properties);
-    ~KelpBlock() override = default;
-
-    // ========== 状态属性 ==========
-
-    [[nodiscard]] i32 getAge(const BlockState& state) const;
-    [[nodiscard]] BlockState withAge(i32 age) const;
-
-    // ========== 放置逻辑 ==========
-
-    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
-
-    [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
-
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
-        Direction facing,
-        const BlockState& facingState,
-        IWorld& world,
-        const BlockPos& currentPos,
-        const BlockPos& facingPos) override;
-
-    // ========== 生长逻辑 ==========
-
-    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
-
-    [[nodiscard]] bool ticksRandomly() const override { return true; }
-
-    // ========== 形状 ==========
-
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
-
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
-        MC_UNUSED(state);
-        return false;
-    }
-
-private:
-    CollisionShape m_shape;
-};
-
-/**
- * @brief 海草方块
- * TODO 这个类应该移到单独文件中
- * 
- * 水下植物，可以放置在水下地面上。
- * 有两种高度：普通海草和高海草。
- *
- * 状态属性：
- * - WATERLOGGED: 是否含水
- *
- * 参考: net.minecraft.block.SeagrassBlock
- */
-class SeagrassBlock : public Block {
-public:
-    explicit SeagrassBlock(const BlockProperties& properties);
-    ~SeagrassBlock() override = default;
-
-    // ========== 放置逻辑 ==========
-
-    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
-
-    [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
-
-    // ========== 形状 ==========
-
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
-
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
-        MC_UNUSED(state);
-        return false;
-    }
-
-private:
-    CollisionShape m_shape;
-};
-
-/**
- * @brief 高海草方块
- * TODO 这个类应该移到单独文件中
- *
- * 高度为2格的海草，使用 DOUBLE_BLOCK_HALF 属性。
- *
- * 状态属性：
- * - HALF: DoubleBlockHalf (UPPER, LOWER)
- * - WATERLOGGED: 是否含水
- *
- * 参考: net.minecraft.block.TallSeagrassBlock
- */
-class TallSeagrassBlock : public Block {
-public:
-    explicit TallSeagrassBlock(const BlockProperties& properties);
-    ~TallSeagrassBlock() override = default;
-
-    // ========== 状态属性 ==========
-
-    [[nodiscard]] BlockStateProperties::DoubleBlockHalf getHalf(const BlockState& state) const;
-
-    // ========== 放置逻辑 ==========
-
-    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
-
-    [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
-
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
-        Direction facing,
-        const BlockState& facingState,
-        IWorld& world,
-        const BlockPos& currentPos,
-        const BlockPos& facingPos) override;
-
-    // ========== 形状 ==========
-
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
-
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
-        MC_UNUSED(state);
-        return false;
-    }
-
-private:
-    CollisionShape m_lowerShape;
-    CollisionShape m_upperShape;
-};
-
-/**
- * @brief 气泡柱方块
- * TODO 这个类应该移到单独文件中
- *
- * 由岩浆块或灵魂沙产生的水下气泡柱。
- * 可以推动实体向上或向下。
- *
- * 状态属性：
- * - DRAG: 是否为下拖（灵魂沙产生向上气泡，岩浆块产生向下气泡）
- *
- * 参考: net.minecraft.block.BubbleColumnBlock
- */
-class BubbleColumnBlock : public Block {
-public:
-    explicit BubbleColumnBlock(const BlockProperties& properties);
-    ~BubbleColumnBlock() override = default;
-
-    // ========== 状态属性 ==========
-
-    [[nodiscard]] bool isDrag(const BlockState& state) const;
-
-    // ========== 放置逻辑 ==========
-
-    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
-
-    [[nodiscard]] bool isValidPosition(
-        const BlockState& state,
-        IBlockReader& world,
-        const BlockPos& pos) const override;
-
-    [[nodiscard]] BlockState updatePostPlacement(
-        const BlockState& state,
-        Direction facing,
-        const BlockState& facingState,
-        IWorld& world,
-        const BlockPos& currentPos,
-        const BlockPos& facingPos) override;
-
-    // ========== 实体交互 ==========
-
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
-
-    // ========== Tick ==========
-
-    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
-
-    // ========== 形状 ==========
-
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
-
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override {
-        MC_UNUSED(state);
-        return false;
-    }
-
-private:
-    /**
-     * @brief 检查下方是否产生气泡
-     */
-    [[nodiscard]] bool checkSource(const IWorld& world, const BlockPos& pos) const;
 };
 
 } // namespace blocks

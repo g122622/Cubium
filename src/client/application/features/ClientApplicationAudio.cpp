@@ -6,7 +6,7 @@
 #include "common/world/biome/BiomeEffects.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/block/blocks/ocean/SeaPickleBlock.hpp"
+#include "common/world/block/blocks/ocean/BubbleColumnBlock.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include "client/ui/screen/ScreenManager.hpp"

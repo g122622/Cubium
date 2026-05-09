@@ -7,7 +7,12 @@
 ```
 ocean/
 ├── README.md              # 本文档
-├── SeaPickleBlock.hpp/cpp # 海泡菜、海带、海草、气泡柱
+├── SeaPickleBlock.hpp/cpp # 海泡菜方块
+├── KelpBlock.hpp/cpp      # 海带方块
+├── SeagrassBlock.hpp/cpp  # 海草方块
+├── TallSeagrassBlock.hpp/cpp # 高海草方块
+├── BubbleColumnBlock.hpp/cpp # 气泡柱方块
+└── DriedKelpBlock.hpp/cpp # 干海带块和潮涌核心
 ```
 
 ## 方块类型
@@ -19,6 +24,8 @@ ocean/
 | `SeagrassBlock` | 海草（单格水下植物） | 无 |
 | `TallSeagrassBlock` | 高海草（双格水下植物） | HALF, WATERLOGGED |
 | `BubbleColumnBlock` | 气泡柱（推动实体） | DRAG |
+| `DriedKelpBlock` | 干海带块（装饰性方块） | 无 |
+| `ConduitBlock` | 潮涌核心（水下信标） | WATERLOGGED, ACTIVE |
 
 ## 核心机制
 
@@ -31,18 +38,25 @@ ocean/
 - `minecraft:kelp_plant`
 - `minecraft:seagrass`
 - `minecraft:tall_seagrass`
+- `minecraft:bubble_column`
+- `minecraft:dried_kelp_block`
+- `minecraft:conduit`
 
 ### 海泡菜发光
+
 - 在水中时发光
 - 亮度随数量增加：1个=6, 2个=9, 3个=12, 4个=15
 - 离开水不发光
 
 ### 海带生长
-- 随机 tick 生长
-- 高度限制基于 AGE_0_25
+
+- 通过随机 tick 生长
+- 高度限制基于 AGE_0_25 (最大 25 格)
 - 只能在水中生长
+- 生长概率约 14%
 
 ### 气泡柱 (MC 1.16.5 对齐)
+
 - 灵魂沙产生上推气泡柱 (DRAG=false)
 - 岩浆块产生下拖气泡柱 (DRAG=true)
 - 推动实体:
@@ -85,3 +99,4 @@ auto bubbleColumn = std::make_unique<BubbleColumnBlock>(
 | `world/block/Material` | 材质系统 |
 | `world/IWorld` | 世界接口 |
 | `util/property/Properties` | 方块属性 |
+| `physics/collision/CollisionShape` | 碰撞形状 |
