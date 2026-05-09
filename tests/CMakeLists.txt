@@ -67,6 +67,8 @@ add_executable(mc_tests
     common/entity/experience/ExperienceTest.cpp
     common/entity/experience/ExperienceManagerTest.cpp
     common/entity/experience/ExperienceOrbEntityTest.cpp
+    # 箭矢拾取测试
+    common/entity/ArrowPickupTest.cpp
     # 难度系统测试
     common/entity/combat/DifficultyHelperTest.cpp
     # 战斗追踪器测试

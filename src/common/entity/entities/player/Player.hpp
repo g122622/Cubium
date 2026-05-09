@@ -596,6 +596,15 @@ public:
     void updateMoveDistance();
 
     /**
+     * @brief 检测与附近实体的碰撞
+     *
+     * 参考 MC 1.16.5 PlayerEntity.tick() 第531-547行
+     * 检测玩家碰撞箱扩展范围内的实体，并调用它们的 onCollideWithPlayer 方法。
+     * 用于处理物品拾取、箭矢拾取、经验球吸收等。
+     */
+    void checkEntityCollisions();
+
+    /**
      * @brief 播放脚步声
      *
      * 在行走距离累计超过阈值时触发。

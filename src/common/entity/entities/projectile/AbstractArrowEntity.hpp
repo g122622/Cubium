@@ -10,6 +10,8 @@
 #include <vector>
 
 namespace mc {
+// 前向声明 - ItemStack 在 mc 命名空间中
+class ItemStack;
 namespace entity {
 
 /**
@@ -88,6 +90,11 @@ public:
     [[nodiscard]] bool isInGround() const { return m_inGround; }
 
     /**
+     * @brief 设置是否插在方块中（测试用）
+     */
+    void setInGround(bool inGround) { m_inGround = inGround; }
+
+    /**
      * @brief 获取拾取状态
      */
     [[nodiscard]] PickupStatus pickupStatus() const { return m_pickupStatus; }
@@ -133,6 +140,16 @@ public:
     void setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity);
 
     /**
+     * @brief 当玩家与此箭矢碰撞时调用
+     *
+     * 参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer()
+     * 检查拾取条件并调用 onPlayerPickup。
+     *
+     * @param player 与此箭矢碰撞的玩家
+     */
+    void onCollideWithPlayer(Player& player) override;
+
+    /**
      * @brief 玩家拾取箭矢
      * @param player 玩家
      * @return 是否成功拾取
@@ -148,7 +165,7 @@ public:
      * - SpectralArrowEntity: 返回光灵箭
      * - TridentEntity: 返回三叉戟
      */
-    [[nodiscard]] virtual item::ItemStack getArrowStack() const = 0;
+    [[nodiscard]] virtual ItemStack getArrowStack() const = 0;
 
 protected:
     /**
@@ -320,7 +337,7 @@ public:
      * @brief 获取箭矢对应的物品堆
      * @return 普通箭矢或药水箭物品堆
      */
-    [[nodiscard]] item::ItemStack getArrowStack() const override;
+    [[nodiscard]] ItemStack getArrowStack() const override;
 
 private:
     u32 m_color = 0xFFFFFFFF;  // 箭矢颜色（药水箭）
@@ -357,7 +374,7 @@ public:
      * @brief 获取箭矢对应的物品堆
      * @return 光灵箭物品堆
      */
-    [[nodiscard]] item::ItemStack getArrowStack() const override;
+    [[nodiscard]] ItemStack getArrowStack() const override;
 
 private:
     i32 m_glowDuration = 200;  // 发光持续时间（ticks）

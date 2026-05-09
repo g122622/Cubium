@@ -144,8 +144,8 @@ bool AbstractArrowEntity::checkInBlockEmpty() {
     // 检查箭矢周围是否有碰撞箱
     // 创建一个很小的检测盒（0.06）
     AxisAlignedBB testBox(
-        m_position.x - 0.06, m_position.y - 0.06, m_position.z - 0.06,
-        m_position.x + 0.06, m_position.y + 0.06, m_position.z + 0.06);
+        m_position.x - 0.06f, m_position.y - 0.06f, m_position.z - 0.06f,
+        m_position.x + 0.06f, m_position.y + 0.06f, m_position.z + 0.06f);
 
     if (m_world) {
         return m_world->hasNoCollisions(testBox);
@@ -352,6 +352,22 @@ void AbstractArrowEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 b
     (void)shooter; // 暂时未使用
 }
 
+void AbstractArrowEntity::onCollideWithPlayer(Player& player) {
+    // 参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer() 第508-521行
+    // 只在服务端执行，检查拾取条件
+    if (m_world && m_world->isClientSide()) {
+        return;
+    }
+
+    // 检查是否可以拾取：必须插在方块中或处于穿甲状态，且不在抖动
+    if ((!m_inGround && !m_noClip) || m_arrowShake > 0) {
+        return;
+    }
+
+    // 调用拾取逻辑
+    onPlayerPickup(player);
+}
+
 bool AbstractArrowEntity::onPlayerPickup(Player& player) {
     // 参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer() 第508-521行
 
@@ -388,7 +404,7 @@ bool AbstractArrowEntity::onPlayerPickup(Player& player) {
     // 只有 Allowed 状态才检查背包空间
     if (m_pickupStatus == PickupStatus::Allowed) {
         // 获取箭矢物品堆
-        item::ItemStack arrowStack = getArrowStack();
+        ItemStack arrowStack = getArrowStack();
 
         // 尝试添加到玩家背包
         // add() 方法会修改 arrowStack，减少其数量
@@ -407,7 +423,7 @@ bool AbstractArrowEntity::onPlayerPickup(Player& player) {
         math::Random rng = createRandomFromEntity(*this);
         m_world->playSound(
             SoundEvents::ENTITY_ITEM_PICKUP,
-            SoundCategory::Players,
+            sound::SoundCategory::Players,
             m_position,
             0.2f,  // 音量
             1.0f + (rng.nextFloat() - 0.5f) * 0.2f  // 音调带随机变化
@@ -459,19 +475,19 @@ void ArrowEntity::tick() {
     }
 }
 
-item::ItemStack ArrowEntity::getArrowStack() const {
+ItemStack ArrowEntity::getArrowStack() const {
     // 参考 MC 1.16.5 ArrowEntity.getArrowStack() 第195-208行
     // 如果有药水效果，返回药水箭；否则返回普通箭矢
     if (hasEffects()) {
         // 创建药水箭物品堆
-        item::ItemStack tippedArrow(*item::Items::TIPPED_ARROW, 1);
+        ItemStack tippedArrow(*Items::TIPPED_ARROW, 1);
         // TODO: 设置药水效果到物品堆的 NBT 标签
         // PotionUtils.addPotionToItemStack(itemstack, this.potion);
         // PotionUtils.appendEffects(itemstack, this.customPotionEffects);
         return tippedArrow;
     } else {
         // 返回普通箭矢
-        return item::ItemStack(*item::Items::ARROW, 1);
+        return ItemStack(*Items::ARROW, 1);
     }
 }
 
@@ -498,10 +514,10 @@ void SpectralArrowEntity::tick() {
     }
 }
 
-item::ItemStack SpectralArrowEntity::getArrowStack() const {
+ItemStack SpectralArrowEntity::getArrowStack() const {
     // 参考 MC 1.16.5 SpectralArrowEntity.getArrowStack() 第39-41行
     // 光灵箭总是返回光灵箭物品
-    return item::ItemStack(*item::Items::SPECTRAL_ARROW, 1);
+    return ItemStack(*Items::SPECTRAL_ARROW, 1);
 }
 
 } // namespace entity

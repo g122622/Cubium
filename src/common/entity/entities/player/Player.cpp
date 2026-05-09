@@ -365,6 +365,37 @@ void Player::tick() {
 
     // 更新移动距离（用于视野晃动）
     updateMoveDistance();
+
+    // 检测与附近实体的碰撞（拾取物品、箭矢等）
+    // 参考 MC 1.16.5 PlayerEntity.tick() 第531-547行
+    checkEntityCollisions();
+}
+
+void Player::checkEntityCollisions() {
+    // 参考 MC 1.16.5 PlayerEntity.tick() 第531-547行
+    // 只在存活且非观察者模式时检测碰撞
+    if (!isAlive() || isSpectator()) {
+        return;
+    }
+
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 创建搜索盒：玩家碰撞箱扩展1格（水平和垂直）
+    // MC 1.16.5: this.getBoundingBox().grow(1.0D, 0.5D, 1.0D)
+    AxisAlignedBB searchBox = boundingBox().expand(1.0f, 0.5f, 1.0f);
+
+    // 获取搜索盒内的所有实体
+    std::vector<Entity*> nearbyEntities = m_world->getEntitiesInAABB(searchBox, this);
+
+    for (Entity* entity : nearbyEntities) {
+        if (entity == nullptr || entity->isRemoved()) {
+            continue;
+        }
+        // 调用实体的碰撞回调
+        entity->onCollideWithPlayer(*this);
+    }
 }
 
 bool Player::tickPortal() {

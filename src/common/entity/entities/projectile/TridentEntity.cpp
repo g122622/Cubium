@@ -93,7 +93,7 @@ void TridentEntity::tickReturning() {
     // 计算到射手的方向
     Vector3 direction(
         shooter->x() - m_position.x,
-        shooter->y() + shooter->eyeHeight() * 0.5 - m_position.y,
+        shooter->y() + shooter->eyeHeight() * 0.5f - m_position.y,
         shooter->z() - m_position.z
     );
 
@@ -101,7 +101,7 @@ void TridentEntity::tickReturning() {
     ProjectileHelper::rotateTowardsMovement(*this, 0.2f);
 
     // 参考 MC 1.16.5 第77行：Y轴微小偏移
-    m_position.y += direction.y * 0.015 * static_cast<f32>(m_loyaltyLevel);
+    m_position.y += direction.y * 0.015f * static_cast<f32>(m_loyaltyLevel);
 
     // 计算距离
     f32 distance = direction.length();
@@ -114,9 +114,9 @@ void TridentEntity::tickReturning() {
     Vector3 currentVel = m_velocity;
     direction = direction.normalized();
     m_velocity = Vector3(
-        currentVel.x * 0.95 + direction.x * speed,
-        currentVel.y * 0.95 + direction.y * speed,
-        currentVel.z * 0.95 + direction.z * speed
+        currentVel.x * 0.95f + direction.x * speed,
+        currentVel.y * 0.95f + direction.y * speed,
+        currentVel.z * 0.95f + direction.z * speed
     );
 
     // 更新位置
@@ -253,9 +253,9 @@ void TridentEntity::onEntityHit(const RayTraceResult& result) {
 
     // 速度反转为轻微反弹
     m_velocity = Vector3(
-        m_velocity.x * -0.01,
-        m_velocity.y * -0.1,
-        m_velocity.z * -0.01
+        m_velocity.x * -0.01f,
+        m_velocity.y * -0.1f,
+        m_velocity.z * -0.01f
     );
 
     // 三叉戟不移除，而是等待返回

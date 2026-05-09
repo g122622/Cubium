@@ -853,6 +853,22 @@ public:
      */
     [[nodiscard]] virtual bool isAlive() const { return !m_removed; }
 
+    // ========== 玩家碰撞 ==========
+
+    /**
+     * @brief 当玩家与此实体碰撞时调用
+     *
+     * 参考 MC 1.16.5 Entity.onCollideWithPlayer()
+     * 用于处理玩家拾取物品、经验球、箭矢等。
+     * 子类可重写以实现特定的碰撞行为。
+     *
+     * @param player 与此实体碰撞的玩家
+     */
+    virtual void onCollideWithPlayer(class Player& player) {
+        // 默认实现：无操作
+        (void)player;
+    }
+
     // ========== 环境检测 ==========
 
     /**

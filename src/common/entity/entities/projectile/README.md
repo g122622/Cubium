@@ -263,6 +263,7 @@ auto damageSource = std::make_unique<IndirectEntityDamageSource>(
   - 新增FishingParticle粒子类型用于水面涟漪效果
 - **箭矢拾取功能已完善实现（2026-05-09）**：
   - `AbstractArrowEntity::onPlayerPickup()`：完整实现箭矢拾取逻辑
+  - `AbstractArrowEntity::onCollideWithPlayer()`：玩家碰撞检测入口
   - `getArrowStack()`：新增纯虚方法，子类返回对应的物品堆
   - `ArrowEntity::getArrowStack()`：返回普通箭矢或药水箭
   - `SpectralArrowEntity::getArrowStack()`：返回光灵箭
@@ -271,3 +272,8 @@ auto damageSource = std::make_unique<IndirectEntityDamageSource>(
   - 支持 PickupStatus 三种状态：Disallowed、Allowed、CreativeOnly
   - CreativeOnly 状态不检查背包空间（创造模式无限物品）
   - 拾取成功后播放 ENTITY_ITEM_PICKUP 音效
+  - **碰撞检测集成（2026-05-09）**：
+    - `Entity::onCollideWithPlayer()`：新增虚方法，默认无操作
+    - `Player::checkEntityCollisions()`：玩家tick中检测附近实体碰撞
+    - 搜索范围为玩家碰撞箱扩展1格（水平和垂直）
+    - 自动调用附近实体的 `onCollideWithPlayer()` 方法
