@@ -1032,6 +1032,54 @@ i32 Player::armorValue() const {
     return item::items::ArmorItem::getTotalArmorValue(*this);
 }
 
+const ItemStack& Player::getEquipment(EquipmentSlot slot) const {
+    // 玩家的装备存储在 PlayerInventory 中
+    // 参考 MC 1.16.5 PlayerEntity.getItemStackFromSlot()
+    switch (slot) {
+        case EquipmentSlot::Head:
+            return m_inventory.getHelmetRef();
+        case EquipmentSlot::Chest:
+            return m_inventory.getChestplateRef();
+        case EquipmentSlot::Legs:
+            return m_inventory.getLeggingsRef();
+        case EquipmentSlot::Feet:
+            return m_inventory.getBootsRef();
+        case EquipmentSlot::MainHand:
+            return m_inventory.getSelectedStackRef();
+        case EquipmentSlot::OffHand:
+            return m_inventory.getOffhandItemRef();
+        default:
+            return ItemStack::EMPTY;
+    }
+}
+
+void Player::setEquipment(EquipmentSlot slot, const ItemStack& stack) {
+    // 参考 MC 1.16.5 PlayerEntity.setItemStackToSlot()
+    switch (slot) {
+        case EquipmentSlot::Head:
+            m_inventory.setHelmet(stack);
+            break;
+        case EquipmentSlot::Chest:
+            m_inventory.setChestplate(stack);
+            break;
+        case EquipmentSlot::Legs:
+            m_inventory.setLeggings(stack);
+            break;
+        case EquipmentSlot::Feet:
+            m_inventory.setBoots(stack);
+            break;
+        case EquipmentSlot::MainHand:
+            // 主手物品设置到选中的快捷栏槽位
+            m_inventory.setItem(m_inventory.getSelectedSlot(), stack);
+            break;
+        case EquipmentSlot::OffHand:
+            m_inventory.setOffhandItem(stack);
+            break;
+        default:
+            break;
+    }
+}
+
 void Player::setCreativeModeInventory() {
     fillCreativeModeInventory(m_inventory);
 }

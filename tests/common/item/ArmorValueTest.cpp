@@ -144,6 +144,8 @@ TEST_F(ArmorValueTest, TotalArmorValueWithFullDiamondArmor) {
 
         // 钻石全套护甲值为 20
         EXPECT_EQ(player.armorValue(), 20);
+    } else {
+        FAIL() << "Diamond armor items not initialized";
     }
 }
 

@@ -909,6 +909,29 @@ public:
      */
     [[nodiscard]] i32 armorValue() const;
 
+    // ========== 装备重写 ==========
+
+    /**
+     * @brief 获取装备（重写 LivingEntity::getEquipment）
+     *
+     * 玩家的装备存储在 PlayerInventory 中，而不是 LivingEntity::m_equipment。
+     * 此方法将 EquipmentSlot 映射到 PlayerInventory 的对应槽位。
+     *
+     * @param slot 装备槽位
+     * @return 装备物品堆的引用
+     */
+    [[nodiscard]] const ItemStack& getEquipment(EquipmentSlot slot) const override;
+
+    /**
+     * @brief 设置装备（重写 LivingEntity::setEquipment）
+     *
+     * 将装备设置到 PlayerInventory 的对应槽位。
+     *
+     * @param slot 装备槽位
+     * @param stack 物品堆
+     */
+    void setEquipment(EquipmentSlot slot, const ItemStack& stack) override;
+
     /**
      * @brief 获取跳跃因子
      *

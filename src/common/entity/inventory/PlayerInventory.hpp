@@ -209,9 +209,21 @@ public:
     [[nodiscard]] ItemStack getHelmet() const { return m_items[InventorySlots::ARMOR_HEAD]; }
 
     /**
+     * @brief 获取头盔槽物品的引用
+     */
+    [[nodiscard]] const ItemStack& getHelmetRef() const { return m_items[InventorySlots::ARMOR_HEAD]; }
+    [[nodiscard]] ItemStack& getHelmetRef() { return m_items[InventorySlots::ARMOR_HEAD]; }
+
+    /**
      * @brief 获取胸甲槽物品
      */
     [[nodiscard]] ItemStack getChestplate() const { return m_items[InventorySlots::ARMOR_CHEST]; }
+
+    /**
+     * @brief 获取胸甲槽物品的引用
+     */
+    [[nodiscard]] const ItemStack& getChestplateRef() const { return m_items[InventorySlots::ARMOR_CHEST]; }
+    [[nodiscard]] ItemStack& getChestplateRef() { return m_items[InventorySlots::ARMOR_CHEST]; }
 
     /**
      * @brief 获取护腿槽物品
@@ -219,9 +231,21 @@ public:
     [[nodiscard]] ItemStack getLeggings() const { return m_items[InventorySlots::ARMOR_LEGS]; }
 
     /**
+     * @brief 获取护腿槽物品的引用
+     */
+    [[nodiscard]] const ItemStack& getLeggingsRef() const { return m_items[InventorySlots::ARMOR_LEGS]; }
+    [[nodiscard]] ItemStack& getLeggingsRef() { return m_items[InventorySlots::ARMOR_LEGS]; }
+
+    /**
      * @brief 获取靴子槽物品
      */
     [[nodiscard]] ItemStack getBoots() const { return m_items[InventorySlots::ARMOR_FEET]; }
+
+    /**
+     * @brief 获取靴子槽物品的引用
+     */
+    [[nodiscard]] const ItemStack& getBootsRef() const { return m_items[InventorySlots::ARMOR_FEET]; }
+    [[nodiscard]] ItemStack& getBootsRef() { return m_items[InventorySlots::ARMOR_FEET]; }
 
     /**
      * @brief 获取副手物品
