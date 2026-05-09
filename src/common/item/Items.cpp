@@ -391,6 +391,13 @@ Item* Items::HOPPER_MINECART = nullptr;
 Item* Items::COMMAND_BLOCK_MINECART = nullptr;
 
 // ============================================================================
+// 悬挂实体物品
+// ============================================================================
+Item* Items::PAINTING = nullptr;
+Item* Items::ITEM_FRAME = nullptr;
+Item* Items::LEAD = nullptr;
+
+// ============================================================================
 // 初始化
 // ============================================================================
 
@@ -434,6 +441,7 @@ void Items::initialize() {
     registerBooks();     // 书本类物品
     registerSponges();   // 海绵物品
     registerMinecarts(); // 矿车物品
+    registerHangingItems(); // 悬挂实体物品
 
     s_initialized = true;
 }
@@ -1902,6 +1910,28 @@ void Items::registerMinecarts() {
         ResourceLocation("minecraft:command_block_minecart"),
         entity::AbstractMinecartEntity::Type::CommandBlock,
         ItemProperties().maxStackSize(1)
+    );
+}
+
+void Items::registerHangingItems() {
+    auto& registry = ItemRegistry::instance();
+
+    // 画作 - MC 1.16.5: maxStackSize = 16
+    PAINTING = &registry.registerItem(
+        ResourceLocation("minecraft:painting"),
+        ItemProperties().maxStackSize(16)
+    );
+
+    // 物品展示框 - MC 1.16.5: maxStackSize = 16
+    ITEM_FRAME = &registry.registerItem(
+        ResourceLocation("minecraft:item_frame"),
+        ItemProperties().maxStackSize(16)
+    );
+
+    // 拴绳 - MC 1.16.5: maxStackSize = 16
+    LEAD = &registry.registerItem(
+        ResourceLocation("minecraft:lead"),
+        ItemProperties().maxStackSize(16)
     );
 }
 

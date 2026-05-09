@@ -404,6 +404,13 @@ public:
     static Item* HOPPER_MINECART;        // 漏斗矿车
     static Item* COMMAND_BLOCK_MINECART; // 命令方块矿车
 
+    // ========================================================================
+    // 悬挂实体物品
+    // ========================================================================
+    static Item* PAINTING;               // 画作
+    static Item* ITEM_FRAME;             // 物品展示框
+    static Item* LEAD;                   // 拴绳
+
 private:
     static bool s_initialized;
 
@@ -424,6 +431,6 @@ private:
     static void registerBooks();
     static void registerSponges();
     static void registerMinecarts();
-};
+    static void registerHangingItems();
 
 } // namespace mc

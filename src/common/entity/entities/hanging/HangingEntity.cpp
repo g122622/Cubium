@@ -1,8 +1,14 @@
 #include "HangingEntity.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../../util/Direction.hpp"
+#include "../../../item/Items.hpp"
+#include "../../../item/core/ItemStack.hpp"
+#include "../../../entity/utils/ItemDropHelper.hpp"
 #include "../player/Player.hpp"
 #include "../item/ItemEntity.hpp"
 #include "../../../core/Types.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include <cmath>
 #include <algorithm>
 
@@ -51,8 +57,40 @@ bool HangingEntity::isValidPosition() const {
 }
 
 bool HangingEntity::canPlaceOn() const {
-    // TODO: 检查背后的方块是否可以支撑
-    return true;
+    // MC 1.16.5: AbstractDecorationEntity.canPlaceOn()
+    // 检查背后的方块是否可以支撑悬挂实体
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    // 获取悬挂方向对应的 MC Direction
+    // HangingEntity::Direction: SOUTH=0, WEST=1, NORTH=2, EAST=3
+    // 悬挂实体面向 SOUTH 时，背面是 NORTH，需要检查 NORTH 面是否可依附
+    mc::Direction attachDir;
+    switch (m_direction) {
+        case Direction::SOUTH:
+            attachDir = mc::Direction::North;  // 面向南方，背面是北方
+            break;
+        case Direction::WEST:
+            attachDir = mc::Direction::East;   // 面向西方，背面是东方
+            break;
+        case Direction::NORTH:
+            attachDir = mc::Direction::South;  // 面向北方，背面是南方
+            break;
+        case Direction::EAST:
+            attachDir = mc::Direction::West;   // 面向东方，背面是西方
+            break;
+        default:
+            return false;
+    }
+
+    // 计算支撑方块的位置（悬挂位置的背后）
+    BlockPos attachPos = m_hangingPos.offset(attachDir);
+
+    // 检查支撑方块是否有足够的固体面
+    // 使用 Direction::opposite 获取我们面对的方向
+    mc::Direction solidCheckDir = Directions::opposite(attachDir);
+    return Block::hasEnoughSolidSide(*m_world, attachPos, solidCheckDir);
 }
 
 void HangingEntity::onAttacked(Entity* attacker, f32 damage) {
@@ -103,7 +141,24 @@ PaintingEntity::PaintingEntity(BlockPos pos, Direction direction, const std::str
 }
 
 void PaintingEntity::dropItem() {
-    // TODO: 生成画作物品
+    // MC 1.16.5: PaintingEntity.dropItem()
+    // 生成画作物品
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 创建画作物品堆
+    if (Items::PAINTING != nullptr) {
+        ItemStack stack(*Items::PAINTING, 1);
+        math::Random& rng = m_world->getRandom();
+        ItemDropHelper::spawnItemEntity(
+            m_world,
+            stack,
+            x(), y(), z(),
+            rng,
+            ItemDropHelper::DEFAULT_PICKUP_DELAY
+        );
+    }
 }
 
 i32 PaintingEntity::getWidth() const {
@@ -202,7 +257,24 @@ void LeashKnotEntity::tick() {
 }
 
 void LeashKnotEntity::dropItem() {
-    // TODO: 掉落拴绳物品
+    // MC 1.16.5: LeashKnotEntity.dropItem()
+    // 掉落拴绳物品
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 创建拴绳物品堆
+    if (Items::LEAD != nullptr) {
+        ItemStack stack(*Items::LEAD, 1);
+        math::Random& rng = m_world->getRandom();
+        ItemDropHelper::spawnItemEntity(
+            m_world,
+            stack,
+            x(), y(), z(),
+            rng,
+            ItemDropHelper::DEFAULT_PICKUP_DELAY
+        );
+    }
 }
 
 void LeashKnotEntity::attachLeash(Entity* entity) {
