@@ -33,6 +33,12 @@ src/server/command/commands/
 - `DefaultGameModeCommand.*`：设置服务器默认游戏模式。
 - `DifficultyCommand.*`：修改世界难度。
 - `ExperienceCommand.*`：管理经验值和等级。
+- `FillCommand.*`：填充区域方块。
+  - destroy 模式：破坏原方块并掉落物品（使用 BlockDropHandler）
+  - hollow 模式：填充外壳，内部填充空气
+  - keep 模式：仅替换空气方块
+  - outline 模式：仅填充外壳，内部保持不变
+  - replace 模式：替换所有或指定方块
 - `GameModeCommand.*`：切换玩家游戏模式。
 - `GiveCommand.*`：发放物品。
   - 背包满时在玩家位置掉落物品实体（参考 MC 1.16.5）

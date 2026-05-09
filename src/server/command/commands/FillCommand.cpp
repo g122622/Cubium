@@ -5,8 +5,10 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/entity/loot/LootTable.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/drop/BlockDropHandler.hpp"
 
 #include <sstream>
 #include <algorithm>
@@ -158,9 +160,30 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
                         break;
 
                     case FillMode::Destroy:
-                        // TODO: 破坏模式需要掉落物品
+                    {
+                        // 破坏模式：先掉落物品，再填充
+                        // 参考 MC 1.16.5 FillCommand.DESTROY: world.destroyBlock(pos, true)
+                        const BlockState* currentState = world->getBlockState(x, y, z);
+                        if (currentState != nullptr && !currentState->isAir()) {
+                            // 获取掉落表管理器
+                            const loot::LootTableManager* lootTableManager = world->lootTableManager();
+                            if (lootTableManager != nullptr) {
+                                // 生成掉落物
+                                // 注意：FillCommand destroy 模式不检查 canHarvestBlock，总是掉落物品
+                                std::vector<ItemStack> drops = BlockDropHandler::generateDrops(
+                                    *world, BlockPos(x, y, z), *currentState,
+                                    nullptr,  // 无玩家
+                                    nullptr,  // 无工具
+                                    *lootTableManager);
+
+                                if (!drops.empty()) {
+                                    BlockDropHandler::spawnDrops(*world, BlockPos(x, y, z), drops, "");
+                                }
+                            }
+                        }
                         shouldFill = true;
                         break;
+                    }
 
                     case FillMode::Hollow:
                         // 空心填充：仅外壳填充，内部填充空气
