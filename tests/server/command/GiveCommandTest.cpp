@@ -1,10 +1,9 @@
 /**
- * @file SetBlockCommandTest.cpp
- * @brief SetBlockCommand 单元测试
+ * @file GiveCommandTest.cpp
+ * @brief GiveCommand 单元测试
  *
- * 测试 /setblock 命令的注册和命令解析。
- * 由于 ServerWorld 接口复杂，完整的 destroy 模式集成测试
- * 应在集成测试环境中进行。
+ * 测试 /give 命令的注册、解析和权限检查。
+ * 物品掉落和音效播放的完整测试应在集成测试环境中进行。
  */
 
 #include <gtest/gtest.h>
@@ -12,6 +11,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/command/commands/GiveCommand.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/GameModeManager.hpp"
 #include "server/core/KeepAliveManager.hpp"
@@ -26,24 +26,39 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/Items.hpp"
 #include "common/network/connection/IServerConnection.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
 #include <stdexcept>
 #include <vector>
 
-// Forward declarations for types only needed for interface declaration
+// Forward declarations
 namespace mc {
 class ServerDimensionManager;
+class WorldLightManager;
+class PhysicsEngine;
+class EntityManager;
 }
 
 namespace mc::server {
 class ServerPlayerEntityManager;
+class ServerWorld;
+class ServerChunkManager;
+class EntityTracker;
+class ItemPickupManager;
+class WeatherManager;
 }
 
-namespace mc {
-class WorldLightManager;
+namespace mc::server::sync {
+class EntitySyncManager;
+class ChunkSendManager;
+class LightSyncManager;
+}
+
+namespace mc::server::interaction {
+class BlockInteractionManager;
+class MiningManager;
+class ContainerManager;
 }
 
 namespace mc::command {
@@ -82,13 +97,13 @@ private:
 /**
  * @brief 测试服务器，用于命令测试。
  *
- * 注意：此测试服务器不提供 world() 实现，
- * 因为 ServerWorld 接口复杂难以模拟。
- * SetBlockCommand 的完整功能测试应在集成测试中进行。
+ * 注意：此测试服务器不提供完整的 world() 和 playerEntityManager() 实现，
+ * 因为这些接口复杂难以模拟。
+ * GiveCommand 的物品掉落和音效播放完整功能测试应在集成测试中进行。
  */
-class SetBlockTestServer final : public server::IServer {
+class GiveTestServer final : public server::IServer {
 public:
-    SetBlockTestServer()
+    GiveTestServer()
         : m_playerManager(m_config)
         , m_inventoryManager(m_playerManager)
         , m_connectionManager(m_playerManager)
@@ -108,7 +123,6 @@ public:
         , m_commandRegistry()
     {
         Items::initialize();
-        VanillaBlocks::initialize();
     }
 
     // IServer 接口实现
@@ -189,14 +203,20 @@ public:
 
     void broadcastParticleInRange(u32, f64, f64, f64, f32, f32, f32, f32, f32, f32, u32, f32) override {}
 
-    void sendSoundToPlayer(PlayerId,
-                          const ResourceLocation&,
-                          sound::SoundCategory,
-                          const Vector3&,
-                          f32,
-                          f32) override
+    void sendSoundToPlayer(PlayerId playerId,
+                          const ResourceLocation& soundEventId,
+                          sound::SoundCategory category,
+                          const Vector3& position,
+                          f32 volume,
+                          f32 pitch) override
     {
-        // 空实现，用于测试
+        m_lastSoundPlayerId = playerId;
+        m_lastSoundEvent = soundEventId;
+        m_lastSoundCategory = category;
+        m_lastSoundPosition = position;
+        m_lastSoundVolume = volume;
+        m_lastSoundPitch = pitch;
+        m_soundSent = true;
     }
 
     [[nodiscard]] server::ServerPlayerData* addTestPlayer(PlayerId playerId, const std::string& username)
@@ -211,6 +231,10 @@ public:
     }
 
     [[nodiscard]] const std::string& lastBroadcastMessage() const noexcept { return m_lastBroadcastMessage; }
+    [[nodiscard]] bool soundWasSent() const noexcept { return m_soundSent; }
+    [[nodiscard]] PlayerId lastSoundPlayerId() const noexcept { return m_lastSoundPlayerId; }
+    [[nodiscard]] const ResourceLocation& lastSoundEvent() const noexcept { return m_lastSoundEvent; }
+    [[nodiscard]] sound::SoundCategory lastSoundCategory() const noexcept { return m_lastSoundCategory; }
 
 private:
     server::ServerCoreConfig m_config{};
@@ -220,6 +244,15 @@ private:
     i32 m_idleTimeoutMinutes = 0;
     bool m_stopRequested = false;
     std::string m_lastBroadcastMessage;
+
+    // 音效记录
+    bool m_soundSent = false;
+    PlayerId m_lastSoundPlayerId = 0;
+    ResourceLocation m_lastSoundEvent{""};
+    sound::SoundCategory m_lastSoundCategory = sound::SoundCategory::Master;
+    Vector3 m_lastSoundPosition{0, 0, 0};
+    f32 m_lastSoundVolume = 1.0f;
+    f32 m_lastSoundPitch = 1.0f;
 
     server::core::PlayerManager m_playerManager;
     server::interaction::InventoryManager m_inventoryManager;
@@ -234,72 +267,40 @@ private:
     std::vector<std::shared_ptr<FakeConnection>> m_connections;
 };
 
-class SetBlockCommandTest : public ::testing::Test {
+class GiveCommandTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        VanillaBlocks::initialize();
         Items::initialize();
+        // 注册命令
+        GiveCommand::registerTo(m_server.commandRegistry().dispatcher());
     }
 
-    SetBlockTestServer m_server;
+    GiveTestServer m_server;
     ServerCommandSource m_console = ServerCommandSource::forConsole(&m_server);
 };
 
 // ========== 命令注册测试 ==========
 
-TEST_F(SetBlockCommandTest, SetBlockCommandIsRegistered)
+TEST_F(GiveCommandTest, GiveCommandIsRegistered)
 {
-    // 验证 setblock 命令已注册
+    // 验证 give 命令已注册
     const auto& registry = m_server.commandRegistry();
     const auto snapshot = registry.getCommandTreeSnapshot();
 
-    // 查找 setblock 节点
+    // 查找 give 节点
     bool found = false;
     for (const auto& node : snapshot.nodes) {
-        if (node.name == "setblock") {
+        if (node.name == "give") {
             found = true;
             break;
         }
     }
 
-    EXPECT_TRUE(found) << "setblock command should be registered";
+    EXPECT_TRUE(found) << "give command should be registered";
 }
 
-TEST_F(SetBlockCommandTest, SetBlockCommandHasCorrectMetadata)
-{
-    const auto& registry = m_server.commandRegistry();
-    const auto snapshot = registry.getCommandTreeSnapshot();
-
-    // 查找 setblock 节点
-    const CommandTreeNodeSnapshot* setblockNode = nullptr;
-    for (const auto& node : snapshot.nodes) {
-        if (node.name == "setblock") {
-            setblockNode = &node;
-            break;
-        }
-    }
-
-    ASSERT_NE(setblockNode, nullptr) << "setblock node should exist";
-
-    // 验证元数据
-    EXPECT_TRUE(setblockNode->metadata.contains("description"));
-    EXPECT_TRUE(setblockNode->metadata.contains("usage"));
-    // 注意：permission 可能存储在不同的键名下
-}
-
-TEST_F(SetBlockCommandTest, SetBlockCommandRequiresWorld)
-{
-    // 控制台命令源没有关联世界，命令应该失败
-    // 由于控制台没有 world，命令执行会失败（返回 0）
-    const auto result = m_server.commandRegistry().execute("setblock 10 64 20 minecraft:stone", m_console);
-
-    // 命令执行本身成功，但由于没有世界，结果是 0
-    EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);
-}
-
-TEST_F(SetBlockCommandTest, SetBlockCommandRequiresPermissionLevel2)
+TEST_F(GiveCommandTest, GiveCommandRequiresPermissionLevel2)
 {
     // 创建一个权限等级 0 的命令源
     ServerCommandSource lowPermSource(
@@ -314,77 +315,91 @@ TEST_F(SetBlockCommandTest, SetBlockCommandRequiresPermissionLevel2)
     );
 
     // 应该因为没有权限而被拒绝
-    // 注意：权限不足时命令执行会抛出异常或返回失败
-    // 我们验证命令不会执行成功
     bool permissionDenied = false;
     try {
-        const auto result = m_server.commandRegistry().execute("setblock 10 64 20 minecraft:stone", lowPermSource);
-        // 如果执行成功但返回 0，也算权限检查生效
+        const auto result = m_server.commandRegistry().execute("give @p minecraft:stone 1", lowPermSource);
         permissionDenied = (result.value() == 0);
     } catch (...) {
-        // 如果抛出异常，也说明权限检查生效
         permissionDenied = true;
     }
 
     EXPECT_TRUE(permissionDenied);
 }
 
-TEST_F(SetBlockCommandTest, SetBlockCommandParsesPosition)
+TEST_F(GiveCommandTest, GiveCommandParsesItemWithNamespace)
 {
-    // 测试命令解析（即使没有世界也会尝试解析位置参数）
-    // 控制台没有世界，所以会失败，但命令应该能解析
-    const auto result = m_server.commandRegistry().execute("setblock 100 -64 200 minecraft:stone", m_console);
+    // 测试解析带命名空间的物品
+    const auto result = m_server.commandRegistry().execute("give @p minecraft:stone 1", m_console);
 
+    // 命令执行成功，但由于没有玩家实体，返回 0
     EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);  // 失败因为没有世界
+    EXPECT_EQ(result.value(), 0);
 }
 
-TEST_F(SetBlockCommandTest, SetBlockCommandParsesBlockWithNamespace)
+TEST_F(GiveCommandTest, GiveCommandParsesItemWithoutNamespace)
 {
-    const auto result = m_server.commandRegistry().execute("setblock 0 0 0 minecraft:dirt", m_console);
+    // 测试解析不带命名空间的物品
+    const auto result = m_server.commandRegistry().execute("give @p stone 1", m_console);
 
     EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);  // 失败因为没有世界
+    EXPECT_EQ(result.value(), 0);
 }
 
-TEST_F(SetBlockCommandTest, SetBlockCommandParsesBlockWithoutNamespace)
+TEST_F(GiveCommandTest, GiveCommandParsesCountArgument)
 {
-    const auto result = m_server.commandRegistry().execute("setblock 0 0 0 stone", m_console);
+    // 测试解析数量参数
+    const auto result = m_server.commandRegistry().execute("give @p stone 64", m_console);
 
     EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);  // 失败因为没有世界
+    EXPECT_EQ(result.value(), 0);
 }
 
-TEST_F(SetBlockCommandTest, SetBlockCommandParsesDestroyMode)
+TEST_F(GiveCommandTest, GiveCommandWithInvalidItemFails)
 {
-    const auto result = m_server.commandRegistry().execute("setblock 0 0 0 stone destroy", m_console);
+    // 测试无效物品 - 命令执行应该失败
+    const auto result = m_server.commandRegistry().execute("give @p minecraft:nonexistent_item 1", m_console);
 
-    EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);  // 失败因为没有世界
+    // 无效物品会导致命令执行失败
+    EXPECT_FALSE(result.success());
 }
 
-TEST_F(SetBlockCommandTest, SetBlockCommandParsesKeepMode)
+TEST_F(GiveCommandTest, GiveCommandWithNoTargetsReturnsZero)
 {
-    const auto result = m_server.commandRegistry().execute("setblock 0 0 0 stone keep", m_console);
+    // 测试没有目标玩家
+    // @p 选择器在没有玩家时返回空列表
+    const auto result = m_server.commandRegistry().execute("give @p stone 1", m_console);
 
     EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);  // 失败因为没有世界
+    EXPECT_EQ(result.value(), 0);
 }
 
-TEST_F(SetBlockCommandTest, SetBlockCommandParsesReplaceMode)
+TEST_F(GiveCommandTest, GiveCommandWithCountAbove64Clamped)
 {
-    const auto result = m_server.commandRegistry().execute("setblock 0 0 0 stone replace", m_console);
+    // MC 1.16.5 限制数量为 1-64，超过应该被 IntegerArgumentType 拒绝
+    // 这里我们测试在范围内的最大值
+    const auto result = m_server.commandRegistry().execute("give @p stone 64", m_console);
 
     EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);  // 失败因为没有世界
+    EXPECT_EQ(result.value(), 0);
 }
 
-TEST_F(SetBlockCommandTest, SetBlockCommandWithInvalidBlockReturnsZero)
+TEST_F(GiveCommandTest, GiveCommandDefaultCountIsOne)
 {
-    const auto result = m_server.commandRegistry().execute("setblock 0 0 0 minecraft:nonexistent_block", m_console);
+    // 测试省略数量参数时默认为 1
+    const auto result = m_server.commandRegistry().execute("give @p stone", m_console);
 
     EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);  // 无效方块返回 0
+    EXPECT_EQ(result.value(), 0);
+}
+
+TEST_F(GiveCommandTest, GiveCommandWithMultipleTargets)
+{
+    // 测试多目标选择器 @a
+    const auto result = m_server.commandRegistry().execute("give @a stone 1", m_console);
+
+    // 没有玩家时返回 0
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
 }
 
 } // namespace

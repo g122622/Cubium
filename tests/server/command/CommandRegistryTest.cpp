@@ -17,6 +17,8 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/Items.hpp"
 #include "common/network/connection/IServerConnection.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 #include <stdexcept>
 #include <vector>
@@ -222,6 +224,16 @@ public:
         (void)velocityX; (void)velocityY; (void)velocityZ;
         (void)offsetX; (void)offsetY; (void)offsetZ;
         (void)range;
+    }
+
+    void sendSoundToPlayer(PlayerId,
+                          const ResourceLocation&,
+                          sound::SoundCategory,
+                          const Vector3&,
+                          f32,
+                          f32) override
+    {
+        // 空实现，用于测试
     }
 
     [[nodiscard]] bool particleBroadcastCalled() const noexcept { return m_particleBroadcastCalled; }

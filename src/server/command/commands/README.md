@@ -35,6 +35,9 @@ src/server/command/commands/
 - `ExperienceCommand.*`：管理经验值和等级。
 - `GameModeCommand.*`：切换玩家游戏模式。
 - `GiveCommand.*`：发放物品。
+  - 背包满时在玩家位置掉落物品实体（参考 MC 1.16.5）
+  - 设置掉落物品的 owner UUID 和无拾取延迟
+  - 播放拾取音效，音调公式：`((random - random) * 0.7 + 1.0) * 2.0`
 - `HelpCommand.*`：展示命令帮助。
 - `KickCommand.*`：踢出在线玩家。
 - `KillCommand.*`：杀死实体或自己。
