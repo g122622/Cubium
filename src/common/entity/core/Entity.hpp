@@ -630,7 +630,15 @@ public:
 
     // ========== 移除 ==========
 
-    void remove() { m_removed = true; }
+    /**
+     * @brief 移除实体
+     *
+     * 标记实体为已移除状态。子类可以重写此方法在移除前执行额外逻辑
+     * （例如史莱姆分裂）。
+     *
+     * 参考 MC 1.16.5 Entity.remove()
+     */
+    virtual void remove() { m_removed = true; }
 
     // ========== 维度 ==========
 

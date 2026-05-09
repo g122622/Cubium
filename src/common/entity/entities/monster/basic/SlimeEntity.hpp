@@ -149,8 +149,17 @@ public:
 	/**
 	 * @brief 分裂成小史莱姆
 	 * MC 1.16.5: 在 remove() 中调用
+	 * @deprecated 使用 performSplit() 替代
 	 */
 	void split();
+
+	/**
+	 * @brief 执行分裂逻辑
+	 *
+	 * 在实体被移除时生成 2-4 个小史莱姆。
+	 * MC 1.16.5: SlimeEntity.remove() 中的分裂逻辑
+	 */
+	void performSplit();
 
 	/**
 	 * @brief 检查是否可以分裂
@@ -215,6 +224,14 @@ public:
 	void dropExperience() override;
 
 	// ========== 生命周期 ==========
+
+	/**
+	 * @brief 移除实体
+	 *
+	 * 重写以实现史莱姆分裂逻辑。
+	 * MC 1.16.5: 在 remove() 中触发分裂
+	 */
+	void remove() override;
 
 	void tick() override;
 
