@@ -158,14 +158,14 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
 
         WorldLaunchConfig config;
         if (params.quickPlayNew) {
-            config.levelId = "New World";
-            config.displayName = "New World";
-            config.seed = 12345; // 第一版使用固定种子，后续改为随机生成
+            config.levelId = "Test World";
+            config.displayName = "Test World";
+            config.seed = 12345; // Test World使用固定种子
             config.isNewWorld = true;
         } else {
             config.levelId = *params.quickPlayLevelId;
             config.displayName = *params.quickPlayLevelId;
-            // 第一版使用固定种子，后续从存档 level.dat 读取
+            // TODO 第一版使用固定种子，后续从存档 level.dat 读取
             config.seed = 12345;
         }
         config.viewDistance = m_settings.renderDistance.get();
