@@ -3,6 +3,9 @@
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/random/Random.hpp"
 
 #include <algorithm>
@@ -57,14 +60,28 @@ namespace {
  *
  * @param playerData 玩家数据。
  * @param selector 选择器。
+ * @param server 服务器实例（用于获取玩家实体）。
+ * @param world 世界实例（用于获取玩家实体）。
  * @return 是否符合条件。
  */
-[[nodiscard]] bool matchesFilter(const server::ServerPlayerData& playerData, const EntitySelector& selector)
+[[nodiscard]] bool matchesFilter(
+    const server::ServerPlayerData& playerData,
+    const EntitySelector& selector,
+    server::IServer* server,
+    server::ServerWorld* world)
 {
     // 检查等级范围
     if (!selector.level().isUnbounded()) {
-        // TODO: 需要 ServerPlayer 实例获取经验等级
-        // 目前跳过等级检查
+        // 通过 ServerPlayerEntityManager 获取玩家实体来访问经验等级
+        if (server != nullptr && world != nullptr) {
+            Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);
+            if (player != nullptr) {
+                i32 level = player->experienceLevel();
+                if (!selector.level().test(level)) {
+                    return false;
+                }
+            }
+        }
     }
 
     // 检查游戏模式
@@ -195,6 +212,7 @@ void applyFilters(
     f32 refX, f32 refY, f32 refZ)
 {
     auto* server = source.server();
+    auto* world = source.world();
     if (server == nullptr) {
         return;
     }
@@ -234,13 +252,13 @@ void applyFilters(
             playerIds.end());
     }
 
-    // 通用过滤
+    // 通用过滤（包含等级检查和游戏模式检查）
     playerIds.erase(
         std::remove_if(playerIds.begin(), playerIds.end(),
             [&](PlayerId id) {
                 auto* data = server->playerManager().getPlayer(id);
                 if (data == nullptr) return true;
-                return !matchesFilter(*data, selector);
+                return !matchesFilter(*data, selector, server, world);
             }),
         playerIds.end());
 }
