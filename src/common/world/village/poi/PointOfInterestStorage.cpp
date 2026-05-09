@@ -2,6 +2,7 @@
 #include "../../../util/nbt/Nbt.hpp"
 #include <algorithm>
 #include <cmath>
+#include <list>
 
 namespace mc {
 namespace world {
@@ -18,12 +19,12 @@ bool PointOfInterestStorage::registerPOI(BlockPos pos, PointOfInterestType type)
         return false;
     }
 
-    // 创建POI
+    // 创建POI（使用list避免指针失效）
     u64 chunkKey = getChunkKey(pos);
     auto& chunkPOIs = getOrCreateChunkPOIs(chunkKey);
     chunkPOIs.emplace_back(pos, type);
 
-    // 更新索引
+    // 更新索引（list迭代器稳定，指针有效）
     PointOfInterest* poi = &chunkPOIs.back();
     m_byPosition[pos] = poi;
     m_byType[type].push_back(poi);
@@ -52,16 +53,12 @@ bool PointOfInterestStorage::unregisterPOI(BlockPos pos) {
     // 从位置索引中移除
     m_byPosition.erase(it);
 
-    // 从区块存储中移除
+    // 从区块存储中移除（list版本）
     u64 chunkKey = getChunkKey(pos);
     auto chunkIt = m_chunkPOIs.find(chunkKey);
     if (chunkIt != m_chunkPOIs.end()) {
         auto& chunkPOIs = chunkIt->second;
-        chunkPOIs.erase(
-            std::remove_if(chunkPOIs.begin(), chunkPOIs.end(),
-                [pos](const PointOfInterest& p) { return p.getPosition() == pos; }),
-            chunkPOIs.end()
-        );
+        chunkPOIs.remove_if([pos](const PointOfInterest& p) { return p.getPosition() == pos; });
     }
 
     return true;
@@ -89,14 +86,15 @@ bool PointOfInterestStorage::updatePOI(BlockPos pos, PointOfInterestType newType
         oldTypeList.end()
     );
 
-    // 需要重新创建POI（类型不可变）
+    // 更新POI类型（list中元素地址稳定）
     u64 chunkKey = getChunkKey(pos);
     auto chunkIt = m_chunkPOIs.find(chunkKey);
     if (chunkIt != m_chunkPOIs.end()) {
         for (auto& chunkPoi : chunkIt->second) {
             if (chunkPoi.getPosition() == pos) {
-                // 重新赋值
+                // 直接更新POI类型
                 chunkPoi = PointOfInterest(pos, newType);
+                // 指针仍然有效（list特性）
                 m_byPosition[pos] = &chunkPoi;
                 m_byType[newType].push_back(&chunkPoi);
                 return true;
@@ -495,11 +493,11 @@ bool PointOfInterestStorage::matchesCriteria(
     return true;
 }
 
-std::vector<PointOfInterest>& PointOfInterestStorage::getOrCreateChunkPOIs(u64 chunkKey) {
+std::list<PointOfInterest>& PointOfInterestStorage::getOrCreateChunkPOIs(u64 chunkKey) {
     return m_chunkPOIs[chunkKey];
 }
 
-const std::vector<PointOfInterest>* PointOfInterestStorage::getChunkPOIs(u64 chunkKey) const {
+const std::list<PointOfInterest>* PointOfInterestStorage::getChunkPOIs(u64 chunkKey) const {
     auto it = m_chunkPOIs.find(chunkKey);
     return it != m_chunkPOIs.end() ? &it->second : nullptr;
 }

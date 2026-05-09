@@ -285,12 +285,12 @@ private:
     /**
      * @brief 获取或创建区块POI列表
      */
-    std::vector<PointOfInterest>& getOrCreateChunkPOIs(u64 chunkKey);
-    [[nodiscard]] const std::vector<PointOfInterest>* getChunkPOIs(u64 chunkKey) const;
+    std::list<PointOfInterest>& getOrCreateChunkPOIs(u64 chunkKey);
+    [[nodiscard]] const std::list<PointOfInterest>* getChunkPOIs(u64 chunkKey) const;
 
 private:
-    /// 区块级别POI存储
-    std::unordered_map<u64, std::vector<PointOfInterest>> m_chunkPOIs;
+    /// 区块级别POI存储（使用list避免指针失效）
+    std::unordered_map<u64, std::list<PointOfInterest>> m_chunkPOIs;
 
     /// 位置快速索引
     std::unordered_map<BlockPos, PointOfInterest*, std::hash<BlockPos>> m_byPosition;
