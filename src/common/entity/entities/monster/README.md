@@ -226,3 +226,27 @@ MonsterEntity
 - `AbstractIllagerEntity` 继承 `AbstractRaiderEntity`
 - `WitchEntity` 继承 `AbstractRaiderEntity`
 - `VindicatorEntity` 和 `PillagerEntity` 继承 `AbstractIllagerEntity`
+
+## 日光燃烧机制
+
+`MonsterEntity` 实现了完整的日光燃烧检测和处理逻辑（MC 1.16.5）：
+
+### isInDaylight()
+
+检查实体是否暴露在日光下：
+1. 检查世界时间是否为白天（dayTime < 12000）
+2. 检查天空是否可见（`world->canSeeSky(pos)`）
+3. 检查实体是否在水中或雨中（免疫燃烧）
+
+### handleDaylightBurning()
+
+处理日光燃烧：
+- 燃烧计时器：连续暴露20tick（1秒）后开始燃烧
+- 伤害类型：火焰伤害（`DamageSources::onFire()`）
+- 视觉效果：`setFire(8)` 设置8秒燃烧效果
+
+### updateIdleTimeBasedOnBrightness()
+
+亮度相关的空闲时间更新：
+- 高亮度环境（>0.5）增加空闲时间
+- 用于 despawn 逻辑判断
