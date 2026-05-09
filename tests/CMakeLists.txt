@@ -225,6 +225,7 @@ add_executable(mc_tests
     common/world/redstone/RedstonePowerTest.cpp
     # 绾㈢煶鏂瑰潡娴嬭瘯
     common/world/block/test_redstone_blocks.cpp
+    common/world/block/blocks/redstone/NoteBlockTest.cpp
     # Explosion system tests
     common/world/explosion/test_explosion.cpp
     common/world/explosion/ExplosionIntegrationTest.cpp

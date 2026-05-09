@@ -141,6 +141,9 @@ enum class ParticleTypeId : u16 {
     /// 末地烛粒子
     EndRod = 39,
 
+    /// 音符粒子（音符盒）
+    Note = 40,
+
     /// 营火烟雾（普通）
     CampfireCozy = 100,
 
@@ -157,57 +160,57 @@ enum class ParticleTypeId : u16 {
     ItemPickup = 104,
 
     // ========================================================================
-    // 液体滴落类粒子 (40-49)
+    // 液体滴落类粒子 (41-49)
     // ========================================================================
 
     /// 滴落的水
-    DrippingWater = 40,
+    DrippingWater = 41,
 
     /// 下落的水
-    FallingWater = 41,
+    FallingWater = 42,
 
     /// 滴落的熔岩
-    DrippingLava = 42,
+    DrippingLava = 43,
 
     /// 下落的熔岩
-    FallingLava = 43,
+    FallingLava = 44,
 
     /// 落地的熔岩
-    LandingLava = 44,
+    LandingLava = 45,
 
     /// 滴落的蜂蜜
-    DrippingHoney = 45,
+    DrippingHoney = 46,
 
     /// 下落的蜂蜜
-    FallingHoney = 46,
+    FallingHoney = 47,
 
     /// 落地的蜂蜜
-    LandingHoney = 47,
+    LandingHoney = 48,
 
     /// 滴落的黑曜石眼泪（哭泣的黑曜石）
-    DrippingObsidianTear = 48,
+    DrippingObsidianTear = 49,
 
     /// 下落的黑曜石眼泪
-    FallingObsidianTear = 49,
+    FallingObsidianTear = 50,
 
     // ========================================================================
-    // 天气类粒子 (50-59)
+    // 天气类粒子 (51-59)
     // ========================================================================
 
     /// 雨滴粒子
-    Rain = 50,
+    Rain = 51,
 
     /// 雪花粒子
-    Snowflake = 51,
+    Snowflake = 52,
 
     /// 水溅粒子
-    Splash = 52,
+    Splash = 53,
 
     /// 云朵粒子
-    Cloud = 53,
+    Cloud = 54,
 
     /// 钓鱼粒子（水面涟漪效果）
-    Fishing = 54,
+    Fishing = 55,
 
     // ========================================================================
     // 生物相关粒子 (60-69)

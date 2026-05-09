@@ -127,7 +127,7 @@ redstone/
 |------|------|
 | `TripWireBlock.hpp/cpp` | 绊线，检测实体穿越，潜行玩家不触发 |
 | `TripWireHookBlock.hpp/cpp` | 绊线钩，绊线连接点 |
-| `NoteBlock.hpp/cpp` | 音符盒，播放音符 |
+| `NoteBlock.hpp/cpp` | 音符盒，播放音符（16种乐器，25个音高） |
 | `TNTBlock.hpp/cpp` | TNT，红石触发爆炸 |
 | `TargetBlock.hpp/cpp` | 标靶，箭矢命中输出信号 |
 | `RedstoneLampBlock.hpp/cpp` | 红石灯，接收信号发光 |
@@ -571,6 +571,55 @@ bool connected = TripWireBlock::isConnected(state, Direction::North);
 | 连接 | 与绊线钩连接形成完整绊线系统 |
 | 信号输出 | 充能时输出 15 强度 |
 
+### 音符盒
+
+音符盒根据下方方块类型/材质播放不同乐器的音符：
+
+```cpp
+// 获取音符值 (0-24)
+i32 note = NoteBlock::getNote(state);
+
+// 设置音符值
+BlockState newState = NoteBlock::withNote(state, 12);
+
+// 循环音符 (0 -> 1 -> ... -> 24 -> 0)
+BlockState cycled = NoteBlock::cycleNote(state);
+
+// 触发播放音符
+noteBlock.triggerNote(world, pos, state);
+```
+
+**乐器类型映射**（参考 MC 1.16.5 `NoteBlockInstrument.byState`）：
+
+| 触发方块 | 乐器 | 声音事件 |
+|---------|------|----------|
+| 陶土 (CLAY) | 长笛 (FLUTE) | `block.note_block.flute` |
+| 金块 (GOLD_BLOCK) | 钟 (BELL) | `block.note_block.bell` |
+| 羊毛 (WOOL tag) | 吉他 (GUITAR) | `block.note_block.guitar` |
+| 浮冰 (PACKED_ICE) | 管钟 (CHIME) | `block.note_block.chime` |
+| 骨块 (BONE_BLOCK) | 木琴 (XYLOPHONE) | `block.note_block.xylophone` |
+| 铁块 (IRON_BLOCK) | 铁片琴 (IRON_XYLOPHONE) | `block.note_block.iron_xylophone` |
+| 灵魂沙 (SOUL_SAND) | 牛铃 (COW_BELL) | `block.note_block.cow_bell` |
+| 南瓜灯 (JACK_O_LANTERN) | 迪吉里杜管 (DIDGERIDOO) | `block.note_block.didgeridoo` |
+| 绿宝石块 (EMERALD_BLOCK) | 电子音 (BIT) | `block.note_block.bit` |
+| 干草块 (HAY_BLOCK) | 班卓琴 (BANJO) | `block.note_block.banjo` |
+| 荧石 (GLOWSTONE) | 电钢琴 (PLING) | `block.note_block.pling` |
+| 石头材质 (ROCK) | 底鼓 (BASEDRUM) | `block.note_block.basedrum` |
+| 沙子材质 (SAND) | 军鼓 (SNARE) | `block.note_block.snare` |
+| 玻璃材质 (GLASS) | 踩镲 (HAT) | `block.note_block.hat` |
+| 木头材质 (WOOD/NETHER_WOOD) | 贝斯 (BASS) | `block.note_block.bass` |
+| 其他 | 钢琴 (HARP, 默认) | `block.note_block.harp` |
+
+**音高计算**：
+
+公式：`pitch = 2^((note - 12) / 12)`
+- 音符范围：0-24（共 25 个音高，两个八度）
+- 基准音高：note=12 时 pitch=1.0（标准音高）
+- 每增加 1，音高上升一个半音
+- 每增加 12，音高上升一个八度（频率翻倍）
+
+**粒子效果**：播放时在方块上方生成音符粒子，颜色由音符值决定。
+
 ## 容易踩的坑
 
 ### 1. 红石火把无限递归
@@ -761,6 +810,7 @@ i32 getStrongPower(..., Direction side) {
 - `LeverTest.cpp` - 拉杆测试（待添加）
 - `PressurePlateTest.cpp` - 压力板测试（待添加）
 - `DaylightDetectorTest.cpp` - 日光探测器测试（待添加）
+- `NoteBlockTest.cpp` - 音符盒测试（乐器类型检测、音高计算、状态属性）
 
 ## 参考文档
 

@@ -2,12 +2,106 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../../util/property/Properties.hpp"
-#include <unordered_map>
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../sound/SoundCategory.hpp"
+#include "../../Material.hpp"
+#include "../../BlockTags.hpp"
+#include "../../VanillaBlocks.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include <cmath>
 
 namespace mc {
 namespace blocks {
 
-using namespace mc; // Bring BlockStateProperties into scope
+// ============================================================================
+// 音符盒乐器映射
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 乐器类型枚举别名
+ *
+ * 为 NoteBlockInstrument 枚举类型创建简短的别名。
+ */
+using Instrument = BlockStateProperties::NoteBlockInstrument;
+
+/**
+ * @brief 获取声音事件资源位置
+ *
+ * 根据 NoteBlockInstrument 枚举值返回对应的声音事件。
+ */
+const ResourceLocation& getSoundEventForInstrument(Instrument instrument) {
+    switch (instrument) {
+        case Instrument::Harp:
+            return SoundEvents::BLOCK_NOTE_BLOCK_HARP;
+        case Instrument::Basedrum:
+            return SoundEvents::BLOCK_NOTE_BLOCK_BASEDRUM;
+        case Instrument::Snare:
+            return SoundEvents::BLOCK_NOTE_BLOCK_SNARE;
+        case Instrument::Hat:
+            return SoundEvents::BLOCK_NOTE_BLOCK_HAT;
+        case Instrument::Bass:
+            return SoundEvents::BLOCK_NOTE_BLOCK_BASS;
+        case Instrument::Flute:
+            return SoundEvents::BLOCK_NOTE_BLOCK_FLUTE;
+        case Instrument::Bell:
+            return SoundEvents::BLOCK_NOTE_BLOCK_BELL;
+        case Instrument::Guitar:
+            return SoundEvents::BLOCK_NOTE_BLOCK_GUITAR;
+        case Instrument::Chime:
+            return SoundEvents::BLOCK_NOTE_BLOCK_CHIME;
+        case Instrument::Xylophone:
+            return SoundEvents::BLOCK_NOTE_BLOCK_XYLOPHONE;
+        case Instrument::IronXylophone:
+            return SoundEvents::BLOCK_NOTE_BLOCK_IRON_XYLOPHONE;
+        case Instrument::CowBell:
+            return SoundEvents::BLOCK_NOTE_BLOCK_COW_BELL;
+        case Instrument::Didgeridoo:
+            return SoundEvents::BLOCK_NOTE_BLOCK_DIDGERIDOO;
+        case Instrument::Bit:
+            return SoundEvents::BLOCK_NOTE_BLOCK_BIT;
+        case Instrument::Banjo:
+            return SoundEvents::BLOCK_NOTE_BLOCK_BANJO;
+        case Instrument::Pling:
+            return SoundEvents::BLOCK_NOTE_BLOCK_PLING;
+        default:
+            return SoundEvents::BLOCK_NOTE_BLOCK_HARP;
+    }
+}
+
+/**
+ * @brief 根据音符值计算音高
+ *
+ * 音高计算公式: f = 2^((note - 12) / 12)
+ * - 音符范围: 0-24 (共25个音高，对应两个八度)
+ * - 基准音高: note = 12 时, f = 1.0 (标准音高)
+ * - 每增加 1 个音符值，音高上升一个半音
+ * - 每增加 12 个音符值，音高上升一个八度 (频率翻倍)
+ *
+ * 参考: net.minecraft.block.NoteBlock.eventReceived
+ */
+f32 calculatePitch(i32 note) {
+    return static_cast<f32>(std::pow(2.0, static_cast<f64>(note - 12) / 12.0));
+}
+
+/**
+ * @brief 检查方块是否为指定方块的实例
+ *
+ * 使用方块指针比较，避免字符串比较。
+ */
+bool isBlock(const BlockState* state, Block* targetBlock) {
+    if (state == nullptr || targetBlock == nullptr) {
+        return false;
+    }
+    return &state->getBlock() == targetBlock;
+}
+
+} // anonymous namespace
+
+// ============================================================================
+// NoteBlock 实现
+// ============================================================================
 
 NoteBlock::NoteBlock(const BlockProperties& properties)
     : Block(properties) {
@@ -90,47 +184,147 @@ void NoteBlock::triggerNote(IWorld& world, const BlockPos& pos, const BlockState
 
 i32 NoteBlock::getInstrumentType(IWorld& world, const BlockPos& pos) const {
     // 根据音符盒下方的方块类型确定乐器
-    // 参考: net.minecraft.block.NoteBlock.getInstrument
+    // 参考: net.minecraft.state.properties.NoteBlockInstrument.byState
 
     BlockPos belowPos = pos.down();
     const BlockState* belowState = world.getBlockState(belowPos);
 
     if (!belowState) {
-        return 0; // 默认: 钢琴 (harp)
+        return static_cast<i32>(Instrument::Harp);
     }
 
-    // TODO: 根据方块材质返回对应的乐器类型
-    // 0: 钢琴 - 默认
-    // 1: 贝斯 - 木质
-    // 2: 鼓 - 沙子类
-    // 3: 架子鼓 - 玻璃
-    // 4: 长笛 - 圆石类
-    // 5: 吉他 - 沙砾类
-    // 6: 管钟 - 铁块
-    // 7: 木琴 - 金块
-    // 8: 铁片琴 - 冰
-    // 9: 牛铃 - 粘土
-    // 10: 迪吉里杜管 - 浮冰
-    // 11: 鼓 - 浮冰
-    // 12: 铜钹 - 浮冰
-    // 13: 电钢琴 - 羊毛
-    // 14: 钢鼓 - 羊毛
-    // 15: 口风琴 - 羊毛
-    // 16: 大键琴 - 羊毛
+    // ========================================================================
+    // 特定方块检测（优先级从高到低）
+    // 参考 MC 1.16.5 NoteBlockInstrument.byState 的判断顺序
+    // ========================================================================
 
-    MC_UNUSED(belowState);
-    return 0;
+    // 陶土 -> 长笛 (FLUTE)
+    if (isBlock(belowState, VanillaBlocks::CLAY)) {
+        return static_cast<i32>(Instrument::Flute);
+    }
+
+    // 金块 -> 钟 (BELL)
+    if (isBlock(belowState, VanillaBlocks::GOLD_BLOCK)) {
+        return static_cast<i32>(Instrument::Bell);
+    }
+
+    // 羊毛 (任意颜色) -> 吉他 (GUITAR)
+    if (BlockTags::WOOL().contains(*belowState)) {
+        return static_cast<i32>(Instrument::Guitar);
+    }
+
+    // 浮冰 -> 管钟 (CHIME)
+    // 注意: MC 1.16.5 源码中是 PACKED_ICE (浮冰)，不是 BLUE_ICE (蓝冰)
+    if (isBlock(belowState, VanillaBlocks::PACKED_ICE)) {
+        return static_cast<i32>(Instrument::Chime);
+    }
+
+    // 骨块 -> 木琴 (XYLOPHONE)
+    if (isBlock(belowState, VanillaBlocks::BONE_BLOCK)) {
+        return static_cast<i32>(Instrument::Xylophone);
+    }
+
+    // 铁块 -> 铁片琴 (IRON_XYLOPHONE)
+    if (isBlock(belowState, VanillaBlocks::IRON_BLOCK)) {
+        return static_cast<i32>(Instrument::IronXylophone);
+    }
+
+    // 灵魂沙 -> 牛铃 (COW_BELL)
+    if (isBlock(belowState, VanillaBlocks::SOUL_SAND)) {
+        return static_cast<i32>(Instrument::CowBell);
+    }
+
+    // 南瓜 -> 迪吉里杜管 (DIDGERIDOO)
+    // 注意: MC 中检测的是 CARVED_PUMPKIN (雕刻南瓜)，不是普通南瓜
+    // 但我们的项目中雕刻南瓜可能尚未实现，暂时用 JACK_O_LANTERN 作为替代
+    // TODO: 当 CARVED_PUMPKIN 实现后替换
+    if (isBlock(belowState, VanillaBlocks::JACK_O_LANTERN)) {
+        return static_cast<i32>(Instrument::Didgeridoo);
+    }
+
+    // 绿宝石块 -> 电子音 (BIT)
+    if (isBlock(belowState, VanillaBlocks::EMERALD_BLOCK)) {
+        return static_cast<i32>(Instrument::Bit);
+    }
+
+    // 干草块 -> 班卓琴 (BANJO)
+    if (isBlock(belowState, VanillaBlocks::HAY_BLOCK)) {
+        return static_cast<i32>(Instrument::Banjo);
+    }
+
+    // 荧石 -> 电钢琴 (PLING)
+    if (isBlock(belowState, VanillaBlocks::GLOWSTONE)) {
+        return static_cast<i32>(Instrument::Pling);
+    }
+
+    // ========================================================================
+    // 材质类型检测（次优先级）
+    // ========================================================================
+
+    const Material& material = belowState->getBlock().material();
+
+    // 石头类材质 -> 底鼓 (BASEDRUM)
+    if (material == Material::ROCK) {
+        return static_cast<i32>(Instrument::Basedrum);
+    }
+
+    // 沙子类材质 -> 军鼓 (SNARE)
+    if (material == Material::SAND) {
+        return static_cast<i32>(Instrument::Snare);
+    }
+
+    // 玻璃材质 -> 踩镲 (HAT)
+    if (material == Material::GLASS) {
+        return static_cast<i32>(Instrument::Hat);
+    }
+
+    // 木头材质（包括下界木） -> 贝斯 (BASS)
+    if (material == Material::WOOD || material == Material::NETHER_WOOD) {
+        return static_cast<i32>(Instrument::Bass);
+    }
+
+    // 默认 -> 钢琴 (HARP)
+    return static_cast<i32>(Instrument::Harp);
 }
 
 void NoteBlock::playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note) {
-    // TODO: 播放音符声音
-    // 根据乐器和音调播放对应的声音
-    // world.playSound(pos, SoundEvents::getNoteSound(instrument), 1.0f, getNotePitch(note));
+    // 转换乐器类型
+    auto instrumentEnum = static_cast<Instrument>(instrument);
 
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(instrument);
-    MC_UNUSED(note);
+    // 获取对应的声音事件
+    const ResourceLocation& soundEvent = getSoundEventForInstrument(instrumentEnum);
+
+    // 计算音高 (基于音符值 0-24)
+    f32 pitch = calculatePitch(note);
+
+    // 播放声音
+    // 参考 MC 1.16.5: 音量为 3.0f，声音类别为 RECORDS
+    Vector3 soundPos = pos.center();
+    world.playSound(
+        soundEvent,
+        sound::SoundCategory::Records,
+        soundPos,
+        3.0f,   // 音量 (MC 原版固定为 3.0)
+        pitch   // 音高 (根据音符值计算)
+    );
+
+    // 生成音符粒子效果
+    // 粒子类型: NOTE
+    // 位置: 方块上方中心
+    // 颜色数据: note / 24.0 (用于确定粒子颜色)
+    world.addParticle(
+        client::renderer::trident::particle::ParticleTypeId::Note,
+        Vector3(
+            static_cast<f32>(pos.x) + 0.5f,
+            static_cast<f32>(pos.y) + 1.2f,
+            static_cast<f32>(pos.z) + 0.5f
+        ),
+        Vector3(
+            static_cast<f32>(note) / 24.0f,  // 颜色数据
+            0.0f,
+            0.0f
+        )
+    );
 }
 
 } // namespace blocks
