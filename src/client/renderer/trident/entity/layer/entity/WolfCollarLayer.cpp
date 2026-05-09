@@ -126,19 +126,17 @@ void WolfCollarLayer::render(
 
 bool WolfCollarLayer::shouldRender(const ::mc::WolfEntity& entity) const {
     // 只有驯服的狼才显示项圈
-    // TODO: 检查 entity.isTamed()
-    (void)entity;
-    return true; // 暂时返回 true
+    // 参考 MC 1.16.5 WolfCollarLayer.shouldRender()
+    return entity.isTamed();
 }
 
 Vector3f WolfCollarLayer::getCollarColor(const ::mc::WolfEntity& entity) {
     // 获取狼的项圈颜色
-    // TODO: 从实体获取项圈颜色
-    // u8 colorIndex = entity.getCollarColor();
-    // if (colorIndex < 16) {
-    //     return COLLAR_COLORS[colorIndex];
-    // }
-    (void)entity;
+    // 参考 MC 1.16.5 WolfCollarLayer.getColor()
+    u8 colorIndex = entity.getCollarColor();
+    if (colorIndex < 16) {
+        return COLLAR_COLORS[colorIndex];
+    }
     return COLLAR_COLORS[14]; // 默认红色
 }
 

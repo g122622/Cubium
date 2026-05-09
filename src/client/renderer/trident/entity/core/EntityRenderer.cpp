@@ -66,15 +66,17 @@ void EntityRenderer::renderShadowClient(
 }
 
 bool EntityRenderer::shouldRenderShadow(Entity& entity) const {
-    // 检查实体是否在地面上方一定距离内
-    // 只有实体可见且阴影大小大于0时才渲染
+    // 检查实体是否可见（非隐身）
+    // 参考 MC 1.16.5 EntityRenderer.shouldRenderShadow()
+    if (entity.hasFlag(EntityFlags::Invisible)) {
+        return false;
+    }
+
+    // 只有阴影大小大于0时才渲染
     if (m_shadowSize <= 0.0f || m_shadowAlpha <= 0.0f) {
         return false;
     }
 
-    // 检查实体是否可见（非隐身）
-    // TODO: 从实体获取隐身状态
-    (void)entity;
     return true;
 }
 

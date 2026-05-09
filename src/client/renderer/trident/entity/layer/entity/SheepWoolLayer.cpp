@@ -201,12 +201,11 @@ template<typename TEntity, typename TModel>
 bool SheepWoolLayer<TEntity, TModel>::isRainbowSheep(const TEntity& entity) {
     // MC 1.16.5 SheepWoolLayer: 检查是否为 jeb_ 彩虹羊
     // 检查实体是否有自定义名称 "jeb_"
-    if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
-        // 检查实体是否有自定义名称
-        // 注意：这需要 LivingEntity 有 hasCustomName() 和 getName() 方法
-        // 简化实现：暂时返回 false
-        // TODO: 实现 hasCustomName() 和 getName()
-        (void)entity;
+    if constexpr (std::is_base_of_v<::mc::Entity, TEntity>) {
+        if (entity.hasCustomName()) {
+            std::string name = entity.customNameText();
+            return name == "jeb_" || name == "jeb";
+        }
     }
     return false;
 }

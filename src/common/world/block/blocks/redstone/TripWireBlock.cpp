@@ -192,11 +192,13 @@ bool TripWireBlock::checkEntityCollision(IWorld& world, const BlockPos& pos) con
     std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
 
     // 绊线被任何实体触发（玩家、生物、物品等）
-    // 注意：潜行的玩家不会触发绊线，但需要实体系统支持 isSneaking()
+    // 参考 MC 1.16.5: 潜行的玩家不会触发绊线
     for (Entity* entity : entities) {
         if (entity != nullptr) {
-            // TODO: 检查玩家是否在潜行 (entity->isSneaking())
-            // 目前所有实体都会触发
+            // 潜行的玩家不会触发绊线
+            if (entity->isSneaking()) {
+                continue;
+            }
             return true;
         }
     }
