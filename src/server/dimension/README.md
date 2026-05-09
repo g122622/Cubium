@@ -204,3 +204,20 @@ packet.setHashedSeed(util::crypto::Sha256::hashWorldSeed(m_seed));
 3. **区块卸载顺序**: 必须先卸载旧区块，再加载新区块，避免内存泄漏
 4. **主世界不可卸载**: 主世界维度是默认出生点，不能卸载
 5. **线程安全**: 维度切换涉及多个管理器，需要在主线程执行
+6. **游戏模式获取**: 维度切换包中的游戏模式应从 `ServerPlayerData::gameMode` 获取，而非硬编码
+
+## 测试用例
+
+### ServerDimensionManagerTest.cpp
+
+| 测试名称 | 说明 |
+|----------|------|
+| `DimensionConstantsAreCorrect` | 测试维度 ID 常量正确性 |
+| `DefaultConstructor` | 测试默认构造函数 |
+| `OverworldDimensionId` | 测试主世界维度 ID |
+| `NetherDimensionId` | 测试下界维度 ID |
+| `TheEndDimensionId` | 测试末地维度 ID |
+| `GameModePreservedInDimensionPacket` | 测试维度切换时游戏模式应该从玩家数据获取 |
+| `ServerPlayerDataGameMode` | 测试 ServerPlayerData 的游戏模式字段 |
+| `DimensionTypeIdMapping` | 测试维度类型 ID 映射（协议用） |
+| `PlayerManagerPlayerRetrieval` | 测试 PlayerManager 玩家获取 |

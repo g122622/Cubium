@@ -155,6 +155,8 @@ add_executable(mc_tests
     server/core/TeleportManagerTest.cpp
     server/core/KeepAliveManagerTest.cpp
     server/core/PositionTrackerTest.cpp
+    # 维度管理器测试
+    server/dimension/ServerDimensionManagerTest.cpp
     server/weather/WeatherManagerTest.cpp
     server/world/spawn/DespawnManagerTest.cpp
     server/command/CommandRegistryTest.cpp
