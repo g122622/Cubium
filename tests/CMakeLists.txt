@@ -210,6 +210,7 @@ add_executable(mc_tests
     common/world/tick/ServerTickListTest.cpp
     # 娴佷綋绯荤粺娴嬭瘯
     common/world/fluid/FluidTest.cpp
+    common/world/fluid/WaterFluidDropTest.cpp
     # 绾㈢煶绯荤粺娴嬭瘯
     common/world/redstone/RedstoneContextTest.cpp
     common/world/redstone/RedstoneHelperTest.cpp
