@@ -436,6 +436,58 @@ public:
 - 触发音频系统的骑乘状态变化（如矿车音效）
 
 **MC 1.16.5 参考**: `SSetPassengersPacket`
+
+#### WorldBorderPacket.hpp/cpp
+
+世界边界同步包，用于同步世界边界设置：
+
+```cpp
+enum class WorldBorderAction : u8 {
+    SetSize = 0,            // 立即设置边界大小
+    LerpSize = 1,           // 渐变设置边界大小
+    SetCenter = 2,          // 设置边界中心
+    Initialize = 3,         // 完整初始化（所有参数）
+    SetWarningTime = 4,     // 设置警告时间
+    SetWarningDistance = 5, // 设置警告距离
+    SetDamageBuffer = 6,    // 设置伤害缓冲距离
+    SetDamagePerBlock = 7   // 设置每格伤害量
+};
+
+class WorldBorderPacket : public Packet {
+public:
+    // 静态工厂方法
+    static WorldBorderPacket setSize(double size);
+    static WorldBorderPacket lerpSize(double oldSize, double newSize, u64 timeMs);
+    static WorldBorderPacket setCenter(double x, double z);
+    static WorldBorderPacket initialize(const WorldBorder& border);
+    static WorldBorderPacket setWarningTime(i32 warningTime);
+    static WorldBorderPacket setWarningDistance(i32 warningDistance);
+    static WorldBorderPacket setDamageBuffer(double damageBuffer);
+    static WorldBorderPacket setDamagePerBlock(double damagePerBlock);
+
+    [[nodiscard]] WorldBorderAction action() const;
+    // ... 各字段的访问器
+};
+```
+
+**职责**:
+- 服务端向客户端同步世界边界参数
+- 支持立即设置、渐变过渡和完整初始化
+- 客户端接收后更新本地世界边界状态
+
+**网络同步时机**:
+| Action | 触发时机 |
+|--------|----------|
+| SetSize | `/worldborder set` 命令 |
+| LerpSize | `/worldborder add` 带时间参数 |
+| SetCenter | `/worldborder center` 命令 |
+| Initialize | 玩家加入世界时 |
+| SetWarningTime | `/worldborder warning time` 命令 |
+| SetWarningDistance | `/worldborder warning distance` 命令 |
+| SetDamageBuffer | `/worldborder damage buffer` 命令 |
+| SetDamagePerBlock | `/worldborder damage amount` 命令 |
+
+**MC 1.16.5 参考**: `SWorldBorderPacket`
 ```
 
 #### 骑乘相关数据包

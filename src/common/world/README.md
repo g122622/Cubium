@@ -47,6 +47,9 @@ world/
 │   ├── BlockEntityType.hpp/cpp # Block entity types
 │   ├── ContainerBlockEntity.hpp
 │   └── CraftingTableEntity.hpp/cpp
+├── border/                     # World border system
+│   ├── WorldBorder.hpp/cpp     # World border management
+│   └── README.md               # Border module documentation
 ├── chunk/                      # Chunk management
 │   ├── ChunkData.hpp/cpp       # Chunk data storage
 │   ├── ChunkPos.hpp            # Chunk position type
@@ -365,6 +368,101 @@ bool isRaining = weather.isRaining();      // strength > 0.2
 bool isThunder = weather.isThundering();   // strength > 0.9
 u8 skyLight = weather.skyLightLimit();     // 15/12/10 based on weather
 ```
+
+### World Border System
+
+世界边界系统限制玩家的活动范围，提供边界伤害和渐变动画。
+
+**核心功能：**
+- 边界大小设置（立即设置/线性插值过渡）
+- 边界中心设置
+- 伤害参数配置（每格伤害量、伤害缓冲距离）
+- 警告参数配置（警告时间、警告距离）
+- 边界检测方法（点检测、AABB 检测、区块检测）
+
+```cpp
+#include "common/world/border/WorldBorder.hpp"
+
+mc::world::border::WorldBorder border;
+
+// 设置边界大小
+border.setSize(1000.0);  // 立即设置为 1000 格
+
+// 渐变设置边界大小
+border.setSizeLerp(1000.0, 500.0, 60000);  // 60秒内从 1000 缩小到 500
+
+// 设置边界中心
+border.setCenter(100.0, 200.0);
+
+// 设置伤害参数
+border.setDamagePerBlock(0.2);  // 每格 0.2 伤害
+border.setDamageBuffer(5.0);    // 5 格缓冲区
+
+// 设置警告参数
+border.setWarningTime(15);      // 15 秒警告时间
+border.setWarningDistance(5);   // 5 格警告距离
+
+// 检测点是否在边界内
+bool inside = border.contains(x, z);
+
+// 获取点到边界的距离（正数=在内，负数=在外）
+double distance = border.getClosestDistance(x, z);
+```
+
+**状态模式：**
+
+边界大小使用状态模式实现：
+- `StationaryBorderState`：静止边界，固定大小
+- `MovingBorderState`：移动边界，线性插值过渡
+
+状态转换：
+- `setSize()` 创建静止状态
+- `setSizeLerp()` 创建移动状态
+- `tick()` 更新移动状态，过渡完成后转为静止状态
+
+**监听器模式：**
+
+`IBorderListener` 接口用于网络同步事件：
+
+```cpp
+class MyListener : public IBorderListener {
+    void onSizeChanged(double newSize) override {
+        // 发送 WorldBorderPacket(SetSize)
+    }
+    void onTransitionStarted(double oldSize, double newSize, u64 timeMs) override {
+        // 发送 WorldBorderPacket(LerpSize)
+    }
+    void onCenterChanged(double x, double z) override {
+        // 发送 WorldBorderPacket(SetCenter)
+    }
+    // ...
+};
+```
+
+**玩家边界伤害：**
+
+在 `Player::tick()` 中检测玩家是否越界：
+
+```cpp
+// 参考 MC 1.16.5 LivingEntity.baseTick() 第306-318行
+if (m_world != nullptr && !isSpectator() && !m_abilities.invulnerable) {
+    const auto& border = m_world->worldBorder();
+    if (!border.intersects(boundingBox())) {
+        double distance = border.getClosestDistance(boundingBox()) + border.getDamageBuffer();
+        if (distance < 0.0 && border.getDamagePerBlock() > 0.0) {
+            i32 damage = std::max(1, static_cast<i32>(std::floor(-distance * border.getDamagePerBlock())));
+            hurt(DamageSources::inWall(), static_cast<f32>(damage));
+        }
+    }
+}
+```
+
+**伤害计算：**
+- 距离 = `getClosestDistance(entity) + damageBuffer`
+- 如果 距离 < 0，造成伤害：`max(1, floor(-距离 * damagePerBlock))`
+- 示例：越界 10 格，damageBuffer = 5，damagePerBlock = 0.2
+  - 距离 = -10 + 5 = -5
+  - 伤害 = max(1, floor(5 * 0.2)) = 1
 
 ### WorldEvents 系统
 
@@ -709,6 +807,7 @@ Tests are located in `tests/common/world/` and `tests/server/world/`:
 | `gen/WorldGenSpawnerTest.cpp` | Mob spawning during gen |
 | `gen/WorldGenDeterminismTest.cpp` | Generation determinism |
 | `gen/test_vegetation_features.cpp` | Tree/vegetation features |
+| `border/WorldBorderTest.cpp` | World border size, center, damage, lerp |
 | `EntityManagerSpawnTest.cpp` | Entity spawning |
 | `EntityTrackerTest.cpp` | Entity tracking |
 | `ItemPickupManagerTest.cpp` | Item pickup |

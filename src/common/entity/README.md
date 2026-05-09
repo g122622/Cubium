@@ -1071,6 +1071,32 @@ void asyncTask() {
 - 经验值更新应在 `updateSizeAttributes()` 中执行，确保通过 `registerAttributes()` 初始化时也能正确设置
 - `setSlimeSize()` 中对相同尺寸会提前返回，所以经验值更新必须在 `updateSizeAttributes()` 中完成
 
+### 23. 世界边界伤害检测
+
+**问题**：玩家越过世界边界后没有受到伤害。
+
+**解决方案**：`Player::tick()` 中添加了世界边界伤害检测逻辑：
+
+```cpp
+// 参考 MC 1.16.5 LivingEntity.baseTick() 第306-318行
+if (m_world != nullptr && !isSpectator() && !m_abilities.invulnerable) {
+    const auto& border = m_world->worldBorder();
+    if (!border.intersects(boundingBox())) {
+        double distance = border.getClosestDistance(boundingBox()) + border.getDamageBuffer();
+        if (distance < 0.0 && border.getDamagePerBlock() > 0.0) {
+            i32 damage = std::max(1, static_cast<i32>(std::floor(-distance * border.getDamagePerBlock())));
+            hurt(DamageSources::inWall(), static_cast<f32>(damage));
+        }
+    }
+}
+```
+
+**要点**:
+- 只有非观察者模式、非无敌状态的玩家受到边界伤害
+- `IWorld::worldBorder()` 提供边界访问接口
+- `damageBuffer` 默认值 5.0，玩家在边界外 5 格内不受伤
+- 伤害公式：`max(1, floor(-(distance + buffer) * damagePerBlock))`
+
 ## 涉及的测试用例
 
 测试文件位于 `tests/entity/` 和 `tests/common/entity/` 目录：
