@@ -142,9 +142,10 @@ inventory/
     - 普通护甲可正常取下
 - `ResultSlot` 类：合成结果槽位，只能取出不能放入
 - `FurnaceFuelSlot` 类：熔炉燃料槽位，只接受燃料物品
-  - `mayPlace()`: 检查物品是否为有效燃料
-  - `isFuel()`: 静态方法检查物品燃料属性
-  - `isBucket()`: 检查是否为桶类物品
+  - `mayPlace()`: 检查物品是否为有效燃料或桶类物品
+  - `isFuel()`: 静态方法检查物品燃料属性（委托给 `AbstractFurnaceEntity::isFuel()`）
+  - `isBucket()`: 检查是否为桶类物品（空桶、水桶、岩浆桶等所有桶类型）
+  - `getMaxStackSize()`: 桶类物品返回 1，其他返回默认值
 - `FurnaceResultSlot` 类：熔炉输出槽位
   - `mayPlace()`: 始终返回 false，不能放入物品
   - `remove()`: 重写以支持经验值累积
@@ -552,9 +553,11 @@ BlockItemRegistry::instance().initializeVanillaBlockItems();
   - 槽位索引常量验证
 - `FurnaceFuelSlotTest`: 熔炉燃料槽位测试
   - 创建槽位
-  - `mayPlace()`: 只接受燃料物品
-  - `getMaxStackSize()`: 燃料物品堆叠上限
-  - `isFuel()`: 静态方法测试
+  - `mayPlace()`: 只接受燃料物品和桶类物品
+  - `getMaxStackSize()`: 燃料物品堆叠上限，桶类物品堆叠上限为 1
+  - `isFuel()`: 静态方法测试（委托给 `AbstractFurnaceEntity::isFuel()`）
+  - `isBucket()`: 检查所有桶类型（空桶、水桶、岩浆桶、鱼桶、牛奶桶）
+  - 各种燃料类型检测（煤炭、木炭、烈焰棒、岩浆桶、木棍等）
 - `FurnaceResultSlotTest`: 熔炉输出槽位测试
   - 创建槽位
   - `mayPlace()`: 始终返回 false
