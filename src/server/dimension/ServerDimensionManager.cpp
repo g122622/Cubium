@@ -384,11 +384,10 @@ void ServerDimensionManager::sendDimensionChangePacket(PlayerId playerId, Dimens
     // Hashing.sha256().hashLong(seed).asLong()
     packet.setHashedSeed(util::crypto::Sha256::hashWorldSeed(m_seed));
 
-    // 设置游戏模式
+    // 设置游戏模式（从玩家数据获取）
     auto* playerData = m_server->playerManager().getPlayer(playerId);
     if (playerData) {
-        // TODO: 从玩家数据获取实际游戏模式
-        packet.setGameMode(GameMode::Survival);
+        packet.setGameMode(playerData->gameMode);
         packet.setPreviousGameMode(GameMode::NotSet);
     }
 

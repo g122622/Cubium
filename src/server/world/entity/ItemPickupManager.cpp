@@ -229,9 +229,6 @@ void ItemPickupManager::processItemMerging(IServer& server) {
 f32 ItemPickupManager::calculatePickupRange(const Entity& player) const {
     f32 range = PICKUP_RANGE;
 
-    // 创造模式不改变范围
-    // if (player.isCreative()) { } // 暂时跳过
-
     // 潜行时范围缩小
     if (player.legacyType() == LegacyEntityType::Player) {
         const Player* playerEntity = static_cast<const Player*>(&player);
