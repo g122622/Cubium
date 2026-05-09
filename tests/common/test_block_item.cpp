@@ -12,6 +12,7 @@
 #include "physics/collision/CollisionShape.hpp"
 
 #include <unordered_map>
+#include "world/border/WorldBorder.hpp"
 
 using namespace mc;
 
@@ -110,6 +111,14 @@ public:
         throw std::runtime_error("TestBlockReader::getRandom not implemented");
     }
 
+    // WorldBorder interface
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        return m_worldBorder;
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        return m_worldBorder;
+    }
+
     // 测试辅助方法：设置实体碰撞箱
     void setEntityCollisionBox(const AxisAlignedBB& box) {
         m_entityCollisionBox = box;
@@ -126,6 +135,7 @@ private:
     }
 
     std::unordered_map<i64, const BlockState*> m_blocks;
+    world::border::WorldBorder m_worldBorder;
     AxisAlignedBB m_entityCollisionBox;
     bool m_hasEntityCollision = false;
 };

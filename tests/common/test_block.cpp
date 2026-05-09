@@ -21,6 +21,7 @@
 #include "../src/common/util/math/Vector3.hpp"
 #include "../src/common/util/property/Properties.hpp"
 #include "../src/common/world/tick/manager/TickManager.hpp"
+#include "../src/common/world/border/WorldBorder.hpp"
 #include <atomic>
 #include <memory>
 #include <unordered_map>
@@ -233,6 +234,14 @@ public:
         return m_random;
     }
 
+    // WorldBorder interface
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        return m_worldBorder;
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        return m_worldBorder;
+    }
+
 private:
     [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z, u8 fallback) {
         const auto it = lights.find(BlockPos(x, y, z));
@@ -251,6 +260,7 @@ private:
     std::map<BlockPos, u8> m_skyLight;
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
     math::Random m_random{12345};  // 固定种子的随机数生成器
+    world::border::WorldBorder m_worldBorder;
     u64 m_seed = 0;
     bool m_isRaining = false;
     bool m_canRainAt = false;

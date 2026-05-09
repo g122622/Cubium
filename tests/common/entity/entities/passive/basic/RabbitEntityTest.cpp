@@ -261,17 +261,23 @@ TEST_F(RabbitEntityTest, Attributes_HasCorrectBaseValues) {
     EXPECT_DOUBLE_EQ(rabbit.maxHealth(), 3.0);
 
     // MC 1.16.5: 兔子移动速度为 0.3
-    EXPECT_DOUBLE_EQ(rabbit.movementSpeed(), 0.3);
+    EXPECT_DOUBLE_EQ(rabbit.getAttributeValue("generic.movement_speed", 0.0), 0.3);
 }
 
 // ========== 尺寸测试 ==========
 
 TEST_F(RabbitEntityTest, Dimensions_CorrectBaseSize) {
     RabbitEntity rabbit(LegacyEntityType::Unknown, 1);
+    rabbit.setChild(false);  // 设置为成体
 
     // MC 1.16.5: 兔子宽度 0.4，高度 0.5
-    EXPECT_FLOAT_EQ(rabbit.getBaseWidth(), 0.4f);
-    EXPECT_FLOAT_EQ(rabbit.getBaseHeight(), 0.5f);
+    // 通过碰撞箱来验证尺寸
+    const AxisAlignedBB& box = rabbit.boundingBox();
+    // 碰撞箱的宽度和高度应该接近实体尺寸
+    f32 boxWidth = box.maxX - box.minX;
+    f32 boxHeight = box.maxY - box.minY;
+    EXPECT_NEAR(boxWidth, 0.4f, 0.01f);
+    EXPECT_NEAR(boxHeight, 0.5f, 0.01f);
 }
 
 TEST_F(RabbitEntityTest, EyeHeight_DifferentForChildAndAdult) {

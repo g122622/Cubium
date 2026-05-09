@@ -7,6 +7,7 @@
 #include "world/fluid/Fluid.hpp"
 #include "world/IWorld.hpp"
 #include "world/tick/manager/TickManager.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "util/math/random/Random.hpp"
 #include "core/Constants.hpp"
 
@@ -161,12 +162,21 @@ public:
         throw std::runtime_error("SpawnPlacementTestWorld::getRandom not implemented");
     }
 
+    // WorldBorder interface
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        return m_worldBorder;
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        return m_worldBorder;
+    }
+
 private:
     [[nodiscard]] const BlockState* getAirState() const {
         return &VanillaBlocks::AIR->defaultState();
     }
 
     std::unordered_map<BlockPos, const BlockState*> m_blocks;
+    world::border::WorldBorder m_worldBorder;
 };
 
 class SupportBlock final : public Block {

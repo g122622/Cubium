@@ -3,6 +3,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/util/math/random/Random.hpp"
 
@@ -73,8 +74,17 @@ public:
         MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support getRandom");
     }
 
+    // WorldBorder 接口
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        return m_worldBorder;
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        return m_worldBorder;
+    }
+
 private:
     const ClientWorld& m_world;
+    world::border::WorldBorder m_worldBorder;
 };
 
 } // namespace

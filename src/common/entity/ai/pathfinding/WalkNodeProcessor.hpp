@@ -81,6 +81,15 @@ public:
      */
     void setAvoidSun(bool avoidSun) { m_avoidSun = avoidSun; }
 
+    // ========== 测试接口 ==========
+
+    /**
+     * @brief 检查方块是否是危险方块（火焰、岩浆、仙人掌等）
+     * MC 1.16.5 func_237233_a_
+     * @note 公开用于单元测试
+     */
+    [[nodiscard]] bool isDangerous(i32 x, i32 y, i32 z) const;
+
 protected:
     [[nodiscard]] std::unique_ptr<PathPoint> createNode(i32 x, i32 y, i32 z) override;
 
@@ -111,12 +120,6 @@ private:
      * MC 1.16.5: 检查火焰、岩浆、仙人掌、甜浆果丛等
      */
     [[nodiscard]] bool isSafe(i32 x, i32 y, i32 z) const;
-
-    /**
-     * @brief 检查方块是否是危险方块（火焰、岩浆、仙人掌等）
-     * MC 1.16.5 func_237233_a_
-     */
-    [[nodiscard]] bool isDangerous(i32 x, i32 y, i32 z) const;
 
     /**
      * @brief 获取地面高度（从指定位置向下搜索）

@@ -13,6 +13,7 @@
 #include "world/block/BlockTags.hpp"
 #include "world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
 #include "world/tick/manager/TickManager.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "core/Constants.hpp"
 
 #include <map>
@@ -111,6 +112,14 @@ public:
         throw std::runtime_error("SweetBerryBushTestWorld::getRandom not implemented");
     }
 
+    // WorldBorder interface
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        return m_worldBorder;
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        return m_worldBorder;
+    }
+
 private:
     [[nodiscard]] const BlockState* airState() const {
         return BlockRegistry::instance().airState();
@@ -128,6 +137,7 @@ private:
     std::map<BlockPos, const BlockState*> m_blocks;
     std::map<BlockPos, u8> m_blockLight;
     std::map<BlockPos, u8> m_skyLight;
+    world::border::WorldBorder m_worldBorder;
     u64 m_seed = 12345;
     bool m_isClientSide = false;
 };

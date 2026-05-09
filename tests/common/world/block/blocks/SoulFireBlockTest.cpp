@@ -6,6 +6,7 @@
 #include "world/block/blocks/nether/FireBlock.hpp"
 #include "world/IWorld.hpp"
 #include "world/tick/manager/TickManager.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "core/Constants.hpp"
 
 using namespace mc;
@@ -81,6 +82,9 @@ public:
     [[nodiscard]] math::Random& getRandom() override { return m_random; }
     [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
 
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+
 private:
     void ensureTickManager() const {
         if (!m_tickManagerPtr) {
@@ -91,6 +95,7 @@ private:
     std::map<BlockPos, const BlockState*> m_blocks;
     mutable std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
     math::Random m_random{12345};
+    world::border::WorldBorder m_worldBorder;
 };
 
 class SoulFireBlockTest : public ::testing::Test {
