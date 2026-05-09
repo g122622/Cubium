@@ -5,6 +5,12 @@
 #include "../../../util/property/Properties.hpp"
 #include "../../block/VanillaBlocks.hpp"
 #include "../../block/Block.hpp"
+#include "../../blockentity/BlockEntity.hpp"
+#include "../../IWorld.hpp"
+#include "../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../entity/loot/LootTable.hpp"
+#include "../../../entity/loot/LootContext.hpp"
+#include "../../../util/math/random/Random.hpp"
 
 namespace mc {
 namespace fluid {
@@ -53,13 +59,58 @@ void WaterFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos,
     // MC 1.16.5: TileEntity tileentity = state.hasTileEntity() ? worldIn.getTileEntity(pos) : null;
     //           Block.spawnDrops(state, worldIn, pos, tileentity);
     //
-    // TODO: 实现方块掉落
-    // 当前 IWorld 接口无法访问 EntityManager 来生成物品实体
-    // 需要在 IWorld 或 ServerWorld 中提供 spawnItemEntity 方法
-    // 或者通过 IWorld::spawnDrops 等接口
-    (void)world;
-    (void)pos;
-    (void)state;
+    // 水替换方块时，生成方块掉落物。
+
+    if (state == nullptr || state->isAir()) {
+        return;
+    }
+
+    // 获取掉落表管理器
+    const loot::LootTableManager* lootTableManager = world.lootTableManager();
+    if (lootTableManager == nullptr) {
+        // 没有掉落表管理器，无法生成掉落物
+        return;
+    }
+
+    // 获取方块的掉落表
+    const Block& block = state->owner();
+    const loot::LootTable* lootTable = block.getLootTable(*lootTableManager);
+
+    std::vector<ItemStack> drops;
+
+    if (lootTable != nullptr) {
+        // 使用掉落表生成掉落物
+        math::Random rng(static_cast<u64>(world.seed() ^ static_cast<u64>(pos.x ^ pos.z)));
+
+        auto context = loot::LootContextBuilder(world)
+            .withRandom(rng)
+            .withSeed(world.seed() ^ static_cast<u64>(pos.x ^ pos.z))
+            .build();
+
+        if (context) {
+            // 设置方块状态和位置参数
+            context->set(loot::LootParams::BLOCK_STATE, const_cast<BlockState*>(state));
+            context->set(loot::LootParams::BLOCK_POS, const_cast<BlockPos*>(&pos));
+
+            // 设置掉落表解析器
+            context->setLootTableResolver([&lootTableManager](const std::string& id) -> const loot::LootTable* {
+                return lootTableManager->getTable(id);
+            });
+
+            // 生成掉落物
+            drops = lootTable->generate(*context);
+        }
+    }
+    // 如果没有掉落表，则没有掉落物（水流破坏方块不使用默认掉落逻辑）
+
+    // 如果有掉落物，生成物品实体
+    if (!drops.empty()) {
+        // 使用固定种子生成随机速度
+        math::Random rng(static_cast<u64>(world.seed() ^ static_cast<u64>(pos.x ^ pos.z)));
+
+        // 使用 ItemDropHelper 生成物品实体
+        ItemDropHelper::spawnItemEntities(&world, pos, drops, rng);
+    }
 }
 
 bool WaterFluid::isEquivalentTo(const Fluid& fluid) const {
