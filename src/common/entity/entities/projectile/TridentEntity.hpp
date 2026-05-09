@@ -41,6 +41,12 @@ public:
     [[nodiscard]] ItemStack getItemStack() const { return m_tridentStack; }
 
     /**
+     * @brief 获取箭矢对应的物品堆（AbstractArrowEntity 接口实现）
+     * @return 三叉戟物品堆副本
+     */
+    [[nodiscard]] ItemStack getArrowStack() const override { return m_tridentStack.copy(); }
+
+    /**
      * @brief 设置三叉戟物品堆（同时更新附魔等级）
      */
     void setItemStack(const ItemStack& stack);

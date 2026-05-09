@@ -1,12 +1,15 @@
 #include "AbstractArrowEntity.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../entities/player/Player.hpp"
+#include "../../inventory/PlayerInventory.hpp"
 #include "../../../item/core/ItemStack.hpp"
+#include "../../../item/Items.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../sound/SoundEvents.hpp"
+#include "../../../sound/SoundCategory.hpp"
 #include "ProjectileHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
@@ -350,15 +353,68 @@ void AbstractArrowEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 b
 }
 
 bool AbstractArrowEntity::onPlayerPickup(Player& player) {
-    // TODO: 实现玩家拾取逻辑
-    // if (m_pickupStatus == PickupStatus::Disallowed) {
-    //     return false;
-    // }
-    // if (m_pickupStatus == PickupStatus::CreativeOnly && !player.isCreative()) {
-    //     return false;
-    // }
-    // 将箭矢添加到玩家背包
-    // player.inventory().addItem(getArrowStack());
+    // 参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer() 第508-521行
+
+    // 必须在服务端执行
+    if (m_world && m_world->isClientSide()) {
+        return false;
+    }
+
+    // 必须插在方块中或者是穿甲箭（noClip 状态）
+    if (!m_inGround && !m_noClip) {
+        return false;
+    }
+
+    // 箭矢不能处于抖动状态
+    if (m_arrowShake > 0) {
+        return false;
+    }
+
+    // 检查拾取权限
+    bool canPickup = false;
+    if (m_pickupStatus == PickupStatus::Allowed) {
+        canPickup = true;
+    } else if (m_pickupStatus == PickupStatus::CreativeOnly && player.isCreative()) {
+        canPickup = true;
+    } else if (m_noClip && getShooter() != nullptr && getShooter()->uuid() == player.uuid()) {
+        // 穿甲箭且是自己射出的（忠诚附魔返回的三叉戟）
+        canPickup = true;
+    }
+
+    if (!canPickup) {
+        return false;
+    }
+
+    // 只有 Allowed 状态才检查背包空间
+    if (m_pickupStatus == PickupStatus::Allowed) {
+        // 获取箭矢物品堆
+        item::ItemStack arrowStack = getArrowStack();
+
+        // 尝试添加到玩家背包
+        // add() 方法会修改 arrowStack，减少其数量
+        player.inventory().add(arrowStack);
+
+        // 如果背包满了，添加失败
+        if (arrowStack.getCount() > 0) {
+            return false;
+        }
+    }
+
+    // 播放拾取音效
+    // 参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer() 第517行
+    // entityIn.onItemPickup(this, 1); 会播放音效
+    if (m_world) {
+        math::Random rng = createRandomFromEntity(*this);
+        m_world->playSound(
+            SoundEvents::ENTITY_ITEM_PICKUP,
+            SoundCategory::Players,
+            m_position,
+            0.2f,  // 音量
+            1.0f + (rng.nextFloat() - 0.5f) * 0.2f  // 音调带随机变化
+        );
+    }
+
+    // 移除箭矢实体
     remove();
     return true;
 }
@@ -403,6 +459,22 @@ void ArrowEntity::tick() {
     }
 }
 
+item::ItemStack ArrowEntity::getArrowStack() const {
+    // 参考 MC 1.16.5 ArrowEntity.getArrowStack() 第195-208行
+    // 如果有药水效果，返回药水箭；否则返回普通箭矢
+    if (hasEffects()) {
+        // 创建药水箭物品堆
+        item::ItemStack tippedArrow(*item::Items::TIPPED_ARROW, 1);
+        // TODO: 设置药水效果到物品堆的 NBT 标签
+        // PotionUtils.addPotionToItemStack(itemstack, this.potion);
+        // PotionUtils.appendEffects(itemstack, this.customPotionEffects);
+        return tippedArrow;
+    } else {
+        // 返回普通箭矢
+        return item::ItemStack(*item::Items::ARROW, 1);
+    }
+}
+
 // ============================================================================
 // SpectralArrowEntity
 // ============================================================================
@@ -424,6 +496,12 @@ void SpectralArrowEntity::tick() {
     if (!m_inGround) {
         // TODO: 生成光灵箭粒子
     }
+}
+
+item::ItemStack SpectralArrowEntity::getArrowStack() const {
+    // 参考 MC 1.16.5 SpectralArrowEntity.getArrowStack() 第39-41行
+    // 光灵箭总是返回光灵箭物品
+    return item::ItemStack(*item::Items::SPECTRAL_ARROW, 1);
 }
 
 } // namespace entity

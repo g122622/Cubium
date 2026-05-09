@@ -140,10 +140,15 @@ public:
     virtual bool onPlayerPickup(Player& player);
 
     /**
-     * @brief 获取箭矢物品堆（用于拾取）
-     * @return 箭矢物品堆
+     * @brief 获取箭矢对应的物品堆（用于拾取）
+     * @return 物品堆副本
+     *
+     * 子类必须实现此方法返回对应的物品：
+     * - ArrowEntity: 返回普通箭矢或药水箭
+     * - SpectralArrowEntity: 返回光灵箭
+     * - TridentEntity: 返回三叉戟
      */
-    // virtual ItemStack getArrowStack() const = 0;
+    [[nodiscard]] virtual item::ItemStack getArrowStack() const = 0;
 
 protected:
     /**
@@ -309,6 +314,14 @@ public:
      */
     [[nodiscard]] bool hasEffects() const { return !m_effects.empty(); }
 
+    // ========== AbstractArrowEntity 接口实现 ==========
+
+    /**
+     * @brief 获取箭矢对应的物品堆
+     * @return 普通箭矢或药水箭物品堆
+     */
+    [[nodiscard]] item::ItemStack getArrowStack() const override;
+
 private:
     u32 m_color = 0xFFFFFFFF;  // 箭矢颜色（药水箭）
     bool m_glowing = false;    // 是否发光（光灵箭）
@@ -337,6 +350,14 @@ public:
     // ========== Entity 接口重写 ==========
 
     void tick() override;
+
+    // ========== AbstractArrowEntity 接口实现 ==========
+
+    /**
+     * @brief 获取箭矢对应的物品堆
+     * @return 光灵箭物品堆
+     */
+    [[nodiscard]] item::ItemStack getArrowStack() const override;
 
 private:
     i32 m_glowDuration = 200;  // 发光持续时间（ticks）

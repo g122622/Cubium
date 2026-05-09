@@ -230,6 +230,11 @@ auto damageSource = std::make_unique<IndirectEntityDamageSource>(
 3. **重力**：不同投掷物有不同的重力值（箭矢0.05，雪球0.03，火球0）
 4. **阻力**：水中阻力0.6-0.8，空气中阻力0.99
 5. **穿透**：只有箭矢支持穿透附魔，需要追踪已穿透的实体
+6. **拾取机制**：箭矢拾取需要满足以下条件：
+   - 必须插在方块中或处于穿甲状态（noClip）
+   - 箭矢不能处于抖动状态
+   - PickupStatus 必须允许拾取
+   - Allowed 状态会检查背包空间，CreativeOnly 状态不检查背包
 
 ## 参考
 
@@ -256,3 +261,13 @@ auto damageSource = std::make_unique<IndirectEntityDamageSource>(
   - ProjectileItemEntity：气泡粒子已在ThrowableEntity中处理，无需重复
   - FishingBobberEntity：钓鱼粒子效果完整（水花、气泡、涟漪）
   - 新增FishingParticle粒子类型用于水面涟漪效果
+- **箭矢拾取功能已完善实现（2026-05-09）**：
+  - `AbstractArrowEntity::onPlayerPickup()`：完整实现箭矢拾取逻辑
+  - `getArrowStack()`：新增纯虚方法，子类返回对应的物品堆
+  - `ArrowEntity::getArrowStack()`：返回普通箭矢或药水箭
+  - `SpectralArrowEntity::getArrowStack()`：返回光灵箭
+  - `TridentEntity::getArrowStack()`：返回三叉戟物品
+  - 拾取逻辑参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer()
+  - 支持 PickupStatus 三种状态：Disallowed、Allowed、CreativeOnly
+  - CreativeOnly 状态不检查背包空间（创造模式无限物品）
+  - 拾取成功后播放 ENTITY_ITEM_PICKUP 音效

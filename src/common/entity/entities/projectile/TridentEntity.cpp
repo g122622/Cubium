@@ -316,11 +316,17 @@ void TridentEntity::setItemStack(const ItemStack& stack) {
 
 bool TridentEntity::onPlayerPickup(Player& player) {
     // 参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer()
+    // 必须在服务端执行
+    if (m_world && m_world->isClientSide()) {
+        return false;
+    }
+
     // 只有当三叉戟在地上或返回时才能被拾取
     if (!m_inGround && !noClip()) {
         return false;
     }
 
+    // 箭矢不能处于抖动状态
     if (m_arrowShake > 0) {
         return false;
     }
@@ -331,16 +337,27 @@ bool TridentEntity::onPlayerPickup(Player& player) {
                      (noClip() && getShooter() != nullptr &&
                       getShooter()->uuid() == player.uuid());
 
-    if (canPickup) {
-        // 添加到玩家背包
-        if (!m_tridentStack.isEmpty()) {
-            player.inventory().add(m_tridentStack);
-        }
-        remove();
-        return true;
+    if (!canPickup) {
+        return false;
     }
 
-    return false;
+    // 只有 Allowed 状态才检查背包空间
+    // 三叉戟的 pickupStatus 通常是 Allowed，所以总是检查背包
+    if (!m_tridentStack.isEmpty()) {
+        i32 added = player.inventory().add(m_tridentStack);
+        // 三叉戟只能有一个，检查是否成功添加
+        if (m_tridentStack.getCount() > 0) {
+            return false;  // 背包满了
+        }
+    }
+
+    // 播放拾取音效
+    if (m_world) {
+        playSound(SoundEvents::ENTITY_ITEM_PICKUP, 0.2f, 1.0f);
+    }
+
+    remove();
+    return true;
 }
 
 void TridentEntity::tickInGroundTrident() {
