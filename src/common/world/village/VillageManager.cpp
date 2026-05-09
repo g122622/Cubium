@@ -212,7 +212,7 @@ Village* VillageManager::getVillageUnderRaid(BlockPos pos) {
 void VillageManager::tick(i64 gameTime) {
     // 更新所有村庄
     for (auto& village : m_villages) {
-        village->tick(m_world, gameTime);
+        village->tick(m_world, gameTime, &m_poiStorage);
     }
 
     // 定期移除空村庄

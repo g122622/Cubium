@@ -19,7 +19,7 @@ village/
 │   ├── PointOfInterestStorage.hpp/cpp # POI存储
 │   └── README.md
 │
-├── raid/                         # 袭击子系统（TODO）
+├── raid/                         # 袭击子系统
 │   ├── Raid.hpp/cpp
 │   ├── RaidManager.hpp/cpp
 │   ├── RaidWave.hpp/cpp
@@ -44,13 +44,26 @@ village/
 - 床位和工作站计数
 - 流言/声誉系统
 - 铃铛（聚集点）管理
+- **tick更新**：村民范围检查、POI统计更新、袭击状态检查
 
 ```cpp
 Village village(centerPos);
 village.addVillager(villagerId);
 village.recalculateBounds(poiStorage);
 bool canBreed = village.canBreed();  // 是否有足够床位繁殖
+
+// tick 更新（每游戏刻调用）
+village.tick(world, gameTime, &poiStorage);
 ```
+
+#### Village::tick() 实现细节
+
+村庄的 `tick()` 方法每游戏刻执行以下操作：
+
+1. **流言衰减** - 通过 `VillageGossipManager::tick()` 更新流言系统
+2. **村民范围检查** - 移除离开村庄范围超过5分钟的村民
+3. **POI统计更新** - 每分钟更新床位、工作站计数和聚集点（钟）
+4. **袭击状态检查** - 检查袭击是否结束（当村庄处于袭击状态时）
 
 ### VillageManager
 
@@ -94,10 +107,15 @@ f32 modifier = village.getPriceModifier(playerId);
 - 声誉范围：[-1000, +1000]
 - 价格修正：[0.5, 1.5]
 - 流言衰减：每日衰减一定比例
+- 村民超时：6000 tick (5分钟) 离开村庄范围后移除
+- POI统计更新：每1200 tick (1分钟)
 
 ## TODO
 
-- [ ] 实现袭击系统 (raid/)
+- [x] 实现 Village::tick() 村民范围检查
+- [x] 实现 Village::tick() POI统计更新
+- [x] 实现 Village::tick() 袭击状态检查
+- [x] 实现袭击系统 (raid/)
 - [x] 实现交易系统 (trade/) - MerchantOffer NBT序列化已完成
 - [ ] 实现僵尸围村 (VillageSiege)
 - [ ] 集成到ServerWorld

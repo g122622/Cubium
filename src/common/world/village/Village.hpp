@@ -241,8 +241,9 @@ public:
      * @brief 每游戏tick更新
      * @param world 世界接口
      * @param gameTime 当前游戏时间
+     * @param poiStorage POI存储（可选，用于更新POI统计）
      */
-    void tick(IWorld& world, i64 gameTime);
+    void tick(IWorld& world, i64 gameTime, const poi::PointOfInterestStorage* poiStorage = nullptr);
 
     // ========== 序列化 ==========
 
@@ -257,6 +258,47 @@ public:
     static Village deserialize(const nbt::tags::compound_tag& tag);
 
 private:
+    /**
+     * @brief 检查并更新村民列表
+     *
+     * 移除离开村庄范围超过指定时间的村民。
+     * 参考 MC 1.16.5: 没有显式的村民移除逻辑，村民离开后由 VillageManager 管理重新分配。
+     *
+     * @param world 世界接口（用于获取实体）
+     * @param gameTime 当前游戏时间
+     */
+    void tickVillagerCheck(IWorld& world, i64 gameTime);
+
+    /**
+     * @brief 更新 POI 统计
+     *
+     * 更新床位和工作站计数，以及聚集点（钟）。
+     *
+     * @param poiStorage POI存储
+     */
+    void tickPOIStats(const poi::PointOfInterestStorage& poiStorage);
+
+    /**
+     * @brief 检查袭击状态
+     *
+     * 如果袭击结束，更新袭击状态和时间。
+     * 参考 MC 1.16.5: Raid.tick() 中更新村庄状态。
+     *
+     * @param world 世界接口
+     * @param gameTime 当前游戏时间
+     */
+    void tickRaidCheck(IWorld& world, i64 gameTime);
+
+    /**
+     * @brief 查找聚集点（钟）
+     *
+     * 在村庄范围内搜索钟 POI。
+     *
+     * @param poiStorage POI存储
+     * @return 如果找到返回钟的位置，否则返回空
+     */
+    [[nodiscard]] std::optional<BlockPos> findMeetingPoint(const poi::PointOfInterestStorage& poiStorage) const;
+
     /// 村庄中心位置
     BlockPos m_center;
 
@@ -286,6 +328,22 @@ private:
 
     /// 村庄创建时间
     i64 m_createdTime = 0;
+
+    /// 村民最后出现时间（用于范围检查）
+    /// MC 1.16.5 没有显式的村民超时移除，村民由 VillageManager 管理
+    /// 但我们保留此映射用于优化，避免每tick都检查所有村民
+    std::unordered_map<u64, i64> m_villagerLastSeenTime;
+
+    /// 上次 POI 统计更新时间
+    i64 m_lastPOIStatUpdateTime = 0;
+
+    /// POI 统计更新间隔（每 1200 tick = 1 分钟更新一次）
+    static constexpr i64 POI_STAT_UPDATE_INTERVAL = 1200;
+
+    /// 村民超时时间（6000 tick = 5 分钟不在村庄范围内视为离开）
+    /// MC 1.16.5 中村民通过 Brain 记忆和工作站绑定自动与村庄关联，
+    /// 这里使用超时作为简化的离开检测
+    static constexpr i64 VILLAGER_TIMEOUT = 6000;
 };
 
 } // namespace village

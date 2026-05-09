@@ -1,6 +1,10 @@
 #include "Village.hpp"
 #include "../../util/nbt/Nbt.hpp"
 #include "../IWorld.hpp"
+#include "../../entity/core/Entity.hpp"
+#include "../../core/Types.hpp"
+#include "poi/PointOfInterestStorage.hpp"
+#include "poi/PointOfInterestType.hpp"
 
 #include <algorithm>
 #include <array>
@@ -29,6 +33,22 @@ constexpr std::array<poi::PointOfInterestType, 16> ALL_BED_TYPES = {
     poi::PointOfInterestType::BedPurple,
     poi::PointOfInterestType::BedWhite,
     poi::PointOfInterestType::BedYellow,
+};
+
+/// 工作站 POI 类型列表
+constexpr std::array<poi::PointOfInterestType, 12> WORKSTATION_TYPES = {
+    poi::PointOfInterestType::Smoker,
+    poi::PointOfInterestType::BlastFurnace,
+    poi::PointOfInterestType::CartographyTable,
+    poi::PointOfInterestType::BrewingStand,
+    poi::PointOfInterestType::Composter,
+    poi::PointOfInterestType::Barrel,
+    poi::PointOfInterestType::FletchingTable,
+    poi::PointOfInterestType::Cauldron,
+    poi::PointOfInterestType::Lectern,
+    poi::PointOfInterestType::Stonecutter,
+    poi::PointOfInterestType::SmithingTable,
+    poi::PointOfInterestType::Loom,
 };
 
 } // namespace
@@ -115,15 +135,173 @@ bool Village::canBreed() const {
     return getAvailableBeds() > 0 && getPopulation() > 0;
 }
 
-void Village::tick(IWorld& world, i64 gameTime) {
-    // 更新流言（衰减）
+void Village::tick(IWorld& world, i64 gameTime, const poi::PointOfInterestStorage* poiStorage) {
+    // 1. 更新流言（衰减）
     m_gossipManager.tick(gameTime);
 
-    // TODO: 其他定期更新
-    // - 检查村民是否仍在范围内
-    // - 更新工作站绑定
-    // - 检查袭击结束条件
-    (void)world; // 暂时未使用
+    // 2. 检查村民是否仍在范围内
+    tickVillagerCheck(world, gameTime);
+
+    // 3. 定期更新 POI 统计（如果提供了 POI 存储）
+    if (poiStorage != nullptr && gameTime - m_lastPOIStatUpdateTime >= POI_STAT_UPDATE_INTERVAL) {
+        tickPOIStats(*poiStorage);
+        m_lastPOIStatUpdateTime = gameTime;
+    }
+
+    // 4. 检查袭击状态
+    tickRaidCheck(world, gameTime);
+}
+
+void Village::tickVillagerCheck(IWorld& world, i64 gameTime) {
+    // 参考 MC 1.16.5: 村庄不直接管理村民列表的移除，由 VillageManager 通过
+    // 村民的 Brain 记忆模块和工作站绑定来管理村民与村庄的关联。
+    // 这里实现简化的范围检查：记录村民最后出现时间，超时的村民从列表移除。
+
+    std::vector<u64> villagersToRemove;
+
+    for (u64 villagerId : m_villagers) {
+        // 通过 EntityId 获取实体
+        Entity* entity = world.getEntity(static_cast<EntityId>(villagerId));
+
+        if (entity == nullptr) {
+            // 实体不存在（可能已卸载或死亡），标记移除
+            villagersToRemove.push_back(villagerId);
+            continue;
+        }
+
+        // 检查是否为村民实体
+        // LegacyEntityType::Villager = 100
+        if (entity->legacyType() != LegacyEntityType::Villager) {
+            // 不是村民，可能是数据错误，移除
+            villagersToRemove.push_back(villagerId);
+            continue;
+        }
+
+        // 获取村民位置
+        Vector3 pos = entity->position();
+        BlockPos blockPos(static_cast<i32>(std::floor(pos.x)),
+                         static_cast<i32>(std::floor(pos.y)),
+                         static_cast<i32>(std::floor(pos.z)));
+
+        // 检查是否在村庄范围内
+        if (isWithinVillage(blockPos)) {
+            // 村民在范围内，更新最后出现时间
+            m_villagerLastSeenTime[villagerId] = gameTime;
+        } else {
+            // 村民不在范围内，检查是否超时
+            auto it = m_villagerLastSeenTime.find(villagerId);
+            if (it != m_villagerLastSeenTime.end()) {
+                i64 timeSinceLastSeen = gameTime - it->second;
+                if (timeSinceLastSeen > VILLAGER_TIMEOUT) {
+                    // 超时，移除村民
+                    villagersToRemove.push_back(villagerId);
+                }
+            } else {
+                // 没有记录的最后出现时间，可能是新加入的村民
+                // 检查是否在触发范围内（比村庄范围稍大）
+                if (isWithinRaidTrigger(blockPos)) {
+                    // 在触发范围内但不在村庄内，给予时间移动
+                    m_villagerLastSeenTime[villagerId] = gameTime;
+                } else {
+                    // 太远，直接移除
+                    villagersToRemove.push_back(villagerId);
+                }
+            }
+        }
+    }
+
+    // 移除超时的村民
+    for (u64 villagerId : villagersToRemove) {
+        m_villagers.erase(villagerId);
+        m_villagerLastSeenTime.erase(villagerId);
+    }
+}
+
+void Village::tickPOIStats(const poi::PointOfInterestStorage& poiStorage) {
+    // 更新床位计数
+    i32 bedCount = 0;
+    for (const auto bedType : ALL_BED_TYPES) {
+        auto beds = poiStorage.findAllInRange(m_center, m_radius, bedType);
+        bedCount += static_cast<i32>(beds.size());
+    }
+    m_bedCount = bedCount;
+
+    // 更新工作站计数
+    i32 workstationCount = 0;
+    for (const auto wsType : WORKSTATION_TYPES) {
+        auto workstations = poiStorage.findAllInRange(m_center, m_radius, wsType);
+        workstationCount += static_cast<i32>(workstations.size());
+    }
+    m_workstationCount = workstationCount;
+
+    // 更新聚集点（钟）
+    auto meetingPoint = findMeetingPoint(poiStorage);
+    if (meetingPoint.has_value()) {
+        m_meetingPoint = meetingPoint;
+    } else {
+        m_meetingPoint = std::nullopt;
+    }
+
+    // 重新计算村庄边界（基于床位数）
+    m_radius = std::min(
+        VillageConfig::BASE_RADIUS + static_cast<f32>(m_bedCount) * VillageConfig::RADIUS_PER_BED,
+        VillageConfig::MAX_RADIUS
+    );
+}
+
+void Village::tickRaidCheck(IWorld& world, i64 gameTime) {
+    // 如果村庄当前不在袭击中，无需检查
+    if (!m_underRaid) {
+        return;
+    }
+
+    // 获取 RaidManager 检查袭击状态
+    world::village::VillageManager* vm = world.villageManager();
+    if (vm == nullptr) {
+        return;
+    }
+
+    // RaidManager 可以通过 VillageManager 访问
+    // 但当前设计中 RaidManager 是独立的服务
+    // 这里需要通过 ServerWorld 访问 RaidManager
+    // 暂时通过 VillageManager 间接检查
+
+    // TODO: 当 RaidManager 集成到 VillageManager 后，
+    // 应该检查 RaidManager::getRaidForVillage(this) 来获取袭击状态
+    // 当前袭击状态由 RaidManager::onRaidEnd() 通过 Village::setUnderRaid() 更新
+    // 所以这里不需要主动检查
+
+    // 作为备用，可以检查是否有活跃的袭击者实体在村庄范围内
+    // 但这需要遍历实体，效率较低，暂时跳过
+    (void)gameTime; // 暂时未使用
+}
+
+std::optional<BlockPos> Village::findMeetingPoint(const poi::PointOfInterestStorage& poiStorage) const {
+    // 在村庄范围内搜索钟 POI
+    auto bells = poiStorage.findAllInRange(m_center, m_radius, poi::PointOfInterestType::Bell);
+
+    if (bells.empty()) {
+        return std::nullopt;
+    }
+
+    // 找到最近的钟
+    const poi::PointOfInterest* nearestBell = nullptr;
+    i64 minDistSq = std::numeric_limits<i64>::max();
+
+    for (const auto* poi : bells) {
+        BlockPos bellPos = poi->getPosition();
+        i64 distSq = bellPos.distanceSq(m_center);
+        if (distSq < minDistSq) {
+            minDistSq = distSq;
+            nearestBell = poi;
+        }
+    }
+
+    if (nearestBell != nullptr) {
+        return nearestBell->getPosition();
+    }
+
+    return std::nullopt;
 }
 
 void Village::serialize(nbt::tags::compound_tag& tag) const {
@@ -136,6 +314,7 @@ void Village::serialize(nbt::tags::compound_tag& tag) const {
     tag.put("UnderRaid", m_underRaid ? static_cast<std::int8_t>(1) : static_cast<std::int8_t>(0));
     tag.put("LastRaidTime", static_cast<std::int64_t>(m_lastRaidTime));
     tag.put("CreatedTime", static_cast<std::int64_t>(m_createdTime));
+    tag.put("LastPOIStatUpdateTime", static_cast<std::int64_t>(m_lastPOIStatUpdateTime));
 
     // 序列化村民列表
     auto villagersList = std::make_unique<nbt::tags::long_list_tag>();
@@ -143,6 +322,16 @@ void Village::serialize(nbt::tags::compound_tag& tag) const {
         villagersList->value.push_back(static_cast<i64>(villagerId));
     }
     tag.value["Villagers"] = std::move(villagersList);
+
+    // 序列化村民最后出现时间
+    auto villagerTimesList = std::make_unique<nbt::tags::compound_list_tag>();
+    for (const auto& [villagerId, time] : m_villagerLastSeenTime) {
+        nbt::tags::compound_tag entry;
+        entry.put("VillagerId", static_cast<std::int64_t>(villagerId));
+        entry.put("LastSeenTime", static_cast<std::int64_t>(time));
+        villagerTimesList->value.push_back(std::move(entry));
+    }
+    tag.value["VillagerLastSeenTimes"] = std::move(villagerTimesList);
 
     // 序列化聚集点
     if (m_meetingPoint.has_value()) {
@@ -173,6 +362,11 @@ Village Village::deserialize(const nbt::tags::compound_tag& tag) {
     village.m_lastRaidTime = tag.get<nbt::tags::long_tag>("LastRaidTime");
     village.m_createdTime = tag.get<nbt::tags::long_tag>("CreatedTime");
 
+    // 可选字段：POI 统计更新时间（向后兼容）
+    if (tag.value.find("LastPOIStatUpdateTime") != tag.value.end()) {
+        village.m_lastPOIStatUpdateTime = tag.get<nbt::tags::long_tag>("LastPOIStatUpdateTime");
+    }
+
     // 反序列化村民列表
     auto villagersIt = tag.value.find("Villagers");
     if (villagersIt != tag.value.end()) {
@@ -180,6 +374,19 @@ Village Village::deserialize(const nbt::tags::compound_tag& tag) {
         if (villagersList) {
             for (i64 villagerId : villagersList->value) {
                 village.m_villagers.insert(static_cast<u64>(villagerId));
+            }
+        }
+    }
+
+    // 反序列化村民最后出现时间（向后兼容）
+    auto villagerTimesIt = tag.value.find("VillagerLastSeenTimes");
+    if (villagerTimesIt != tag.value.end()) {
+        auto* villagerTimesList = dynamic_cast<const nbt::tags::compound_list_tag*>(villagerTimesIt->second.get());
+        if (villagerTimesList) {
+            for (const auto& entry : villagerTimesList->value) {
+                u64 villagerId = static_cast<u64>(entry.get<nbt::tags::long_tag>("VillagerId"));
+                i64 lastSeenTime = entry.get<nbt::tags::long_tag>("LastSeenTime");
+                village.m_villagerLastSeenTime[villagerId] = lastSeenTime;
             }
         }
     }
