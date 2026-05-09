@@ -138,6 +138,7 @@ add_executable(mc_tests
     entity/ShoulderRidingSupportTypesTest.cpp
     entity/TraderLlamaSupportTypesTest.cpp
     entity/PathfindingTests.cpp
+    entity/WalkNodeProcessorTests.cpp
     entity/RandomWalkingGoalTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/MinecartTests.cpp
