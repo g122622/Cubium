@@ -193,9 +193,9 @@ public:
     [[nodiscard]] Vector3 lerp(const Vector3& target, T t) const noexcept
     {
         return {
-            lerp(x, target.x, t),
-            lerp(y, target.y, t),
-            lerp(z, target.z, t)
+            mc::math::lerp(x, target.x, t),
+            mc::math::lerp(y, target.y, t),
+            mc::math::lerp(z, target.z, t)
         };
     }
 

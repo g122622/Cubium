@@ -1,12 +1,33 @@
 #include <gtest/gtest.h>
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/block/BlockPos.hpp"
 
-using namespace mc;
-using namespace mc::math;
+// 使用明确的命名空间避免歧义
+using mc::Result;
+using mc::Error;
+using mc::ErrorCode;
+using mc::f32;
+using mc::u64;
+using mc::math::Vector3f;
+using mc::math::toRadians;
+using mc::math::toDegrees;
+using mc::math::clamp;
+using mc::math::lerp;
+using mc::math::isZero;
+using mc::math::approxEqual;
+using mc::math::fastInverseSqrt;
+using mc::math::toChunkCoord;
+using mc::math::toLocalCoord;
+using mc::math::exponentialDecayFactor;
+using mc::math::PI;
+using mc::math::HALF_PI;
+using mc::BlockPos;
+using mc::ChunkPos;
 
 // 辅助函数
 Result<int> divide(int a, int b) {
@@ -78,54 +99,54 @@ TEST(MathUtils, LocalCoordConversion) {
 // ============================================================================
 
 TEST(Vector3, Construction) {
-    Vector3 v1;
+    Vector3f v1;
     EXPECT_FLOAT_EQ(v1.x, 0.0f);
     EXPECT_FLOAT_EQ(v1.y, 0.0f);
     EXPECT_FLOAT_EQ(v1.z, 0.0f);
 
-    Vector3 v2(1.0f, 2.0f, 3.0f);
+    Vector3f v2(1.0f, 2.0f, 3.0f);
     EXPECT_FLOAT_EQ(v2.x, 1.0f);
     EXPECT_FLOAT_EQ(v2.y, 2.0f);
     EXPECT_FLOAT_EQ(v2.z, 3.0f);
 }
 
 TEST(Vector3, Arithmetic) {
-    Vector3 a(1.0f, 2.0f, 3.0f);
-    Vector3 b(4.0f, 5.0f, 6.0f);
+    Vector3f a(1.0f, 2.0f, 3.0f);
+    Vector3f b(4.0f, 5.0f, 6.0f);
 
-    Vector3 sum = a + b;
+    Vector3f sum = a + b;
     EXPECT_FLOAT_EQ(sum.x, 5.0f);
     EXPECT_FLOAT_EQ(sum.y, 7.0f);
     EXPECT_FLOAT_EQ(sum.z, 9.0f);
 
-    Vector3 diff = b - a;
+    Vector3f diff = b - a;
     EXPECT_FLOAT_EQ(diff.x, 3.0f);
     EXPECT_FLOAT_EQ(diff.y, 3.0f);
     EXPECT_FLOAT_EQ(diff.z, 3.0f);
 
-    Vector3 scaled = a * 2.0f;
+    Vector3f scaled = a * 2.0f;
     EXPECT_FLOAT_EQ(scaled.x, 2.0f);
     EXPECT_FLOAT_EQ(scaled.y, 4.0f);
     EXPECT_FLOAT_EQ(scaled.z, 6.0f);
 }
 
 TEST(Vector3, DotProduct) {
-    Vector3 a(1.0f, 0.0f, 0.0f);
-    Vector3 b(0.0f, 1.0f, 0.0f);
+    Vector3f a(1.0f, 0.0f, 0.0f);
+    Vector3f b(0.0f, 1.0f, 0.0f);
 
     EXPECT_FLOAT_EQ(a.dot(b), 0.0f);
     EXPECT_FLOAT_EQ(a.dot(a), 1.0f);
 }
 
 TEST(Vector3, Length) {
-    Vector3 v(3.0f, 4.0f, 0.0f);
+    Vector3f v(3.0f, 4.0f, 0.0f);
     EXPECT_FLOAT_EQ(v.length(), 5.0f);
     EXPECT_FLOAT_EQ(v.lengthSquared(), 25.0f);
 }
 
 TEST(Vector3, Normalize) {
-    Vector3 v(3.0f, 4.0f, 0.0f);
-    Vector3 normalized = v.normalized();
+    Vector3f v(3.0f, 4.0f, 0.0f);
+    Vector3f normalized = v.normalized();
 
     EXPECT_NEAR(normalized.length(), 1.0f, 0.0001f);
     EXPECT_FLOAT_EQ(normalized.x, 0.6f);

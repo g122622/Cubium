@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/command/ICommandSource.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"

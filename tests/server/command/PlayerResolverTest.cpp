@@ -102,7 +102,7 @@ private:
  * 提供最小化的服务器接口实现，不提供 world() 和 playerEntityManager()，
  * 因为这些测试专注于不需要玩家实体的选择器逻辑。
  */
-class PlayerResolverTestServer final : public server::IServer {
+class PlayerResolverTestServer final : public mc::server::IServer {
 public:
     PlayerResolverTestServer()
         : m_playerManager(m_config)
@@ -148,8 +148,8 @@ public:
     [[nodiscard]] server::core::GameModeManager& gameModeManager() override { return m_gameModeManager; }
     [[nodiscard]] const server::core::GameModeManager& gameModeManager() const override { return m_gameModeManager; }
 
-    [[nodiscard]] server::ServerDimensionManager& dimensionManager() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::ServerDimensionManager& dimensionManager() const override { throw std::logic_error("unused"); }
+    [[nodiscard]] mc::ServerDimensionManager& dimensionManager() override { throw std::logic_error("unused"); }
+    [[nodiscard]] const mc::ServerDimensionManager& dimensionManager() const override { throw std::logic_error("unused"); }
     [[nodiscard]] server::ServerWorld& world() override { throw std::logic_error("world not available in unit test"); }
     [[nodiscard]] const server::ServerWorld& world() const override { throw std::logic_error("world not available in unit test"); }
     [[nodiscard]] server::ServerChunkManager& chunkManager() override { throw std::logic_error("unused"); }
@@ -249,6 +249,27 @@ private:
 } // namespace
 } // namespace mc::command
 
+// 全局命名空间中引入需要的类型
+using mc::command::IntRange;
+using mc::command::FloatRange;
+using mc::command::EntitySelector;
+using mc::command::EntitySelectorType;
+using mc::command::EntitySelectorSort;
+using mc::command::ServerCommandSource;
+using mc::command::CommandRegistry;
+using mc::command::support::resolveSinglePlayerId;
+using mc::command::support::resolvePlayerIds;
+using mc::command::support::getGameModeCommandName;
+using mc::command::support::getDifficultyCommandName;
+using mc::PlayerId;
+using mc::GameMode;
+using mc::Difficulty;
+using mc::Vector3d;
+using mc::Vector2f;
+using mc::Vector3;
+using mc::ResourceLocation;
+using mc::sound::SoundCategory;
+
 // ========== IntRange 测试（等级过滤核心逻辑）==========
 
 /**
@@ -259,7 +280,7 @@ private:
  */
 class IntRangeTest : public ::testing::Test {
 protected:
-    command::IntRange range;
+    mc::command::IntRange range;
 };
 
 TEST_F(IntRangeTest, UnboundedRangeAcceptsAnyValue)
@@ -354,19 +375,19 @@ protected:
 
 TEST_F(PlayerResolverTest, ResolveSinglePlayerWithNoPlayersReturnsZero)
 {
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector(command::EntitySelectorType::SinglePlayer);
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector(EntitySelectorType::SinglePlayer);
 
-    PlayerId result = command::support::resolveSinglePlayerId(source, selector);
+    PlayerId result = resolveSinglePlayerId(source, selector);
     EXPECT_EQ(result, 0);
 }
 
 TEST_F(PlayerResolverTest, ResolveAllPlayersWithNoPlayersReturnsEmpty)
 {
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector(command::EntitySelectorType::AllPlayers);
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector(EntitySelectorType::AllPlayers);
 
-    auto result = command::support::resolvePlayerIds(source, selector);
+    auto result = resolvePlayerIds(source, selector);
     EXPECT_TRUE(result.empty());
 }
 
@@ -376,10 +397,10 @@ TEST_F(PlayerResolverTest, ResolveAllPlayersReturnsAll)
     m_server.addTestPlayer(2, "Bob");
     m_server.addTestPlayer(3, "Charlie");
 
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector(command::EntitySelectorType::AllPlayers);
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector(EntitySelectorType::AllPlayers);
 
-    auto result = command::support::resolvePlayerIds(source, selector);
+    auto result = resolvePlayerIds(source, selector);
     EXPECT_EQ(result.size(), 3);
 }
 
@@ -389,10 +410,10 @@ TEST_F(PlayerResolverTest, ResolveByUsername)
     m_server.addTestPlayer(2, "Bob");
     m_server.addTestPlayer(3, "Charlie");
 
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector = command::EntitySelector::byUsername("Bob");
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::byUsername("Bob");
 
-    PlayerId result = command::support::resolveSinglePlayerId(source, selector);
+    PlayerId result = resolveSinglePlayerId(source, selector);
     EXPECT_EQ(result, 2);
 }
 
@@ -400,10 +421,10 @@ TEST_F(PlayerResolverTest, ResolveByUsernameNotFound)
 {
     m_server.addTestPlayer(1, "Alice");
 
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector = command::EntitySelector::byUsername("UnknownPlayer");
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::byUsername("UnknownPlayer");
 
-    auto result = command::support::resolvePlayerIds(source, selector);
+    auto result = resolvePlayerIds(source, selector);
     EXPECT_TRUE(result.empty());
 }
 
@@ -413,11 +434,11 @@ TEST_F(PlayerResolverTest, ResolveByUsernameNegated)
     m_server.addTestPlayer(2, "Bob");
     m_server.addTestPlayer(3, "Charlie");
 
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector(command::EntitySelectorType::AllPlayers);
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector(EntitySelectorType::AllPlayers);
     selector.setUsernameNegated("Bob");
 
-    auto result = command::support::resolvePlayerIds(source, selector);
+    auto result = resolvePlayerIds(source, selector);
     EXPECT_EQ(result.size(), 2);
     // 结果不包含 Bob
     EXPECT_TRUE(std::find(result.begin(), result.end(), 2) == result.end());
@@ -428,13 +449,13 @@ TEST_F(PlayerResolverTest, ResolveSelfReturnsOwnPlayerId)
     m_server.addTestPlayer(1, "Alice");
     m_server.addTestPlayer(2, "Bob");
 
-    command::ServerCommandSource source(
+    ServerCommandSource source(
         &m_server, nullptr, nullptr,
-        mc::Vector3d(0, 0, 0), mc::Vector2f(0, 0), 0, 1, "Alice");
+        Vector3d(0, 0, 0), Vector2f(0, 0), 0, 1, "Alice");
 
-    command::EntitySelector selector = command::EntitySelector::self();
+    EntitySelector selector = EntitySelector::self();
 
-    PlayerId result = command::support::resolveSinglePlayerId(source, selector);
+    PlayerId result = resolveSinglePlayerId(source, selector);
     EXPECT_EQ(result, 1);
 }
 
@@ -455,11 +476,11 @@ TEST_F(PlayerResolverTest, ResolveNearestPlayer)
     data2->x = 10.0f;
     data3->x = 200.0f;
 
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector(command::EntitySelectorType::SinglePlayer);
-    selector.setSort(command::EntitySelectorSort::Nearest);
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector(EntitySelectorType::SinglePlayer);
+    selector.setSort(EntitySelectorSort::Nearest);
 
-    PlayerId result = command::support::resolveSinglePlayerId(source, selector);
+    PlayerId result = resolveSinglePlayerId(source, selector);
     EXPECT_EQ(result, 2);  // Bob 最近
 }
 
@@ -480,12 +501,12 @@ TEST_F(PlayerResolverTest, ResolveFurthestPlayer)
     data2->x = 10.0f;
     data3->x = 200.0f;
 
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector(command::EntitySelectorType::AllPlayers);
-    selector.setSort(command::EntitySelectorSort::Furthest);
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector(EntitySelectorType::AllPlayers);
+    selector.setSort(EntitySelectorSort::Furthest);
     selector.setLimit(1);
 
-    auto result = command::support::resolvePlayerIds(source, selector);
+    auto result = resolvePlayerIds(source, selector);
     ASSERT_EQ(result.size(), 1);
     EXPECT_EQ(result[0], 3);  // Charlie 最远
 }
@@ -507,12 +528,12 @@ TEST_F(PlayerResolverTest, ResolveWithDistanceFilter)
     data2->x = 15.0f;
     data3->x = 50.0f;
 
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector(command::EntitySelectorType::AllPlayers);
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector(EntitySelectorType::AllPlayers);
     selector.distance().setMin(10);
     selector.distance().setMax(30);
 
-    auto result = command::support::resolvePlayerIds(source, selector);
+    auto result = resolvePlayerIds(source, selector);
     EXPECT_EQ(result.size(), 1);  // 只有 Bob 在范围内
     EXPECT_EQ(result[0], 2);
 }
@@ -525,11 +546,11 @@ TEST_F(PlayerResolverTest, ResolveWithLimit)
     m_server.addTestPlayer(4, "Dave");
     m_server.addTestPlayer(5, "Eve");
 
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector(command::EntitySelectorType::AllPlayers);
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector(EntitySelectorType::AllPlayers);
     selector.setLimit(3);
 
-    auto result = command::support::resolvePlayerIds(source, selector);
+    auto result = resolvePlayerIds(source, selector);
     EXPECT_EQ(result.size(), 3);
 }
 
@@ -547,11 +568,11 @@ TEST_F(PlayerResolverTest, GameModeFilterSurvival)
     data1->gameMode = GameMode::Survival;
     data2->gameMode = GameMode::Creative;
 
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector(command::EntitySelectorType::AllPlayers);
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector(EntitySelectorType::AllPlayers);
     selector.setGameMode("survival");
 
-    auto result = command::support::resolvePlayerIds(source, selector);
+    auto result = resolvePlayerIds(source, selector);
 
     ASSERT_EQ(result.size(), 1);
     EXPECT_EQ(result[0], 1);
@@ -573,11 +594,11 @@ TEST_F(PlayerResolverTest, GameModeFilterCreative)
     data2->gameMode = GameMode::Creative;
     data3->gameMode = GameMode::Adventure;
 
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector(command::EntitySelectorType::AllPlayers);
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector(EntitySelectorType::AllPlayers);
     selector.setGameMode("creative");
 
-    auto result = command::support::resolvePlayerIds(source, selector);
+    auto result = resolvePlayerIds(source, selector);
 
     ASSERT_EQ(result.size(), 1);
     EXPECT_EQ(result[0], 2);
@@ -595,11 +616,11 @@ TEST_F(PlayerResolverTest, GameModeFilterByNumber)
     data1->gameMode = GameMode::Survival;
     data2->gameMode = GameMode::Creative;
 
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector(command::EntitySelectorType::AllPlayers);
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector(EntitySelectorType::AllPlayers);
     selector.setGameMode("1");  // Creative = 1
 
-    auto result = command::support::resolvePlayerIds(source, selector);
+    auto result = resolvePlayerIds(source, selector);
 
     ASSERT_EQ(result.size(), 1);
     EXPECT_EQ(result[0], 2);
@@ -621,11 +642,11 @@ TEST_F(PlayerResolverTest, GameModeFilterNegated)
     data2->gameMode = GameMode::Creative;
     data3->gameMode = GameMode::Survival;
 
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector(command::EntitySelectorType::AllPlayers);
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector(EntitySelectorType::AllPlayers);
     selector.setGameMode("creative", true);  // Negated: 不是创造模式
 
-    auto result = command::support::resolvePlayerIds(source, selector);
+    auto result = resolvePlayerIds(source, selector);
 
     ASSERT_EQ(result.size(), 2);  // Alice 和 Charlie
 }
@@ -642,11 +663,11 @@ TEST_F(PlayerResolverTest, GameModeFilterAdventure)
     data1->gameMode = GameMode::Adventure;
     data2->gameMode = GameMode::Spectator;
 
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector(command::EntitySelectorType::AllPlayers);
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector(EntitySelectorType::AllPlayers);
     selector.setGameMode("adventure");
 
-    auto result = command::support::resolvePlayerIds(source, selector);
+    auto result = resolvePlayerIds(source, selector);
 
     ASSERT_EQ(result.size(), 1);
     EXPECT_EQ(result[0], 1);
@@ -664,11 +685,11 @@ TEST_F(PlayerResolverTest, GameModeFilterSpectator)
     data1->gameMode = GameMode::Survival;
     data2->gameMode = GameMode::Spectator;
 
-    command::ServerCommandSource source = command::ServerCommandSource::forConsole(&m_server);
-    command::EntitySelector selector(command::EntitySelectorType::AllPlayers);
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector(EntitySelectorType::AllPlayers);
     selector.setGameMode("spectator");
 
-    auto result = command::support::resolvePlayerIds(source, selector);
+    auto result = resolvePlayerIds(source, selector);
 
     ASSERT_EQ(result.size(), 1);
     EXPECT_EQ(result[0], 2);
