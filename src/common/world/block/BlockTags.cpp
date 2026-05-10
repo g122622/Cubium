@@ -204,6 +204,22 @@ BlockTag& BlockTags::VALID_SWEET_BERRY_BUSH_GROUND() {
     return *tag;
 }
 
+BlockTag& BlockTags::WALL_CORALS() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wall_corals"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::UNDERWATER_BONEMEALS() {
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "underwater_bonemeals"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize() {
     if (s_initialized) {
         return;
@@ -420,6 +436,43 @@ void BlockTags::initialize() {
         ResourceLocation("minecraft", "farmland")
     });
     tags[sweetBerryBushGround->getId()] = std::move(sweetBerryBushGround);
+
+    // 创建 WALL_CORALS 标签（墙珊瑚扇）
+    // 参考 MC 1.16.5 BlockTags.WALL_CORALS
+    // 包含所有活的和死的墙珊瑚扇
+    auto wallCorals = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wall_corals"));
+    wallCorals->addAll({
+        // 活的墙珊瑚扇
+        ResourceLocation("minecraft", "tube_coral_wall_fan"),
+        ResourceLocation("minecraft", "brain_coral_wall_fan"),
+        ResourceLocation("minecraft", "bubble_coral_wall_fan"),
+        ResourceLocation("minecraft", "fire_coral_wall_fan"),
+        ResourceLocation("minecraft", "horn_coral_wall_fan"),
+        // 死的墙珊瑚扇
+        ResourceLocation("minecraft", "dead_tube_coral_wall_fan"),
+        ResourceLocation("minecraft", "dead_brain_coral_wall_fan"),
+        ResourceLocation("minecraft", "dead_bubble_coral_wall_fan"),
+        ResourceLocation("minecraft", "dead_fire_coral_wall_fan"),
+        ResourceLocation("minecraft", "dead_horn_coral_wall_fan")
+    });
+    tags[wallCorals->getId()] = std::move(wallCorals);
+
+    // 创建 UNDERWATER_BONEMEALS 标签（水下骨粉可催熟方块）
+    // 参考 MC 1.16.5 BlockTags.UNDERWATER_BONEMEALS
+    // 包含海草、海带、各种珊瑚扇（活的）
+    auto underwaterBonemeals = std::make_unique<BlockTag>(ResourceLocation("minecraft", "underwater_bonemeals"));
+    underwaterBonemeals->addAll({
+        // 海草和海带
+        ResourceLocation("minecraft", "seagrass"),
+        ResourceLocation("minecraft", "kelp"),
+        // 活的珊瑚扇（地面放置）
+        ResourceLocation("minecraft", "tube_coral_fan"),
+        ResourceLocation("minecraft", "brain_coral_fan"),
+        ResourceLocation("minecraft", "bubble_coral_fan"),
+        ResourceLocation("minecraft", "fire_coral_fan"),
+        ResourceLocation("minecraft", "horn_coral_fan")
+    });
+    tags[underwaterBonemeals->getId()] = std::move(underwaterBonemeals);
 
     // 将所有原木类型添加到 LOGS 标签
     BlockTag& logsTag = *tags.at(ResourceLocation("minecraft", "logs"));

@@ -155,3 +155,36 @@ TEST_F(BlockTagsTest, ContainsWorksWithResourceLocation) {
     EXPECT_FALSE(BlockTags::VALID_SWEET_BERRY_BUSH_GROUND().contains(
         ResourceLocation("minecraft", "stone")));
 }
+
+// ============================================================================
+// WALL_CORALS and UNDERWATER_BONEMEALS Tests (for BoneMealItem::growSeagrass)
+// ============================================================================
+
+TEST_F(BlockTagsTest, WallCoralsTagContainsExpectedBlocks) {
+    // 检查是否包含墙珊瑚
+    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "tube_coral_wall_fan")));
+    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "brain_coral_wall_fan")));
+    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "bubble_coral_wall_fan")));
+    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "fire_coral_wall_fan")));
+    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "horn_coral_wall_fan")));
+
+    // 检查是否包含死珊瑚墙扇
+    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "dead_tube_coral_wall_fan")));
+    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "dead_brain_coral_wall_fan")));
+    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "dead_bubble_coral_wall_fan")));
+    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "dead_fire_coral_wall_fan")));
+    EXPECT_TRUE(BlockTags::WALL_CORALS().contains(ResourceLocation("minecraft", "dead_horn_coral_wall_fan")));
+}
+
+TEST_F(BlockTagsTest, UnderwaterBonemealsTagContainsExpectedBlocks) {
+    // 检查是否包含海草和海带
+    EXPECT_TRUE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "seagrass")));
+    EXPECT_TRUE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "kelp")));
+
+    // 检查是否包含珊瑚扇
+    EXPECT_TRUE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "tube_coral_fan")));
+    EXPECT_TRUE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "brain_coral_fan")));
+    EXPECT_TRUE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "bubble_coral_fan")));
+    EXPECT_TRUE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "fire_coral_fan")));
+    EXPECT_TRUE(BlockTags::UNDERWATER_BONEMEALS().contains(ResourceLocation("minecraft", "horn_coral_fan")));
+}

@@ -27,6 +27,7 @@ namespace blocks {
  * - 需要固体支撑
  * - 必须放置在水源方块中（流体等级=8）
  * - 可用骨粉催熟变成高海草
+ * - 实现 IGrowable 接口
  *
  * 参考: net.minecraft.block.SeaGrassBlock
  */
@@ -55,18 +56,19 @@ public:
         return false;
     }
 
-    // ========== IGrowable 接口实现 ==========
+    // ========== IGrowable 接口 ==========
 
     /**
-     * @brief 检查是否可以生长
+     * @brief 检查海草是否可以生长
      *
-     * 海草可以生长成高海草，条件是上方有水源方块。
+     * 海草可以生长的条件：
+     * 1. 上方是水源方块
      *
      * @param world 世界读取器
      * @param pos 方块位置
      * @param state 当前方块状态
      * @param isClientSide 是否为客户端
-     * @return 如果上方有水返回true
+     * @return 如果上方有水源则返回true
      */
     [[nodiscard]] bool canGrow(
         IBlockReader& world,
@@ -77,13 +79,13 @@ public:
     /**
      * @brief 检查是否可以使用骨粉
      *
-     * 海草使用骨粉总是有效（如果可以生长）。
+     * 海草使用骨粉有概率催熟成高海草。
      *
      * @param world 世界
      * @param random 随机数生成器
      * @param pos 方块位置
      * @param state 当前方块状态
-     * @return 如果骨粉有效返回true
+     * @return 总是返回true（骨粉总是有效）
      */
     [[nodiscard]] bool canUseBonemeal(
         IWorld& world,
@@ -94,7 +96,7 @@ public:
     /**
      * @brief 使用骨粉生长
      *
-     * 将海草变成高海草（双格植物）。
+     * 将海草变成高海草。
      *
      * @param world 世界
      * @param random 随机数生成器

@@ -158,6 +158,16 @@ public:
     /// 甜浆果丛可种植标签（草方块、泥土、粗糙泥土、灰化土、耕地）
     static BlockTag& VALID_SWEET_BERRY_BUSH_GROUND();
 
+    // ========== 珊瑚和水下骨粉标签 ==========
+
+    /// 墙珊瑚标签（所有墙珊瑚扇，包括死的和活的）
+    /// 参考 MC 1.16.5: BlockTags.WALL_CORALS
+    static BlockTag& WALL_CORALS();
+
+    /// 水下骨粉标签（骨粉可以在水下催熟的方块）
+    /// 参考 MC 1.16.5: BlockTags.UNDERWATER_BONEMEALS
+    static BlockTag& UNDERWATER_BONEMEALS();
+
     /**
      * @brief 初始化所有内置标签
      *

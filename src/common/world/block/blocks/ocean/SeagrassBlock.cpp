@@ -1,12 +1,14 @@
 #include "SeagrassBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../block/VanillaBlocks.hpp"
+#include "../../../fluid/Fluid.hpp"
 #include "../../../fluid/FluidTags.hpp"
 #include "../../../fluid/FluidRegistry.hpp"
-#include "../../WaterLoggableHelpers.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "../../../block/WaterLoggableHelpers.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
-#include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/math/random/IRandom.hpp"
+#include "../../../../util/property/Properties.hpp"
 
 namespace mc {
 namespace blocks {
@@ -39,21 +41,24 @@ bool SeagrassBlock::isValidPosition(
         return false;
     }
 
-    // MC 1.16.5: 检查当前位置是否为水源方块（流体等级=8）
-    // FluidState fluidstate = worldIn.getFluidState(pos);
-    // return fluidstate.isTagged(FluidTags.WATER) && fluidstate.getLevel() == 8;
+    // 检查当前位置是否为水源方块（level=8）
+    // 参考 MC 1.16.5 SeaGrassBlock.isValidPosition
     const fluid::FluidState* fluidState = world.getFluidState(pos);
     if (fluidState == nullptr || fluidState->isEmpty()) {
         return false;
     }
 
-    // 检查是否为水且为水源（level == 8）
+    // 必须是水且为完整水源方块
     if (!fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
         return false;
     }
 
-    // 水源等级为8
-    return fluidState->isSource();
+    // 检查流体等级是否为 8（完整水源方块）
+    if (fluidState->getLevel() != 8) {
+        return false;
+    }
+
+    return true;
 }
 
 const CollisionShape& SeagrassBlock::getShape(const BlockState& state) const {
@@ -78,16 +83,20 @@ bool SeagrassBlock::canGrow(
     MC_UNUSED(state);
     MC_UNUSED(isClientSide);
 
-    // 检查上方是否有水源方块
+    // MC 1.16.5: 海草可以生长的条件是上方有水源方块
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const fluid::FluidState* fluidState = world.getFluidState(abovePos);
+    const fluid::FluidState* aboveFluid = world.getFluidState(abovePos);
 
-    if (fluidState == nullptr || fluidState->isEmpty()) {
+    if (aboveFluid == nullptr || aboveFluid->isEmpty()) {
         return false;
     }
 
-    // 上方必须是水源方块
-    return fluidState->getFluid().isIn(fluid::FluidTags::WATER()) && fluidState->isSource();
+    // 上方必须是水且为完整水源方块
+    if (!aboveFluid->getFluid().isIn(fluid::FluidTags::WATER())) {
+        return false;
+    }
+
+    return aboveFluid->getLevel() == 8;
 }
 
 bool SeagrassBlock::canUseBonemeal(
@@ -101,7 +110,7 @@ bool SeagrassBlock::canUseBonemeal(
     MC_UNUSED(pos);
     MC_UNUSED(state);
 
-    // MC 1.16.5: 海草使用骨粉总是有效（如果可以生长）
+    // MC 1.16.5: 海草骨粉总是有效
     return true;
 }
 
@@ -112,38 +121,42 @@ void SeagrassBlock::grow(
     const BlockState& state) {
 
     MC_UNUSED(random);
+    MC_UNUSED(state);
 
-    // 检查上方是否有水源方块
+    // MC 1.16.5: 将海草变成高海草
+    // 需要 VanillaBlocks::TALL_SEAGRASS 存在
+    if (VanillaBlocks::TALL_SEAGRASS == nullptr) {
+        return;
+    }
+
+    // 检查上方是否有空间
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const fluid::FluidState* fluidState = world.getFluidState(abovePos);
+    const fluid::FluidState* aboveFluid = world.getFluidState(abovePos);
 
-    if (fluidState == nullptr || fluidState->isEmpty()) {
+    if (aboveFluid == nullptr || aboveFluid->isEmpty()) {
         return;
     }
 
-    if (!fluidState->getFluid().isIn(fluid::FluidTags::WATER()) || !fluidState->isSource()) {
+    if (!aboveFluid->getFluid().isIn(fluid::FluidTags::WATER())) {
         return;
     }
 
-    // 获取高海草方块
-    Block* tallSeagrassBlock = VanillaBlocks::TALL_SEAGRASS;
-    if (tallSeagrassBlock == nullptr) {
+    if (aboveFluid->getLevel() != 8) {
         return;
     }
 
-    // 设置下半部分
-    const BlockState& lowerState = tallSeagrassBlock->defaultState()
-        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
-        .with(BlockStateProperties::WATERLOGGED(), true);
+    // 设置下方为高海草的下半部分
+    const BlockState* lowerState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
+        BlockStateProperties::DOUBLE_BLOCK_HALF(),
+        BlockStateProperties::DoubleBlockHalf::Lower);
 
-    // 设置上半部分
-    const BlockState& upperState = tallSeagrassBlock->defaultState()
-        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper)
-        .with(BlockStateProperties::WATERLOGGED(), true);
+    // 设置上方为高海草的上半部分
+    const BlockState* upperState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
+        BlockStateProperties::DOUBLE_BLOCK_HALF(),
+        BlockStateProperties::DoubleBlockHalf::Upper);
 
-    // 放置高海草
-    world.setBlockState(pos, &lowerState, 3);
-    world.setBlockState(abovePos, &upperState, 3);
+    world.setBlockState(pos, lowerState, 3);
+    world.setBlockState(abovePos, upperState, 3);
 }
 
 // ========== 流体状态 ==========
