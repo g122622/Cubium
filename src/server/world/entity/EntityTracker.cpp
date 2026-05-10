@@ -14,6 +14,7 @@
 #include "common/item/core/Item.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "common/util/UuidUtils.hpp"
 #include <spdlog/spdlog.h>
 #include <algorithm>
 #include <array>
@@ -257,13 +258,8 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
         network::SpawnMobPacket packet;
         packet.setEntityId(static_cast<u32>(entity->id()));
 
-        // 生成 UUID（简化：使用实体ID作为基础）
-        std::array<u8, 16> uuid = {};
-        uuid[0] = static_cast<u8>(entity->id() & 0xFF);
-        uuid[1] = static_cast<u8>((entity->id() >> 8) & 0xFF);
-        uuid[2] = static_cast<u8>((entity->id() >> 16) & 0xFF);
-        uuid[3] = static_cast<u8>((entity->id() >> 24) & 0xFF);
-        packet.setUuid(uuid);
+        // 使用实体的真实 UUID（MC 1.16.5 行为：UUID 在实体构造时随机生成）
+        packet.setUuid(util::uuidFromString(entity->uuid()));
 
         packet.setEntityTypeId(entity->getTypeId());
         packet.setPosition(entity->x(), entity->y(), entity->z());
@@ -328,13 +324,8 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
             network::SpawnEntityPacket packet;
             packet.setEntityId(static_cast<u32>(entity->id()));
 
-            // 生成 UUID（简化：使用实体ID作为基础）
-            std::array<u8, 16> uuid = {};
-            uuid[0] = static_cast<u8>(entity->id() & 0xFF);
-            uuid[1] = static_cast<u8>((entity->id() >> 8) & 0xFF);
-            uuid[2] = static_cast<u8>((entity->id() >> 16) & 0xFF);
-            uuid[3] = static_cast<u8>((entity->id() >> 24) & 0xFF);
-            packet.setUuid(uuid);
+            // 使用实体的真实 UUID（MC 1.16.5 行为：UUID 在实体构造时随机生成）
+            packet.setUuid(util::uuidFromString(entity->uuid()));
 
             packet.setEntityTypeId(entity->getTypeId());
             packet.setPosition(entity->x(), entity->y(), entity->z());

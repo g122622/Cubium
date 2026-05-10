@@ -410,7 +410,21 @@ if (livingEntity != nullptr) {
 }
 ```
 
-### 5. 物品合并顺序
+### 5. UUID 处理
+
+实体的 UUID 在实体构造时随机生成（MC 1.16.5 行为），网络同步时使用 `util::uuidFromString()` 转换：
+
+```cpp
+// 使用实体的真实 UUID（MC 1.16.5 行为：UUID 在实体构造时随机生成）
+packet.setUuid(util::uuidFromString(entity->uuid()));
+```
+
+**注意**：
+- Entity 内部以 `std::string` 存储 UUID（32字符十六进制）
+- 网络包需要 `std::array<u8, 16>` 格式
+- 使用 `util::uuidFromString()` 进行转换
+
+### 6. 物品合并顺序
 
 在物品合并时，需要避免重复处理：
 
