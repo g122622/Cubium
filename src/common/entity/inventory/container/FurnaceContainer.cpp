@@ -113,10 +113,11 @@ ItemStack FurnaceContainer::quickMoveStack(i32 slotIndex, Player& player) {
 
     if (slotIndex < FURNACE_SLOTS) {
         if (slotIndex == SLOT_OUTPUT) {
+            // Shift+点击输出槽：移动到玩家背包
+            // 经验发放由 FurnaceResultSlot::onTake 处理
             if (!moveItemToRange(slotStack, FURNACE_SLOTS, getSlotCount() - 1, true)) {
                 return ItemStack();
             }
-            grantExperienceForOutput(originalStack.getCount() - slotStack.getCount());
         } else {
             if (!moveItemToRange(slotStack, FURNACE_SLOTS, getSlotCount() - 1, false)) {
                 return ItemStack();
@@ -143,11 +144,22 @@ void FurnaceContainer::initSlots(PlayerInventory* playerInventory) {
     // 输入槽（顶部中央）
     addSlot(std::make_unique<Slot>(m_furnaceInventory, SLOT_INPUT, 56, 17));
 
-    // 燃料槽（中部中央）
-    addSlot(std::make_unique<Slot>(m_furnaceInventory, SLOT_FUEL, 56, 53));
+    // 燃料槽（中部中央）- 使用 FurnaceFuelSlot 限制只能放入燃料
+    addSlot(std::make_unique<FurnaceFuelSlot>(m_furnaceInventory, SLOT_FUEL, 56, 53));
 
-    // 输出槽（底部中央）
-    addSlot(std::make_unique<Slot>(m_furnaceInventory, SLOT_OUTPUT, 116, 35));
+    // 输出槽（底部中央）- 使用 FurnaceResultSlot 处理经验发放
+    // 从 PlayerInventory 获取玩家指针
+    Player* player = playerInventory->getPlayer();
+    addSlot(std::make_unique<FurnaceResultSlot>(
+        player,                // Player* 用于发放经验
+        m_furnaceInventory,    // IInventory* 熔炉背包
+        SLOT_OUTPUT,           // 槽位索引
+        116, 35,               // 显示坐标
+        m_furnaceEntity        // AbstractFurnaceEntity* 用于提取累积经验
+    ));
+
+    // 同步设置 m_player（向后兼容）
+    m_player = player;
 
     // ========== 玩家主背包（3行9列）==========
 

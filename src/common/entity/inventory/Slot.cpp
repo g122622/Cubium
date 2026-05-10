@@ -282,9 +282,11 @@ bool FurnaceFuelSlot::isBucket(const ItemStack& stack) {
 
 // 注意：这是 mc::FurnaceResultSlot，与 mc::ResultSlot（合成结果槽）是不同的类
 
-mc::FurnaceResultSlot::FurnaceResultSlot(Player* player, IInventory* inventory, i32 slotIndex, i32 x, i32 y)
+mc::FurnaceResultSlot::FurnaceResultSlot(Player* player, IInventory* inventory, i32 slotIndex, i32 x, i32 y,
+                                          blockentity::AbstractFurnaceEntity* furnaceEntity)
     : Slot(inventory, slotIndex, x, y)
     , m_player(player)
+    , m_furnaceEntity(furnaceEntity)
 {
 }
 
@@ -302,21 +304,37 @@ void mc::FurnaceResultSlot::onCrafting(const ItemStack& stack, i32 amount) {
 }
 
 void mc::FurnaceResultSlot::onCrafting(const ItemStack& stack) {
-    // MC 1.16.5: 触发熔炼成就和经验
+    // MC 1.16.5: 触发熔炼成就和经验发放
+    // 参考: net.minecraft.inventory.container.FurnaceResultSlot.onCrafting
     if (m_removeCount > 0) {
-        // TODO: 触发熔炼成就
-        // stack.onCrafting(m_player->getWorld(), m_player, m_removeCount);
-
-        // TODO: 从熔炉方块实体发放经验
-        // if (!m_player->getWorld().isRemote && m_inventory instanceof AbstractFurnaceBlockEntity) {
-        //     ((AbstractFurnaceBlockEntity)m_inventory).grantExperience(m_player);
+        // 触发熔炼成就（待成就系统实现后添加）
+        // if (m_player != nullptr) {
+        //     stack.onCrafting(m_player->getWorld(), *m_player, m_removeCount);
         // }
+
+        // 从熔炉方块实体发放累积的经验
+        // 参考 MC 1.16.5: AbstractFurnaceTileEntity.func_235645_d_
+        if (m_furnaceEntity != nullptr && m_player != nullptr) {
+            f32 storedXp = m_furnaceEntity->getStoredExperience();
+            if (storedXp > 0.0f) {
+                // 提取并清空累积经验
+                f32 xpToGrant = m_furnaceEntity->extractStoredExperience();
+                if (xpToGrant > 0.0f) {
+                    // 向玩家发放经验
+                    m_player->addExperience(static_cast<i32>(std::floor(xpToGrant)));
+                }
+            }
+        }
     }
     m_removeCount = 0;
     (void)stack;
 }
 
 ItemStack mc::FurnaceResultSlot::onTake(Player& player, ItemStack stack) {
+    // MC 1.16.5: 如果 m_removeCount 为 0（快速移动场景），使用 stack 的数量
+    if (m_removeCount == 0 && !stack.isEmpty()) {
+        m_removeCount = stack.getCount();
+    }
     onCrafting(stack);
     setChanged();
     (void)player;

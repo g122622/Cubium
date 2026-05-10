@@ -13,6 +13,10 @@ namespace mc {
 class IInventory;
 class Player;
 
+namespace blockentity {
+class AbstractFurnaceEntity;
+} // namespace blockentity
+
 /**
  * @brief 槽位索引常量
  *
@@ -453,8 +457,10 @@ public:
      * @param slotIndex 槽位索引
      * @param x 显示位置X
      * @param y 显示位置Y
+     * @param furnaceEntity 熔炉实体（用于提取累积经验）
      */
-    FurnaceResultSlot(Player* player, IInventory* inventory, i32 slotIndex, i32 x, i32 y);
+    FurnaceResultSlot(Player* player, IInventory* inventory, i32 slotIndex, i32 x, i32 y,
+                       blockentity::AbstractFurnaceEntity* furnaceEntity = nullptr);
 
     /**
      * @brief 输出槽不能放入物品
@@ -474,6 +480,21 @@ public:
      */
     ItemStack onTake(Player& player, ItemStack stack) override;
 
+    /**
+     * @brief 设置熔炉实体
+     * @param furnaceEntity 熔炉实体指针
+     */
+    void setFurnaceEntity(blockentity::AbstractFurnaceEntity* furnaceEntity) {
+        m_furnaceEntity = furnaceEntity;
+    }
+
+    /**
+     * @brief 获取熔炉实体
+     */
+    [[nodiscard]] blockentity::AbstractFurnaceEntity* getFurnaceEntity() const {
+        return m_furnaceEntity;
+    }
+
 protected:
     /**
      * @brief 合成完成回调（带数量）
@@ -488,6 +509,7 @@ protected:
 private:
     Player* m_player;
     i32 m_removeCount = 0;  ///< 已取出数量（用于经验计算）
+    blockentity::AbstractFurnaceEntity* m_furnaceEntity = nullptr;  ///< 熔炉实体（用于提取经验）
 };
 
 } // namespace mc

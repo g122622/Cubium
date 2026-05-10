@@ -331,12 +331,16 @@ ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType cl
 }
 
 ItemStack AbstractContainerMenu::handleClickPick(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button) {
+    Player* player = m_playerInventory->getPlayer();
+
     // 左键
     if (button == 0) {
         if (m_carried.isEmpty()) {
             // 拾取整个槽位
-            if (!slotStack.isEmpty() && slot.mayPickup(*m_playerInventory->getPlayer())) {
+            if (!slotStack.isEmpty() && slot.mayPickup(*player)) {
                 m_carried = slot.remove(slotStack.getCount());
+                // MC 1.16.5: 取走物品时触发 onTake 回调
+                m_carried = slot.onTake(*player, m_carried);
                 slot.setChanged();
                 notifySlotChanged(slotIndex, slot.getItem());
             }
@@ -364,6 +368,8 @@ ItemStack AbstractContainerMenu::handleClickPick(Slot& slot, i32 slotIndex, cons
             // 交换物品
             slot.set(m_carried);
             m_carried = slotStack;
+            // MC 1.16.5: 交换时触发 onTake（取走原槽位物品）
+            m_carried = slot.onTake(*player, m_carried);
             slot.setChanged();
             notifySlotChanged(slotIndex, slot.getItem());
         }
@@ -372,9 +378,11 @@ ItemStack AbstractContainerMenu::handleClickPick(Slot& slot, i32 slotIndex, cons
     else if (button == 1) {
         if (m_carried.isEmpty()) {
             // 拾取一半
-            if (!slotStack.isEmpty() && slot.mayPickup(*m_playerInventory->getPlayer())) {
+            if (!slotStack.isEmpty() && slot.mayPickup(*player)) {
                 i32 toTake = (slotStack.getCount() + 1) / 2;
                 m_carried = slot.remove(toTake);
+                // MC 1.16.5: 取走物品时触发 onTake 回调
+                m_carried = slot.onTake(*player, m_carried);
                 slot.setChanged();
                 notifySlotChanged(slotIndex, slot.getItem());
             }
@@ -401,6 +409,8 @@ ItemStack AbstractContainerMenu::handleClickPick(Slot& slot, i32 slotIndex, cons
             // 交换（右键只允许单个物品交换）
             slot.set(m_carried);
             m_carried = slotStack;
+            // MC 1.16.5: 交换时触发 onTake（取走原槽位物品）
+            m_carried = slot.onTake(*player, m_carried);
             slot.setChanged();
             notifySlotChanged(slotIndex, slot.getItem());
         }
@@ -416,6 +426,10 @@ ItemStack AbstractContainerMenu::handleQuickMove(Slot& slot, i32 slotIndex, cons
 
     ItemStack result = quickMoveStack(slotIndex, *m_playerInventory->getPlayer());
     if (!result.isEmpty()) {
+        // MC 1.16.5: 快速移动后触发 onTake 回调
+        // 计算实际取出的数量
+        ItemStack taken = result;
+        slot.onTake(*m_playerInventory->getPlayer(), taken);
         slot.setChanged();
         notifySlotChanged(slotIndex, slot.getItem());
     }
