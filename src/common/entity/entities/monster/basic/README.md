@@ -74,6 +74,31 @@ Entity → LivingEntity → MobEntity → CreatureEntity → MonsterEntity → S
 
 夜间飞行的亡灵生物。
 
+**特性**：
+- **日光燃烧**：白天暴露在阳光下会燃烧
+- **飞行能力**：继承自 FlyingEntity，不受重力影响
+- **俯冲攻击**：环绕目标后俯冲攻击
+- **尺寸变体**：有不同大小的变体
+
+**日光检测逻辑**（MC 1.16.5）：
+```cpp
+// PhantomEntity::tick()
+if (isAlive() && isInDaylight()) {
+    setFire(8);  // 燃烧8秒
+}
+```
+
+**isInDaylight() 方法**：
+- 位于 `MobEntity` 基类（幻翼继承链：FlyingEntity → MobEntity）
+- 检查条件：世界为白天 → 亮度 > 0.5 → 随机检查 → 天空可见
+
+**实现状态**：
+| 功能 | 状态 |
+|------|------|
+| 日光燃烧 | ✅ 已实现 |
+| 尺寸系统 | ✅ 已实现 |
+| AI 目标 | ⏳ 框架完成 |
+
 ## 使用示例
 
 ```cpp
