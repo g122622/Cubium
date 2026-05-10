@@ -479,6 +479,50 @@ public:
 
 **权限等级：** 2
 
+#### EnchantCommand - /enchant 命令
+
+给玩家手持物品添加附魔。
+
+**用法：**
+
+- `/enchant <target> <enchantment> [level]` - 给目标玩家的手持物品添加附魔
+
+**参数说明：**
+
+- `<target>` - 目标玩家选择器（仅支持单个玩家，如 `@p` 或玩家名）
+- `<enchantment>` - 附魔名称（支持简写如 `sharpness` 或完整名称如 `minecraft:sharpness`）
+- `[level]` - 附魔等级（可选，默认为 1，范围为 0-32767）
+
+**附魔类型：**
+
+| 类型 | 附魔 |
+|------|------|
+| 武器 | sharpness, smite, bane_of_arthropods, knockback, fire_aspect, looting, sweeping |
+| 工具 | efficiency, silk_touch, fortune, unbreaking |
+| 护甲 | protection, fire_protection, blast_protection, projectile_protection, feather_falling, thorns, respiration, depth_strider, aqua_affinity |
+| 弓 | power, punch, flame, infinity |
+| 弩 | multishot, piercing, quick_charge |
+| 三叉戟 | loyalty, riptide, channeling, impaling |
+| 钓鱼竿 | luck_of_the_sea, lure |
+| 宝藏附魔 | mending, frost_walker, soul_speed |
+| 诅咒 | binding_curse, vanishing_curse |
+
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- 通过 `ServerPlayerEntityManager` 获取目标玩家的 `Player` 实体
+- 使用 `PlayerInventory::getSelectedStack()` 获取主手物品
+- 使用 `EnchantmentRegistry::get()` 查找附魔实例
+- 检查附魔是否可应用于物品（`Enchantment::canApply()`）
+- 检查与现有附魔的兼容性（`Enchantment::isCompatibleWith()`）
+- 检查附魔等级是否有效（不超过最大等级）
+- 使用 `ItemStack::addEnchantment()` 应用附魔
+- 支持简写附魔名称（自动添加 `minecraft:` 前缀）
+- 错误反馈：无物品、附魔不兼容、附魔不存在、等级过高
+
+**权限等级：** 2
+
 ### P3 命令（高级功能）
 
 以下命令实现了骨架框架，带有 TODO 标记的功能需要后续集成：
@@ -943,6 +987,7 @@ MyCommand::registerTo(m_dispatcher);
 - `MessageCommandTest.cpp` - /msg 命令测试（命令注册、权限检查、别名）
 - `ExperienceCommandTest.cpp` - /experience 命令测试（add/set/query 语法、xp 别名）
 - `AttributeCommandTest.cpp` - /attribute 命令测试（get/set 语法、属性名解析）
+- `EnchantCommandTest.cpp` - /enchant 命令测试（命令注册、权限检查、附魔解析、附魔兼容性、等级边界）
 
 **运行测试：**
 

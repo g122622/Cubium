@@ -66,7 +66,21 @@
 ### 姿态系统
 - `Entity::setPose()` / `Entity::getPose()` - 姿态状态管理
 - `Entity::refreshDimensions()` - 刷新尺寸和碰撞箱
-- `Player::updatePose()` - 自动姿态判断（睡眠>游泳>潜行>站立）
+- `Player::updatePose()` - 自动姿态判断（鞘翅飞行>游泳>激流攻击>睡眠>潜行>站立）
+
+### 鞘翅飞行与激流攻击（MC 1.16.5）
+- `Entity::isElytraFlying()` - 检查实体是否正在鞘翅飞行（检查 `EntityFlags::FallFlying` 标志）
+- `LivingEntity::isSpinAttacking()` - 检查实体是否正在进行三叉戟激流攻击
+- `LivingEntity::startSpinAttack(i32 duration)` - 开始激流攻击，设置持续时间
+- `LivingEntity::stopSpinAttack()` - 停止激流攻击，清除状态
+- `LivingEntity::updateSpinAttack()` - 更新激流攻击（每 tick 调用，自动递减持续时间）
+- `LivingEntity::spinAttackDuration()` - 获取剩余攻击持续时间
+
+**激流攻击实现细节：**
+- 使用 `LIVING_FLAGS_PARAM`（DataParameter ID 10）的第 2 位（0x04）存储状态
+- 三叉戟激流攻击持续 20 tick（1 秒）
+- 每 tick 自动递减持续时间，归零时自动停止
+- `Player::updatePose()` 中激流攻击姿态优先级仅次于鞘翅飞行
 
 ## 尺寸与碰撞箱
 
