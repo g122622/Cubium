@@ -7,6 +7,9 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/PlayerManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
 #include <sstream>
@@ -72,6 +75,12 @@ i32 AttributeCommand::getAttribute(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
+    auto* world = source.world();
+    if (world == nullptr) {
+        source.sendMessage("World not available");
+        return 0;
+    }
+
     // 获取目标实体
     const EntitySelector& selector = context.getArgument<EntitySelector>("target");
     auto playerIds = support::resolvePlayerIds(source, selector);
@@ -89,27 +98,32 @@ i32 AttributeCommand::getAttribute(CommandContext<ServerCommandSource>& context)
     }
 
     PlayerId playerId = playerIds[0];
-    auto* playerData = server->playerManager().getPlayer(playerId);
-    if (playerData == nullptr) {
-        source.sendMessage("Player not found");
+
+    // 通过 ServerPlayerEntityManager 获取玩家实体
+    Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
+    if (player == nullptr) {
+        auto* playerData = server->playerManager().getPlayer(playerId);
+        if (playerData == nullptr) {
+            source.sendMessage("Player not found");
+            return 0;
+        }
+        source.sendMessage("Player entity not available");
         return 0;
     }
 
-    // 获取属性值
-    // TODO: 需要从 ServerPlayer 或 ServerPlayerData 获取 AttributeMap
-    // 当前是占位实现
+    // 检查属性是否为已知的标准属性
+    if (!isKnownAttribute(normalizedAttrName)) {
+        source.sendError("Unknown attribute: " + attrName);
+        return 0;
+    }
+
+    // 从实体属性系统获取实际值
+    f64 baseValue = player->attributes().getBaseValue(normalizedAttrName);
+    f64 currentValue = player->attributes().getValue(normalizedAttrName, baseValue);
 
     std::ostringstream ss;
-    ss << normalizedAttrName << " for " << playerData->username << ": ";
-
-    // 检查属性是否为已知的标准属性
-    if (isKnownAttribute(normalizedAttrName)) {
-        // TODO: 从实体属性系统获取实际值
-        f64 defaultValue = getAttributeDefaultValue(normalizedAttrName);
-        ss << defaultValue << " (base: " << defaultValue << ")";
-    } else {
-        ss << "Unknown attribute";
-    }
+    ss << normalizedAttrName << " for " << player->username() << ": ";
+    ss << currentValue << " (base: " << baseValue << ")";
 
     source.sendMessage(ss.str());
     return 1;
@@ -121,6 +135,12 @@ i32 AttributeCommand::setAttributeBase(CommandContext<ServerCommandSource>& cont
     auto* server = source.server();
     if (server == nullptr) {
         source.sendMessage("Server not available");
+        return 0;
+    }
+
+    auto* world = source.world();
+    if (world == nullptr) {
+        source.sendMessage("World not available");
         return 0;
     }
 
@@ -142,11 +162,6 @@ i32 AttributeCommand::setAttributeBase(CommandContext<ServerCommandSource>& cont
     f32 value = context.getArgument<f32>("value");
 
     PlayerId playerId = playerIds[0];
-    auto* playerData = server->playerManager().getPlayer(playerId);
-    if (playerData == nullptr) {
-        source.sendMessage("Player not found");
-        return 0;
-    }
 
     // 验证属性范围
     if (!isKnownAttribute(normalizedAttrName)) {
@@ -163,14 +178,24 @@ i32 AttributeCommand::setAttributeBase(CommandContext<ServerCommandSource>& cont
         return 0;
     }
 
-    // TODO: 设置属性基础值
-    // 需要 ServerPlayer 提供 attributeMap() 访问器
-    // auto& attrMap = player->attributeMap();
-    // attrMap.setBaseValue(normalizedAttrName, value);
+    // 通过 ServerPlayerEntityManager 获取玩家实体
+    Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
+    if (player == nullptr) {
+        auto* playerData = server->playerManager().getPlayer(playerId);
+        if (playerData == nullptr) {
+            source.sendMessage("Player not found");
+            return 0;
+        }
+        source.sendMessage("Player entity not available");
+        return 0;
+    }
+
+    // 设置属性基础值
+    player->attributes().setBaseValue(normalizedAttrName, static_cast<f64>(value));
 
     std::ostringstream ss;
     ss << "Set base value of " << normalizedAttrName << " to " << value
-       << " for " << playerData->username;
+       << " for " << player->username();
     source.sendMessage(ss.str());
 
     return 1;
