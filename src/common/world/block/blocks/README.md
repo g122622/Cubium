@@ -250,6 +250,23 @@ auto stoneBlock = std::make_unique<SimpleBlock>(
 - 在计划刻中检测下方支撑是否可通过
 - 当下方不可支撑时，移除方块并生成 `FallingBlockEntity`
 
+**canFallThrough 方法** (静态方法，判断方块是否可穿透):
+
+根据 MC 1.16.5 `FallingBlock.canFallThrough()` 实现，按以下顺序检查：
+
+| 检查顺序 | 条件 | 说明 |
+|---------|------|------|
+| 1 | `state->isAir()` | 空气方块 |
+| 2 | `BlockTags::FIRE().contains(*state)` | 火焰标签（普通火、灵魂火） |
+| 3 | `state->getMaterial().isLiquid()` | 液体材质（水、岩浆） |
+| 4 | `state->getMaterial().isReplaceable()` | 可替换材质（草、火把等） |
+| 5 | `!state->blocksMovement()` | 不阻挡移动的方块 |
+
+**火焰穿透机制**:
+- 下落方块开始下落时通过 `canFallThrough()` 检查火焰标签
+- 下落过程中 `FireBlock::getCollisionShape()` 返回空碰撞形状，自然穿透
+- 双重保障确保火焰穿透完整实现
+
 **使用场景**:
 - 沙子（`minecraft:sand`）
 - 红沙（`minecraft:red_sand`）

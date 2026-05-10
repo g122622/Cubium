@@ -63,6 +63,7 @@ add_executable(mc_tests
     common/entity/entities/passive/basic/ChickenEntityTest.cpp
     common/entity/entities/passive/basic/RabbitEntityTest.cpp
     common/entity/entities/passive/basic/MooshroomEntityTest.cpp
+    common/entity/entities/passive/tamable/WolfEntityTest.cpp
     common/entity/DolphinEntityTest.cpp
     common/entity/entities/monster/SlimeEntityTest.cpp
     common/entity/entities/monster/ZombieVillagerEntityTest.cpp
@@ -111,6 +112,7 @@ add_executable(mc_tests
     common/world/block/blocks/HopperBlockTest.cpp
     common/world/block/blocks/IceBlockTest.cpp
     common/world/block/blocks/SoulFireBlockTest.cpp
+    common/world/block/blocks/FallingBlockTest.cpp
     common/world/block/blocks/VegetationBlockTest.cpp
     common/world/block/blocks/SweetBerryBushBlockTest.cpp
     common/world/block/BlockTagsTest.cpp
