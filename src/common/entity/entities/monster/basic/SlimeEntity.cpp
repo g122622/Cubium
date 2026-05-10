@@ -7,6 +7,7 @@
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/EntityType.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include <spdlog/spdlog.h>
 #include <cmath>
 
 namespace mc {
@@ -238,35 +239,109 @@ void SlimeEntity::remove() {
 }
 
 void SlimeEntity::performSplit() {
-	// MC 1.16.5: performSplit()
-	// 只能在服务端执行
-	if (world() == nullptr || world()->isClientSide()) {
-		return;
-	}
+    // MC 1.16.5: SlimeEntity.remove() 中的分裂逻辑
+    // 只能在服务端执行
+    if (world() == nullptr || world()->isClientSide()) {
+        return;
+    }
 
-	// 分裂后的小史莱姆数量：2-4 个
-	math::Random& rng = world()->getRandom();
-	i32 splitCount = rng.nextInt(SPLIT_COUNT_MIN, SPLIT_COUNT_MAX);
+    // 分裂后的小史莱姆数量：2-4 个
+    math::Random& rng = world()->getRandom();
+    i32 splitCount = rng.nextInt(SPLIT_COUNT_MIN, SPLIT_COUNT_MAX);
 
-	// 新史莱姆的尺寸 = 当前尺寸 / 2
-	i32 newSize = m_size / 2;
-	if (newSize < 1) {
-		return;  // 不能分裂成更小的史莱姆
-	}
+    // 新史莱姆的尺寸 = 当前尺寸 / 2
+    i32 newSize = m_size / 2;
+    if (newSize < 1) {
+        return;  // 不能分裂成更小的史莱姆
+    }
 
-	// 生成小史莱姆
-	for (i32 i = 0; i < splitCount; ++i) {
-		// TODO: 创建新的史莱姆实体
-		// 需要实体工厂方法
-		// auto smallSlime = world->createEntity<SlimeEntity>(...);
-		// smallSlime->setSlimeSize(newSize, true);
-		// smallSlime->setPosition(x() + (i - splitCount/2) * 0.5, y(), z() + (i - splitCount/2) * 0.5);
-		// smallSlime->setVelocity(
-		//     (rng.nextFloat() - 0.5f) * 0.5f,
-		//     rng.nextFloat() * 0.5f,
-		//     (rng.nextFloat() - 0.5f) * 0.5f
-		// );
-	}
+    // 获取实体类型来创建新实例
+    // MC 1.16.5: this.getType().create(this.world)
+    auto& registry = entity::EntityRegistry::instance();
+    const entity::EntityType* slimeType = registry.getType(entity::EntityTypes::SLIME);
+
+    if (!slimeType || !slimeType->canSummon()) {
+        spdlog::warn("SlimeEntity: Slime entity type not found or not summonable");
+        return;
+    }
+
+    // MC 1.16.5: 计算分裂位置偏移
+    // f = (float)i / 4.0F  (i = size)
+    f32 offsetScale = static_cast<f32>(m_size) / 4.0f;
+
+    // 保存当前实体的属性用于继承
+    bool persistenceRequired = isNoDespawnRequired();
+    bool invulnerable = isInvulnerable();
+    std::string customName = customNameText();  // 获取自定义名称文本
+
+    // 生成小史莱姆
+    for (i32 l = 0; l < splitCount; ++l) {
+        // MC 1.16.5: 计算每个小史莱姆的偏移位置
+        // f1 = ((float)(l % 2) - 0.5F) * f
+        // f2 = ((float)(l / 2) - 0.5F) * f
+        f32 offsetX = (static_cast<f32>(l % 2) - 0.5f) * offsetScale;
+        f32 offsetZ = (static_cast<f32>(l / 2) - 0.5f) * offsetScale;
+
+        // 创建新史莱姆
+        std::unique_ptr<Entity> entity = slimeType->create(world());
+        if (!entity) {
+            spdlog::warn("SlimeEntity: Failed to create slime entity");
+            continue;
+        }
+
+        SlimeEntity* smallSlime = dynamic_cast<SlimeEntity*>(entity.get());
+        if (!smallSlime) {
+            spdlog::warn("SlimeEntity: Created entity is not a SlimeEntity");
+            continue;
+        }
+
+        // 释放所有权，我们直接使用原始指针
+        entity.release();
+
+        // MC 1.16.5: 继承父实体的属性
+        if (persistenceRequired) {
+            smallSlime->enablePersistence();
+        }
+
+        // 继承自定义名称（如果有）
+        if (!customName.empty()) {
+            smallSlime->setCustomName(customName);
+        }
+
+        // 继承无敌状态
+        smallSlime->setInvulnerable(invulnerable);
+
+        // 设置史莱姆尺寸（会自动设置生命值）
+        smallSlime->setSlimeSize(newSize, true);
+
+        // MC 1.16.5: setLocationAndAngles
+        f32 spawnX = static_cast<f32>(x()) + offsetX;
+        f32 spawnY = static_cast<f32>(y()) + 0.5f;
+        f32 spawnZ = static_cast<f32>(z()) + offsetZ;
+        f32 spawnYaw = rng.nextFloat() * 360.0f;
+
+        smallSlime->setPosition(spawnX, spawnY, spawnZ);
+        smallSlime->setRotation(spawnYaw, 0.0f);
+
+        // 设置随机速度
+        smallSlime->setVelocity(
+            (rng.nextFloat() - 0.5f) * 0.5f,
+            rng.nextFloat() * 0.5f,
+            (rng.nextFloat() - 0.5f) * 0.5f
+        );
+
+        // 设置类型 ID
+        smallSlime->setTypeId(getTypeId());
+
+        // 生成到世界中
+        // 使用 unique_ptr 包装回实体
+        std::unique_ptr<Entity> slimePtr(smallSlime);
+        EntityId entityId = world()->spawnEntity(std::move(slimePtr));
+
+        if (entityId == 0) {
+            spdlog::debug("SlimeEntity: Failed to spawn small slime");
+        }
+    }
 }
 
 } // namespace mc

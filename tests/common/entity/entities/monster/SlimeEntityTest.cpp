@@ -78,20 +78,16 @@ public:
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
 
+    // Random interface (stubbed for tests)
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override {
         throw std::runtime_error("SlimeTestWorld::tickManager not implemented");
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("SlimeTestWorld::tickManager not implemented");
-    }
-
-    // Random interface (stubbed for tests)
-    [[nodiscard]] math::Random& getRandom() override {
-        throw std::runtime_error("SlimeTestWorld::getRandom not implemented");
-    }
-    [[nodiscard]] const math::Random& getRandom() const override {
-        throw std::runtime_error("SlimeTestWorld::getRandom not implemented");
     }
 
     // WorldBorder interface (stubbed for tests)
@@ -116,6 +112,7 @@ private:
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
     std::vector<i32> m_spawnedSlimeSizes;
     size_t m_spawnedSlimeCount = 0;
+    math::Random m_random{12345};  // 固定种子以便测试可重复
 };
 
 class SlimeEntityTest : public ::testing::Test {
