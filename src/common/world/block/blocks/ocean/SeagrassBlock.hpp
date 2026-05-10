@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Block.hpp"
+#include "../../IGrowable.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
 
@@ -9,6 +10,9 @@ namespace mc {
 class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
+namespace math {
+class IRandom;
+}
 
 namespace blocks {
 
@@ -21,11 +25,12 @@ namespace blocks {
  * ## 特性
  * - 单格水下植物
  * - 需要固体支撑
+ * - 必须放置在水源方块中（流体等级=8）
  * - 可用骨粉催熟变成高海草
  *
  * 参考: net.minecraft.block.SeaGrassBlock
  */
-class SeagrassBlock : public Block {
+class SeagrassBlock : public Block, public IGrowable {
 public:
     explicit SeagrassBlock(const BlockProperties& properties);
     ~SeagrassBlock() override = default;
@@ -49,6 +54,70 @@ public:
         MC_UNUSED(state);
         return false;
     }
+
+    // ========== IGrowable 接口实现 ==========
+
+    /**
+     * @brief 检查是否可以生长
+     *
+     * 海草可以生长成高海草，条件是上方有水源方块。
+     *
+     * @param world 世界读取器
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @param isClientSide 是否为客户端
+     * @return 如果上方有水返回true
+     */
+    [[nodiscard]] bool canGrow(
+        IBlockReader& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        bool isClientSide) const override;
+
+    /**
+     * @brief 检查是否可以使用骨粉
+     *
+     * 海草使用骨粉总是有效（如果可以生长）。
+     *
+     * @param world 世界
+     * @param random 随机数生成器
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @return 如果骨粉有效返回true
+     */
+    [[nodiscard]] bool canUseBonemeal(
+        IWorld& world,
+        math::IRandom& random,
+        const BlockPos& pos,
+        const BlockState& state) const override;
+
+    /**
+     * @brief 使用骨粉生长
+     *
+     * 将海草变成高海草（双格植物）。
+     *
+     * @param world 世界
+     * @param random 随机数生成器
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     */
+    void grow(
+        IWorld& world,
+        math::IRandom& random,
+        const BlockPos& pos,
+        const BlockState& state) override;
+
+    // ========== 流体状态 ==========
+
+    /**
+     * @brief 获取流体状态
+     *
+     * 海草始终返回静止水的流体状态。
+     *
+     * @param state 方块状态
+     * @return 水流体状态指针
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 
 private:
     CollisionShape m_shape;
