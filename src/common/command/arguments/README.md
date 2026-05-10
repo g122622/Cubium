@@ -6,10 +6,11 @@
 
 ```
 src/common/command/arguments/
-├── ArgumentType.hpp      # 参数类型基类 + 基础参数类型（字符串、整数、浮点、布尔、枚举）
-├── EntityArgument.hpp    # 实体选择器参数类型（@p, @a, @e, @r, @s）
-├── GameModeArgument.hpp  # 游戏模式、资源位置、坐标参数类型
-└── ItemArgument.hpp      # 物品参数类型
+├── ArgumentType.hpp        # 参数类型基类 + 基础参数类型（字符串、整数、浮点、布尔、枚举）
+├── BlockStateArgument.hpp  # 方块状态参数类型（支持属性解析）
+├── EntityArgument.hpp      # 实体选择器参数类型（@p, @a, @e, @r, @s）
+├── GameModeArgument.hpp    # 游戏模式、资源位置、坐标参数类型
+└── ItemArgument.hpp        # 物品参数类型
 ```
 
 ## 文件详解
@@ -217,6 +218,71 @@ auto rotArg = RotationArgumentType::rotation();
 StringReader reader("90 -45");
 Vector2f rot = rotArg->parse(reader); // yaw=90, pitch=-45
 ```
+
+---
+
+### BlockStateArgument.hpp
+
+**职责**：解析方块状态参数，支持完整的方块ID和属性解析。
+
+**核心类**：
+
+#### `BlockStateInput` - 方块状态输入结果
+
+封装解析后的方块状态：
+
+```cpp
+class BlockStateInput {
+public:
+    [[nodiscard]] const BlockState* state() const;  // 获取方块状态
+    [[nodiscard]] bool isValid() const;              // 检查是否有效
+    [[nodiscard]] const Block& getBlock() const;     // 获取方块对象
+    [[nodiscard]] u32 stateId() const;               // 获取状态ID
+};
+```
+
+#### `BlockStateArgumentType` - 方块状态参数类型
+
+支持解析格式：
+- `stone` - 简单方块名
+- `minecraft:stone` - 带命名空间的方块名
+- `furnace[facing=north]` - 带单个属性的方块状态
+- `oak_stairs[facing=east,half=top,waterlogged=false]` - 带多个属性的方块状态
+
+```cpp
+auto blockArg = BlockStateArgumentType::blockState();
+
+StringReader reader("oak_stairs[facing=north,half=top]");
+BlockStateInput input = blockArg->parse(reader);
+
+if (input.isValid()) {
+    const BlockState* state = input.state();
+    // 使用方块状态...
+}
+```
+
+**解析流程**：
+
+1. 解析方块ID（支持 `minecraft:stone` 或 `stone` 格式）
+2. 解析属性字符串 `[key=value,key2=value2]`
+3. 查找方块并验证属性是否存在
+4. 遍历状态表查找匹配的 BlockState
+
+**错误处理**：
+
+| 错误情况 | 异常消息 |
+|---------|---------|
+| 方块不存在 | `Unknown block: <block_id>` |
+| 属性不存在 | `Unknown property '<prop>' for block <block>` |
+| 属性值无效 | `Invalid value '<value>' for property '<prop>'` |
+| 属性重复 | `Duplicate property '<prop>' in block state` |
+
+**与 MC 1.16.5 对应**：
+
+| MC 类 | 本项目类 |
+|-------|---------|
+| `BlockStateParser` | `BlockStateArgumentType` |
+| `BlockStateInput` | `BlockStateInput` |
 
 ---
 
@@ -553,3 +619,4 @@ TEST_F(ArgumentTypeTest, EnumArgument) {
 | 2024-01 | 1.0 | 初始版本，包含基础参数类型 |
 | 2024-02 | 1.1 | 添加实体选择器参数支持 |
 | 2024-03 | 1.2 | 添加坐标和旋转参数类型 |
+| 2024-05 | 1.3 | 添加 BlockStateArgumentType，支持方块状态属性解析 |

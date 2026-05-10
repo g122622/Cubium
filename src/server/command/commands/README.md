@@ -34,11 +34,12 @@ src/server/command/commands/
 - `DifficultyCommand.*`：修改世界难度。
 - `ExperienceCommand.*`：管理经验值和等级。
 - `FillCommand.*`：填充区域方块。
+  - 支持完整的方块状态属性解析（如 `oak_stairs[facing=east,half=top]`）
   - destroy 模式：破坏原方块并掉落物品（使用 BlockDropHandler）
   - hollow 模式：填充外壳，内部填充空气
   - keep 模式：仅替换空气方块
   - outline 模式：仅填充外壳，内部保持不变
-  - replace 模式：替换所有或指定方块
+  - replace 模式：替换所有或指定方块（支持带属性的过滤）
 - `GameModeCommand.*`：切换玩家游戏模式。
 - `GiveCommand.*`：发放物品。
   - 背包满时在玩家位置掉落物品实体（参考 MC 1.16.5）
@@ -50,6 +51,11 @@ src/server/command/commands/
 - `ListCommand.*`：列出在线玩家。
 - `SayCommand.*`：广播聊天消息。
 - `SeedCommand.*`：显示当前世界种子。
+- `SetBlockCommand.*`：放置单个方块。
+  - 支持完整的方块状态属性解析（如 `stone[facing=north]`）
+  - destroy 模式：破坏原方块并掉落物品
+  - keep 模式：仅在空气位置放置
+  - replace 模式：直接替换（默认）
 - `SetIdleTimeoutCommand.*`：设置玩家挂机超时。
 - `SetWorldSpawnCommand.*`：设置世界出生点（指南针指向位置）。
   - 设置 Dimension 和 ServerWorld 的出生点

@@ -4,6 +4,7 @@
 #include "entity/entities/player/Player.hpp"
 #include "item/core/Item.hpp"
 #include "item/Items.hpp"
+#include "item/items/special/EnchantedBookItem.hpp"
 #include "item/enchantment/EnchantmentRegistry.hpp"
 #include "item/enchantment/EnchantmentHelper.hpp"
 #include "network/packet/PacketSerializer.hpp"
@@ -265,18 +266,52 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex) {
     }
 
     // 检查是否是书 -> 附魔书转换
+    // 参考 MC 1.16.5: EnchantmentContainer.enchantItem()
+    // 如果物品是书，需要转换为附魔书
     bool isBook = item.getItem() != nullptr &&
                   item.getItem() == Items::BOOK;
 
     if (isBook) {
-        // 转换为附魔书
-        // TODO: 创建附魔书物品
+        // 创建附魔书物品
+        // MC 1.16.5: itemstack2 = new ItemStack(Items.ENCHANTED_BOOK);
+        ItemStack enchantedBook(Items::ENCHANTED_BOOK, 1);
+
+        // 复制原有NBT标签（如果有）
+        // MC 1.16.5: if (compoundnbt != null) { itemstack2.setTag(compoundnbt.copy()); }
+        if (item.hasTag()) {
+            // 复制自定义数据（JSON深拷贝通过赋值运算符实现）
+            const nlohmann::json* customData = item.getTag();
+            if (customData != nullptr) {
+                enchantedBook.getOrCreateTag() = *customData;
+            }
+        }
+
+        // 复制自定义名称
+        if (item.hasCustomName()) {
+            const text::ITextComponent* customName = item.getCustomNameComponent();
+            if (customName != nullptr) {
+                enchantedBook.setCustomNameComponent(customName->deepCopy());
+            }
+        }
+
+        // 替换物品槽中的书为附魔书
+        // MC 1.16.5: this.tableInventory.setInventorySlotContents(0, itemstack2);
+        item = enchantedBook;
+        m_enchantmentInventory->setItem(SLOT_ITEM, item);
     }
 
-    // 应用所有附魔
+    // 应用附魔
+    // MC 1.16.5: 对于附魔书使用 EnchantedBookItem.addEnchantment()
+    // 对于普通物品使用 ItemStack.addEnchantment()
     for (const auto& data : enchantments) {
         if (data.enchantment != nullptr && data.level > 0) {
-            item.addEnchantment(data.enchantment->id(), data.level);
+            if (isBook) {
+                // 附魔书使用 StoredEnchantments 标签存储附魔
+                item::items::EnchantedBookItem::addEnchantment(item, *data.enchantment, data.level);
+            } else {
+                // 普通物品使用 Enchantments 标签存储附魔
+                item.addEnchantment(data.enchantment->id(), data.level);
+            }
         }
     }
 
