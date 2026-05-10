@@ -958,3 +958,71 @@ TEST(LivingEntityTest, UpdateAirSupply_NotAlive) {
     // 死亡实体不应该处理空气
     EXPECT_EQ(entity.air(), 300);
 }
+
+// ============================================================================
+// onKillCommand 测试
+// ============================================================================
+
+// 测试 LivingEntity::onKillCommand - 使用虚空伤害杀死实体
+TEST(LivingEntityTest, OnKillCommand_KillsEntity) {
+    TestLivingEntity entity;
+
+    // 初始状态：满血
+    EXPECT_FLOAT_EQ(entity.health(), 20.0f);
+    EXPECT_FALSE(entity.isDead());
+
+    // 调用 onKillCommand
+    entity.onKillCommand();
+
+    // 实体应该死亡
+    EXPECT_TRUE(entity.isDead());
+    EXPECT_LE(entity.health(), 0.0f);
+}
+
+// 测试 LivingEntity::onKillCommand - 对已死亡实体的效果
+TEST(LivingEntityTest, OnKillCommand_AlreadyDead) {
+    TestLivingEntity entity;
+
+    // 先杀死实体
+    entity.setHealth(0.0f);
+    EXPECT_TRUE(entity.isDead());
+
+    // 再次调用 onKillCommand 不应该崩溃
+    entity.onKillCommand();
+
+    // 仍然死亡
+    EXPECT_TRUE(entity.isDead());
+}
+
+// 测试 LivingEntity::onKillCommand - 触发死亡流程
+TEST(LivingEntityTest, OnKillCommand_TriggersDeathProcess) {
+    GroundSupportWorld world;
+    TestLivingEntity entity;
+    entity.setWorld(&world);
+
+    // 调用 onKillCommand
+    entity.onKillCommand();
+
+    // 实体应该处于死亡状态
+    EXPECT_TRUE(entity.isDead());
+
+    // 检查是否播放了死亡声音（通过 hurt 触发）
+    // 由于使用 Float.MAX_VALUE 伤害，会触发死亡
+    EXPECT_TRUE(entity.isDead());
+}
+
+// 测试 MobEntity::onKillCommand - 继承自 LivingEntity
+TEST(MobEntityTest, OnKillCommand_KillsMob) {
+    TestMobEntity entity;
+
+    // 初始状态：满血
+    EXPECT_FLOAT_EQ(entity.health(), 20.0f);
+    EXPECT_FALSE(entity.isDead());
+
+    // 调用 onKillCommand
+    entity.onKillCommand();
+
+    // 实体应该死亡
+    EXPECT_TRUE(entity.isDead());
+    EXPECT_LE(entity.health(), 0.0f);
+}

@@ -79,7 +79,9 @@
 
 - `Entity::remove()` - 标记实体为已移除状态（虚函数，子类可重写以实现自定义逻辑，如史莱姆分裂）
 - `Entity::isRemoved()` - 检查实体是否已被移除
+- `Entity::onKillCommand()` - 由 /kill 命令调用，默认实现调用 remove()，LivingEntity 重写为使用虚空伤害
 - `LivingEntity::die()` - 处理实体死亡（触发掉落、分数等）
+- `LivingEntity::onKillCommand()` - 重写为使用 `Float.MAX_VALUE` 的虚空伤害杀死实体，确保完整死亡流程
 - `MobEntity::dropExperience()` - 掉落经验球
 
 ## 类型标识符同步
