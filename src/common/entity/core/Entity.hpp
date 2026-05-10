@@ -641,6 +641,16 @@ public:
      */
     virtual void remove() { m_removed = true; }
 
+    /**
+     * @brief 由 /kill 命令调用
+     *
+     * 默认实现直接调用 remove()。
+     * LivingEntity 重写此方法使用虚空伤害杀死实体。
+     *
+     * 参考 MC 1.16.5 Entity.onKillCommand()
+     */
+    virtual void onKillCommand() { remove(); }
+
     // ========== 维度 ==========
 
     [[nodiscard]] DimensionId dimension() const { return m_dimension; }

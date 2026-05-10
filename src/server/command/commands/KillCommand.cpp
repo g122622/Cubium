@@ -8,6 +8,9 @@
 #include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/application/IServer.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "common/entity/entities/player/Player.hpp"
 
 #include <sstream>
 
@@ -63,9 +66,8 @@ i32 KillCommand::killSelf(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    // 使用高伤害杀死实体（MC 风格：设置生命值为 0 或使用 kill 命令伤害源）
-    // MC 1.16.5 调用 entity.onKillCommand()
-    player->setHealth(0.0f);
+    // MC 1.16.5: 调用 entity.onKillCommand()
+    player->onKillCommand();
 
     std::ostringstream ss;
     ss << "Killed " << player->username();
@@ -86,6 +88,18 @@ i32 KillCommand::killEntities(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
+    auto* server = source.server();
+    if (server == nullptr) {
+        source.sendError("commands.kill.failed.noEntity");
+        return 0;
+    }
+
+    auto* world = source.world();
+    if (world == nullptr) {
+        source.sendError("commands.kill.failed.noEntity");
+        return 0;
+    }
+
     i32 killedCount = 0;
 
     for (PlayerId playerId : targetPlayerIds) {
@@ -93,35 +107,29 @@ i32 KillCommand::killEntities(CommandContext<ServerCommandSource>& context) {
             continue;
         }
 
-        // 获取玩家数据
-        auto* server = source.server();
-        if (server == nullptr) {
+        // 通过 ServerPlayerEntityManager 获取玩家实体
+        Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
+        if (player == nullptr) {
             continue;
         }
 
-        mc::server::core::PlayerManager& pm = server->playerManager();
-        mc::server::ServerPlayerData* playerData = pm.getPlayer(playerId);
-        if (playerData == nullptr) {
-            continue;
-        }
-
-        // TODO: 当 ServerPlayer 实例可通过 PlayerManager 获取时，
-        // 应该调用 player->setHealth(0.0f) 或 player->kill() 方法
-        // 目前简化实现：仅记录击杀数量
-
+        // MC 1.16.5: 调用 entity.onKillCommand()
+        player->onKillCommand();
         killedCount++;
     }
 
     // 发送反馈消息
     if (killedCount == 1) {
-        if (source.server() != nullptr && !targetPlayerIds.empty()) {
-            mc::server::core::PlayerManager& pm = source.server()->playerManager();
-            mc::server::ServerPlayerData* playerData = pm.getPlayer(targetPlayerIds.front());
-            if (playerData != nullptr) {
-                std::ostringstream ss;
-                ss << "Killed " << playerData->username;
-                source.sendMessage(ss.str());
-            }
+        // 获取第一个被杀死的玩家名称
+        auto* playerData = server->playerManager().getPlayer(targetPlayerIds.front());
+        if (playerData != nullptr) {
+            std::ostringstream ss;
+            ss << "Killed " << playerData->username;
+            source.sendMessage(ss.str());
+        } else {
+            std::ostringstream ss;
+            ss << "Killed " << killedCount << " entities";
+            source.sendMessage(ss.str());
         }
     } else {
         std::ostringstream ss;

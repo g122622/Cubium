@@ -165,6 +165,16 @@ public:
     virtual void die(DamageSource& cause);
 
     /**
+     * @brief 由 /kill 命令调用
+     *
+     * 重写 Entity::onKillCommand()，使用虚空伤害杀死实体。
+     * 这确保实体会经历完整的死亡流程（触发死亡事件、掉落物品等）。
+     *
+     * 参考 MC 1.16.5 LivingEntity.onKillCommand()
+     */
+    void onKillCommand() override;
+
+    /**
      * @brief 检查是否可以格挡伤害来源
      *
      * 参考 MC 1.16.5 LivingEntity.canBlockDamageSource()

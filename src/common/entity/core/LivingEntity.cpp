@@ -15,6 +15,7 @@
 #include "../../item/core/Item.hpp"
 #include <cmath>
 #include <algorithm>
+#include <limits>
 
 namespace mc {
 
@@ -290,6 +291,13 @@ void LivingEntity::die(DamageSource& /*cause*/) {
 
     // 掉落经验
     dropExperience();
+}
+
+void LivingEntity::onKillCommand() {
+    // MC 1.16.5 LivingEntity.onKillCommand()
+    // 使用虚空伤害杀死实体，这会触发完整的死亡流程
+    auto damageSource = DamageSources::outOfWorld();
+    hurt(damageSource, std::numeric_limits<f32>::max());
 }
 
 // ============================================================================
