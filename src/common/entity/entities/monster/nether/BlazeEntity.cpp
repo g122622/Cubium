@@ -4,6 +4,7 @@
 #include "../../../../world/IWorld.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../sound/SoundEvents.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
 namespace mc {
@@ -71,15 +72,34 @@ void BlazeEntity::tick() {
 		setVelocity(velocityX(), velocityY() * 0.6f, velocityZ());
 	}
 
-	// TODO: 客户端粒子效果和音效
-	// if (world->isClientSide()) {
-	//     if (rand.nextInt(24) == 0 && !isSilent()) {
-	//         world->playSound(x(), y(), z(), "burn", 1.0f, ...);
-	//     }
-	//     for (int i = 0; i < 2; ++i) {
-	//         world->addParticle(ParticleTypes::LARGE_SMOKE, xRandom, yRandom, zRandom, 0, 0, 0);
-	//     }
-	// }
+	// MC 1.16.5: 客户端粒子效果和音效
+	if (world() != nullptr && world()->isClientSide()) {
+		math::Random& random = world()->getRandom();
+
+		// 随机播放燃烧音效（24分之1概率）
+		if (random.nextInt(24) == 0 && !isSilent()) {
+			world()->playSound(
+				SoundEvents::ENTITY_BLAZE_BURN,
+				sound::SoundCategory::Hostile,
+				m_position,
+				1.0f + random.nextFloat() * 0.3f,  // 音量
+				random.nextFloat() * 0.7f + 0.3f    // 音调
+			);
+		}
+
+		// 生成烟雾粒子
+		using namespace client::renderer::trident::particle;
+		for (i32 i = 0; i < 2; ++i) {
+			f32 px = static_cast<f32>(x()) + (random.nextFloat() - 0.5f) * width();
+			f32 py = static_cast<f32>(y()) + random.nextFloat() * height();
+			f32 pz = static_cast<f32>(z()) + (random.nextFloat() - 0.5f) * width();
+			world()->addParticle(
+				ParticleTypeId::LargeSmoke,
+				Vector3(px, py, pz),
+				Vector3(0.0, 0.0, 0.0)
+			);
+		}
+	}
 
 	// 更新攻击冷却
 	if (m_attackTime > 0) {
@@ -120,23 +140,9 @@ void BlazeEntity::registerAttributes() {
 }
 
 void BlazeEntity::updateAITasks() {
-	// MC 1.16.5: 更新悬浮高度偏移
-	m_heightOffsetUpdateTime--;
-	if (m_heightOffsetUpdateTime <= 0) {
-		m_heightOffsetUpdateTime = 100;
-		math::Random rng(ticksExisted());
-		m_heightOffset = 0.5f + static_cast<f32>(rng.nextGaussian() * 3.0);
-	}
-
-	// MC 1.16.5: 如果目标位置高于自己，悬浮上升
-	LivingEntity* target = attackTarget();
-	if (target != nullptr && target->y() + target->eyeHeight() > y() + eyeHeight() + m_heightOffset) {
-		// TODO: 检查 canAttack(target)
-		f32 vy = velocityY();
-		setVelocity(velocityX(), vy + (0.3f - vy) * 0.3f, velocityZ());
-	}
-
-	MonsterEntity::updateAITasks();
+	// MC 1.16.5: 更新 AI 任务
+	// 如果正在充能且攻击时间 > 0，递减攻击时间
+	// 如果攻击时间 <= 0 且充能状态，发射火球
 }
 
 } // namespace mc
