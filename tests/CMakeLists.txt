@@ -84,6 +84,8 @@ add_executable(mc_tests
     common/world/blockentity/HopperEntityTest.cpp
     common/world/blockentity/DoubleSidedInventoryTest.cpp
     common/world/blockentity/BlockEntityTodoTest.cpp
+    # ConduitEntity 潮涌核心测试（敌对生物检测、魔法伤害）
+    common/world/blockentity/ConduitEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp
@@ -251,6 +253,8 @@ add_executable(mc_tests
     physics/DiscreteVoxelShapeTest.cpp
     # ServerWorld 纰版挒妫€娴嬫祴璇?    server/ServerWorldCollisionTests.cpp
     # 瀹炰綋杩借釜鍣ㄦ祴璇?    server/world/EntityTrackerTest.cpp
+    # EntityTracker UUID 测试
+    server/world/EntityTrackerUuidTest.cpp
     # 鐗╁搧鎷惧彇绠＄悊鍣ㄦ祴璇?    server/world/ItemPickupManagerTest.cpp
     # 璧勬簮鍖呭吋瀹瑰眰娴嬭瘯
     common/resource/compat/CompatLayerTest.cpp
