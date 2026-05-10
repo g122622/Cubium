@@ -269,6 +269,83 @@ i32 AbstractFishEntity::maxAir() const override {
 }
 ```
 
+## 日光检测系统
+
+生物实体的日光检测功能，用于亡灵生物燃烧等机制。
+
+### MobEntity::isInDaylight()
+
+检查生物是否暴露在日光下，参考 MC 1.16.5 `MobEntity.isInDaylight()`。
+
+**检测条件**：
+1. 世界存在且不为客户端
+2. 当前为白天（dayTime < 12000）
+3. 实体位置亮度 > 0.5
+4. 随机检查通过（亮度越高概率越大）
+5. 天空可见（canSeeSky）
+
+**船骑乘位置偏移**：
+- 当生物骑乘船时，检测位置向上偏移一格
+- 这是因为船在水面上，生物坐在船中位置较低
+- 使用 `dynamic_cast<BoatEntity*>` 检测载具是否为船
+
+```cpp
+// MobEntity::isInDaylight() 实现
+bool MobEntity::isInDaylight() const {
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return false;
+    }
+    if (!m_world->isDaytime()) {
+        return false;
+    }
+    f32 brightness = getBrightness();
+    if (brightness <= 0.5f) {
+        return false;
+    }
+    // 随机检查
+    math::Random rng = getRandom();
+    f32 randomCheck = rng.nextFloat() * 30.0f;
+    f32 brightnessThreshold = (brightness - 0.4f) * 2.0f;
+    if (randomCheck >= brightnessThreshold) {
+        return false;
+    }
+    // 获取检测位置
+    BlockPos pos(...);
+    // 船骑乘时向上偏移
+    if (isRiding()) {
+        EntityId vehicleId = getVehicle();
+        if (vehicleId != INVALID_ENTITY_ID && m_world != nullptr) {
+            const Entity* vehicle = m_world->getEntity(vehicleId);
+            if (vehicle != nullptr && dynamic_cast<const entity::BoatEntity*>(vehicle) != nullptr) {
+                pos = pos.up();
+            }
+        }
+    }
+    return m_world->canSeeSky(pos);
+}
+```
+
+### 骑乘系统改进
+
+**canFitPassenger() 虚函数**：
+
+`Entity::canFitPassenger()` 现在是虚函数，允许子类重写添加额外检查条件：
+
+```cpp
+// Entity 基类
+[[nodiscard]] virtual bool canFitPassenger() const {
+    return static_cast<i32>(m_passengers.size()) < getMaxPassengers();
+}
+
+// BoatEntity 重写
+[[nodiscard]] bool canFitPassenger() const override {
+    return static_cast<i32>(m_passengers.size()) < MAX_PASSENGERS 
+           && m_status != BoatStatus::UnderWater;
+}
+```
+
+这个改动确保通过基类引用调用 `canFitPassenger()` 时能正确调用子类的实现。
+
 ## 继承层次
 
 ```
