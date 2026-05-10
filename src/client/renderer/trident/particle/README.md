@@ -202,6 +202,13 @@ auto particle = ParticleRegistry::instance().createParticle(
 - **HeartParticle**: 爱心粒子
 - **VillagerParticle**: 村民粒子
 
+### 特殊粒子（special/）
+- **NautilusParticle**: 鹦鹉螺粒子
+  - 发光粒子，最大亮度
+  - 无重力，无物理碰撞
+  - 向目标方向移动，速度逐渐衰减
+  - 用于潮涌核心效果：从框架方块飞向中心，攻击目标时在目标位置生成
+
 ## 与 MC 1.16.5 的对齐
 
 ### 物理参数

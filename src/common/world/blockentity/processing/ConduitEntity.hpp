@@ -153,6 +153,13 @@ private:
      */
     void setEyeOpen(bool eyeOpen);
 
+    /**
+     * @brief 生成客户端粒子效果
+     * 参考 MC 1.16.5 ConduitTileEntity.spawnParticles()
+     * @param world 世界引用
+     */
+    void spawnParticles(IWorld& world);
+
     // ========== 状态数据 ==========
 
     bool m_active = false;              ///< 是否激活

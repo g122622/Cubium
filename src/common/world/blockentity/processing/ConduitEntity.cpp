@@ -10,7 +10,9 @@
 #include "entity/damage/DamageSource.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "util/math/random/Random.hpp"
+#include "util/math/MathConstants.hpp"
 #include "util/assert/AssertAll.hpp"
 
 #include <cmath>
@@ -94,8 +96,7 @@ void ConduitEntity::tick(IWorld& world) {
         if (m_active) {
             ++m_activeRotation;
         }
-        // TODO: 生成粒子效果
-        // spawnParticles(world);
+        spawnParticles(world);
     }
 
     // 激活状态下播放环境音效
@@ -362,6 +363,83 @@ void ConduitEntity::setEyeOpen(bool eyeOpen) {
     if (m_eyeOpen != eyeOpen) {
         m_eyeOpen = eyeOpen;
         setChanged();
+    }
+}
+
+void ConduitEntity::spawnParticles(IWorld& world) {
+    // 只在激活状态下生成粒子
+    if (!m_active) {
+        return;
+    }
+
+    // 参考 MC 1.16.5 ConduitTileEntity.spawnParticles()
+    math::Random& random = world.getRandom();
+
+    // 计算潮涌核心上方的粒子发射点
+    // d0 = sin((ticksExisted + 35) * 0.1) / 2 + 0.5
+    // d0 = (d0 * d0 + d0) * 0.3
+    const f32 sinValue = std::sin(static_cast<f32>(m_ticksExisted + 35) * 0.1f);
+    f32 d0 = (sinValue / 2.0f + 0.5f);
+    d0 = (d0 * d0 + d0) * 0.3f;
+
+    // 粒子发射点位置：潮涌核心上方 1.5 格 + d0 的垂直偏移
+    const Vector3 particleOrigin(
+        static_cast<f32>(m_pos.x) + 0.5f,
+        static_cast<f32>(m_pos.y) + 1.5f + d0,
+        static_cast<f32>(m_pos.z) + 0.5f
+    );
+
+    // 从框架方块向潮涌核心发射粒子
+    for (const BlockPos& framePos : m_prismarinePositions) {
+        // MC 1.16.5: 每个框架方块有 1/50 的概率发射粒子
+        if (random.nextInt(50) != 0) {
+            continue;
+        }
+
+        // 随机偏移
+        const f32 offsetX = -0.5f + random.nextFloat();
+        const f32 offsetY = -2.0f + random.nextFloat();
+        const f32 offsetZ = -0.5f + random.nextFloat();
+
+        // 计算从框架方块到潮涌核心的相对位置
+        const BlockPos relativePos = framePos - m_pos;
+
+        // 粒子速度方向：从潮涌核心向框架方块方向
+        const Vector3 velocity(
+            static_cast<f32>(relativePos.x) + offsetX,
+            static_cast<f32>(relativePos.y) + offsetY,
+            static_cast<f32>(relativePos.z) + offsetZ
+        );
+
+        // 生成鹦鹉螺粒子
+        world.addParticle(
+            client::renderer::trident::particle::ParticleTypeId::Nautilus,
+            particleOrigin,
+            velocity
+        );
+    }
+
+    // 如果有攻击目标，在目标位置生成粒子
+    if (m_target != nullptr && m_target->isAlive()) {
+        // 目标眼睛高度位置
+        const Vector3 targetEyePos = m_target->position() + Vector3(0.0f, m_target->eyeHeight(), 0.0f);
+
+        // 随机偏移：根据目标尺寸计算
+        const f32 targetWidth = m_target->width();
+        const f32 targetHeight = m_target->height();
+
+        const f32 offsetX = (-0.5f + random.nextFloat()) * (3.0f + targetWidth);
+        const f32 offsetY = -1.0f + random.nextFloat() * targetHeight;
+        const f32 offsetZ = (-0.5f + random.nextFloat()) * (3.0f + targetWidth);
+
+        const Vector3 velocity(offsetX, offsetY, offsetZ);
+
+        // 生成鹦鹉螺粒子
+        world.addParticle(
+            client::renderer::trident::particle::ParticleTypeId::Nautilus,
+            targetEyePos,
+            velocity
+        );
     }
 }
 

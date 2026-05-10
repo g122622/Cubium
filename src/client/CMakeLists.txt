@@ -81,6 +81,8 @@ add_executable(minecraft-client
     # 粒子实现 - 生物
     renderer/trident/particle/particles/mob/HeartParticle.cpp
     renderer/trident/particle/particles/mob/VillagerParticle.cpp
+    # 粒子实现 - 特殊
+    renderer/trident/particle/particles/special/NautilusParticle.cpp
     # 粒子实现 - 方块
     renderer/trident/particle/particles/block/DiggingParticle.cpp
     # 粒子实现 - 液体

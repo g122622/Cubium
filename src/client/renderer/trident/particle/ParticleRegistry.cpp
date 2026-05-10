@@ -1,5 +1,6 @@
 #include "ParticleRegistry.hpp"
 #include "Particle.hpp"
+#include "particles/special/NautilusParticle.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace mc::client::renderer::trident::particle {
@@ -196,7 +197,7 @@ void ParticleRegistry::registerBuiltinTypes() {
     registerSimpleType(ParticleTypeId::TotemOfUndying, "minecraft:totem_of_undying", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
     registerSimpleType(ParticleTypeId::Flash, "minecraft:flash", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
     registerSimpleType(ParticleTypeId::ElderGuardian, "minecraft:elder_guardian", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::Nautilus, "minecraft:nautilus", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(ParticleTypeId::Nautilus, "minecraft:nautilus", particles::NautilusParticle::create, ParticleRenderType::PARTICLE_SHEET_LIT);
     registerSimpleType(ParticleTypeId::Firework, "minecraft:firework", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
 
     // 下界更新粒子
