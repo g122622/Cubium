@@ -62,6 +62,7 @@ add_executable(mc_tests
     common/entity/entities/passive/basic/ChickenEntityTest.cpp
     common/entity/entities/passive/basic/RabbitEntityTest.cpp
     common/entity/entities/monster/SlimeEntityTest.cpp
+    common/entity/entities/misc/TNTEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp
     # ItemDropHelper 测试
     common/entity/utils/ItemDropHelperTest.cpp
@@ -229,6 +230,7 @@ add_executable(mc_tests
     # 绾㈢煶鏂瑰潡娴嬭瘯
     common/world/block/test_redstone_blocks.cpp
     common/world/block/blocks/redstone/NoteBlockTest.cpp
+    common/world/block/blocks/redstone/TNTBlockTest.cpp
     # Explosion system tests
     common/world/explosion/test_explosion.cpp
     common/world/explosion/ExplosionIntegrationTest.cpp

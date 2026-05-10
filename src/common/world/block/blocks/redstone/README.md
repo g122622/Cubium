@@ -620,6 +620,64 @@ noteBlock.triggerNote(world, pos, state);
 
 **粒子效果**：播放时在方块上方生成音符粒子，颜色由音符值决定。
 
+### TNT
+
+TNT是一种可以被红石信号或火焰点燃的爆炸性方块。
+
+**触发条件**：
+- 红石信号：收到红石信号时点燃
+- 火焰接触：相邻位置有火焰或灵魂火
+- 熔岩接触：相邻位置有熔岩
+
+**点燃流程**：
+```cpp
+// TNTBlock::ignite() 实现
+// 1. 移除TNT方块
+world.setBlockState(pos, nullptr, 11);
+
+// 2. 生成TNTEntity
+auto& registry = entity::EntityRegistry::instance();
+const entity::EntityType* tntType = registry.getType(entity::EntityTypes::TNT);
+auto tntEntity = tntType->create(&world);
+
+// 3. 设置位置和随机速度
+tnt->setPosition(centerX, centerY, centerZ);
+f32 angle = rng.nextFloat() * TWO_PI;
+tnt->setVelocity(Vector3(-sin(angle) * 0.02f, 0.2f, -cos(angle) * 0.02f));
+tnt->ignite();
+
+// 4. 播放点燃音效
+world.playSound(SoundEvents::ENTITY_TNT_PRIMED, ...);
+```
+
+**爆炸参数**：
+- 默认爆炸半径：4.0（标准TNT威力）
+- 爆炸模式：`Break`（破坏方块但不掉落物品）
+- 引信时间：80 tick（4秒）
+
+**火焰检测**：
+```cpp
+bool TNTBlock::hasFlammableNeighbor(IWorld& world, const BlockPos& pos) const {
+    for (Direction dir : Directions::values()) {
+        const BlockState* neighborState = world.getBlockState(pos.offset(dir));
+        if (neighborState != nullptr) {
+            // 检查火焰（包括灵魂火）
+            if (neighborState->is(VanillaBlocks::FIRE) ||
+                neighborState->is(VanillaBlocks::SOUL_FIRE)) {
+                return true;
+            }
+            // 检查熔岩
+            if (neighborState->is(VanillaBlocks::LAVA)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+```
+
+**参考**：MC 1.16.5 `net.minecraft.block.TNTBlock`
+
 ## 容易踩的坑
 
 ### 1. 红石火把无限递归

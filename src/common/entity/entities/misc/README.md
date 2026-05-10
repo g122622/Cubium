@@ -39,10 +39,45 @@ misc/
 
 ## TNT实体
 
-- 默认引信80tick（4秒）
-- 默认爆炸半径4.0
-- 受重力影响
-- 可设置爆炸半径
+TNT实体是被激活的TNT方块，倒计时后爆炸。
+
+### 属性
+
+| 属性 | 默认值 | 说明 |
+|------|--------|------|
+| fuse | 0 | 引信倒计时（tick） |
+| explosionRadius | 4.0f | 爆炸半径 |
+| exploded | false | 是否已爆炸 |
+| owner | nullptr | 点燃者（用于伤害归属） |
+
+### 常量
+
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| DEFAULT_FUSE | 80 | 默认引信时间（4秒） |
+
+### 行为
+
+1. **点燃**：调用 `ignite()` 设置引信时间为80 tick
+2. **倒计时**：每tick引信减1
+3. **物理**：重力加速度0.04/tick，空气阻力0.98/tick，地面弹跳系数0.7/0.5
+4. **爆炸**：引信归零时调用 `createExplosion()`，爆炸模式为 `Break`（破坏方块但不掉落物品）
+5. **粒子**：客户端显示烟雾粒子效果
+
+### 工厂方法
+
+```cpp
+static std::unique_ptr<Entity> create(IWorld* world);
+```
+
+### 注册
+
+TNTEntity 已在 `VanillaEntities::doRegisterAll()` 中注册，实体类型为 `minecraft:tnt`。
+
+### 参考
+
+- MC 1.16.5 `net.minecraft.entity.item.TNTEntity`
+- 爆炸系统：`src/common/world/explosion/Explosion.hpp`
 
 ## 末影之眼
 
@@ -86,7 +121,7 @@ misc/
 | 组件 | 状态 |
 |------|------|
 | FallingBlockEntity | ⚠️ 框架完成，TODO需填充 |
-| TNTEntity | ⚠️ 框架完成，TODO需填充 |
+| TNTEntity | ✅ 完成 - 点燃、爆炸、物理、实体注册 |
 | EyeOfEnderEntity | ⚠️ 框架完成，TODO需填充 |
 | ConduitEntity | ⚠️ 框架完成，TODO需填充 |
 | EvokerFangsEntity | ⚠️ 框架完成，TODO需填充 |
