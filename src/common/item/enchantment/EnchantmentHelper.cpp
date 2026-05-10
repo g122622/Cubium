@@ -2,6 +2,7 @@
 #include "EnchantmentRegistry.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -508,6 +509,46 @@ EnchantmentHelper::EnchantmentData EnchantmentHelper::getRandomEnchantment(
 
     // 不应该到达这里，但返回最后一个作为后备
     return list.back();
+}
+
+ItemStack EnchantmentHelper::addRandomEnchantment(math::Random& random, ItemStack stack, i32 level, bool allowTreasure) {
+    if (stack.isEmpty()) {
+        return stack;
+    }
+
+    // MC 1.16.5: EnchantmentHelper.addRandomEnchantment
+    // 生成附魔列表
+    std::vector<EnchantmentData> enchantments = buildEnchantmentList(random, stack, level, allowTreasure);
+
+    if (enchantments.empty()) {
+        return stack;
+    }
+
+    // 检查是否是书
+    const Item* item = stack.getItem();
+    bool isBook = (item == Items::BOOK);
+
+    // 如果是书，转换为附魔书
+    if (isBook) {
+        stack = ItemStack(Items::ENCHANTED_BOOK, stack.getCount());
+    }
+
+    // 应用所有附魔
+    for (const auto& data : enchantments) {
+        if (data.enchantment == nullptr || data.level <= 0) {
+            continue;
+        }
+
+        if (isBook) {
+            // 附魔书使用 StoredEnchantments
+            item::items::EnchantedBookItem::addEnchantment(stack, *data.enchantment, data.level);
+        } else {
+            // 普通物品直接添加附魔
+            stack.addEnchantment(data.enchantment->id(), data.level);
+        }
+    }
+
+    return stack;
 }
 
 } // namespace enchant

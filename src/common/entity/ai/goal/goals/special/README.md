@@ -8,6 +8,8 @@ special/
 ├── SpecialGoals.cpp       # 特殊目标实现
 ├── GuardianAttackGoal.hpp # 守卫者攻击目标头文件
 ├── GuardianAttackGoal.cpp # 守卫者攻击目标实现
+├── BlazeFireballAttackGoal.hpp # 烈焰人火球攻击目标头文件
+├── BlazeFireballAttackGoal.cpp # 烈焰人火球攻击目标实现
 └── README.md              # 本文档
 ```
 
@@ -16,6 +18,49 @@ special/
 本目录包含特定实体专用的 AI 目标，这些目标不适用于通用场景，而是为特定实体类型定制的行为。
 
 ## 文件详细介绍
+
+### BlazeFireballAttackGoal - 烈焰人火球攻击目标
+
+**职责**: 控制烈焰人使用小火球攻击目标。
+
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.BlazeEntity.FireballAttackGoal`
+
+**攻击阶段**:
+1. **充能阶段**: 60 ticks (3秒)，烈焰人进入燃烧状态
+2. **火球阶段**: 连发最多 3 个小火球，每个间隔 6 ticks (0.3秒)
+3. **冷却阶段**: 100 ticks (5秒)
+
+**执行条件**:
+- 有攻击目标
+- 目标存活
+- 目标在追踪范围内
+
+**特点**:
+- 使用加速度驱动的小火球（SmallFireballEntity）
+- 散布计算：`spread = sqrt(sqrt(distSq)) * 0.5`
+- 近战范围（< 2 格）使用物理攻击
+- 视线检测控制追踪行为
+
+**互斥标志**: `Move`, `Look`
+
+**使用示例**:
+```cpp
+void BlazeEntity::registerGoals() {
+    // 优先级 4: 火球攻击
+    m_goalSelector.addGoal(4, std::make_unique<BlazeFireballAttackGoal>(this));
+}
+```
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| CHARGE_TIME | 60 | 充能时间 (ticks) |
+| FIREBALL_INTERVAL | 6 | 火球间隔 (ticks) |
+| COOLDOWN_TIME | 100 | 冷却时间 (ticks) |
+| MAX_FIREBALLS | 3 | 最大连发火球数 |
+| MELEE_RANGE_SQ | 4.0 | 近战范围平方 (2格) |
+
+---
 
 ### CreeperSwellGoal - 苦力怕膨胀目标
 
@@ -121,11 +166,13 @@ graph TD
     A[Goal 基类] --> B[CreeperSwellGoal]
     A --> C[RunAroundLikeCrazyGoal]
     A --> D[GuardianAttackGoal]
-    A --> E[其他占位符目标]
+    A --> E[BlazeFireballAttackGoal]
+    A --> F[其他占位符目标]
 
-    B --> F[CreeperEntity]
-    C --> G[AbstractHorseEntity]
-    D --> H[GuardianEntity]
+    B --> G[CreeperEntity]
+    C --> H[AbstractHorseEntity]
+    D --> I[GuardianEntity]
+    E --> J[BlazeEntity]
 ```
 
 ---
@@ -240,6 +287,8 @@ if (distSq < 49.0f) { }  // 7 * 7 = 49
 | GoalTest.* | Goal 基础测试 |
 | GoalSelectorTest.* | 目标选择器测试 |
 | PrioritizedGoalTest.* | 优先级目标测试 |
+| CreeperSwellGoalBasicTest.* | 苦力怕膨胀目标常量测试 |
+| BlazeFireballAttackGoalBasicTest.* | 烈焰人火球攻击目标常量测试 |
 
 ---
 
@@ -248,4 +297,5 @@ if (distSq < 49.0f) { }  // 7 * 7 = 49
 - Minecraft Java 1.16.5 `net.minecraft.entity.ai.goal.CreeperSwellGoal`
 - Minecraft Java 1.16.5 `net.minecraft.entity.ai.goal.RunAroundLikeCrazyGoal`
 - Minecraft Java 1.16.5 `net.minecraft.entity.monster.GuardianEntity.GuardianAttackGoal`
+- Minecraft Java 1.16.5 `net.minecraft.entity.monster.BlazeEntity.FireballAttackGoal`
 - 本项目 CLAUDE.md 文档

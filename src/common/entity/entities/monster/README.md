@@ -90,15 +90,44 @@ Entity
 | EndermiteEntity | 末影螨 | 末影珍珠生成、末影人仇恨 | ⏳ 框架完成 |
 
 ### nether/ - 地狱生物
-| 实体 | 说明 | 特殊行为 |
-|------|------|----------|
-| BlazeEntity | 烈焰人 | 火球攻击、飞行 |
-| GhastEntity | 恶魂 | 火球攻击、飞行、大碰撞箱 |
-| MagmaCubeEntity | 岩浆怪 | 分裂、岩浆免疫 |
-| PiglinEntity | 猪灵 | 交易、攻击玩家、惧怕灵魂火 |
-| PiglinBruteEntity | 猪灵蛮兵 | 高攻击力、不交易 |
-| HoglinEntity | 疣猪兽 | 可繁殖、转化为僵尸疣猪兽 |
-| ZoglinEntity | 僵尸疣猪兽 | 攻击一切 |
+| 实体 | 说明 | 特殊行为 | 实现状态 |
+|------|------|----------|---------|
+| BlazeEntity | 烈焰人 | 火球攻击、飞行 | ✅ BlazeFireballAttackGoal 已实现 |
+| GhastEntity | 恶魂 | 火球攻击、飞行、大碰撞箱 | ⏳ 框架完成 |
+| MagmaCubeEntity | 岩浆怪 | 分裂、岩浆免疫 | ⏳ 框架完成 |
+| PiglinEntity | 猪灵 | 交易、攻击玩家、惧怕灵魂火 | ⏳ 框架完成 |
+| PiglinBruteEntity | 猪灵蛮兵 | 高攻击力、不交易 | ⏳ 框架完成 |
+| HoglinEntity | 疣猪兽 | 可繁殖、转化为僵尸疣猪兽 | ⏳ 框架完成 |
+| ZoglinEntity | 僵尸疣猪兽 | 攻击一切 | ⏳ 框架完成 |
+
+#### 烈焰人 (BlazeEntity) 详细行为
+
+**攻击模式** (MC 1.16.5):
+1. **充能阶段**: 60 ticks (3秒)，进入燃烧状态
+2. **火球阶段**: 连发最多 3 个小火球，每个间隔 6 ticks (0.3秒)
+3. **冷却阶段**: 100 ticks (5秒)
+
+**AI 目标**:
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 4 | BlazeFireballAttackGoal | 火球攻击 |
+| 7 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
+| 8 | LookAtGoal | 看向玩家 |
+| 8 | LookRandomlyGoal | 随机看向 |
+
+**目标选择器**:
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | HurtByTargetGoal | 被攻击反击，呼唤同伴 |
+| 2 | NearestAttackableTargetGoal<Player> | 攻击玩家 |
+
+**属性值**:
+| 属性 | 值 |
+|------|-----|
+| MAX_HEALTH | 20.0 |
+| MOVEMENT_SPEED | 0.23 |
+| ATTACK_DAMAGE | 6.0 |
+| FOLLOW_RANGE | 48.0 |
 
 ### end/ - 末地生物
 | 实体 | 说明 | 特殊行为 | 接口 |

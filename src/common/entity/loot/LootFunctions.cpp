@@ -3,9 +3,11 @@
 #include "LootContext.hpp"
 #include "RandomRanges.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/crafting/SmeltingRecipe.hpp"
 #include "common/world/block/Block.hpp"
@@ -438,12 +440,11 @@ ItemStack EnchantWithLevelsFunction::apply(ItemStack stack, LootContext& context
         return stack;
     }
 
-    // TODO: 实现附魔逻辑
-    // 需要附魔系统支持
-    // 参考: net.minecraft.loot.functions.EnchantWithLevels
-
-    MC_UNUSED(context);
-    return stack;
+    // MC 1.16.5: EnchantWithLevels.doApply
+    // 生成随机等级并添加随机附魔
+    i32 level = m_levels.generateInt(context.getRandom());
+    return item::enchant::EnchantmentHelper::addRandomEnchantment(
+        context.getRandom(), std::move(stack), level, m_treasure);
 }
 
 std::unique_ptr<LootFunction> EnchantWithLevelsFunction::clone() const {
@@ -469,11 +470,83 @@ ItemStack EnchantRandomlyFunction::apply(ItemStack stack, LootContext& context) 
         return stack;
     }
 
-    // TODO: 实现随机附魔逻辑
-    // 需要附魔系统支持
-    // 参考: net.minecraft.loot.functions.EnchantRandomly
+    // MC 1.16.5: EnchantRandomly.doApply
+    math::Random& random = context.getRandom();
+    const item::enchant::Enchantment* selectedEnchantment = nullptr;
 
-    MC_UNUSED(context);
+    if (m_enchantments.empty()) {
+        // 没有指定附魔列表，从所有可用附魔中随机选择
+        bool isBook = stack.getItem() == Items::BOOK;
+
+        // 收集所有可用的附魔
+        std::vector<const item::enchant::Enchantment*> availableEnchants;
+        for (const auto& [id, enchantment] : item::enchant::EnchantmentRegistry::all()) {
+            if (enchantment == nullptr) {
+                continue;
+            }
+
+            // 检查是否可以生成
+            if (!enchantment->canGenerateInLoot()) {
+                continue;
+            }
+
+            // 检查是否可以应用到物品
+            if (isBook) {
+                if (!enchantment->isAllowedOnBooks()) {
+                    continue;
+                }
+            } else {
+                if (!enchantment->canApply(stack)) {
+                    continue;
+                }
+            }
+
+            availableEnchants.push_back(enchantment.get());
+        }
+
+        if (availableEnchants.empty()) {
+            // 没有可用的附魔
+            return stack;
+        }
+
+        // 随机选择一个
+        selectedEnchantment = availableEnchants[random.nextInt(static_cast<i32>(availableEnchants.size()))];
+    } else {
+        // 从指定的附魔列表中随机选择
+        if (m_enchantments.empty()) {
+            return stack;
+        }
+
+        const std::string& enchId = m_enchantments[random.nextInt(static_cast<i32>(m_enchantments.size()))];
+        selectedEnchantment = item::enchant::EnchantmentRegistry::get(enchId);
+    }
+
+    if (selectedEnchantment == nullptr) {
+        return stack;
+    }
+
+    // 随机选择等级（从最小到最大）
+    i32 level = random.nextInt(
+        selectedEnchantment->maxLevel() - selectedEnchantment->minLevel() + 1
+    ) + selectedEnchantment->minLevel();
+
+    // 检查是否是书
+    bool isBook = stack.getItem() == Items::BOOK;
+
+    // 如果是书，转换为附魔书
+    if (isBook) {
+        stack = ItemStack(Items::ENCHANTED_BOOK, stack.getCount());
+    }
+
+    // 应用附魔
+    if (isBook) {
+        // 附魔书使用 StoredEnchantments
+        item::items::EnchantedBookItem::addEnchantment(stack, *selectedEnchantment, level);
+    } else {
+        // 普通物品直接添加附魔
+        stack.addEnchantment(selectedEnchantment->id(), level);
+    }
+
     return stack;
 }
 

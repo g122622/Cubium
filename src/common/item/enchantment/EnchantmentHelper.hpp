@@ -441,6 +441,21 @@ public:
      */
     [[nodiscard]] static EnchantmentData getRandomEnchantment(math::Random& random, std::vector<EnchantmentData>& list);
 
+    /**
+     * @brief 添加随机附魔到物品
+     *
+     * MC 1.16.5: EnchantmentHelper.addRandomEnchantment
+     * 根据等级生成随机附魔并应用到物品上。
+     * 如果物品是书，会转换为附魔书。
+     *
+     * @param random 随机数生成器
+     * @param stack 物品堆（会被修改）
+     * @param level 附魔等级
+     * @param allowTreasure 是否允许宝藏附魔
+     * @return 添加了附魔的物品（可能是新的附魔书物品）
+     */
+    static ItemStack addRandomEnchantment(math::Random& random, ItemStack stack, i32 level, bool allowTreasure = false);
+
 private:
     EnchantmentHelper() = delete;  // 禁止实例化
 };
