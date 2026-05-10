@@ -259,15 +259,47 @@ void initializeBlockEntities() {
     registry.registerType(BlockEntityType::Chest, [](const BlockPos& pos) {
         return std::make_unique<ChestEntity>(pos);
     });
+    registry.registerType(BlockEntityType::Sign, [](const BlockPos& pos) {
+        return std::make_unique<SignEntity>(pos);
+    });
     // ... 其他类型
 }
 ```
+
+## 已注册的方块实体类型
+
+`registerBuiltinTypes()` 方法注册以下方块实体类型：
+
+| 类型 | 类名 | 说明 |
+|------|------|------|
+| `CraftingTable` | `CraftingTableEntity` | 工作台 |
+| `Piston` | `PistonBlockEntity` | 活塞 |
+| `Chest` | `ChestEntity` | 箱子 |
+| `TrappedChest` | `TrappedChestEntity` | 陷阱箱 |
+| `Hopper` | `HopperEntity` | 漏斗 |
+| `Dispenser` | `DispenserBlockEntity` | 发射器 |
+| `Dropper` | `DropperBlockEntity` | 投掷器 |
+| `Furnace` | `FurnaceEntity` | 熔炉 |
+| `BlastFurnace` | `BlastFurnaceEntity` | 高炉 |
+| `Smoker` | `SmokerEntity` | 烟熏炉 |
+| `EnchantingTable` | `EnchantingTableEntity` | 附魔台 |
+| `Comparator` | `ComparatorEntity` | 比较器 |
+| `DaylightDetector` | `DaylightDetectorEntity` | 日光探测器 |
+| `Beacon` | `BeaconEntity` | 信标 |
+| `Conduit` | `ConduitEntity` | 潮涌核心 |
+| `Sign` | `SignEntity` | 告示牌 |
 
 ## 测试用例
 
 测试文件位于 `tests/common/world/blockentity/`：
 
-- `BlockEntityRegistryTest.cpp` - 注册表测试
+- `BlockEntityTest.cpp` - 基础方块实体测试和类型ID测试
+- `SignEntityTest.cpp` - 告示牌实体测试（类型注册、文本功能）
+- `ChestEntityTest.cpp` - 箱子实体测试
+- `FurnaceEntityTest.cpp` - 熔炉实体测试
+- `HopperEntityTest.cpp` - 漏斗实体测试
+- `DoubleSidedInventoryTest.cpp` - 双面背包测试
+- `ConduitEntityTest.cpp` - 潮涌核心测试
 - `LockableBlockEntityTest.cpp` - 锁定功能测试
 - `SimpleInventoryTest.cpp` - 背包功能测试
 - `LootableContainerBlockEntityTest.cpp` - 战利品表填充测试

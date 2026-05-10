@@ -56,6 +56,7 @@ TEST_F(BlockEntityTest, BlockEntityType_ToId_KnownTypes) {
     EXPECT_EQ(blockEntityTypeToId(BlockEntityType::CraftingTable).toString(), "minecraft:crafting_table");
     EXPECT_EQ(blockEntityTypeToId(BlockEntityType::Furnace).toString(), "minecraft:furnace");
     EXPECT_EQ(blockEntityTypeToId(BlockEntityType::Hopper).toString(), "minecraft:hopper");
+    EXPECT_EQ(blockEntityTypeToId(BlockEntityType::Sign).toString(), "minecraft:sign");
 }
 
 TEST_F(BlockEntityTest, BlockEntityType_ToId_UnknownReturnsUnknown) {
@@ -67,6 +68,7 @@ TEST_F(BlockEntityTest, BlockEntityType_FromId_KnownIds) {
     EXPECT_EQ(blockEntityTypeFromId(ResourceLocation("minecraft", "chest")), BlockEntityType::Chest);
     EXPECT_EQ(blockEntityTypeFromId(ResourceLocation("minecraft", "crafting_table")), BlockEntityType::CraftingTable);
     EXPECT_EQ(blockEntityTypeFromId(ResourceLocation("minecraft", "furnace")), BlockEntityType::Furnace);
+    EXPECT_EQ(blockEntityTypeFromId(ResourceLocation("minecraft", "sign")), BlockEntityType::Sign);
 }
 
 TEST_F(BlockEntityTest, BlockEntityType_FromId_ShortForm) {

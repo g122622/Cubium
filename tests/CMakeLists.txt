@@ -90,6 +90,8 @@ add_executable(mc_tests
     common/world/blockentity/BlockEntityTodoTest.cpp
     # ConduitEntity 潮涌核心测试（敌对生物检测、魔法伤害）
     common/world/blockentity/ConduitEntityTest.cpp
+    # SignEntity 告示牌测试（类型注册、文本功能）
+    common/world/blockentity/SignEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp

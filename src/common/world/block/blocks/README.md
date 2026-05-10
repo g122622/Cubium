@@ -33,6 +33,8 @@ blocks/
 ├── CauldronBlock.cpp        # 炼药锅方块实现
 ├── EnchantingTableBlock.hpp # 附魔台方块头文件
 ├── EnchantingTableBlock.cpp # 附魔台方块实现
+├── SignBlock.hpp            # 告示牌方块头文件
+├── SignBlock.cpp            # 告示牌方块实现
 ├── redstone/                # 红石方块子目录
 │   ├── README.md            # 红石方块文档
 │   ├── RedstoneBlock.hpp/cpp
@@ -459,6 +461,62 @@ auto waterBlock = std::make_unique<LiquidBlock>(
 - 每个有效书架增加1点附魔力量（最大15）
 
 **参考**: `net.minecraft.block.EnchantingTableBlock`
+
+---
+
+### SignBlock.hpp/cpp
+
+**职责**: 告示牌方块实现，支持站立和墙面两种放置形式。
+
+**类继承关系**:
+```
+Block
+  └── AbstractSignBlock (抽象基类，实现 IWaterLoggable)
+        ├── StandingSignBlock (站立告示牌)
+        └── WallSignBlock (墙面告示牌)
+```
+
+**主要特性**:
+- **AbstractSignBlock** (抽象基类):
+  - 实现 `IWaterLoggable` 接口，支持含水
+  - 创建 `SignEntity` 方块实体
+  - 存储 `WoodType` 木材类型（8种）
+
+- **StandingSignBlock** (站立告示牌):
+  - 拥有 `ROTATION_0_15` 属性（16个旋转方向，每22.5度）
+  - 拥有 `WATERLOGGED` 属性
+  - 需要下方固体方块支撑
+  - 状态数量：32个（16旋转 × 2含水）
+
+- **WallSignBlock** (墙面告示牌):
+  - 拥有 `FACING` 属性（4个水平方向）
+  - 拥有 `WATERLOGGED` 属性
+  - 需要墙面固体方块附着
+  - 状态数量：8个（4朝向 × 2含水）
+
+**木材类型**:
+| 枚举值 | 方块ID前缀 |
+|--------|-----------|
+| Oak | oak_sign, oak_wall_sign |
+| Spruce | spruce_sign, spruce_wall_sign |
+| Birch | birch_sign, birch_wall_sign |
+| Jungle | jungle_sign, jungle_wall_sign |
+| Acacia | acacia_sign, acacia_wall_sign |
+| DarkOak | dark_oak_sign, dark_oak_wall_sign |
+| Crimson | crimson_sign, crimson_wall_sign |
+| Warped | warped_sign, warped_wall_sign |
+
+**方块实体**:
+- `SignEntity` 存储4行富文本
+- 支持染色（16种染料颜色）
+- 支持发光效果（荧光墨囊）
+- 支持点击命令执行
+
+**碰撞形状**:
+- 站立告示牌：细长杆状（0.25-0.75 × 0-1 × 0.25-0.75）
+- 墙面告示牌：薄板状（按朝向不同）
+
+**参考**: `net.minecraft.block.AbstractSignBlock`, `net.minecraft.block.StandingSignBlock`, `net.minecraft.block.WallSignBlock`
 
 ---
 
