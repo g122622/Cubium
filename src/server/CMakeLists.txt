@@ -19,6 +19,7 @@ add_executable(minecraft-server
     core/PositionTracker.cpp
     core/PacketHandler.cpp
     core/GameModeManager.cpp
+    core/WhitelistManager.cpp
     # 维度模块
     dimension/ServerDimension.cpp
     dimension/ServerDimensionManager.cpp

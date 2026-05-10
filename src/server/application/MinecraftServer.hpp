@@ -11,6 +11,7 @@
 #include "server/core/PositionTracker.hpp"
 #include "server/core/PacketHandler.hpp"
 #include "server/core/GameModeManager.hpp"
+#include "server/core/WhitelistManager.hpp"
 #include "server/interaction/BlockInteractionManager.hpp"
 #include "server/interaction/MiningManager.hpp"
 #include "server/interaction/ContainerManager.hpp"
@@ -124,6 +125,11 @@ public:
 
     [[nodiscard]] core::GameModeManager& gameModeManager() override { return *m_gameModeManager; }
     [[nodiscard]] const core::GameModeManager& gameModeManager() const override { return *m_gameModeManager; }
+
+    // ========== 白名单管理器 ==========
+
+    [[nodiscard]] core::WhitelistManager& whitelistManager() override { return *m_whitelistManager; }
+    [[nodiscard]] const core::WhitelistManager& whitelistManager() const override { return *m_whitelistManager; }
 
     // ========== 世界管理器 ==========
 
@@ -706,6 +712,7 @@ protected:
     std::unique_ptr<core::PositionTracker> m_positionTracker;
     std::unique_ptr<core::PacketHandler> m_packetHandler;
     std::unique_ptr<core::GameModeManager> m_gameModeManager;
+    std::unique_ptr<core::WhitelistManager> m_whitelistManager;
 
     // 世界（由子类创建并设置）
     std::unique_ptr<ServerWorld> m_world;

@@ -263,6 +263,7 @@ void MinecraftServer::initializeCoreManagers()
         *m_timeManager,
         m_config);
     m_gameModeManager = std::make_unique<core::GameModeManager>(*m_playerManager, *m_connectionManager);
+    m_whitelistManager = std::make_unique<core::WhitelistManager>();
 
     // 创建维度管理器
     m_dimensionManager = std::make_unique<ServerDimensionManager>(this);

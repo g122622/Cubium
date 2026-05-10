@@ -341,6 +341,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/PacketHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/core/WhitelistManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp

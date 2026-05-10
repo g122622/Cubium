@@ -175,6 +175,7 @@ add_executable(mc_tests
     server/core/TeleportManagerTest.cpp
     server/core/KeepAliveManagerTest.cpp
     server/core/PositionTrackerTest.cpp
+    server/core/WhitelistManagerTest.cpp
     # 维度管理器测试
     server/dimension/ServerDimensionManagerTest.cpp
     server/weather/WeatherManagerTest.cpp
@@ -403,6 +404,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/PacketHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/core/WhitelistManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
@@ -1055,6 +1057,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/PacketHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/core/WhitelistManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp

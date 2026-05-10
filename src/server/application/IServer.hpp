@@ -45,6 +45,7 @@ class KeepAliveManager;
 class PositionTracker;
 class PacketHandler;
 class GameModeManager;
+class WhitelistManager;
 }
 
 namespace interaction {
@@ -123,6 +124,15 @@ public:
 
     [[nodiscard]] virtual core::GameModeManager& gameModeManager() = 0;
     [[nodiscard]] virtual const core::GameModeManager& gameModeManager() const = 0;
+
+    // ========== 白名单管理器 ==========
+
+    /**
+     * @brief 获取白名单管理器
+     * @return 白名单管理器引用
+     */
+    [[nodiscard]] virtual core::WhitelistManager& whitelistManager() = 0;
+    [[nodiscard]] virtual const core::WhitelistManager& whitelistManager() const = 0;
 
     // ========== 维度管理器 ==========
 

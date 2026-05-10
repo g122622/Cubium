@@ -3,6 +3,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include <memory>
+#include <string>
 
 namespace mc {
 namespace command {
@@ -33,6 +34,20 @@ private:
     static i32 whitelistAdd(CommandContext<ServerCommandSource>& context);
     static i32 whitelistRemove(CommandContext<ServerCommandSource>& context);
     static i32 whitelistReload(CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 踢出不在白名单的玩家
+     * @param source 命令源
+     */
+    static void kickNonWhitelistedPlayers(ServerCommandSource& source);
+
+    /**
+     * @brief 从玩家名生成临时 UUID
+     * @param name 玩家名
+     * @return 临时 UUID
+     * @note 实际服务器应从 Mojang API 获取真实 UUID
+     */
+    static std::string generateUuidFromName(const std::string& name);
 };
 
 } // namespace command

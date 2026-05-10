@@ -15,6 +15,7 @@ src/server/core/
 ├── TeleportManager.hpp/cpp   # 传送管理器
 ├── PositionTracker.hpp/cpp   # 位置追踪器
 ├── GameModeManager.hpp/cpp   # 游戏模式管理器
+├── WhitelistManager.hpp/cpp  # 白名单管理器
 └── PacketHandler.hpp/cpp     # 统一数据包处理器
 ```
 
@@ -285,6 +286,78 @@ struct ServerCoreConfig {
 | Creative | 是 | 否 | 是 | 是 |
 | Adventure | 否 | 否 | 否 | 否 |
 | Spectator | 是 | 是 | 是 | 否 |
+
+---
+
+### WhitelistManager.hpp/cpp
+
+白名单管理器，负责服务器白名单的管理。
+
+**职责：**
+- 白名单开关状态管理
+- 添加/移除玩家
+- 从文件加载/保存白名单
+- 检查玩家是否在白名单中
+
+**数据结构：**
+```cpp
+struct WhitelistEntry {
+    std::string uuid;      // 玩家 UUID
+    std::string name;      // 玩家名称
+};
+```
+
+**存储格式（JSON 数组）：**
+```json
+[
+  {"uuid": "xxx-xxx-xxx", "name": "Player1"},
+  {"uuid": "yyy-yyy-yyy", "name": "Player2"}
+]
+```
+
+**主要方法：**
+| 方法 | 描述 |
+|------|------|
+| `isEnabled()` | 检查白名单是否启用 |
+| `setEnabled(enabled)` | 设置白名单开关 |
+| `addEntry(entry)` | 添加玩家到白名单 |
+| `removeEntry(uuid)` | 通过 UUID 移除玩家 |
+| `removeEntryByName(name)` | 通过名称移除玩家 |
+| `isWhitelisted(uuid)` | 检查玩家是否在白名单中（UUID） |
+| `isNameWhitelisted(name)` | 检查玩家名称是否在白名单中（大小写不敏感） |
+| `getEntry(uuid)` | 获取白名单条目 |
+| `getEntryByName(name)` | 通过名称获取条目 |
+| `getAllEntries()` | 获取所有条目 |
+| `getAllNames()` | 获取所有名称 |
+| `size()` | 获取玩家数量 |
+| `clear()` | 清空白名单 |
+| `load(path)` | 从文件加载白名单 |
+| `save(path)` | 保存白名单到文件 |
+| `reload()` | 重新加载白名单 |
+
+**使用示例：**
+```cpp
+WhitelistManager whitelist;
+
+// 加载白名单
+whitelist.load("whitelist.json");
+
+// 启用白名单
+whitelist.setEnabled(true);
+
+// 添加玩家
+whitelist.addEntry(WhitelistEntry("uuid-123", "Player1"));
+whitelist.save();  // 保存更改
+
+// 检查玩家
+if (whitelist.isEnabled() && !whitelist.isNameWhitelisted("Player2")) {
+    // 拒绝连接
+}
+```
+
+**线程安全：**
+- 所有公共方法都是线程安全的
+- 使用 `std::mutex` 保护内部数据结构
 
 ---
 

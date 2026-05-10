@@ -27,6 +27,7 @@
 #include "server/core/ServerPlayerData.hpp"
 #include "server/core/TeleportManager.hpp"
 #include "server/core/TimeManager.hpp"
+#include "server/core/WhitelistManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/network/connection/IServerConnection.hpp"
@@ -147,6 +148,8 @@ public:
     [[nodiscard]] const server::core::PacketHandler& packetHandler() const override { return m_packetHandler; }
     [[nodiscard]] server::core::GameModeManager& gameModeManager() override { return m_gameModeManager; }
     [[nodiscard]] const server::core::GameModeManager& gameModeManager() const override { return m_gameModeManager; }
+    [[nodiscard]] server::core::WhitelistManager& whitelistManager() override { return m_whitelistManager; }
+    [[nodiscard]] const server::core::WhitelistManager& whitelistManager() const override { return m_whitelistManager; }
 
     [[nodiscard]] mc::ServerDimensionManager& dimensionManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const mc::ServerDimensionManager& dimensionManager() const override { throw std::logic_error("unused"); }
@@ -242,6 +245,7 @@ private:
     server::core::PositionTracker m_positionTracker;
     server::core::PacketHandler m_packetHandler;
     server::core::GameModeManager m_gameModeManager;
+    server::core::WhitelistManager m_whitelistManager;
     CommandRegistry m_commandRegistry;
     std::vector<std::shared_ptr<FakeConnection>> m_connections;
 };
