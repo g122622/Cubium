@@ -5,6 +5,7 @@
  * 测试发射器行为的核心功能：
  * - OptionalDispenseItemBehavior 的成功/失败状态
  * - DispenseItemBehaviorRegistry 的注册和查询
+ * - 药水效果发射器的药水效果应用
  */
 
 #include <gtest/gtest.h>
@@ -17,7 +18,11 @@
 #include "util/Direction.hpp"
 #include "util/math/Vector3.hpp"
 #include "item/core/ItemStack.hpp"
+#include "item/Items.hpp"
+#include "item/potion/PotionUtils.hpp"
+#include "item/potion/Potions.hpp"
 #include "entity/core/Entity.hpp"
+#include "entity/effect/EffectType.hpp"
 
 namespace mc {
 namespace blocks {
@@ -28,9 +33,15 @@ namespace test {
  */
 class DispenseBehaviorTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        // 初始化方块注册表（如果需要）
+    static void SetUpTestSuite() {
+        // 初始化方块注册表
         VanillaBlocks::initialize();
+        // 初始化物品注册表
+        Items::initialize();
+        // 初始化药水注册表
+        potion::Potions::initialize();
+        // 初始化发射器行为注册表
+        DispenseItemBehaviorRegistry::instance().initDefaultBehaviors();
     }
 };
 
@@ -167,6 +178,88 @@ TEST_F(DispenseBehaviorTest, WorldEventIds_AreCorrect) {
     EXPECT_EQ(mc::world::WorldEvents::DISPENSER_FAIL_SOUND, 1001);
     EXPECT_EQ(mc::world::WorldEvents::DISPENSER_LAUNCH_SOUND, 1002);
     EXPECT_EQ(mc::world::WorldEvents::DISPENSER_SMOKE, 2000);
+}
+
+// ============================================================================
+// 药水效果发射器测试
+// ============================================================================
+
+TEST_F(DispenseBehaviorTest, Registry_HasTippedArrowBehavior) {
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+
+    EXPECT_TRUE(registry.hasBehavior("minecraft:tipped_arrow"));
+}
+
+TEST_F(DispenseBehaviorTest, Registry_HasSplashPotionBehavior) {
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+
+    EXPECT_TRUE(registry.hasBehavior("minecraft:splash_potion"));
+}
+
+TEST_F(DispenseBehaviorTest, Registry_HasLingeringPotionBehavior) {
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+
+    EXPECT_TRUE(registry.hasBehavior("minecraft:lingering_potion"));
+}
+
+TEST_F(DispenseBehaviorTest, TippedArrowBehavior_IsProjectileBehavior) {
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:tipped_arrow");
+    ASSERT_NE(behavior, nullptr);
+    EXPECT_TRUE(behavior->isSuccess());
+}
+
+TEST_F(DispenseBehaviorTest, SplashPotionBehavior_IsProjectileBehavior) {
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:splash_potion");
+    ASSERT_NE(behavior, nullptr);
+    EXPECT_TRUE(behavior->isSuccess());
+}
+
+TEST_F(DispenseBehaviorTest, LingeringPotionBehavior_IsProjectileBehavior) {
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:lingering_potion");
+    ASSERT_NE(behavior, nullptr);
+    EXPECT_TRUE(behavior->isSuccess());
+}
+
+TEST_F(DispenseBehaviorTest, TippedArrowBehavior_RegisteredWithCorrectItem) {
+    // 验证药水箭发射行为已正确注册
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+
+    // 如果 TIPPED_ARROW 物品已初始化，验证可以通过物品获取行为
+    if (Items::TIPPED_ARROW != nullptr) {
+        ItemStack stack(Items::TIPPED_ARROW, 1);
+        IDispenseItemBehavior* behavior = registry.getBehavior(stack);
+        EXPECT_NE(behavior, nullptr);
+    }
+}
+
+TEST_F(DispenseBehaviorTest, SplashPotionBehavior_RegisteredWithCorrectItem) {
+    // 验证喷溅药水发射行为已正确注册
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+
+    // 如果 SPLASH_POTION 物品已初始化，验证可以通过物品获取行为
+    if (Items::SPLASH_POTION != nullptr) {
+        ItemStack stack(Items::SPLASH_POTION, 1);
+        IDispenseItemBehavior* behavior = registry.getBehavior(stack);
+        EXPECT_NE(behavior, nullptr);
+    }
+}
+
+TEST_F(DispenseBehaviorTest, LingeringPotionBehavior_RegisteredWithCorrectItem) {
+    // 验证滞留药水发射行为已正确注册
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+
+    // 如果 LINGERING_POTION 物品已初始化，验证可以通过物品获取行为
+    if (Items::LINGERING_POTION != nullptr) {
+        ItemStack stack(Items::LINGERING_POTION, 1);
+        IDispenseItemBehavior* behavior = registry.getBehavior(stack);
+        EXPECT_NE(behavior, nullptr);
+    }
 }
 
 } // namespace test

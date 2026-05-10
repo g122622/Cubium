@@ -95,17 +95,35 @@ public:
 
 ### 投掷物
 
-| 物品 | 行为 | 速度 | 偏差 |
-|------|------|------|------|
-| minecraft:arrow | 发射箭矢 | 1.1 | 6.0 |
-| minecraft:spectral_arrow | 发射光灵箭 | 1.1 | 6.0 |
-| minecraft:tipped_arrow | 发射药水箭 | 1.1 | 6.0 |
-| minecraft:snowball | 发射雪球 | 1.1 | 6.0 |
-| minecraft:egg | 发射鸡蛋 | 1.1 | 6.0 |
-| minecraft:ender_pearl | 发射末影珍珠 | 1.1 | 6.0 |
-| minecraft:experience_bottle | 发射附魔之瓶 | 1.1 | 3.0（更精确）|
-| minecraft:splash_potion | 发射喷溅药水 | 1.1 | 6.0 |
-| minecraft:lingering_potion | 发射滞留药水 | 1.1 | 6.0 |
+| 物品 | 行为 | 速度 | 偏差 | 说明 |
+|------|------|------|------|------|
+| minecraft:arrow | 发射箭矢 | 1.1 | 6.0 | 普通箭矢，可拾取 |
+| minecraft:spectral_arrow | 发射光灵箭 | 1.1 | 6.0 | 命中后使目标发光 |
+| minecraft:tipped_arrow | 发射药水箭 | 1.1 | 6.0 | 从 ItemStack 读取药水效果并应用颜色 |
+| minecraft:snowball | 发射雪球 | 1.1 | 6.0 | 对烈焰人造成 3 点伤害 |
+| minecraft:egg | 发射鸡蛋 | 1.1 | 6.0 | 有概率孵化小鸡 |
+| minecraft:ender_pearl | 发射末影珍珠 | 1.1 | 6.0 | 传送玩家至落点 |
+| minecraft:experience_bottle | 发射附魔之瓶 | 1.1 | 3.0 | 更精确的投掷 |
+| minecraft:splash_potion | 发射喷溅药水 | 1.1 | 6.0 | 设置 ItemStack 以便 onImpact() 读取效果 |
+| minecraft:lingering_potion | 发射滞留药水 | 1.1 | 6.0 | 设置 ItemStack 以便 onImpact() 读取效果 |
+
+### 药水效果发射器实现细节
+
+药水箭发射器（tipped_arrow）会从 ItemStack 读取药水效果并应用到箭矢：
+
+```cpp
+auto effects = potion::PotionUtils::getEffects(stack);
+if (!effects.empty()) {
+    arrow->setEffects(effects);
+    arrow->setColor(potion::PotionUtils::getColor(effects));
+}
+```
+
+喷溅药水和滞留药水发射器设置 ItemStack，由 `PotionEntity::onImpact()` 读取效果：
+
+```cpp
+potion->setItemStack(stack);  // onImpact() 会调用 PotionUtils::getEffects(m_itemStack)
+```
 
 ### 待实现的行为
 
