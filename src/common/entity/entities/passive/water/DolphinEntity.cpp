@@ -1,10 +1,14 @@
 #include "DolphinEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/Items.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "../../../../world/block/Block.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../sound/SoundEvents.hpp"
+#include <cmath>
 
 namespace mc {
 
@@ -23,8 +27,26 @@ std::unique_ptr<Entity> DolphinEntity::create(IWorld* /*world*/) {
 }
 
 bool DolphinEntity::canJumpOutOfWater() const {
-    // TODO: 检查是否接近水面
-    return isInWater();
+    // MC 1.16.5: 海豚可以跳出水面当且仅当:
+    // 1. 当前在水中
+    // 2. 上方有空气（接近水面）
+
+    if (!isInWater()) {
+        return false;
+    }
+
+    // 检查上方是否有空气
+    const Vector3 pos = position();
+    const BlockPos headPos(static_cast<i32>(std::floor(pos.x)),
+                          static_cast<i32>(std::floor(pos.y)) + 1,
+                          static_cast<i32>(std::floor(pos.z)));
+    const IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return false;
+    }
+
+    const BlockState* stateAbove = worldPtr->getBlockState(headPos);
+    return stateAbove != nullptr && stateAbove->isAir();
 }
 
 void DolphinEntity::setTreasurePos(const BlockPos& pos) {
@@ -48,13 +70,12 @@ void DolphinEntity::setGuidingPlayer(bool guiding, u64 playerId) {
 }
 
 bool DolphinEntity::isFoodItem(const ItemStack& itemStack) const {
-    // TODO: 检查是否是鱼
-    // return itemStack.getItem() == Items::COD ||
-    //        itemStack.getItem() == Items::SALMON ||
-    //        itemStack.getItem() == Items::PUFFERFISH ||
-    //        itemStack.getItem() == Items::TROPICAL_FISH;
-    (void)itemStack;
-    return false;
+    // MC 1.16.5: 海豚食物 - 鳕鱼、鲑鱼、河豚、热带鱼
+    const Item* item = itemStack.getItem();
+    return item == Items::COD ||
+           item == Items::SALMON ||
+           item == Items::PUFFERFISH ||
+           item == Items::TROPICAL_FISH;
 }
 
 void DolphinEntity::onLeaveWater() {

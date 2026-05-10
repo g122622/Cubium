@@ -34,9 +34,8 @@ void TurtleEntity::setHomePos(const BlockPos& pos) {
 }
 
 bool TurtleEntity::isInWater() const {
-    // TODO: 检查是否在水中
-    // return isInWaterState();
-    return false;
+    // MC 1.16.5: 海龟在水中
+    return Entity::isInWater();
 }
 
 bool TurtleEntity::isBreedingItem(const ItemStack& itemStack) const {

@@ -3,6 +3,7 @@
 #include "../../../entity/core/Entity.hpp"
 #include "../../../entity/core/LivingEntity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
+#include "../../../entity/entities/passive/special/FoxEntity.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../sound/SoundCategory.hpp"
@@ -41,18 +42,17 @@ ItemStack ChorusFruitItem::onItemUseFinish(ItemStack& stack, IWorld& world, Enti
         if (teleported) {
             // 播放传送音效
             // MC 1.16.5: 狐狸使用 ENTITY_FOX_TELEPORT，其他使用 ITEM_CHORUS_FRUIT_TELEPORT
-            // TODO: 检查是否是狐狸实体
-            // bool isFox = dynamic_cast<FoxEntity*>(&entity) != nullptr;
-            // auto soundEvent = isFox ? SoundEvents::ENTITY_FOX_TELEPORT : SoundEvents::ITEM_CHORUS_FRUIT_TELEPORT;
+            const bool isFox = dynamic_cast<FoxEntity*>(&entity) != nullptr;
+            const auto& soundEvent = isFox ? SoundEvents::ENTITY_FOX_TELEPORT : SoundEvents::ITEM_CHORUS_FRUIT_TELEPORT;
 
             // 在原位置播放音效
-            world.playSound(SoundEvents::ITEM_CHORUS_FRUIT_TELEPORT,
+            world.playSound(soundEvent,
                            sound::SoundCategory::Players,
                            Vector3(static_cast<f32>(d0), static_cast<f32>(d1), static_cast<f32>(d2)),
                            1.0f, 1.0f);
 
             // 在新位置播放音效（实体自己播放）
-            entity.playSound(SoundEvents::ITEM_CHORUS_FRUIT_TELEPORT, 1.0f, 1.0f);
+            entity.playSound(soundEvent, 1.0f, 1.0f);
         }
 
         // MC 1.16.5: 设置冷却时间（仅玩家）

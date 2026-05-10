@@ -28,9 +28,8 @@ public:
                                    const FluidState& correctState) const override;
 
     [[nodiscard]] i32 getTickDelay() const override {
-        // TODO: 根据维度返回不同值
-        // 主世界: 30 tick
-        // 下界: 10 tick
+        // 基础延迟值，实际延迟由 getTickDelay(IWorld&) 根据维度计算
+        // 主世界: 30 tick, 下界: 10 tick
         return 30;
     }
 
