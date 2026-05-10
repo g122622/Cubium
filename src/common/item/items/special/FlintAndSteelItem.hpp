@@ -62,17 +62,21 @@ public:
      */
     [[nodiscard]] static bool canLightBlock(IWorld& world, const BlockPos& pos);
 
-private:
     /**
      * @brief 获取应该放置的火焰方块
      *
      * 根据位置返回普通火或灵魂火。
+     * MC 1.16.5: AbstractFireBlock.getFireForPlacement
+     * - 如果下方是灵魂沙/灵魂土，返回灵魂火
+     * - 否则返回普通火
      *
      * @param world 世界引用
      * @param pos 位置
-     * @return 火焰方块指针
+     * @return 火焰方块指针（不会为空）
      */
     [[nodiscard]] static Block* getFireForPlacement(IWorld& world, const BlockPos& pos);
+
+private:
 };
 
 } // namespace tool

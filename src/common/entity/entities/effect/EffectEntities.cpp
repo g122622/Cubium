@@ -8,6 +8,8 @@
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "../../../item/items/special/FlintAndSteelItem.hpp"
 #include <cmath>
 #include <chrono>
 
@@ -215,23 +217,20 @@ void LightningBoltEntity::igniteBlocks(i32 extraIgnitions) {
                       static_cast<i32>(std::floor(m_position.y)),
                       static_cast<i32>(std::floor(m_position.z)));
 
-    // 获取火焰方块状态
-    const BlockState* fireState = nullptr;
-    if (VanillaBlocks::FIRE != nullptr) {
-        fireState = &VanillaBlocks::FIRE->defaultState();
-    }
-
-    if (fireState == nullptr) {
-        return;
-    }
-
     // MC 1.16.5: 在当前位置放置火焰
     const BlockState* currentState = m_world->getBlockState(blockPos);
-    // 检查是否为空气方块
     if (currentState != nullptr && currentState->isAir()) {
-        // TODO: AbstractFireBlock.getFireForPlacement() - 检查火焰是否可以放置在当前位置
-        // 目前直接放置普通火焰
-        m_world->setBlockState(blockPos, fireState);
+        // MC 1.16.5: AbstractFireBlock.getFireForPlacement()
+        // 检查下方方块决定火焰类型（灵魂火或普通火）
+        Block* fireBlock = item::tool::FlintAndSteelItem::getFireForPlacement(*m_world, blockPos);
+        if (fireBlock != nullptr) {
+            const BlockState& fireState = fireBlock->defaultState();
+            // 检查火焰是否可以放置在当前位置
+            IBlockReader& blockReader = static_cast<IBlockReader&>(*m_world);
+            if (fireBlock->isValidPosition(fireState, blockReader, blockPos)) {
+                m_world->setBlockState(blockPos, &fireState);
+            }
+        }
     }
 
     // MC 1.16.5: 额外点燃周围方块
@@ -248,8 +247,15 @@ void LightningBoltEntity::igniteBlocks(i32 extraIgnitions) {
 
             const BlockState* stateAtPos = m_world->getBlockState(firePos);
             if (stateAtPos != nullptr && stateAtPos->isAir()) {
-                // TODO: AbstractFireBlock.getFireForPlacement() - 检查火焰是否可以放置
-                m_world->setBlockState(firePos, fireState);
+                // MC 1.16.5: AbstractFireBlock.getFireForPlacement()
+                Block* fireBlock = item::tool::FlintAndSteelItem::getFireForPlacement(*m_world, firePos);
+                if (fireBlock != nullptr) {
+                    const BlockState& fireState = fireBlock->defaultState();
+                    IBlockReader& blockReader = static_cast<IBlockReader&>(*m_world);
+                    if (fireBlock->isValidPosition(fireState, blockReader, firePos)) {
+                        m_world->setBlockState(firePos, &fireState);
+                    }
+                }
             }
         }
     }
