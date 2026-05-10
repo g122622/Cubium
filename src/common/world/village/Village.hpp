@@ -54,6 +54,11 @@ struct VillageConfig {
 };
 
 /**
+ * @brief 村庄ID类型
+ */
+using VillageId = u64;
+
+/**
  * @brief 村庄
  *
  * 表示世界中的一个村庄实例，管理：
@@ -72,6 +77,19 @@ public:
      * @param center 村庄中心位置
      */
     explicit Village(BlockPos center);
+
+    // ========== ID 管理 ==========
+
+    /**
+     * @brief 获取村庄ID
+     */
+    [[nodiscard]] VillageId getId() const { return m_id; }
+
+    /**
+     * @brief 设置村庄ID（仅由 VillageManager 调用）
+     * @param id 村庄ID
+     */
+    void setId(VillageId id) { m_id = id; }
 
     // ========== 边界管理 ==========
 
@@ -309,6 +327,9 @@ private:
      * @return 如果找到返回钟的位置，否则返回空
      */
     [[nodiscard]] std::optional<BlockPos> findMeetingPoint(const poi::PointOfInterestStorage& poiStorage) const;
+
+    /// 村庄ID（由 VillageManager 分配）
+    VillageId m_id = 0;
 
     /// 村庄中心位置
     BlockPos m_center;

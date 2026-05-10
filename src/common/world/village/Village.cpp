@@ -310,6 +310,7 @@ std::optional<BlockPos> Village::findMeetingPoint(const poi::PointOfInterestStor
 }
 
 void Village::serialize(nbt::tags::compound_tag& tag) const {
+    tag.put("Id", static_cast<std::int64_t>(m_id));
     tag.put("CenterX", static_cast<std::int32_t>(m_center.x));
     tag.put("CenterY", static_cast<std::int32_t>(m_center.y));
     tag.put("CenterZ", static_cast<std::int32_t>(m_center.z));
@@ -360,6 +361,12 @@ Village Village::deserialize(const nbt::tags::compound_tag& tag) {
     center.z = tag.get<nbt::tags::int_tag>("CenterZ");
 
     Village village(center);
+
+    // 反序列化 ID（向后兼容）
+    if (tag.value.find("Id") != tag.value.end()) {
+        village.m_id = static_cast<VillageId>(tag.get<nbt::tags::long_tag>("Id"));
+    }
+
     village.m_radius = tag.get<nbt::tags::float_tag>("Radius");
     village.m_bedCount = tag.get<nbt::tags::int_tag>("BedCount");
     village.m_workstationCount = tag.get<nbt::tags::int_tag>("WorkstationCount");

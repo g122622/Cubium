@@ -113,12 +113,12 @@ void VillageManager::onVillagerJoin(u64 villagerId, BlockPos pos) {
     village->addVillager(villagerId);
     m_villagerToVillage[villagerId] = village;
 
-    // 更新区块映射
+    // 更新区块映射 - 将村庄关联到村民所在区块
     u64 chunkKey = getChunkKey(
         static_cast<ChunkCoord>(pos.x >> 4),
         static_cast<ChunkCoord>(pos.z >> 4)
     );
-    // 注意：这里需要知道村庄ID，暂时跳过
+    m_chunkToVillages[chunkKey].insert(village->getId());
 }
 
 void VillageManager::onVillagerLeave(u64 villagerId) {
@@ -275,7 +275,18 @@ void VillageManager::deserialize(const nbt::tags::compound_tag& tag) {
             for (const auto& villageTag : villagesList->value) {
                 auto village = std::make_unique<Village>(Village::deserialize(villageTag));
 
-                VillageId id = m_nextVillageId++;
+                // 使用村庄自己保存的 ID，如果没有则生成新的
+                VillageId id = village->getId();
+                if (id == 0) {
+                    id = m_nextVillageId++;
+                    village->setId(id);
+                }
+
+                // 更新 m_nextVillageId 以确保它比所有已加载的村庄 ID 都大
+                if (id >= m_nextVillageId) {
+                    m_nextVillageId = id + 1;
+                }
+
                 Village* ptr = village.get();
                 m_villageById[id] = ptr;
                 m_villages.push_back(std::move(village));
@@ -292,7 +303,13 @@ void VillageManager::deserialize(const nbt::tags::compound_tag& tag) {
         }
     }
 
-    m_nextVillageId = static_cast<VillageId>(tag.get<nbt::tags::long_tag>("NextVillageId"));
+    // 如果有 NextVillageId 字段，使用它（向后兼容）
+    if (tag.value.find("NextVillageId") != tag.value.end()) {
+        VillageId savedNextId = static_cast<VillageId>(tag.get<nbt::tags::long_tag>("NextVillageId"));
+        if (savedNextId > m_nextVillageId) {
+            m_nextVillageId = savedNextId;
+        }
+    }
 }
 
 // ========== 私有方法 ==========
@@ -302,6 +319,9 @@ Village* VillageManager::createVillage(BlockPos center) {
 
     VillageId id = m_nextVillageId++;
     Village* ptr = village.get();
+
+    // 设置村庄ID
+    ptr->setId(id);
     m_villageById[id] = ptr;
 
     // 初始化村庄边界

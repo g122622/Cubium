@@ -18,28 +18,28 @@ BeehiveBlock::BeehiveBlock(const BlockProperties& properties)
     : Block(properties) {
 
     // 创建状态容器
-    // TODO: 添加 HONEY_LEVEL_0_5 属性
+    // MC 1.16.5: BeehiveBlock 有 FACING 和 HONEY_LEVEL 两个属性
+    // HONEY_LEVEL 范围 0-5，表示蜂巢中的蜂蜜量
     auto container = StateContainer<Block, BlockState>::Builder(*this)
         .add(BlockStateProperties::HORIZONTAL_FACING())
+        .add(BlockStateProperties::HONEY_LEVEL_0_5())
         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
+    setDefaultState(defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+        .with(BlockStateProperties::HONEY_LEVEL_0_5(), 0));
 }
 
 i32 BeehiveBlock::getHoneyLevel(const BlockState& state) const {
-    MC_UNUSED(state);
-    // TODO: 返回蜂蜜等级
-    return 0;
+    return state.get(BlockStateProperties::HONEY_LEVEL_0_5());
 }
 
 BlockState BeehiveBlock::withHoneyLevel(i32 level) const {
-    MC_UNUSED(level);
-    // TODO: 设置蜂蜜等级
-    return defaultState();
+    return defaultState().with(BlockStateProperties::HONEY_LEVEL_0_5(), std::clamp(level, 0, 5));
 }
 
 BlockState BeehiveBlock::getStateForPlacement(BlockItemUseContext& context) {
