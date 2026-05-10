@@ -7,6 +7,7 @@
 #include "../../../entity/core/LivingEntity.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/effect/EffectType.hpp"
+#include "../../../core/Types.hpp"
 
 namespace mc {
 namespace item {
@@ -67,9 +68,14 @@ ItemStack PotionItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& e
             return ItemStack(Items::GLASS_BOTTLE, 1);
         } else {
             // 尝试将玻璃瓶添加到背包
-            // TODO: 实现 player->inventory().addItem()
-            // 暂时直接返回玻璃瓶
-            return ItemStack(Items::GLASS_BOTTLE, 1);
+            ItemStack glassBottle(Items::GLASS_BOTTLE, 1);
+            i32 remaining = player->inventory().add(glassBottle);
+            if (remaining > 0) {
+                // 无法完全添加，返回剩余的玻璃瓶
+                return ItemStack(Items::GLASS_BOTTLE, remaining);
+            }
+            // 全部添加成功，返回原堆叠
+            return stack;
         }
     }
 
@@ -110,7 +116,7 @@ std::string PotionItem::getTranslationKey(const ItemStack& stack) const {
  * @brief 将药水效果应用到实体
  *
  * MC 1.16.5 对齐:
- * - 瞬间效果：直接应用
+ * - 瞬间效果：直接应用（治疗/伤害根据目标是否亡灵）
  * - 非瞬间效果：添加到实体
  */
 void PotionItem::applyEffects(const potion::Potion* potion, Entity& entity, IWorld& /*world*/) {
@@ -125,10 +131,36 @@ void PotionItem::applyEffects(const potion::Potion* potion, Entity& entity, IWor
 
     for (const auto& effect : potion->effects()) {
         // MC 1.16.5: 瞬间效果直接应用
+        // 参考 net.minecraft.potion.EffectInstant.affectEntity()
         if (effect.type() == entity::effect::EffectType::InstantHealth ||
             effect.type() == entity::effect::EffectType::InstantDamage) {
-            // TODO: 实现瞬间效果的应用
-            // affectEntity(player, player, entity, amplifier, 1.0D)
+            // 计算效果等级对应的治疗/伤害量
+            // MC 1.16.5: 基础值 4.0，每级增加 2.0
+            f32 amount = 4.0f + (effect.amplifier() * 2.0f);
+
+            // 亡灵生物对瞬间治疗/伤害效果反转
+            // 参考 MC 1.16.5: MobEntity.isEntityUndead()
+            bool isUndead = livingEntity->getCreatureAttribute() == CreatureAttribute::Undead;
+
+            if (effect.type() == entity::effect::EffectType::InstantHealth) {
+                if (isUndead) {
+                    // 亡灵生物受到伤害
+                    // 参考 MC 1.16.5: DamageSources.MAGIC
+                    // 暂时使用普通伤害（没有 Magic 伤害源）
+                    livingEntity->heal(-amount);  // 负数治疗 = 伤害
+                } else {
+                    // 普通生物治疗
+                    livingEntity->heal(amount);
+                }
+            } else {  // InstantDamage
+                if (isUndead) {
+                    // 亡灵生物治疗
+                    livingEntity->heal(amount);
+                } else {
+                    // 普通生物受到伤害
+                    livingEntity->heal(-amount);
+                }
+            }
             continue;
         }
 

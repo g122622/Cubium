@@ -2,8 +2,10 @@
 #include "item/Items.hpp"
 #include "item/items/armor/DyeableArmorItem.hpp"
 #include "entity/entities/passive/basic/SheepEntity.hpp"
+#include "world/block/IBeaconBeamColorProvider.hpp"
 #include <algorithm>
 #include <unordered_set>
+#include <unordered_map>
 
 namespace mc {
 namespace crafting {
@@ -29,6 +31,73 @@ static const std::unordered_set<const Item*>& getDyeItems() {
         Items::WHITE_DYE,         // 白色染料
     };
     return dyeItems;
+}
+
+/**
+ * @brief 获取染料物品对应的颜色
+ *
+ * 参考 MC 1.16.5: net.minecraft.item.DyeItem
+ *
+ * @param item 染料物品
+ * @return DyeColor 枚举值，如果不是染料返回 White
+ */
+static DyeColor getDyeColorFromItem(const Item* item) {
+    static const std::unordered_map<const Item*, DyeColor> dyeColorMap = {
+        {Items::INK_SAC,           DyeColor::Black},
+        {Items::RED_DYE,           DyeColor::Red},
+        {Items::GREEN_DYE,         DyeColor::Green},
+        {Items::COCOA_BEANS,       DyeColor::Brown},
+        {Items::LAPIS_LAZULI_DYE,  DyeColor::Blue},
+        {Items::PURPLE_DYE,        DyeColor::Purple},
+        {Items::CYAN_DYE,          DyeColor::Cyan},
+        {Items::LIGHT_GRAY_DYE,    DyeColor::LightGray},
+        {Items::GRAY_DYE,          DyeColor::Gray},
+        {Items::PINK_DYE,          DyeColor::Pink},
+        {Items::LIME_DYE,          DyeColor::Lime},
+        {Items::YELLOW_DYE,        DyeColor::Yellow},
+        {Items::LIGHT_BLUE_DYE,    DyeColor::LightBlue},
+        {Items::MAGENTA_DYE,       DyeColor::Magenta},
+        {Items::ORANGE_DYE,        DyeColor::Orange},
+        {Items::WHITE_DYE,         DyeColor::White},
+    };
+
+    auto it = dyeColorMap.find(item);
+    if (it != dyeColorMap.end()) {
+        return it->second;
+    }
+    return DyeColor::White;
+}
+
+/**
+ * @brief 将 DyeColor 转换为 RGB 整数值
+ *
+ * 参考 MC 1.16.5: net.minecraft.item.DyeColor#getColorValue
+ *
+ * @param color 染料颜色
+ * @return RGB 整数值（0xRRGGBB 格式）
+ */
+static u32 dyeColorToRGB(DyeColor color) {
+    // MC 1.16.5 DyeColor 颜色值（整数格式）
+    // 参考 net.minecraft.item.DyeColor#textColor
+    switch (color) {
+        case DyeColor::White:      return 0xF9FFFE;  // #F9FFFE
+        case DyeColor::Orange:     return 0xF9801D;  // #F9801D
+        case DyeColor::Magenta:    return 0xC74EBD;  // #C74EBD
+        case DyeColor::LightBlue:  return 0x3AB3DA;  // #3AB3DA
+        case DyeColor::Yellow:     return 0xFED83D;  // #FED83D
+        case DyeColor::Lime:       return 0x80C71F;  // #80C71F
+        case DyeColor::Pink:       return 0xF38BAA;  // #F38BAA
+        case DyeColor::Gray:       return 0x474F52;  // #474F52
+        case DyeColor::LightGray:  return 0x9D9D97;  // #9D9D97
+        case DyeColor::Cyan:       return 0x169C9C;  // #169C9C
+        case DyeColor::Purple:     return 0x8932B8;  // #8932B8
+        case DyeColor::Blue:       return 0x3C44AA;  // #3C44AA
+        case DyeColor::Brown:      return 0x835432;  // #835432
+        case DyeColor::Green:      return 0x5E7C16;  // #5E7C16
+        case DyeColor::Red:        return 0xB02E26;  // #B02E26
+        case DyeColor::Black:      return 0x1D1D21;  // #1D1D21
+        default:                   return 0xF9FFFE;  // 默认白色
+    }
 }
 
 ArmorDyeRecipe::ArmorDyeRecipe(const ResourceLocation& id)
@@ -73,10 +142,9 @@ ItemStack ArmorDyeRecipe::assemble(const CraftingInventory& inventory) const {
         if (isDyeableArmor(stack)) {
             armorStack = stack.copy();
         } else if (isDye(stack)) {
-            // 从物品获取染料颜色
-            // TODO: 需要实现从染料物品获取颜色的逻辑
-            // 暂时使用默认颜色
-            colors.push_back(0xFFFFFF);  // 白色
+            // 从染料物品获取颜色
+            DyeColor dyeColor = getDyeColorFromItem(stack.getItem());
+            colors.push_back(dyeColorToRGB(dyeColor));
         }
     }
 
