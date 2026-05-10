@@ -141,6 +141,15 @@ inventory/
     - 绑定诅咒附魔的护甲在非创造模式下无法取下
     - 普通护甲可正常取下
 - `ResultSlot` 类：合成结果槽位，只能取出不能放入
+  - `mayPlace()`: 始终返回 false
+  - `onCrafting()`: 触发配方解锁通知（通过 `IRecipeHolder::onCrafting`）
+  - `onTake()`: 触发合成完成事件
+  - **MC 1.16.5 配方解锁机制**:
+    - 当 `m_inventory` 实现 `IRecipeHolder` 接口时，自动调用 `onCrafting(player)`
+    - 用于解锁配方到配方书（需配方书系统完善后完全生效）
+  - **材料消耗说明**: 由 `CraftingMenu.handleResultSlotClick()` 和 `quickMoveStack()` 处理
+    - 调用 `consumeIngredients()` 消耗材料
+    - 通过 `recipe->getRemainingItems()` 处理剩余物品（如水桶->空桶）
 - `FurnaceFuelSlot` 类：熔炉燃料槽位，只接受燃料物品
   - `mayPlace()`: 检查物品是否为有效燃料或桶类物品
   - `isFuel()`: 静态方法检查物品燃料属性（委托给 `AbstractFurnaceEntity::isFuel()`）

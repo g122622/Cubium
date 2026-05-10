@@ -1,5 +1,6 @@
 #include "Slot.hpp"
 #include "IInventory.hpp"
+#include "IRecipeHolder.hpp"
 #include "../entities/player/Player.hpp"
 #include "../../item/items/armor/ArmorItem.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
@@ -199,20 +200,25 @@ void ResultSlot::onSwapCraft(i32 numItemsCrafted) {
 void ResultSlot::onCrafting(const ItemStack& stack) {
     // MC 1.16.5: 触发成就和配方解锁
     if (m_amountCrafted > 0) {
-        // TODO: 触发成就
+        // TODO: 触发成就（需要成就系统实现）
         // stack.onCrafting(m_player->getWorld(), m_player, m_amountCrafted);
 
-        // TODO: 触发配方解锁事件
+        // TODO: 触发配方解锁事件（需要成就系统实现）
         // if (m_player instanceof ServerPlayer) {
         //     CriteriaTriggers.RECIPE_UNLOCKED.trigger(...);
         // }
     }
     m_amountCrafted = 0;
 
-    // TODO: 通知 IRecipeHolder
-    // if (m_inventory instanceof IRecipeHolder) {
-    //     ((IRecipeHolder)m_inventory).onCrafting(m_player);
-    // }
+    // MC 1.16.5: 通知 IRecipeHolder（用于解锁配方到配方书）
+    // 参考: net.minecraft.inventory.container.CraftingResultSlot.onCrafting
+    IInventory* inventory = getInventory();
+    if (inventory != nullptr) {
+        IRecipeHolder* recipeHolder = dynamic_cast<IRecipeHolder*>(inventory);
+        if (recipeHolder != nullptr && m_player != nullptr) {
+            recipeHolder->onCrafting(*m_player);
+        }
+    }
 
     (void)stack;
 }
@@ -221,13 +227,10 @@ ItemStack ResultSlot::onTake(Player& player, ItemStack stack) {
     // MC 1.16.5: 触发合成完成事件
     onCrafting(stack);
 
-    // TODO: 从合成网格消耗材料
-    // 这需要访问配方管理器和合成网格
-    // NonNullList<ItemStack> remaining = player.getWorld().getRecipeManager()
-    //     .getRecipeNonNull(IRecipeType.CRAFTING, m_craftingGrid, player.getWorld());
-    // for (int i = 0; i < remaining.size(); ++i) {
-    //     处理容器物品返还等
-    // }
+    // 注意：材料消耗由 CraftingMenu.handleResultSlotClick() 和 quickMoveStack() 处理
+    // 它们调用 consumeIngredients() -> shrinkCraftingGrid() 消耗材料
+    // 并通过 recipe->getRemainingItems() 处理剩余物品（如水桶->空桶）
+    // 参考: net.minecraft.inventory.container.WorkbenchContainer.slotChangedCraftingGrid
 
     (void)player;
     setChanged();
