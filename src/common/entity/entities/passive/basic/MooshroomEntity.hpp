@@ -122,9 +122,10 @@ public:
 
     /**
      * @brief 被雷击时触发
-     * 红色哞菇变为棕色哞菇
+     * 红色哞菇变为棕色哞菇，棕色哞菇变为红色哞菇
+     * MC 1.16.5: func_241841_a()
      */
-    void onStruckByLightning();
+    void onStruckByLightning() override;
 
 protected:
     // ========== AI 目标注册 ==========

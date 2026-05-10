@@ -2,6 +2,10 @@
 #include "../../../../core/Types.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../core/EntityRegistry.hpp"
+#include "../../../../sound/SoundEvents.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../util/math/random/Random.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <random>
 
 namespace mc {
@@ -72,10 +76,37 @@ std::unique_ptr<AnimalEntity> MooshroomEntity::spawnBaby(AnimalEntity& partner) 
 }
 
 void MooshroomEntity::onStruckByLightning() {
-    // 红色哞菇被雷击后变成棕色哞菇
-    if (isRed()) {
-        setMooshroomType(MooshroomType::Brown);
-        // TODO: 生成粒子效果
+    // MC 1.16.5: MooshroomEntity.func_241841_a() (onStruckByLightning)
+    // 红色哞菇 -> 棕色哞菇
+    // 棕色哞菇 -> 红色哞菇
+    // 播放 convert 音效并生成粒子
+
+    // 切换类型
+    MooshroomType newType = isRed() ? MooshroomType::Brown : MooshroomType::Red;
+    setMooshroomType(newType);
+
+    // 播放转换音效
+    playSound(SoundEvents::ENTITY_MOOSHROOM_CONVERT, 2.0f, 1.0f);
+
+    // MC 1.16.5: 生成爆炸粒子效果
+    // 在客户端生成粒子
+    if (world() != nullptr && world()->isClientSide()) {
+        using namespace mc::client::renderer::trident::particle;
+        math::Random& random = world()->getRandom();
+
+        // 生成多个爆炸粒子
+        i32 particleCount = 20;
+        for (i32 i = 0; i < particleCount; ++i) {
+            f32 offsetX = (random.nextFloat() - 0.5f) * width();
+            f32 offsetY = random.nextFloat() * height();
+            f32 offsetZ = (random.nextFloat() - 0.5f) * width();
+
+            world()->addParticle(
+                ParticleTypeId::Explosion,
+                Vector3(x() + offsetX, y() + offsetY, z() + offsetZ),
+                Vector3(0.0, 0.0, 0.0)
+            );
+        }
     }
 }
 
