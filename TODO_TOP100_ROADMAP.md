@@ -179,5 +179,3 @@ enum class Operation : u8 {
 ```
 
 最后要运行 `cmake --build build --config RelWithDebInfo` 来构建项目，并确保所有的测试都通过。
-
-当你完成一个TODO后，不要停下来，请继续做后面的TODO，直到所有TODO清空你才能停！
