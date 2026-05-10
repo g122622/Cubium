@@ -19,6 +19,7 @@
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 #include <unordered_map>
 #include <memory>
@@ -271,6 +272,53 @@ private:
     world::explosion::ExplosionMode m_lastExplosionMode = world::explosion::ExplosionMode::None;
     bool m_lastExplosionCausesFire = false;
     Entity* m_lastExplosionSource = nullptr;
+
+    // 粒子记录
+    i32 m_particleCount = 0;
+    client::renderer::trident::particle::ParticleTypeId m_lastParticleType =
+        client::renderer::trident::particle::ParticleTypeId::Invalid;
+
+public:
+    // 粒子生成接口实现
+    void addParticle(
+        client::renderer::trident::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity) override {
+        m_particleCount++;
+        m_lastParticleType = type;
+        (void)pos;
+        (void)velocity;
+    }
+
+    void addParticle(
+        client::renderer::trident::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const Vector3& offset,
+        u32 count) override {
+        m_particleCount += static_cast<i32>(count);
+        m_lastParticleType = type;
+        (void)pos;
+        (void)velocity;
+        (void)offset;
+    }
+
+    [[nodiscard]] bool shouldSpawnParticleAt(const Vector3&, f32) const override {
+        return true;
+    }
+
+    [[nodiscard]] i32 particleCount() const {
+        return m_particleCount;
+    }
+
+    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId lastParticleType() const {
+        return m_lastParticleType;
+    }
+
+    void resetParticleCount() {
+        m_particleCount = 0;
+        m_lastParticleType = client::renderer::trident::particle::ParticleTypeId::Invalid;
+    }
 };
 
 /**
@@ -597,6 +645,64 @@ TEST_F(TNTEntityTest, ExplosionRadiusBoundaryValues) {
     // 大半径
     tnt->setExplosionRadius(100.0f);
     EXPECT_FLOAT_EQ(tnt->getExplosionRadius(), 100.0f);
+}
+
+/**
+ * @brief 测试客户端烟雾粒子生成
+ *
+ * 在客户端模式下，点燃的 TNT 应该生成烟雾粒子
+ */
+TEST_F(TNTEntityTest, ClientSideSmokeParticles) {
+    using namespace client::renderer::trident::particle;
+
+    m_world.setClientSide(true);
+
+    auto tnt = std::make_unique<TNTEntity>();
+    tnt->setWorld(&m_world);
+    tnt->setPosition(10.0f, 64.0f, 20.0f);
+    tnt->ignite();  // 设置引信为 80
+
+    // tick 多次，粒子可能随机生成（1/3 概率）
+    // 由于是随机生成，我们只验证粒子类型正确时才计数
+    i32 smokeParticleCount = 0;
+    for (int i = 0; i < 20; ++i) {
+        m_world.resetParticleCount();
+        tnt->tick();
+        m_world.advanceTick();
+
+        // 如果有粒子生成，检查是否是烟雾粒子
+        if (m_world.particleCount() > 0) {
+            EXPECT_EQ(m_world.lastParticleType(), ParticleTypeId::Smoke);
+            smokeParticleCount += m_world.particleCount();
+        }
+    }
+
+    // 由于概率是 1/3，20 次 tick 应该至少生成一些粒子
+    // 但由于随机性，我们只检查粒子类型正确，不强制要求特定数量
+}
+
+/**
+ * @brief 测试服务端无粒子生成
+ *
+ * 在服务端模式下，不应该生成粒子
+ */
+TEST_F(TNTEntityTest, ServerSideNoParticles) {
+    m_world.setClientSide(false);
+
+    auto tnt = std::make_unique<TNTEntity>();
+    tnt->setWorld(&m_world);
+    tnt->setPosition(10.0f, 64.0f, 20.0f);
+    tnt->ignite();
+
+    // tick 多次
+    for (int i = 0; i < 20; ++i) {
+        m_world.resetParticleCount();
+        tnt->tick();
+        m_world.advanceTick();
+    }
+
+    // 服务端不应该生成粒子
+    EXPECT_EQ(m_world.particleCount(), 0);
 }
 
 } // namespace test

@@ -27,6 +27,15 @@ effect/
 - 光束指向传送门
 - 被攻击时爆炸
 
+### 爆炸
+
+当末影水晶被摧毁时（`explode()` 方法）：
+- 爆炸半径：6.0 格
+- 爆炸模式：`Destroy`（破坏方块并掉落物品）
+- 不生成火焰
+- 爆炸位置：水晶当前位置
+- 参考 MC 1.16.5: `this.world.createExplosion((Entity)null, this.getPosX(), this.getPosY(), this.getPosZ(), 6.0F, Explosion.Mode.DESTROY);`
+
 ## 闪电
 
 - 伤害范围3格内实体

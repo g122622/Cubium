@@ -120,6 +120,33 @@ MobEntity
 | SquidEntity | 鱿鱼 |
 | DolphinEntity | 海豚 |
 
+#### SquidEntity 行为详情
+
+鱿鱼是水生生物，具有喷墨和游泳行为。
+
+**喷墨行为**
+- 触发：`sprayInk()` 方法
+- 持续时间：`SPRAY_INK_DURATION` tick
+- 粒子效果：生成 30 个 `ParticleTypeId::SquidInk` 粒子
+- 粒子分布：在鱿鱼周围随机分布，形成云状墨汁效果
+- 粒子速度：向外扩散，轻微向上飘动
+
+```cpp
+void sprayInk() {
+    if (!m_sprayingInk) {
+        m_sprayingInk = true;
+        m_sprayTimer = SPRAY_INK_DURATION;
+        // 生成墨汁粒子...
+    }
+}
+```
+
+| 方法 | MC 1.16.5 | 项目 | 状态 |
+|------|-----------|------|------|
+| sprayInk() | 喷墨粒子效果 | 30个SquidInk粒子 | ✅ 已实现 |
+| tick() | 游泳状态更新 | 方向改变、推进 | ✅ 已实现 |
+| isInWater() | 检查是否在水中 | 父类方法 | ✅ 已实现 |
+
 ### ambient/ - 环境生物
 | 实体 | 说明 | 特殊行为 | 实现状态 |
 |------|------|----------|---------|
