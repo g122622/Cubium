@@ -5,6 +5,8 @@
 #include "../player/Player.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../../core/Types.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
 namespace mc {
@@ -92,9 +94,30 @@ void TNTEntity::tick() {
         m_fuse--;
 
         // MC 1.16.5: 客户端添加烟雾粒子效果
+        // 参考: TNTEntity.tick() - world.addParticle(ParticleTypes.SMOKE, ...)
         if (world() != nullptr && world()->isClientSide()) {
-            // TODO: 添加烟雾粒子效果
-            // world()->addParticle(ParticleTypes::SMOKE, x(), y() + 0.5, z(), 0, 0, 0);
+            using namespace mc::client::renderer::trident::particle;
+
+            // MC 1.16.5: 在 TNT 上方随机位置生成烟雾粒子
+            // 每帧有 1/3 概率生成粒子
+            math::Random& random = world()->getRandom();
+            if (random.nextInt(3) == 0) {
+                // 粒子位置：TNT 上方，带随机偏移
+                f32 px = static_cast<f32>(x()) + random.nextFloat() * 0.6f - 0.3f;
+                f32 py = static_cast<f32>(y()) + 0.5f + random.nextFloat() * 0.3f;
+                f32 pz = static_cast<f32>(z()) + random.nextFloat() * 0.6f - 0.3f;
+
+                // 粒子速度：轻微向上飘动
+                f32 vx = random.nextFloat() * 0.02f - 0.01f;
+                f32 vy = 0.02f + random.nextFloat() * 0.02f;
+                f32 vz = random.nextFloat() * 0.02f - 0.01f;
+
+                world()->addParticle(
+                    ParticleTypeId::Smoke,
+                    Vector3(px, py, pz),
+                    Vector3(vx, vy, vz)
+                );
+            }
         }
 
         if (m_fuse <= 0 && !m_exploded) {
