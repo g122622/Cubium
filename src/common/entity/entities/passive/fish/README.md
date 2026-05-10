@@ -17,7 +17,8 @@ fish/
 
 - `AbstractFishEntity`
   - 对齐 1.16.5 `AbstractFishEntity` 的基础层。
-  - 负责空气供应、游泳状态、离水扑腾状态。
+  - 负责游泳状态、离水扑腾状态。
+  - **空气供应**：重写 `maxAir()` 返回 480 tick（24秒），比普通水生生物更长。
   - **FromBucket 标签**：支持从桶放出的鱼不会消失的功能。
   - 不再承载群游字段。
 - `AbstractGroupFishEntity`

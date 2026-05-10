@@ -735,3 +735,226 @@ TEST(LivingEntityTest, SwingAnimation_SwingProgress) {
     EXPECT_GE(progress, 0.0f);
     EXPECT_LE(progress, 1.0f);
 }
+
+// ============================================================================
+// 空气供应和溺水测试
+// ============================================================================
+
+class MockRandomWorld final : public IWorld {
+public:
+    MockRandomWorld() : m_random(12345) {}
+
+    void setInWater(bool inWater) { m_inWater = inWater; }
+    void setInLava(bool inLava) { m_inLava = inLava; }
+
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
+    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override {
+        // 返回空流体状态
+        return fluid::Fluid::getFluidState(0);
+    }
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
+    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+    [[nodiscard]] bool isClientSide() override { return false; }
+
+    void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        static world::tick::TickManager* dummy = nullptr;
+        if (!dummy) throw std::runtime_error("MockRandomWorld::tickManager not implemented");
+        return *dummy;
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("MockRandomWorld::tickManager not implemented");
+    }
+
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("MockRandomWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("MockRandomWorld::worldBorder not implemented");
+    }
+
+private:
+    math::Random m_random;
+    bool m_inWater = false;
+    bool m_inLava = false;
+};
+
+// 测试 canBreatheUnderwater - 默认生物不能水下呼吸
+TEST(LivingEntityTest, CanBreatheUnderwater_Default) {
+    TestLivingEntity entity;
+    EXPECT_FALSE(entity.canBreatheUnderwater());
+}
+
+// 测试亡灵生物可以水下呼吸
+class TestUndeadEntity : public LivingEntity {
+public:
+    TestUndeadEntity() : LivingEntity(LegacyEntityType::Zombie, 1) {
+        registerAttributes();
+        setHealth(maxHealth());
+    }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override {
+        return CreatureAttribute::Undead;
+    }
+};
+
+TEST(LivingEntityTest, CanBreatheUnderwater_Undead) {
+    TestUndeadEntity entity;
+    EXPECT_TRUE(entity.canBreatheUnderwater());
+}
+
+// 测试 determineNextAir - 空气恢复
+TEST(LivingEntityTest, DetermineNextAir_Normal) {
+    TestLivingEntity entity;
+
+    // 空气恢复：每tick恢复4点
+    EXPECT_EQ(entity.determineNextAir(0), 4);
+    EXPECT_EQ(entity.determineNextAir(100), 104);
+    EXPECT_EQ(entity.determineNextAir(296), 300);  // 接近最大值
+    EXPECT_EQ(entity.determineNextAir(297), 300);  // 不超过最大值
+    EXPECT_EQ(entity.determineNextAir(300), 300);  // 已经是最大值
+}
+
+TEST(LivingEntityTest, DetermineNextAir_MaxAir) {
+    TestLivingEntity entity;
+
+    // 最大空气值为300（15秒）
+    EXPECT_EQ(entity.maxAir(), 300);
+
+    // 负数空气值也会正常恢复（每tick +4）
+    // 这是MC 1.16.5的行为：空气值可以是负数（用于溺水计时）
+    EXPECT_EQ(entity.determineNextAir(-10), -6);  // -10 + 4 = -6
+    EXPECT_EQ(entity.determineNextAir(-4), 0);    // -4 + 4 = 0
+
+    // 接近最大值时不能超过最大值
+    EXPECT_EQ(entity.determineNextAir(299), 300);
+    EXPECT_EQ(entity.determineNextAir(300), 300);  // 已经是最大值
+}
+
+// 测试 decreaseAirSupply - 没有水下呼吸附魔时空气正常减少
+TEST(LivingEntityTest, DecreaseAirSupply_NoRespiration) {
+    MockRandomWorld world;
+    TestLivingEntity entity;
+    entity.setWorld(&world);
+
+    // 没有水下呼吸附魔时，空气应该每次减少1
+    EXPECT_EQ(entity.decreaseAirSupply(300), 299);
+    EXPECT_EQ(entity.decreaseAirSupply(100), 99);
+    EXPECT_EQ(entity.decreaseAirSupply(1), 0);
+    EXPECT_EQ(entity.decreaseAirSupply(0), -1);
+}
+
+// 测试 updateAirSupply - 在陆地上恢复空气
+TEST(LivingEntityTest, UpdateAirSupply_RecoveryOnLand) {
+    MockRandomWorld world;
+    world.setInWater(false);
+    world.setInLava(false);
+
+    TestLivingEntity entity;
+    entity.setWorld(&world);
+    entity.setAir(100);  // 设置较低的空气值
+
+    entity.updateAirSupply();
+
+    // 在陆地上，空气应该恢复4点
+    EXPECT_EQ(entity.air(), 104);
+}
+
+// 测试 updateAirSupply - 水下呼吸效果
+TEST(LivingEntityTest, UpdateAirSupply_WaterBreathingEffect) {
+    MockRandomWorld world;
+    world.setInWater(true);
+    world.setInLava(false);
+
+    TestLivingEntity entity;
+    entity.setWorld(&world);
+    entity.setAir(300);
+
+    // 添加水下呼吸效果
+    entity.addEffect(mc::entity::effect::EffectInstance(
+        mc::entity::effect::EffectType::WaterBreathing,
+        200, 0, false, true, true
+    ));
+
+    entity.updateAirSupply();
+
+    // 有水下呼吸效果时，空气不应该减少
+    EXPECT_EQ(entity.air(), 300);
+}
+
+// 测试 updateAirSupply - 潮涌能量效果
+TEST(LivingEntityTest, UpdateAirSupply_ConduitPowerEffect) {
+    MockRandomWorld world;
+    world.setInWater(true);
+    world.setInLava(false);
+
+    TestLivingEntity entity;
+    entity.setWorld(&world);
+    entity.setAir(300);
+
+    // 添加潮涌能量效果
+    entity.addEffect(mc::entity::effect::EffectInstance(
+        mc::entity::effect::EffectType::ConduitPower,
+        200, 0, false, true, true
+    ));
+
+    entity.updateAirSupply();
+
+    // 有潮涌能量效果时，空气不应该减少
+    EXPECT_EQ(entity.air(), 300);
+}
+
+// 测试 updateAirSupply - 亡灵生物在水下不消耗空气
+TEST(LivingEntityTest, UpdateAirSupply_UndeadNoAirConsumption) {
+    MockRandomWorld world;
+    world.setInWater(true);
+    world.setInLava(false);
+
+    TestUndeadEntity entity;
+    entity.setWorld(&world);
+    entity.setAir(300);
+
+    entity.updateAirSupply();
+
+    // 亡灵生物可以在水下呼吸，空气不应该减少
+    EXPECT_EQ(entity.air(), 300);
+}
+
+// 测试 updateAirSupply - 不存活时不处理空气
+TEST(LivingEntityTest, UpdateAirSupply_NotAlive) {
+    MockRandomWorld world;
+    world.setInWater(true);
+    world.setInLava(false);
+
+    TestLivingEntity entity;
+    entity.setWorld(&world);
+    entity.setAir(300);
+    entity.setHealth(0.0f);  // 死亡状态
+
+    entity.updateAirSupply();
+
+    // 死亡实体不应该处理空气
+    EXPECT_EQ(entity.air(), 300);
+}

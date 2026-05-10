@@ -45,14 +45,14 @@ protected:
 
 TEST_F(PlayerSwimTest, InitialAirSupply) {
     // 玩家初始空气值应为 300 (15秒)
-    EXPECT_EQ(player->airSupply(), DEFAULT_MAX_AIR);
+    EXPECT_EQ(player->air(), DEFAULT_MAX_AIR);
 }
 
 TEST_F(PlayerSwimTest, AirSupplyDecreasesInWater) {
     // 在水中时，空气应该逐渐减少
     // 设置水中状态（用于测试）
     player->setInWater(true);
-    i32 initialAir = player->airSupply();
+    i32 initialAir = player->air();
 
     // 注意：updateAirSupply 会检查 isInWater()，这里手动设置标志
     // 实际游戏中 updateEnvironmentState() 会设置此标志
@@ -60,30 +60,30 @@ TEST_F(PlayerSwimTest, AirSupplyDecreasesInWater) {
 
     // 在水中且无水下呼吸效果时，空气应该减少
     // 如果没有效果，空气应该减少
-    EXPECT_LT(player->airSupply(), initialAir);
+    EXPECT_LT(player->air(), initialAir);
 }
 
 TEST_F(PlayerSwimTest, AirRecoveryOutOfWater) {
     // 消耗一些空气
-    player->setAirSupply(200);
+    player->setAir(200);
 
     // 不在水中时，空气应该恢复
     player->setInWater(false);
     player->updateAirSupply();
 
     // 每tick恢复4点
-    EXPECT_EQ(player->airSupply(), 204);
+    EXPECT_EQ(player->air(), 204);
 }
 
 TEST_F(PlayerSwimTest, AirRecoveryCapsAtMax) {
     // 空气接近最大值
-    player->setAirSupply(298);
+    player->setAir(298);
 
     // 不在水中时，空气应该恢复但不超过最大值
     player->setInWater(false);
     player->updateAirSupply();
 
-    EXPECT_EQ(player->airSupply(), DEFAULT_MAX_AIR);
+    EXPECT_EQ(player->air(), DEFAULT_MAX_AIR);
 }
 
 // ============================================================================
@@ -92,7 +92,7 @@ TEST_F(PlayerSwimTest, AirRecoveryCapsAtMax) {
 
 TEST_F(PlayerSwimTest, DrownDamageTriggersAtMinusTwenty) {
     // 空气耗尽到 -20 时触发溺水
-    player->setAirSupply(-19);
+    player->setAir(-19);
     player->setHealth(20.0f);
 
     // 模拟在水中
@@ -100,12 +100,12 @@ TEST_F(PlayerSwimTest, DrownDamageTriggersAtMinusTwenty) {
 
     // 更新空气供应，空气会降到 -20，然后重置为 0
     player->updateAirSupply();
-    EXPECT_EQ(player->airSupply(), 0);
+    EXPECT_EQ(player->air(), 0);
 
     // 空气重置后，第一次不应该立即伤害（需要 DROWN_DAMAGE_INTERVAL tick）
     // 设置溺水计时器使其触发
     for (int i = 0; i < DROWN_DAMAGE_INTERVAL; ++i) {
-        player->setAirSupply(-19);
+        player->setAir(-19);
         player->updateAirSupply();
     }
 
@@ -125,7 +125,7 @@ TEST_F(PlayerSwimTest, CreativeModeNoDrowning) {
     abilities.invulnerable = true;
     player->abilities() = abilities;
 
-    player->setAirSupply(-20);
+    player->setAir(-20);
     player->setHealth(20.0f);
     player->setInWater(true);
 
@@ -153,13 +153,13 @@ TEST_F(PlayerSwimTest, WaterBreathingPreventsAirConsumption) {
 
     // 在水中
     player->setInWater(true);
-    i32 initialAir = player->airSupply();
+    i32 initialAir = player->air();
 
     // 更新空气供应
     player->updateAirSupply();
 
     // 有水下呼吸效果时，空气不应该消耗
-    EXPECT_EQ(player->airSupply(), initialAir);
+    EXPECT_EQ(player->air(), initialAir);
 }
 
 TEST_F(PlayerSwimTest, ConduitPowerPreventsAirConsumption) {
@@ -172,13 +172,13 @@ TEST_F(PlayerSwimTest, ConduitPowerPreventsAirConsumption) {
 
     // 在水中
     player->setInWater(true);
-    i32 initialAir = player->airSupply();
+    i32 initialAir = player->air();
 
     // 更新空气供应
     player->updateAirSupply();
 
     // 有潮涌能量效果时，空气不应该消耗
-    EXPECT_EQ(player->airSupply(), initialAir);
+    EXPECT_EQ(player->air(), initialAir);
 }
 
 // ============================================================================
@@ -298,9 +298,9 @@ TEST_F(PlayerSwimTest, RemoveWaterBreathingEffect) {
 
     // 移除后应该正常消耗空气
     player->setInWater(true);
-    i32 initialAir = player->airSupply();
+    i32 initialAir = player->air();
     player->updateAirSupply();
-    EXPECT_LT(player->airSupply(), initialAir);
+    EXPECT_LT(player->air(), initialAir);
 }
 
 // ============================================================================

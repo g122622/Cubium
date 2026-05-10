@@ -184,6 +184,89 @@ if (safePos.has_value()) {
 }
 ```
 
+## 空气供应与溺水系统
+
+生物实体的空气管理和溺水伤害系统，参考 MC 1.16.5 `LivingEntity` 实现。
+
+### 核心方法
+
+```cpp
+class LivingEntity {
+public:
+    // 获取当前空气供应量
+    [[nodiscard]] i32 air() const;
+
+    // 设置空气供应量
+    void setAir(i32 air);
+
+    // 获取最大空气供应量（默认 300 tick = 15 秒）
+    [[nodiscard]] virtual i32 maxAir() const;
+
+    // 检查是否可以水下呼吸
+    // 亡灵生物（僵尸、骷髅等）返回 true
+    [[nodiscard]] virtual bool canBreatheUnderwater() const;
+
+    // 减少空气供应量（考虑水下呼吸附魔）
+    // 返回减少后的空气值
+    [[nodiscard]] i32 decreaseAirSupply(i32 currentAir);
+
+    // 计算下一 tick 的空气值（恢复）
+    // 返回 min(currentAir + 4, maxAir())
+    [[nodiscard]] i32 determineNextAir(i32 currentAir) const;
+
+    // 更新空气供应（每 tick 调用）
+    // 处理空气消耗、恢复、溺水伤害
+    virtual void updateAirSupply();
+
+protected:
+    i32 m_drownDamageTimer = 0;  // 溺水伤害计时器
+};
+```
+
+### 溺水机制（MC 1.16.5）
+
+1. **空气消耗**：
+   - 在水中或岩浆中且不能水下呼吸时，每 tick 调用 `decreaseAirSupply()` 减少 1 点空气
+   - 水下呼吸附魔（Respiration）有 `level/(level+1)` 概率不消耗空气
+   - 空气值可以从正数变成负数（用于溺水计时）
+
+2. **空气恢复**：
+   - 不在水中/岩浆中或可以水下呼吸时，每 tick 恢复 4 点空气
+   - 恢复上限为 `maxAir()`（默认 300）
+
+3. **溺水伤害**：
+   - 当空气值降到 -20 时重置为 0 并触发一次溺水伤害
+   - 伤害间隔由 `DROWN_DAMAGE_INTERVAL`（20 tick）控制
+   - 每次伤害量为 `DROWN_DAMAGE_AMOUNT`（2.0）
+   - 伤害类型为 `DamageSources::drown()`，绕过护甲
+
+### 特殊情况
+
+- **亡灵生物**：`canBreatheUnderwater()` 返回 true，不会溺水
+- **水下呼吸效果**：拥有 `WaterBreathing` 或 `ConduitPower` 效果时不消耗空气
+- **玩家**：创造模式的 `invulnerable` 状态阻止溺水伤害
+- **水生生物**：`WaterMobEntity` 使用反逻辑（在陆地上溺水，在水中恢复）
+
+### 子类重写
+
+```cpp
+// Player::updateAirSupply() - 创造模式免疫
+void Player::updateAirSupply() override {
+    if (m_abilities.invulnerable) return;
+    LivingEntity::updateAirSupply();
+}
+
+// WaterMobEntity::updateAirSupply() - 反逻辑
+void WaterMobEntity::updateAirSupply() override {
+    // 在水中恢复，在陆地上消耗空气
+}
+
+// AbstractFishEntity::maxAir() - 更长的空气储备
+i32 AbstractFishEntity::maxAir() const override {
+    return 480;  // 24 秒
+}
+```
+
 ## 继承层次
 
 ```

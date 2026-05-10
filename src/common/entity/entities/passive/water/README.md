@@ -19,20 +19,51 @@ src/common/entity/entities/passive/water/
 
 ### WaterMobEntity
 
-水生生物的基类，提供水下生存能力：
+水生生物的基类，继承自 CreatureEntity，实现反逻辑溺水系统（在陆地上溺水，在水中恢复）。
 
 **空气供应系统（MC 1.16.5 对齐）**
-- `isInWater()` - 检测是否在水中（调用基类 Entity::isInWater()）
-- `isInWaterOrBubble()` - 检测是否在水中或气泡柱中
-- `updateAirSupply()` - 更新空气供应
-  - 在水中：恢复空气至最大值
-  - 水外：消耗空气，空气耗尽时造成溺水伤害（每 20 tick 1.0 伤害）
-- `isDrowning()` - 是否正在溺水
 
-**溺水伤害常量**
-- 空气最大值：300 tick（15 秒）
-- 溺水伤害间隔：20 tick（1 秒）
+水生生物使用基类 `LivingEntity` 的空气管理接口：
+- `air()` / `setAir(i32)` - 获取/设置当前空气值
+- `maxAir()` - 获取最大空气值（默认 300 tick = 15 秒）
+- `isDrowning()` - 是否正在溺水（空气值 <= 0）
+
+**便捷方法（委托到基类）**
+- `getAirSupply()` - 委托到 `air()`
+- `setAirSupply(i32)` - 委托到 `setAir()`
+- `getMaxAirSupply()` - 委托到 `maxAir()`
+
+**溺水机制（反逻辑）**
+- 在水中：空气恢复到最大值
+- 在陆地上：消耗空气，空气降到 -20 时造成溺水伤害
+- 溺水伤害间隔：20 tick
 - 溺水伤害量：1.0f（玩家为 2.0f）
+
+```cpp
+// WaterMobEntity::updateAirSupply() override
+void WaterMobEntity::updateAirSupply() {
+    if (!isAlive()) return;
+
+    bool inWater = isInWater();
+
+    if (inWater) {
+        // 在水中恢复空气
+        setAir(maxAir());
+        m_drownDamageTimer = 0;
+    } else {
+        // 在陆地上消耗空气
+        setAir(decreaseAirSupply(air()));
+        if (air() <= -20) {
+            setAir(0);
+            m_drownDamageTimer++;
+            if (m_drownDamageTimer >= DROWN_DAMAGE_INTERVAL) {
+                m_drownDamageTimer = 0;
+                hurt(DamageSources::drown(), DROWN_DAMAGE_AMOUNT);
+            }
+        }
+    }
+}
+```
 
 ### DolphinEntity
 
@@ -60,46 +91,29 @@ Entity
 └── LivingEntity
     └── MobEntity
         └── CreatureEntity
-            └── WaterMobEntity      ← 水生生物基类
+            └── WaterMobEntity      ← 水生生物基类（反逻辑溺水）
                 ├── DolphinEntity   ← 海豚
-                └── SquidEntity     ← 鱿鱼
+                ├── SquidEntity     ← 鱿鱼
+                └── fish/
+                    └── AbstractFishEntity  ← 鱼类（更长的空气储备）
 ```
 
-## 关键实现细节
+## 与陆地生物的溺水对比
 
-### 溺水机制
-
-```cpp
-// WaterMobEntity::updateAirSupply()
-if (!inWater) {
-    m_airSupply--;
-    if (m_airSupply <= -20) {
-        m_airSupply = 0;
-        m_drownDamageTimer++;
-        if (m_drownDamageTimer >= 20) {
-            m_drownDamageTimer = 0;
-            hurt(DamageSources::drown(), 1.0f);
-        }
-    }
-} else {
-    m_airSupply = m_maxAirSupply;
-    m_drownDamageTimer = 0;
-}
-```
-
-### 与玩家的区别
-
-| 特性 | WaterMobEntity | Player |
-|------|----------------|--------|
-| 空气最大值 | 300 tick | 300 tick |
-| 溺水伤害 | 1.0f | 2.0f |
-| 溺水间隔 | 20 tick | 20 tick |
-| 效果免疫 | 无 | WaterBreathing/ConduitPower |
+| 特性 | WaterMobEntity | LivingEntity (陆地生物) | Player |
+|------|----------------|------------------------|--------|
+| 空气最大值 | 300 tick | 300 tick | 300 tick |
+| 在水中 | 恢复空气 | 消耗空气 | 消耗空气 |
+| 在陆地上 | 消耗空气 | 恢复空气 | 恢复空气 |
+| 溺水伤害 | 1.0f | 2.0f | 2.0f |
+| 溺水间隔 | 20 tick | 20 tick | 20 tick |
+| 效果免疫 | 无 | WaterBreathing/ConduitPower | WaterBreathing/ConduitPower/创造模式 |
 
 ## 测试用例
 
-目前水生生物模块的测试通过 Entity 基类测试覆盖：
-- [tests/common/test_entity_physics.cpp](../../../../../../tests/common/test_entity_physics.cpp)
+- [tests/entity/LivingEntityTests.cpp](../../../../../../tests/entity/LivingEntityTests.cpp) - 基类溺水测试
+- [tests/common/entity/PlayerSwimTest.cpp](../../../../../../tests/common/entity/PlayerSwimTest.cpp) - 玩家游泳和溺水测试
+- [tests/common/test_entity_physics.cpp](../../../../../../tests/common/test_entity_physics.cpp) - 物理常量测试
 
 ## 待实现功能
 
