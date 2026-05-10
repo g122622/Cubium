@@ -76,6 +76,7 @@ enum class PathNodeType : u8 {
 - `distanceToSq()` - 直线距离平方
 - `distanceToLinear()` - 直线距离
 - `clone()` - 克隆节点（不复制寻路状态）
+- `cloneMove()` - 创建移动克隆（保留所有寻路状态，MC 1.16.5 cloneMove）
 - `hash()` - 生成哈希值用于缓存
 
 ### PathHeap.hpp
@@ -99,8 +100,13 @@ enum class PathNodeType : u8 {
 
 **核心功能**：
 - **路径导航**：`getCurrentTarget()`, `advance()`, `isFinished()`, `reset()`
-- **路径操作**：`addPoint()`, `trimStart()`, `buildFromEnd()`
+- **路径操作**：`addPoint()`, `trimStart()`, `buildFromEnd()`, `setPoint()`
 - **状态检查**：`reachesTarget()` - 检查路径是否到达目标位置
+
+**路径修改方法**：
+- `setPoint(size_t index, const PathPoint& point)` - 设置指定索引的路径点（MC 1.16.5 setPoint）
+- `setPoint(size_t index, PathPoint&& point)` - 设置指定索引的路径点（移动语义）
+- `setCurrentPathLength(i32 length)` - 裁剪路径长度
 
 ### NodeProcessor.hpp
 
@@ -250,7 +256,19 @@ f32 heuristic(i32 x, i32 y, i32 z, i32 targetX, i32 targetY, i32 targetZ) {
 - **路径计算**：`moveTo()`, `moveToRange()` - 计算到目标位置/范围的路径
 - **路径跟随**：`tick()` - 每tick更新，沿路径移动实体
 - **路径重算**：`recomputePath()` - 目标移动时重新计算路径
-- **状态查询**：`hasPath()`, `isDone()`, `isInProgress()`
+- **路径修剪**：`trimPath()` - 处理特殊方块（如炼药锅）的路径调整
+- **状态查询**：`hasPath()`, `isDone()`, `isInProgress()`, `isStuck()`
+
+**特殊方块处理**：
+
+`trimPath()` 方法会在路径设置后自动处理特殊方块：
+
+| 方块类型 | 处理方式 | 说明 |
+|----------|----------|------|
+| 炼药锅 (Cauldron) | 路径点Y坐标+1 | 实体在炼药锅内时需要上移路径点 |
+| 下一个路径点Y较低 | 同样上移 | 确保路径平滑过渡 |
+
+参考 MC 1.16.5 `PathNavigator.trimPath()`
 
 **工作流程**：
 

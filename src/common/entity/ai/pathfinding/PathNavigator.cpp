@@ -4,6 +4,10 @@
 #include "../controller/MovementController.hpp"
 #include "../../../util/TimeUtils.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../world/block/BlockPos.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../../world/block/VanillaBlocks.hpp"
+#include "../../../world/IWorld.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::pathfinding {
@@ -251,7 +255,47 @@ void PathNavigator::checkForStuck() {
 void PathNavigator::trimPath() {
     // MC 1.16.5: 处理锅（Cauldron）等特殊方块的路径
     // 当实体在锅中时会调整路径点
-    // TODO: 实现锅检测，需要世界访问
+    if (!m_path || m_path->empty() || !m_entity) {
+        return;
+    }
+
+    // 获取世界
+    IWorld* world = m_entity->world();
+    if (world == nullptr) {
+        return;
+    }
+
+    // 遍历路径中的每个点
+    for (size_t i = 0; i < m_path->length(); ++i) {
+        const PathPoint* point = m_path->getPoint(i);
+        if (point == nullptr) {
+            continue;
+        }
+
+        // 获取下一个路径点（如果存在）
+        const PathPoint* nextPoint = m_path->getPoint(i + 1);
+
+        // 获取当前位置的方块状态
+        BlockPos pos(point->x(), point->y(), point->z());
+        const BlockState* state = world->getBlockState(pos);
+
+        // 检查是否为炼药锅
+        if (state != nullptr && state->is(VanillaBlocks::CAULDRON)) {
+            // 炼药锅是一个凹陷的方块，实体在里面时需要将路径点上移
+            // 参考 MC 1.16.5 PathNavigator.trimPath()
+            // currentPath.setPoint(i, pathpoint.cloneMove(pathpoint.x, pathpoint.y + 1, pathpoint.z));
+            PathPoint newPoint = point->cloneMove(point->x(), point->y() + 1, point->z());
+            m_path->setPoint(i, newPoint);
+
+            // 如果下一个路径点的 Y 坐标不高于当前点（修正后的坐标），
+            // 也需要将下一个点上移
+            if (nextPoint != nullptr && nextPoint->y() <= point->y()) {
+                PathPoint newNextPoint = nextPoint->cloneMove(
+                    nextPoint->x(), point->y() + 1, nextPoint->z());
+                m_path->setPoint(i + 1, newNextPoint);
+            }
+        }
+    }
 }
 
 void PathNavigator::resetTimeout() {

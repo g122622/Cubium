@@ -188,6 +188,30 @@ public:
         }
     }
 
+    /**
+     * @brief 设置指定索引的路径点
+     * MC 1.16.5: setPoint()
+     * @param index 索引
+     * @param point 新的路径点
+     */
+    void setPoint(size_t index, const PathPoint& point) {
+        if (index < m_points.size()) {
+            m_points[index] = point;
+        }
+    }
+
+    /**
+     * @brief 设置指定索引的路径点（移动语义）
+     * MC 1.16.5: setPoint()
+     * @param index 索引
+     * @param point 新的路径点
+     */
+    void setPoint(size_t index, PathPoint&& point) {
+        if (index < m_points.size()) {
+            m_points[index] = std::move(point);
+        }
+    }
+
     // ========== 路径操作 ==========
 
     /**

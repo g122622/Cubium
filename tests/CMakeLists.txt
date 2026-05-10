@@ -150,6 +150,7 @@ add_executable(mc_tests
     entity/TraderLlamaSupportTypesTest.cpp
     entity/PathfindingTests.cpp
     entity/WalkNodeProcessorTests.cpp
+    common/entity/ai/pathfinding/PathNavigatorTest.cpp
     entity/RandomWalkingGoalTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/MinecartTests.cpp

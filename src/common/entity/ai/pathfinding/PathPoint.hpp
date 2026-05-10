@@ -183,6 +183,7 @@ public:
         PathPoint copy(newX, newY, newZ);
         copy.m_heapIndex = m_heapIndex;
         copy.m_costFromStart = m_costFromStart;
+        copy.m_heuristic = m_heuristic;
         copy.m_distanceToNext = m_distanceToNext;
         copy.m_totalCost = m_totalCost;
         copy.m_parent = m_parent;
