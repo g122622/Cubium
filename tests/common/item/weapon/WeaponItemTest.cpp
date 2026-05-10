@@ -215,7 +215,20 @@ TEST_F(WeaponItemTest, CrossbowItem_GetChargeTime) {
     // 基础装填时间 25 tick
     EXPECT_EQ(item::CrossbowItem::getChargeTime(stack), 25);
 
-    // TODO: 测试快速装填附魔减少装填时间
+    // 测试快速装填附魔减少装填时间
+    // 快速装填 I: 25 - 5 = 20 tick
+    stack.addEnchantment("minecraft:quick_charge", 1);
+    EXPECT_EQ(item::CrossbowItem::getChargeTime(stack), 20);
+
+    // 快速装填 II: 25 - 10 = 15 tick
+    stack = ItemStack(Items::CROSSBOW, 1);
+    stack.addEnchantment("minecraft:quick_charge", 2);
+    EXPECT_EQ(item::CrossbowItem::getChargeTime(stack), 15);
+
+    // 快速装填 III: 25 - 15 = 10 tick
+    stack = ItemStack(Items::CROSSBOW, 1);
+    stack.addEnchantment("minecraft:quick_charge", 3);
+    EXPECT_EQ(item::CrossbowItem::getChargeTime(stack), 10);
 }
 
 TEST_F(WeaponItemTest, CrossbowItem_IsCharged) {
