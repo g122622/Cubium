@@ -14,6 +14,8 @@
 #include "client/ui/minecraft/screens/LoadingScreen.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/world/storage/core/WorldStoragePaths.hpp"
+#include "common/world/storage/list/WorldNameSanitizer.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -624,9 +626,23 @@ void ClientApplication::showCreateWorld()
         // 关闭创建界面
         screenStack->pop();
 
+        // 使用 WorldNameSanitizer 生成可用的世界目录名
+        // 参考 MC 1.16.5 CreateWorldScreen.calcSaveDirName() 和 FileUtil.findAvailableName()
+        auto storagePaths = world::storage::WorldStoragePaths::defaultPaths();
+        auto levelIdResult = world::storage::WorldNameSanitizer::findAvailableLevelId(
+            storagePaths.savesDir(), request.displayName);
+
+        if (!levelIdResult.success()) {
+            spdlog::error("[Session] Failed to generate levelId: {}", levelIdResult.error().toString());
+            return;
+        }
+
+        std::string levelId = levelIdResult.value();
+        spdlog::info("[Session] Generated levelId: '{}' from displayName: '{}'", levelId, request.displayName);
+
         // 构建启动配置
         WorldLaunchConfig config;
-        config.levelId = request.displayName;  // TODO: 使用 WorldNameSanitizer 生成目录名
+        config.levelId = levelId;
         config.displayName = request.displayName;
         config.seed = static_cast<i64>(request.seed);
         config.worldType = request.worldType;
