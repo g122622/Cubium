@@ -425,6 +425,7 @@ add_library(mc_common STATIC
     # World - Block System
     world/block/Material.cpp
     world/block/Block.cpp
+    world/block/BlockState.cpp
     world/block/BlockRegistry.cpp
     world/block/BlockSoundType.cpp
     world/block/BlockTags.cpp

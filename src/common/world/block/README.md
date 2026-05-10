@@ -6,7 +6,8 @@
 
 ```
 block/
-├── Block.hpp/cpp           # 方块基类和状态系统
+├── Block.hpp/cpp           # 方块基类
+├── BlockState.hpp/cpp      # 方块状态类
 ├── BlockPos.hpp            # 方块位置坐标类
 ├── BlockRegistry.hpp/cpp   # 方块注册表（单例）
 ├── HarvestTool.hpp         # 挖掘工具类型定义
@@ -61,7 +62,7 @@ block/
 
 ### Block.hpp/cpp
 
-**职责**：定义方块系统的核心类型，是整个模块的基础。
+**职责**：定义方块系统的核心基类，是整个模块的基础。
 
 **主要内容**：
 
@@ -69,12 +70,6 @@ block/
   - `empty()`：空形状
   - `fullCube()`：完整方块形状
   - `cube(x1, y1, z1, x2, y2, z2)`：创建自定义方块形状
-
-- **`BlockState`**：不可变的方块状态对象，继承自 `StateHolder<Block, BlockState>`
-  - 支持属性值的获取、设置、循环（O(1) 复杂度的状态转换）
-  - 缓存方块属性（固体、不透明、硬度、挖掘工具等）
-  - 提供碰撞形状、遮挡形状、AO 亮度值等查询方法
-  - `toModelKey()` 生成稳定的属性键，供资源系统和模型缓存使用；实现上使用轻量字符串拼接，避免 `ostringstream` 带来的额外开销
 
 - **`BlockProperties`**：方块属性构建器（流畅接口）
   - `hardness(value)`：设置硬度
@@ -110,6 +105,21 @@ block/
     - `onBlockAdded()`：放置处理
     - `onBlockRemoved()`：移除处理
     - `isReplaceable()`：方块是否可被替换（支持双层台阶等）
+
+### BlockState.hpp/cpp
+
+**职责**：定义不可变的方块状态对象，包含方块的所有属性值。
+
+**主要内容**：
+
+- **`BlockState`**：继承自 `StateHolder<Block, BlockState>`，支持 O(1) 复杂度的状态转换
+  - 属性查询：`isAir()`, `isSolid()`, `isOpaque()`, `isLiquid()`, `isFlammable()`
+  - 缓存属性：`lightLevel()`, `getOpacity()`, `hardness()`, `resistance()`, `blockId()`
+  - 形状查询：`getCollisionShape()`, `getShape()`, `getOcclusionShape()`, `getFaceOcclusionShape()`
+  - 光照计算：`hasOpaqueCollisionShape()`, `getAmbientOcclusionLightValue()`
+  - 挖掘相关：`getHarvestTool()`, `getHarvestLevel()`, `isToolEffective()`, `requiresTool()`
+  - 其他方法：`isSolidSide()`, `isOpaqueCube()`, `getFluidState()`, `getMaterial()`, `getSoundType()`
+  - `toModelKey()`：生成稳定的属性键，供资源系统和模型缓存使用
 
 ### BlockPos.hpp
 
