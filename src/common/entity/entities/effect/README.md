@@ -27,6 +27,14 @@ effect/
 - 光束指向传送门
 - 被攻击时爆炸
 
+### 光束粒子效果
+
+当末影水晶有光束目标（指向末地传送门）时，客户端每 tick 生成 EndRod 粒子：
+- 粒子类型：`ParticleTypeId::EndRod`
+- 粒子位置：水晶中心上方（y+1），带随机偏移
+- 粒子速度：向光束目标方向移动（速度 0.1~0.15）
+- 旋转值：`m_innerRotation` 在构造时随机初始化（0-99999），每 tick 递增用于渲染动画
+
 ### 爆炸
 
 当末影水晶被摧毁时（`explode()` 方法）：
@@ -89,7 +97,7 @@ effect/
 
 | 组件 | 状态 |
 |------|------|
-| EnderCrystalEntity | ⚠️ 框架完成，TODO需填充 |
+| EnderCrystalEntity | ✅ 完成 - 光束粒子效果、爆炸实现 |
 | LightningBoltEntity | ⚠️ 框架完成，TODO需填充 |
 | AreaEffectCloudEntity | ⚠️ 框架完成，TODO需填充 |
 | ExperienceOrbEntity | ⚠️ 框架完成，TODO需填充 |

@@ -8,6 +8,7 @@
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 #include <chrono>
 
@@ -37,8 +38,63 @@ void EnderCrystalEntity::tick() {
         m_healCooldown--;
     }
 
-    // 生成光束粒子效果
-    // TODO: 生成粒子
+    // MC 1.16.5: 客户端生成光束粒子效果
+    // 参考: EnderCrystalEntity.tick() - 末地水晶在有光束目标时生成 EndRod 粒子
+    if (world() != nullptr && world()->isClientSide()) {
+        using namespace client::renderer::trident::particle;
+
+        // MC 1.16.5: 初始化随机旋转值（构造函数中 this.rand.nextInt(100000)）
+        if (!m_rotationInitialized) {
+            math::Random& random = world()->getRandom();
+            m_innerRotation = random.nextInt(100000);
+            m_rotationInitialized = true;
+        }
+
+        // 如果有光束目标，生成指向目标的粒子
+        if (hasBeamTarget()) {
+            // 增加旋转角度用于动画
+            m_innerRotation++;
+
+            // 每tick生成 EndRod 粒子
+            // 粒子从水晶位置向光束目标方向移动
+            math::Random& random = world()->getRandom();
+
+            // 计算光束方向
+            Vector3 crystalCenter = m_position + Vector3(0.0f, 1.0f, 0.0f);  // 水晶中心
+            Vector3 targetPos(
+                static_cast<f32>(m_beamTarget.x) + 0.5f,
+                static_cast<f32>(m_beamTarget.y) + 0.5f,
+                static_cast<f32>(m_beamTarget.z) + 0.5f
+            );
+
+            // 方向向量（未归一化，用于粒子速度）
+            Vector3 direction = targetPos - crystalCenter;
+            f32 length = std::sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
+
+            if (length > 0.001f) {
+                // 归一化方向
+                Vector3 normalizedDir(direction.x / length, direction.y / length, direction.z / length);
+
+                // 在水晶位置生成粒子，向目标方向移动
+                // 粒子位置带随机偏移
+                f32 px = static_cast<f32>(x()) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
+                f32 py = static_cast<f32>(y()) + 1.0f + (random.nextFloat() - 0.5f) * 0.5f;
+                f32 pz = static_cast<f32>(z()) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
+
+                // 粒子速度：向光束目标方向移动
+                f32 speed = 0.1f + random.nextFloat() * 0.05f;
+
+                world()->addParticle(
+                    ParticleTypeId::EndRod,
+                    Vector3(px, py, pz),
+                    Vector3(normalizedDir.x * speed, normalizedDir.y * speed, normalizedDir.z * speed)
+                );
+            }
+        } else {
+            // 没有光束目标时，仍然更新旋转动画
+            m_innerRotation++;
+        }
+    }
 }
 
 bool EnderCrystalEntity::hasBeamTarget() const {

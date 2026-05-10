@@ -57,6 +57,8 @@ private:
     BlockPos m_beamTarget;
     bool m_showBottom = false;
     i32 m_healCooldown = 0;
+    i32 m_innerRotation = 0;  ///< MC 1.16.5: 用于渲染动画的旋转值
+    bool m_rotationInitialized = false;  ///< 是否已初始化旋转值
     static constexpr i32 HEAL_COOLDOWN = 10;
     static constexpr f32 EXPLOSION_RADIUS = 6.0f;
 };
