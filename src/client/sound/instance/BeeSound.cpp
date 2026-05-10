@@ -103,9 +103,8 @@ std::unique_ptr<TickableSound> BeeFlightSound::getNextSound() {
 
 bool BeeFlightSound::shouldSwitchSound() {
     // MC 1.16.5: 当蜜蜂愤怒时切换到愤怒声音
-    // TODO: 从实体元数据获取愤怒状态
-    // 当前返回 false，等待元数据同步实现
-    return false;
+    // 愤怒状态从 ClientEntity 的元数据参数读取（ANGER_TIME > 0）
+    return bee().isAngry();
 }
 
 // ============================================================================
@@ -124,9 +123,8 @@ std::unique_ptr<TickableSound> BeeAngrySound::getNextSound() {
 
 bool BeeAngrySound::shouldSwitchSound() {
     // MC 1.16.5: 当蜜蜂不再愤怒时切换回飞行声音
-    // TODO: 从实体元数据获取愤怒状态
-    // 当前返回 false，等待元数据同步实现
-    return false;
+    // 愤怒状态从 ClientEntity 的元数据参数读取（ANGER_TIME > 0）
+    return !bee().isAngry();
 }
 
 } // namespace mc::client::sound

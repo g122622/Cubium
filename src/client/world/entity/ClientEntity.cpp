@@ -222,4 +222,19 @@ bool ClientEntity::isFallFlying() const {
     return false;
 }
 
+bool ClientEntity::isAngry() const {
+    // 蜜蜂愤怒状态检测
+    // MC 1.16.5: BeeEntity.ANGER_TIME 参数 (id 1, i32 类型)
+    // 当愤怒时间 > 0 时，蜜蜂处于愤怒状态
+    if (m_dataManager.hasParam(1)) {
+        const auto* value = m_dataManager.getRaw(1);
+        if (value != nullptr) {
+            // ANGER_TIME 类型是 i32
+            i32 angerTime = value->get<i32>();
+            return angerTime > 0;
+        }
+    }
+    return false;
+}
+
 } // namespace mc::client

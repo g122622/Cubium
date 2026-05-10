@@ -644,17 +644,26 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
-        // 检查旧的 FallFlying 状态（用于声音触发）
+        // 检查旧状态（用于声音触发）
         bool wasFallFlying = entity->isFallFlying();
+        bool wasAngry = entity->isAngry();
 
+        // 应用新的元数据
         entity->setMetadata(metadata);
 
-        // 检查新的 FallFlying 状态
+        // 检查新状态
         bool isFallFlying = entity->isFallFlying();
+        bool isAngry = entity->isAngry();
 
         // 通知音频系统鞘翅飞行状态变化
         if (m_audioService && wasFallFlying != isFallFlying) {
             m_audioService->onPlayerElytraFlyingChanged(entityId, isFallFlying);
+        }
+
+        // 通知音频系统蜜蜂愤怒状态变化
+        // MC 1.16.5: 蜜蜂愤怒时切换到 ENTITY_BEE_LOOP_AGGRESSIVE 声音
+        if (m_audioService && wasAngry != isAngry) {
+            m_audioService->onEntityAngerStateChanged(entityId, isAngry);
         }
     };
 

@@ -535,6 +535,16 @@ public:
     void syncMetadataFromDataManager() {}
 
     /**
+     * @brief 检查实体是否处于愤怒状态
+     *
+     * 用于蜜蜂等实体的愤怒状态检测。
+     * MC 1.16.5: 蜜蜂的愤怒时间存储在元数据参数 ID 1（i32 类型）。
+     *
+     * @return 如果愤怒时间 > 0 返回 true
+     */
+    [[nodiscard]] bool isAngry() const;
+
+    /**
      * @brief 更新实体（每tick调用）
      */
     void tick();

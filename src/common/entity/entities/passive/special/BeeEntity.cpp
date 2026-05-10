@@ -9,8 +9,22 @@
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../../world/IWorld.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc {
+
+// ============================================================================
+// 静态数据参数定义
+// ============================================================================
+
+// MC 1.16.5 BeeEntity 数据参数
+entity::DataParameter<i8> BeeEntity::DATA_FLAGS_PARAM{0};
+entity::DataParameter<i32> BeeEntity::ANGER_TIME_PARAM{1};
+
+// ============================================================================
+// 构造与生命周期
+// ============================================================================
 
 BeeEntity::BeeEntity(LegacyEntityType type, EntityId id)
     : AnimalEntity(type, id)
@@ -25,6 +39,104 @@ BeeEntity::BeeEntity(LegacyEntityType type, EntityId id)
 std::unique_ptr<Entity> BeeEntity::create(IWorld* /*world*/) {
     return std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
 }
+
+void BeeEntity::registerData() {
+    AnimalEntity::registerData();
+
+    // MC 1.16.5 BeeEntity.registerData()
+    m_dataManager.registerParam(DATA_FLAGS_PARAM, static_cast<i8>(0));
+    m_dataManager.registerParam(ANGER_TIME_PARAM, static_cast<i32>(0));
+}
+
+// ============================================================================
+// 数据参数辅助方法
+// ============================================================================
+
+bool BeeEntity::getBeeFlag(i8 flag) const {
+    return (m_dataManager.get(DATA_FLAGS_PARAM) & flag) != 0;
+}
+
+void BeeEntity::setBeeFlag(i8 flag, bool value) {
+    i8 flags = m_dataManager.get(DATA_FLAGS_PARAM);
+    if (value) {
+        m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(flags | flag));
+    } else {
+        m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(flags & ~flag));
+    }
+}
+
+// ============================================================================
+// 花粉状态（使用 DataParameter 同步）
+// ============================================================================
+
+bool BeeEntity::hasNectar() const {
+    return getBeeFlag(FLAG_HAS_NECTAR);
+}
+
+void BeeEntity::setHasNectar(bool nectar) {
+    if (nectar != m_hasNectar) {
+        m_hasNectar = nectar;
+        setBeeFlag(FLAG_HAS_NECTAR, nectar);
+    }
+}
+
+bool BeeEntity::hasStung() const {
+    return getBeeFlag(FLAG_HAS_STUNG);
+}
+
+void BeeEntity::setHasStung(bool stung) {
+    if (stung != m_hasStung) {
+        m_hasStung = stung;
+        setBeeFlag(FLAG_HAS_STUNG, stung);
+    }
+}
+
+// ============================================================================
+// IAngerable 接口实现
+// ============================================================================
+
+i32 BeeEntity::getAngerTime() const {
+    return m_dataManager.get(ANGER_TIME_PARAM);
+}
+
+void BeeEntity::setAngerTime(i32 time) {
+    m_angerTime = time;
+    m_dataManager.set(ANGER_TIME_PARAM, time);
+}
+
+void BeeEntity::setAngry(bool angry) {
+    if (angry) {
+        // MC 1.16.5: 设置随机愤怒时间 (20-39 ticks)
+        // 这里简化为设置最大愤怒时间
+        setAngerTime(MAX_ANGER_TIME);
+    } else {
+        setAngerTime(0);
+    }
+}
+
+void BeeEntity::setRevengeTarget(LivingEntity* target) {
+    m_attackTarget = target;
+    if (target != nullptr) {
+        setAngry(true);
+    }
+}
+
+void BeeEntity::updateAnger() {
+    i32 angerTime = getAngerTime();
+    if (angerTime > 0) {
+        setAngerTime(angerTime - 1);
+        if (getAngerTime() == 0) {
+            // 愤怒结束，清除攻击目标
+            m_attackTarget = nullptr;
+            m_attacking = false;
+            m_targetPlayerId = 0;
+        }
+    }
+}
+
+// ============================================================================
+// 生命周期
+// ============================================================================
 
 void BeeEntity::setHivePos(const BlockPos& pos) {
     m_hivePos = pos;
@@ -52,18 +164,15 @@ std::unique_ptr<AnimalEntity> BeeEntity::spawnBaby(AnimalEntity& partner) {
     return nullptr;
 }
 
+// ============================================================================
+// 生命周期
+// ============================================================================
+
 void BeeEntity::tick() {
     AnimalEntity::tick();
 
-    // 更新愤怒计时器
-    if (m_angerTime > 0) {
-        m_angerTime--;
-        if (m_angerTime <= 0) {
-            m_attackTarget = nullptr;
-            m_attacking = false;
-            m_targetPlayerId = 0;
-        }
-    }
+    // MC 1.16.5: 更新愤怒计时器
+    updateAnger();
 
     // 螫刺后死亡处理
     if (m_hasStung) {
