@@ -7,8 +7,10 @@
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
-#include "server/player/ServerPlayer.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/player/ServerPlayer.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/world/GlobalPos.hpp"
 #include <sstream>
 
@@ -93,8 +95,6 @@ i32 SpawnPointCommand::setSelfSpawnPoint(CommandContext<ServerCommandSource>& co
 i32 SpawnPointCommand::setPlayerSpawnPoint(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
 
-    ServerPlayer* executor = source.player();
-
     const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
@@ -103,44 +103,48 @@ i32 SpawnPointCommand::setPlayerSpawnPoint(CommandContext<ServerCommandSource>& 
         return 0;
     }
 
-    // 当前简化实现：只能设置自己的出生点
-    // 完整实现需要 IServer::playerEntityManager() 来获取任意玩家的 Player 实体
-    if (executor == nullptr) {
-        source.sendError("Executor must be a player");
+    auto* server = source.server();
+    if (server == nullptr) {
+        source.sendError("Server not available");
         return 0;
     }
 
-    // 检查是否只选择了执行者自己
-    if (playerIds.size() == 1 && playerIds[0] == source.playerId()) {
-        const Vector3d& pos = source.position();
+    auto* world = source.world();
+    DimensionId dimensionId = DimensionId(0);
+    if (world != nullptr) {
+        dimensionId = world->dimension();
+    }
+
+    i32 successCount = 0;
+    for (PlayerId playerId : playerIds) {
+        // 通过 ServerPlayerEntityManager 获取玩家实体
+        Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
+        if (player == nullptr) {
+            continue;
+        }
+
+        // 使用玩家的当前位置作为重生点
+        const Vector3& pos = player->position();
         BlockPos spawnPos(
             static_cast<BlockCoord>(std::floor(pos.x)),
             static_cast<BlockCoord>(std::floor(pos.y)),
             static_cast<BlockCoord>(std::floor(pos.z))
         );
 
-        DimensionId dimensionId = DimensionId(0);
-        if (source.world() != nullptr) {
-            dimensionId = source.world()->dimension();
-        }
-
-        executor->setSpawnPoint(dimensionId, spawnPos, false);
+        player->setSpawnPoint(dimensionId, spawnPos, false);
 
         std::ostringstream ss;
-        ss << "Set spawn point for " << executor->username() << " to "
+        ss << "Set spawn point for " << player->username() << " to "
            << spawnPos.x << ", " << spawnPos.y << ", " << spawnPos.z;
         source.sendMessage(ss.str());
-        return 1;
+        successCount++;
     }
 
-    source.sendError("Can only set spawn point for yourself in this version");
-    return 0;
+    return successCount;
 }
 
 i32 SpawnPointCommand::setPlayerSpawnPointAtPosition(CommandContext<ServerCommandSource>& context) {
     auto& source = context.getSource();
-
-    ServerPlayer* executor = source.player();
 
     const auto& selector = context.getArgument<EntitySelector>("player");
     auto playerIds = support::resolvePlayerIds(source, selector);
@@ -148,6 +152,18 @@ i32 SpawnPointCommand::setPlayerSpawnPointAtPosition(CommandContext<ServerComman
     if (playerIds.empty()) {
         source.sendError("No matching players were found");
         return 0;
+    }
+
+    auto* server = source.server();
+    if (server == nullptr) {
+        source.sendError("Server not available");
+        return 0;
+    }
+
+    auto* world = source.world();
+    DimensionId dimensionId = DimensionId(0);
+    if (world != nullptr) {
+        dimensionId = world->dimension();
     }
 
     const auto& pos = context.getArgument<Vector3d>("pos");
@@ -157,30 +173,24 @@ i32 SpawnPointCommand::setPlayerSpawnPointAtPosition(CommandContext<ServerComman
         static_cast<BlockCoord>(std::floor(pos.z))
     );
 
-    // 当前简化实现：只能设置自己的出生点
-    if (executor == nullptr) {
-        source.sendError("Executor must be a player");
-        return 0;
-    }
-
-    // 检查是否只选择了执行者自己
-    if (playerIds.size() == 1 && playerIds[0] == source.playerId()) {
-        DimensionId dimensionId = DimensionId(0);
-        if (source.world() != nullptr) {
-            dimensionId = source.world()->dimension();
+    i32 successCount = 0;
+    for (PlayerId playerId : playerIds) {
+        // 通过 ServerPlayerEntityManager 获取玩家实体
+        Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
+        if (player == nullptr) {
+            continue;
         }
 
-        executor->setSpawnPoint(dimensionId, spawnPos, false);
+        player->setSpawnPoint(dimensionId, spawnPos, false);
 
         std::ostringstream ss;
-        ss << "Set spawn point for " << executor->username() << " to "
+        ss << "Set spawn point for " << player->username() << " to "
            << spawnPos.x << ", " << spawnPos.y << ", " << spawnPos.z;
         source.sendMessage(ss.str());
-        return 1;
+        successCount++;
     }
 
-    source.sendError("Can only set spawn point for yourself in this version");
-    return 0;
+    return successCount;
 }
 
 } // namespace command

@@ -107,8 +107,8 @@ i32 SpreadPlayersCommand::spreadPlayers(CommandContext<ServerCommandSource>& con
         f32 x = rng.nextFloat(minX, maxX);
         f32 z = rng.nextFloat(minZ, maxZ);
 
-        // TODO: 实现高度查找
-        i32 y = 64;  // 临时使用固定高度
+        // 使用世界高度查找获取地面高度
+        i32 y = world->getHeight(static_cast<BlockCoord>(x), static_cast<BlockCoord>(z));
 
         // 传送玩家
         player->x = x;
