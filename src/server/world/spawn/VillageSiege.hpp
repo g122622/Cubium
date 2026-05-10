@@ -220,6 +220,18 @@ private:
      * @return 是否在有效村庄内
      */
     [[nodiscard]] bool isInValidVillage(server::ServerWorld& world, const BlockPos& playerPos);
+
+    /**
+     * @brief 检查位置是否在蘑菇岛生物群系
+     *
+     * 蘑菇岛是安全区域，不会发生僵尸围攻。
+     * MC 1.16.5: getBiome(blockpos).getCategory() != Biome.Category.MUSHROOM
+     *
+     * @param world 世界
+     * @param pos 位置
+     * @return 是否为蘑菇岛生物群系
+     */
+    [[nodiscard]] bool isMushroomBiome(server::ServerWorld& world, const BlockPos& pos);
 };
 
 } // namespace server::spawn

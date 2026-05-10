@@ -8,6 +8,8 @@ spawn/
 ├── NaturalSpawner.cpp      # 自然生成器实现
 ├── DespawnManager.hpp      # 生物消失管理器头文件
 ├── DespawnManager.cpp      # 生物消失管理器实现
+├── VillageSiege.hpp        # 村庄围攻（僵尸围村）系统头文件
+├── VillageSiege.cpp        # 村庄围攻系统实现
 ├── SpawnConditions.hpp     # 生成条件检查工具
 └── SpawnConditions.cpp     # 生成条件检查实现
 ```
@@ -166,6 +168,91 @@ void onTick() {
 }
 ```
 
+### VillageSiege.hpp / VillageSiege.cpp
+
+**职责**: 实现 Minecraft 1.16.5 的僵尸围村（Zombie Siege）机制。
+
+**主要类**:
+
+```cpp
+class VillageSiege {
+public:
+    VillageSiege();
+
+    // 每 tick 调用，检查围攻条件并执行围攻逻辑
+    i32 tick(server::ServerWorld& world, bool spawnHostiles);
+
+    // 状态查询
+    [[nodiscard]] State getState() const;
+    [[nodiscard]] bool isSiegeActive() const;
+    [[nodiscard]] i32 getRemainingZombies() const;
+    [[nodiscard]] const BlockPos& getSpawnCenter() const;
+
+    // 配置常量
+    struct Config {
+        static constexpr i32 TRIGGER_CHANCE = 10;       // 10% 触发概率
+        static constexpr i32 TOTAL_ZOMBIES = 20;        // 总共 20 个僵尸
+        static constexpr i32 SPAWN_DELAY = 2;           // 每 2 tick 生成一个
+        static constexpr f32 SPAWN_DISTANCE = 32.0f;    // 玩家周围 32 格
+        static constexpr i32 MAX_SPAWN_ATTEMPTS = 10;   // 最大生成尝试次数
+        static constexpr i32 MAX_SETUP_ATTEMPTS = 10;   // 最大设置尝试次数
+        static constexpr i32 SPAWN_OFFSET_RANGE = 8;    // 生成偏移范围
+    };
+
+private:
+    bool trySetupSiege(server::ServerWorld& world);
+    bool spawnZombie(server::ServerWorld& world);
+    std::optional<BlockPos> findRandomSpawnPos(IWorld& world, const BlockPos& searchCenter);
+    bool canMonsterSpawnAt(IWorld& world, const BlockPos& pos);
+    bool isMidnight(server::ServerWorld& world) const;
+    bool isInValidVillage(server::ServerWorld& world, const BlockPos& playerPos);
+    bool isMushroomBiome(server::ServerWorld& world, const BlockPos& pos);
+};
+```
+
+**触发条件**（MC 1.16.5）:
+
+| 条件 | 说明 |
+|------|------|
+| 夜晚 | 游戏时间 12000-24000 tick |
+| 午夜时刻 | 天体角度约 0.5，对应 18000-18200 tick |
+| 玩家在村庄内 | 非旁观者玩家位于有效村庄 |
+| 生物群系非蘑菇岛 | 蘑菇岛是安全区域，不会发生围攻 |
+| 10% 概率触发 | 每晚午夜有 10% 概率触发围攻 |
+
+**围攻规则**:
+
+| 参数 | 值 | 说明 |
+|------|------|------|
+| 僵尸数量 | 20 | 每次围攻生成 20 个僵尸 |
+| 生成延迟 | 2 tick | 每 2 tick 生成一个僵尸 |
+| 生成距离 | 32 格 | 在玩家周围 32 格圆周上生成 |
+| 生成范围 | ±8 格 | 生成位置在圆周上随机偏移 ±8 格 |
+| 光照条件 | ≤7 | 生成位置方块光照需 ≤ 7 |
+
+**使用示例**:
+
+```cpp
+#include "server/world/spawn/VillageSiege.hpp"
+
+// 在 ServerWorld 中创建实例
+mc::server::spawn::VillageSiege m_villageSiege;
+
+// 每 tick 调用
+void ServerWorld::tick() {
+    bool spawnHostiles = !isPeacefulDifficulty();
+    i32 spawned = m_villageSiege.tick(*this, spawnHostiles);
+    // spawned 返回本次 tick 生成的僵尸数量
+}
+```
+
+**蘑菇岛检测**:
+
+蘑菇岛（MushroomFields, MushroomFieldShore）是 MC 1.16.5 中的安全区域，不会发生僵尸围攻。`isMushroomBiome()` 方法通过以下两种方式检测：
+
+1. **生物群系类别检查**: 通过 `BiomeRegistry::instance().get(biomeId).category() == Biome::Category::Mushroom`
+2. **生物群系 ID 备用检查**: 直接比较 `Biomes::MushroomFields` 和 `Biomes::MushroomFieldShore`
+
 ### SpawnConditions.hpp / SpawnConditions.cpp
 
 **职责**: 提供生成位置的条件检查工具函数。
@@ -222,6 +309,7 @@ flowchart TB
         EntityDensityManager["EntityDensityManager<br/>密度管理器"]
         MobDensityTracker["MobDensityTracker<br/>密度追踪器"]
         SpawnConditions["SpawnConditions<br/>生成条件检查"]
+        VillageSiege["VillageSiege<br/>村庄围攻"]
     end
 
     subgraph external["外部依赖"]
@@ -230,6 +318,8 @@ flowchart TB
         EntitySpawnPlacementRegistry["EntitySpawnPlacementRegistry<br/>实体放置注册表"]
         EntityRegistry["EntityRegistry<br/>实体注册表"]
         ChunkData["ChunkData<br/>区块数据"]
+        VillageManager["VillageManager<br/>村庄管理器"]
+        BiomeRegistry["BiomeRegistry<br/>生物群系注册表"]
     end
 
     NaturalSpawner --> EntityDensityManager
@@ -244,6 +334,12 @@ flowchart TB
     NaturalSpawner --> ChunkData
 
     SpawnConditions --> ServerWorld
+
+    VillageSiege --> ServerWorld
+    VillageSiege --> VillageManager
+    VillageSiege --> EntityRegistry
+    VillageSiege --> BiomeRegistry
+    VillageSiege --> ChunkData
 ```
 
 ## 生成流程
@@ -543,6 +639,7 @@ mc::world::spawn::SpawnCosts costs(1.0, 0.7);  // energyBudget=1.0, charge=0.7
 | 文件 | 测试数量 | 说明 |
 |------|---------|------|
 | `tests/server/world/spawn/NaturalSpawnerTest.cpp` | 37 | NaturalSpawner 核心功能测试 |
+| `tests/server/world/spawn/VillageSiegeTest.cpp` | 26 | VillageSiege 僵尸围村测试 |
 | `tests/common/entity/EntitySpawnPlacementRegistryTest.cpp` | 15 | 实体放置注册表测试 |
 | `tests/common/world/EntityManagerSpawnTest.cpp` | 15 | 实体管理器生成集成测试 |
 
@@ -582,6 +679,39 @@ mc::world::spawn::SpawnCosts costs(1.0, 0.7);  // energyBudget=1.0, charge=0.7
 - `SpawnCosts_ValidValues` - 有效值
 - `SpawnCosts_ZeroBudget` - 零预算无效
 
+#### VillageSiegeTest.cpp
+
+**状态测试**:
+- `InitialState_IsDone` - 初始状态为 Done
+- `IsSiegeActive_InitiallyFalse` - 初始时围攻未激活
+- `GetRemainingZombies_InitiallyZero` - 初始剩余僵尸为 0
+- `GetSpawnCenter_InitiallyZero` - 初始生成中心为零坐标
+
+**配置常量测试**:
+- `Config_TriggerChance` - 触发概率 10%
+- `Config_TotalZombies` - 僵尸数量 20
+- `Config_SpawnDelay` - 生成延迟 2 tick
+- `Config_SpawnDistance` - 生成距离 32 格
+- `Config_MaxSpawnAttempts` - 最大生成尝试 10
+- `Config_MaxSetupAttempts` - 最大设置尝试 10
+- `Config_SpawnOffsetRange` - 生成偏移范围 8
+
+**状态枚举测试**:
+- `State_CanActivate` - CanActivate 枚举值
+- `State_Tonight` - Tonight 枚举值
+- `State_Done` - Done 枚举值
+
+**常量验证测试**:
+- `DayLengthConstant` - 一天 24000 tick
+- `TwoPiConstant` - TWO_PI 常量正确
+- `SiegeSequence_Valid` - 围攻序列时长验证
+- `TriggerProbability_Valid` - 触发概率验证
+- `SpawnArea_Calculation` - 生成区域计算验证
+
+**移动语义测试**:
+- `MoveConstructor_Works` - 移动构造函数
+- `MoveAssignment_Works` - 移动赋值运算符
+
 #### EntitySpawnPlacementRegistryTest.cpp
 
 - `IsInitialized` - 初始化状态
@@ -610,6 +740,7 @@ mc::world::spawn::SpawnCosts costs(1.0, 0.7);  // energyBudget=1.0, charge=0.7
 | `NaturalSpawner` | `WorldEntitySpawner.NaturalSpawner` |
 | `EntityDensityManager` | `WorldEntitySpawner.EntityDensityManager` |
 | `MobDensityTracker` | `WorldEntitySpawner.MobDensityTracker` |
+| `VillageSiege` | `VillageSiege` |
 | `SpawnConditions` | `EntitySpawnPlacementRegistry` (部分) |
 | `MobSpawnInfo` | `MobSpawnInfo` |
 | `SpawnEntry` | `MobSpawnInfo.Spawners` |

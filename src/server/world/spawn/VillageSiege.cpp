@@ -9,6 +9,9 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/Biome.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
@@ -133,8 +136,12 @@ bool VillageSiege::trySetupSiege(server::ServerWorld& world) {
             continue;
         }
 
-        // 条件: 生物群系不能是蘑菇岛（蘑菇岛上不会发生僵尸围村）
-        // 当生物群系系统完全实现后，需要添加 BiomeHelper.isMushroomBiome 检查
+        // 条件: 生物群系不能是蘑菇岛
+        // MC 1.16.5: getBiome(blockpos).getCategory() != Biome.Category.MUSHROOM
+        // 蘑菇岛是安全区域，不会发生僵尸围攻
+        if (isMushroomBiome(world, playerPos)) {
+            continue;
+        }
 
         // 尝试在玩家周围找到有效的生成位置
         for (i32 attempt = 0; attempt < Config::MAX_SETUP_ATTEMPTS; ++attempt) {
@@ -304,6 +311,41 @@ bool VillageSiege::isInValidVillage(server::ServerWorld& world, const BlockPos& 
     (void)village;
 
     return true;
+}
+
+bool VillageSiege::isMushroomBiome(server::ServerWorld& world, const BlockPos& pos) {
+    // MC 1.16.5: world.getBiome(blockpos).getCategory() != Biome.Category.MUSHROOM
+    // 蘑菇岛生物群系不会发生僵尸围攻
+
+    // 获取玩家所在区块
+    const ChunkCoord chunkX = pos.x >> 4;
+    const ChunkCoord chunkZ = pos.z >> 4;
+    const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
+
+    if (!chunk) {
+        // 区块未加载，保守返回 false（不是蘑菇岛）
+        return false;
+    }
+
+    // 获取玩家位置的生物群系
+    const BiomeId biomeId = chunk->getBiomeAtBlock(pos.x, pos.y, pos.z);
+
+    // 检查生物群系类别是否为蘑菇岛
+    // 方法1：通过 BiomeRegistry 获取生物群系定义并检查类别
+    if (BiomeRegistry::instance().hasBiome(biomeId)) {
+        const Biome& biome = BiomeRegistry::instance().get(biomeId);
+        if (biome.category() == Biome::Category::Mushroom) {
+            return true;
+        }
+    }
+
+    // 方法2：直接检查蘑菇岛生物群系 ID（作为备用检查）
+    // 蘑菇岛 ID: 14 (MushroomFields), 15 (MushroomFieldShore)
+    if (biomeId == Biomes::MushroomFields || biomeId == Biomes::MushroomFieldShore) {
+        return true;
+    }
+
+    return false;
 }
 
 } // namespace server::spawn
