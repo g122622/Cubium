@@ -677,11 +677,6 @@ void VanillaBlocks::initialize() {
         MC_TRACE_EVENT("client.initialization", "registerStairsSlabsWalls");
         registerStairsSlabsWalls();
     }
-    // TODO: SignBlock需要正确配置include路径后注册
-    // {
-    //     MC_TRACE_EVENT("client.initialization", "registerSignBlocks");
-    //     registerSignBlocks();
-    // }
 
     // 初始化方块标签（必须在所有方块注册后）
     BlockTags::initialize();

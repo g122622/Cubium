@@ -4,6 +4,7 @@
 #include "world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "world/blockentity/interactive/DropperBlockEntity.hpp"
 #include "world/blockentity/interactive/EnchantingTableEntity.hpp"
+#include "world/blockentity/interactive/SignEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
 #include "world/blockentity/storage/TrappedChestEntity.hpp"
 #include "world/blockentity/transport/HopperEntity.hpp"
@@ -103,6 +104,11 @@ void BlockEntityRegistry::registerBuiltinTypes() {
     // 注册潮涌核心方块实体
     registerType(BlockEntityType::Conduit, [](const BlockPos& pos) {
         return std::make_unique<ConduitEntity>(pos);
+    });
+
+    // 注册告示牌方块实体
+    registerType(BlockEntityType::Sign, [](const BlockPos& pos) {
+        return std::make_unique<SignEntity>(pos);
     });
 }
 
