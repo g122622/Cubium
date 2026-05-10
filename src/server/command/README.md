@@ -216,6 +216,14 @@ public:
 - `/kill` - 杀死自己
 - `/kill <target>` - 杀死指定实体
 
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- 使用 `Entity::onKillCommand()` 方法处理实体死亡
+- `LivingEntity` 重写 `onKillCommand()` 使用虚空伤害（`Float.MAX_VALUE`）确保完整死亡流程
+- 通过 `ServerPlayerEntityManager` 获取玩家实体
+
 **权限等级：** 2
 
 #### ListCommand - /list 命令
@@ -225,6 +233,27 @@ public:
 **用法：**
 
 - `/list` - 显示当前服务器上的玩家数量
+
+**权限等级：** 0（所有玩家可用）
+
+#### MessageCommand - /msg 命令
+
+发送私聊消息给其他玩家。
+
+**用法：**
+
+- `/msg <target> <message>` - 发送私聊消息
+- `/tell <target> <message>` - `/msg` 的别名
+- `/w <target> <message>` - `/msg` 的别名
+
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- 通过 `ServerPlayerEntityManager` 获取目标玩家的 `Player` 实体
+- 使用 `ConnectionManager::sendPacketToPlayer()` 发送私聊消息
+- 消息格式符合 MC 1.16.5 规范：`§7§o<sender> whispers to you: <message>`
+- 发送者收到格式：`§7§oYou whisper to <target>: <message>`
 
 **权限等级：** 0（所有玩家可用）
 
@@ -299,6 +328,16 @@ public:
 - `/experience set <targets> <amount> [points|levels]` - 设置经验
 - `/experience query <targets> [points|levels]` - 查询经验
 - `/xp` 是 `/experience` 的重定向别名，避免重复维护同一棵树
+
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- 通过 `ServerPlayerEntityManager` 获取目标玩家的 `Player` 实体
+- 支持 `add`、`set`、`query` 子命令
+- 支持 `points` 和 `levels` 两种经验单位
+- `add` 支持负数值（减少经验）
+- `set` 仅允许非负值
 
 **权限等级：** 2
 
@@ -425,6 +464,18 @@ public:
 
 - `/attribute <target> <attribute> get` - 获取属性值
 - `/attribute <target> <attribute> set <value>` - 设置属性基础值
+
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- 通过 `ServerPlayerEntityManager` 获取目标玩家的 `Player` 实体
+- 从 `Player::attributes()` 获取 `AttributeMap` 进行属性读写
+- 支持 `generic.` 前缀属性（如 `generic.max_health`）
+- 支持简写属性名（如 `max_health` 自动添加 `generic.` 前缀）
+- 支持 `horse.jump_strength` 等特殊属性
+- 属性值范围验证（如 `knockback_resistance` 限制在 0-1）
+- 未知属性返回错误信息
 
 **权限等级：** 2
 
@@ -831,9 +882,7 @@ MyCommand::registerTo(m_dispatcher);
 
 ### 测试用例
 
-相关测试位于 `tests/common/command/test_command_dispatcher.cpp`：
-
-**测试覆盖：**
+**命令框架测试** 位于 `tests/common/command/test_command_dispatcher.cpp`：
 
 - `StringReader` - 字符串解析（读取字符串、整数、浮点数、布尔值）
 - `CommandNode` - 节点创建、子节点管理、权限检查
@@ -842,6 +891,16 @@ MyCommand::registerTo(m_dispatcher);
 - `CommandException` - 异常创建和传递
 - `Suggestions` - 自动补全建议
 - `CommandDispatcher` - 命令注册、解析、执行
+
+**命令测试** 位于 `tests/server/command/`：
+
+- `CommandRegistryTest.cpp` - 命令注册表测试
+- `PlayerResolverTest.cpp` - 玩家选择器解析测试（IntRange、游戏模式过滤、距离过滤等）
+- `SetBlockCommandTest.cpp` - /setblock 命令测试
+- `GiveCommandTest.cpp` - /give 命令测试
+- `MessageCommandTest.cpp` - /msg 命令测试（命令注册、权限检查、别名）
+- `ExperienceCommandTest.cpp` - /experience 命令测试（add/set/query 语法、xp 别名）
+- `AttributeCommandTest.cpp` - /attribute 命令测试（get/set 语法、属性名解析）
 
 **运行测试：**
 

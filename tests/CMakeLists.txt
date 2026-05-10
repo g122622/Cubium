@@ -170,6 +170,9 @@ add_executable(mc_tests
     server/command/SetBlockCommandTest.cpp
     server/command/GiveCommandTest.cpp
     server/command/PlayerResolverTest.cpp
+    server/command/MessageCommandTest.cpp
+    server/command/ExperienceCommandTest.cpp
+    server/command/AttributeCommandTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
     client/world/player/LocalPlayerIdentityTest.cpp
     client/world/player/ClientPlayerPredictorTest.cpp
