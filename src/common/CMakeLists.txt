@@ -838,6 +838,7 @@ add_library(mc_common STATIC
     world/village/trade/MerchantOffer.cpp
     world/village/trade/MerchantOffers.cpp
     world/village/trade/VillagerTrades.cpp
+    world/village/trade/WanderingTraderTrades.cpp
     # World - Village - Raid
     world/village/raid/Raid.cpp
     world/village/raid/RaidManager.cpp

@@ -65,6 +65,7 @@ add_executable(mc_tests
     common/entity/entities/passive/basic/MooshroomEntityTest.cpp
     common/entity/DolphinEntityTest.cpp
     common/entity/entities/monster/SlimeEntityTest.cpp
+    common/entity/entities/monster/ZombieVillagerEntityTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp
     # ItemDropHelper 测试
