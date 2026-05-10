@@ -86,8 +86,69 @@ Entity
 |------|------|----------|---------|
 | SpiderEntity | 蜘蛛 | 攀爬墙壁、夜间攻击、光照检测 | ✅ shouldAttack() 光照检测已实现 |
 | CaveSpiderEntity | 洞穴蜘蛛 | 中毒攻击、矿井生成 | ⏳ 框架完成 |
-| SilverfishEntity | 蠹虫 | 躲在方块中、群体攻击 | ⏳ 框架完成 |
-| EndermiteEntity | 末影螨 | 末影珍珠生成、末影人仇恨 | ⏳ 框架完成 |
+| SilverfishEntity | 蠹虫 | 躲在方块中、群体攻击 | ✅ 基础AI目标已实现，召唤同伴预留 |
+| EndermiteEntity | 末影螨 | 末影珍珠生成、自动消失 | ✅ 消失逻辑和AI目标已完整实现 |
+
+#### 末影螨 (EndermiteEntity) 详细实现
+
+**消失逻辑** (MC 1.16.5):
+- 非持久化末影螨在 2400 ticks（2分钟）后自动消失
+- 使用 `MobEntity::isNoDespawnRequired()` 检查持久化状态
+- 命名牌命名的末影螨不会消失
+
+**AI 目标**:
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | SwimGoal | 游泳 |
+| 2 | MeleeAttackGoal | 近战攻击玩家 |
+| 3 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
+| 7 | LookAtGoal | 看向玩家 |
+| 8 | LookRandomlyGoal | 随机看向 |
+
+**目标选择器**:
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | HurtByTargetGoal | 受伤反击 |
+| 2 | NearestAttackableTargetGoal<Player> | 攻击最近玩家 |
+
+**属性值**:
+| 属性 | 值 |
+|------|-----|
+| MAX_HEALTH | 8.0 |
+| MOVEMENT_SPEED | 0.25 |
+| ATTACK_DAMAGE | 2.0 |
+| EXPERIENCE_VALUE | 3 |
+
+#### 蠹虫 (SilverfishEntity) 详细实现
+
+**AI 目标**:
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | SwimGoal | 游泳 |
+| 4 | MeleeAttackGoal | 近战攻击玩家 |
+| 5 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
+| 7 | LookAtGoal | 看向玩家 |
+| 8 | LookRandomlyGoal | 随机看向 |
+
+**目标选择器**:
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 1 | HurtByTargetGoal(setCallsForHelp=true) | 受伤反击并呼唤同伴 |
+| 2 | NearestAttackableTargetGoal<Player> | 攻击最近玩家 |
+
+**预留功能**:
+- `m_summonCooldown`: 召唤同伴倒计时
+- `notifySummonCooldown()`: 受伤时触发召唤冷却
+- TODO: SilverfishHideInStoneGoal（藏入石头）
+- TODO: SilverfishSummonOthersGoal（召唤同伴）
+
+**属性值**:
+| 属性 | 值 |
+|------|-----|
+| MAX_HEALTH | 8.0 |
+| MOVEMENT_SPEED | 0.25 |
+| ATTACK_DAMAGE | 1.0 |
+| EXPERIENCE_VALUE | 5 |
 
 ### nether/ - 地狱生物
 | 实体 | 说明 | 特殊行为 | 实现状态 |
