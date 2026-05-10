@@ -234,9 +234,8 @@ void BoatEntity::floatBoat() {
             for (BlockCoord z = minZ; z < maxZ; ++z) {
                 BlockPos pos(x, y, z);
                 const fluid::FluidState* fluid = m_world->getFluidState(pos);
-                if (fluid != nullptr && !fluid->isEmpty()) {
+                if (fluid != nullptr && !fluid->isEmpty() && fluid->getFluid().isIn(fluid::FluidTags::WATER())) {
                     // 检查是否是水
-                    // TODO: 使用FluidTags::WATER
                     f32 fluidHeight = fluid->getActualHeight(*m_world, pos);
                     f32 waterY = static_cast<f32>(y) + fluidHeight;
                     if (waterY > m_waterLevel) {
@@ -594,9 +593,7 @@ bool BoatEntity::hurt(DamageSource& source, f32 amount) {
     bool isCreative = false;
     Player* attacker = dynamic_cast<Player*>(source.source());
     if (attacker != nullptr) {
-        // TODO: 检查玩家是否为创造模式
-        // isCreative = attacker->isCreative();
-        MC_UNUSED(attacker);
+        isCreative = attacker->isCreative();
     }
 
     // 7. 超过伤害阈值或创造模式时摧毁船
