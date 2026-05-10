@@ -5,6 +5,7 @@
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "entity/interfaces/IMob.hpp"
 #include "entity/effect/EffectInstance.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -258,11 +259,13 @@ void ConduitEntity::attackMobs(IWorld& world) {
                 continue;
             }
 
-            // TODO: 检查是否为敌对生物 (IMob 接口)
-            // 目前简化处理，收集所有湿的 LivingEntity
-            // if (living->isHostile()) {
-            //     hostileMobs.push_back(living);
-            // }
+            // MC 1.16.5: 检查是否为敌对生物 (IMob 接口)
+            // 只有实现 IMob 接口的实体才是敌对生物
+            if (dynamic_cast<entity::IMob*>(living) == nullptr) {
+                continue;
+            }
+
+            hostileMobs.push_back(living);
         }
 
         if (!hostileMobs.empty()) {
@@ -285,12 +288,11 @@ void ConduitEntity::attackMobs(IWorld& world) {
         if (!targetValid) {
             m_target = nullptr;
         } else {
-            // 攻击目标 - 使用魔法伤害
-            // TODO: 需要实现 DamageSource::magic() 创建魔法伤害源
-            // m_target->hurt(DamageSource::magic(), ATTACK_DAMAGE);
+            // MC 1.16.5: 攻击目标 - 使用魔法伤害（绕过护甲）
+            auto magicDamage = DamageSources::magic();
+            m_target->hurt(magicDamage, ATTACK_DAMAGE);
 
-            // TODO: 播放攻击音效
-            // world.playSound(m_target->getPosition(), SoundEvents::BLOCK_CONDUIT_ATTACK_TARGET);
+            // 播放攻击音效
             world.playSound(
                 SoundEvents::BLOCK_CONDUIT_ATTACK_TARGET,
                 sound::SoundCategory::Blocks,
