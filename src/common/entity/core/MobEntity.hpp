@@ -410,6 +410,24 @@ public:
      */
     [[nodiscard]] virtual bool isDespawnPeaceful() const { return false; }
 
+    // ========== 日光检测 ==========
+
+    /**
+     * @brief 检查是否暴露在日光下
+     *
+     * 参考 MC 1.16.5 MobEntity.isInDaylight()
+     * 用于怪物燃烧（僵尸、骷髅等）和幻翼燃烧。
+     *
+     * 检查条件：
+     * 1. 世界为白天 (dayTime < 12000)
+     * 2. 天空可见 (canSeeSky)
+     * 3. 亮度 > 0.5
+     * 4. 不在水中或雨中
+     *
+     * @return 如果暴露在日光下返回 true
+     */
+    [[nodiscard]] bool isInDaylight() const;
+
     // ========== 攻击 ==========
 
     /**

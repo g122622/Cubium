@@ -566,6 +566,16 @@ public:
     [[nodiscard]] virtual i64 dayTime() const = 0;
 
     /**
+     * @brief 检查是否为白天
+     *
+     * MC 1.16.5: world.isDaytime()
+     * dayTime < 12000 为白天 (0-11999 = 白天, 12000-23999 = 夜晚)
+     */
+    [[nodiscard]] virtual bool isDaytime() const {
+        return dayTime() < 12000;
+    }
+
+    /**
      * @brief 获取游戏时间 (总tick数)
      *
      * 与 currentTick() 相同，提供更明确的语义。

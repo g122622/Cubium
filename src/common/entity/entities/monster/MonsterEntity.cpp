@@ -60,37 +60,6 @@ bool MonsterEntity::hurt(DamageSource& source, f32 amount) {
     return CreatureEntity::hurt(source, amount);
 }
 
-bool MonsterEntity::isInDaylight() const {
-    // MC 1.16.5: 检查是否在日光下
-    // 需要检查：1. 世界是否为白天 2. 天空是否可见 3. 实体是否暴露在阳光下
-    const IWorld* worldPtr = world();
-    if (!worldPtr) {
-        return false;
-    }
-
-    // 检查是否为白天（dayTime < 12000 为白天）
-    i64 time = worldPtr->dayTime();
-    bool isDaytime = time < 12000;
-    if (!isDaytime) {
-        return false;
-    }
-
-    // 检查天空是否可见
-    BlockPos pos(static_cast<i32>(std::floor(x())),
-                 static_cast<i32>(std::floor(y())),
-                 static_cast<i32>(std::floor(z())));
-    if (!worldPtr->canSeeSky(pos)) {
-        return false;
-    }
-
-    // 检查是否在水中或在雨中（这些情况下不会燃烧）
-    if (isInWater() || isInRain()) {
-        return false;
-    }
-
-    return true;
-}
-
 bool MonsterEntity::shouldAttack(LivingEntity* target) const {
     // 默认实现：攻击所有活着的生物
     return target != nullptr && target->isAlive();

@@ -938,6 +938,16 @@ public:
     [[nodiscard]] bool canSwim() const { return m_eyesInWater && m_inWater; }
 
     /**
+     * @brief 获取实体眼睛位置的亮度
+     *
+     * 参考 MC 1.16.5 Entity.getBrightness()
+     * 用于判断怪物是否在阳光下燃烧等。
+     *
+     * @return 亮度值 (0.0 - 1.0)，如果世界不存在返回 0.0
+     */
+    [[nodiscard]] f32 getBrightness() const;
+
+    /**
      * @brief 检查实体是否在梯子或藤蔓上
      *
      * 检查实体所在位置的方块是否为可攀爬方块。

@@ -277,3 +277,7 @@ auto damageSource = std::make_unique<IndirectEntityDamageSource>(
     - `Player::checkEntityCollisions()`：玩家tick中检测附近实体碰撞
     - 搜索范围为玩家碰撞箱扩展1格（水平和垂直）
     - 自动调用附近实体的 `onCollideWithPlayer()` 方法
+- **随机数生成规范化（2026-05-12）**：
+  - `FishingBobberEntity`：发射时使用 `world->getRandom().nextGaussian()` 替代 `rand()`
+  - 符合 MC 1.16.5 投掷物不精确度计算：`inaccuracy * 0.0075 * nextGaussian()`
+  - 保证跨平台随机数一致性和可测试性

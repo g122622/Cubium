@@ -626,6 +626,20 @@ bool Entity::isInRain() const {
     return m_world->canRainAt(pos);
 }
 
+f32 Entity::getBrightness() const {
+    // MC 1.16.5: Entity.getBrightness()
+    // 获取实体眼睛位置的亮度
+    if (m_world == nullptr) {
+        return 0.0f;
+    }
+
+    // 使用眼睛高度位置
+    BlockPos pos(static_cast<i32>(std::floor(m_position.x)),
+                 static_cast<i32>(std::floor(m_position.y + static_cast<f64>(eyeHeight()))),
+                 static_cast<i32>(std::floor(m_position.z)));
+    return m_world->getBrightness(pos);
+}
+
 void Entity::syncMetadataFromDataManager() {
     m_flags = static_cast<EntityFlags>(static_cast<u8>(m_dataManager.get<i8>(FLAGS_PARAM)));
     m_air = m_dataManager.get<i32>(AIR_PARAM);

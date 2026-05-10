@@ -13,6 +13,7 @@
 #include "../../item/enchantment/enchantments/AllEnchantments.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "../../util/math/MathUtils.hpp"
+#include "../../world/IWorld.hpp"
 
 namespace mc {
 
@@ -199,6 +200,55 @@ void MobEntity::dropExperience() {
             m_world, x(), y(), z(), m_experienceValue, &rng
         );
     }
+}
+
+bool MobEntity::isInDaylight() const {
+    // MC 1.16.5 MobEntity.isInDaylight()
+    // 检查条件：
+    // 1. 世界为白天 (isDaytime)
+    // 2. 不在客户端
+    // 3. 亮度 > 0.5
+    // 4. 随机检查
+    // 5. 天空可见 (canSeeSky)
+
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return false;
+    }
+
+    // MC 1.16.5: world.isDaytime()
+    // dayTime < 12000 为白天
+    if (!m_world->isDaytime()) {
+        return false;
+    }
+
+    // MC 1.16.5: getBrightness() > 0.5F
+    f32 brightness = getBrightness();
+    if (brightness <= 0.5f) {
+        return false;
+    }
+
+    // MC 1.16.5: rand.nextFloat() * 30.0F < (brightness - 0.4F) * 2.0F
+    // 随机检查，亮度越高越容易触发
+    math::Random rng = getRandom();
+    f32 randomCheck = rng.nextFloat() * 30.0f;
+    f32 brightnessThreshold = (brightness - 0.4f) * 2.0f;
+    if (randomCheck >= brightnessThreshold) {
+        return false;
+    }
+
+    // MC 1.16.5: 获取检测位置
+    // 如果骑乘船，检测位置向上偏移一格
+    BlockPos pos(static_cast<i32>(std::floor(x())),
+                 static_cast<i32>(std::round(y())),
+                 static_cast<i32>(std::floor(z())));
+    // TODO: 检查是否骑乘船，如果是则向上偏移
+    // const Entity* vehicle = getVehicle();
+    // if (dynamic_cast<const BoatEntity*>(vehicle) != nullptr) {
+    //     pos = pos.up();
+    // }
+
+    // MC 1.16.5: world.canSeeSky(blockpos)
+    return m_world->canSeeSky(pos);
 }
 
 bool MobEntity::attackEntityAsMob(LivingEntity& target) {

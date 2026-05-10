@@ -82,12 +82,12 @@ Entity
 | PhantomEntity | 幻翼 | 飞行攻击、夜间生成 |
 
 ### arthropod/ - 节肢类
-| 实体 | 说明 | 特殊行为 |
-|------|------|----------|
-| SpiderEntity | 蜘蛛 | 攀爬墙壁、夜间攻击 |
-| CaveSpiderEntity | 洞穴蜘蛛 | 中毒攻击、矿井生成 |
-| SilverfishEntity | 蠹虫 | 躲在方块中、群体攻击 |
-| EndermiteEntity | 末影螨 | 末影珍珠生成、末影人仇恨 |
+| 实体 | 说明 | 特殊行为 | 实现状态 |
+|------|------|----------|---------|
+| SpiderEntity | 蜘蛛 | 攀爬墙壁、夜间攻击、光照检测 | ✅ shouldAttack() 光照检测已实现 |
+| CaveSpiderEntity | 洞穴蜘蛛 | 中毒攻击、矿井生成 | ⏳ 框架完成 |
+| SilverfishEntity | 蠹虫 | 躲在方块中、群体攻击 | ⏳ 框架完成 |
+| EndermiteEntity | 末影螨 | 末影珍珠生成、末影人仇恨 | ⏳ 框架完成 |
 
 ### nether/ - 地狱生物
 | 实体 | 说明 | 特殊行为 |
@@ -114,10 +114,10 @@ Entity
 | PhantomEntity | 幻翼 | 飞行攻击 |
 
 ### ocean/ - 海洋怪物
-| 实体 | 说明 | 特殊行为 |
-|------|------|----------|
-| GuardianEntity | 守卫者 | 尖刺攻击、激光攻击 |
-| ElderGuardianEntity | 远古守卫者 | 挖掘疲劳Boss |
+| 实体 | 说明 | 特殊行为 | 实现状态 |
+|------|------|----------|---------|
+| GuardianEntity | 守卫者 | 尖刺攻击、激光攻击、水中检测 | ✅ isInWater() 已实现 |
+| ElderGuardianEntity | 远古守卫者 | 挖掘疲劳Boss、50格范围效果 | ✅ 挖掘疲劳效果已实现 |
 
 ### illager/ - 灾厄村民
 | 实体 | 说明 | 特殊行为 |

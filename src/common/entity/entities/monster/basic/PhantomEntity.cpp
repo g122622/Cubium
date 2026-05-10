@@ -51,14 +51,14 @@ std::optional<ResourceLocation> PhantomEntity::getDeathSound() const {
 }
 
 void PhantomEntity::tick() {
-	// MC 1.16.5 PhantomEntity.tick()
-	FlyingEntity::tick();
+    // MC 1.16.5 PhantomEntity.tick()
+    FlyingEntity::tick();
 
-	// MC 1.16.5: 在阳光下着火8秒
-	// TODO: 需要实现 isInDaylight() 方法
-	// if (isAlive() && isInDaylight()) {
-	//     setFire(8);
-	// }
+    // MC 1.16.5: 在阳光下着火8秒 (livingTick 中调用)
+    // 参考: if (this.isAlive() && this.isInDaylight()) { this.setFire(8); }
+    if (isAlive() && isInDaylight()) {
+        setFire(8);
+    }
 }
 
 void PhantomEntity::registerGoals() {

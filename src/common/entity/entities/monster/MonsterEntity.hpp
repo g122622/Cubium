@@ -156,12 +156,6 @@ protected:
     bool m_burnsInDaylight = true;
     i32 m_burnTime = 0;
 
-    /**
-     * @brief 检查是否在阳光下
-     * @return 如果暴露在阳光下返回true
-     */
-    [[nodiscard]] bool isInDaylight() const;
-
     // ========== 敌对行为 ==========
 
     /**
