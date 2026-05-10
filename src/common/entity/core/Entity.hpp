@@ -1495,8 +1495,11 @@ public:
 
     /**
      * @brief 检查是否可以容纳更多乘客
+     *
+     * 子类可重写此方法添加额外检查（如 BoatEntity 检查是否在水下）。
+     * 默认实现只检查乘客数量限制。
      */
-    [[nodiscard]] bool canFitPassenger() const {
+    [[nodiscard]] virtual bool canFitPassenger() const {
         return static_cast<i32>(m_passengers.size()) < getMaxPassengers();
     }
 

@@ -8,6 +8,7 @@
 #include "../attribute/Attributes.hpp"
 #include "../combat/PlayerAttackHelper.hpp"
 #include "../damage/DamageSource.hpp"
+#include "../entities/vehicle/BoatEntity.hpp"
 #include "../../item/core/ItemStack.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../item/enchantment/enchantments/AllEnchantments.hpp"
@@ -241,11 +242,18 @@ bool MobEntity::isInDaylight() const {
     BlockPos pos(static_cast<i32>(std::floor(x())),
                  static_cast<i32>(std::round(y())),
                  static_cast<i32>(std::floor(z())));
-    // TODO: 检查是否骑乘船，如果是则向上偏移
-    // const Entity* vehicle = getVehicle();
-    // if (dynamic_cast<const BoatEntity*>(vehicle) != nullptr) {
-    //     pos = pos.up();
-    // }
+
+    // MC 1.16.5: 如果实体骑乘船，检测位置向上偏移一格
+    // 原因：船在水面上，生物坐在船中位置较低，需要向上偏移才能正确检测天空可见性
+    if (isRiding()) {
+        EntityId vehicleId = getVehicle();
+        if (vehicleId != INVALID_ENTITY_ID && m_world != nullptr) {
+            const Entity* vehicle = m_world->getEntity(vehicleId);
+            if (vehicle != nullptr && dynamic_cast<const entity::BoatEntity*>(vehicle) != nullptr) {
+                pos = pos.up();
+            }
+        }
+    }
 
     // MC 1.16.5: world.canSeeSky(blockpos)
     return m_world->canSeeSky(pos);
