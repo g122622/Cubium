@@ -1,6 +1,7 @@
 #include "DispenseItemBehaviorRegistry.hpp"
 #include "IDispenseItemBehavior.hpp"
 #include "../../../item/Items.hpp"
+#include "../../../item/potion/PotionUtils.hpp"
 #include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "../../../entity/entities/projectile/OtherProjectiles.hpp"
@@ -94,6 +95,7 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
     );
 
     // 药水箭: velocity=1.1, inaccuracy=6.0
+    // 参考 MC 1.16.5: AbstractArrowEntity.setPotionEffect(itemStack)
     registerBehavior<ProjectileDispenseBehavior>(
         "minecraft:tipped_arrow",
         [](IWorld& world, const Vector3& pos, const ItemStack& stack) -> std::unique_ptr<mc::Entity> {
@@ -103,8 +105,12 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
                 auto* arrow = dynamic_cast<entity::ArrowEntity*>(entity.get());
                 if (arrow) {
                     arrow->setPickupStatus(entity::PickupStatus::Allowed);
-                    // TODO: 从 ItemStack 读取药水效果并应用到箭矢
-                    MC_UNUSED(stack);
+                    // 从 ItemStack 读取药水效果并应用到箭矢
+                    auto effects = potion::PotionUtils::getEffects(stack);
+                    if (!effects.empty()) {
+                        arrow->setEffects(effects);
+                        arrow->setColor(potion::PotionUtils::getColor(effects));
+                    }
                 }
             }
             return entity;
@@ -171,6 +177,7 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
     );
 
     // 喷溅药水: velocity=1.1, inaccuracy=6.0
+    // 参考 MC 1.16.5: PotionEntity.setItemStack() 在 onImpact() 中读取效果
     registerBehavior<ProjectileDispenseBehavior>(
         "minecraft:splash_potion",
         [](IWorld& world, const Vector3& pos, const ItemStack& stack) -> std::unique_ptr<mc::Entity> {
@@ -180,8 +187,8 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
                 auto* potion = dynamic_cast<entity::PotionEntity*>(entity.get());
                 if (potion) {
                     potion->setLingering(false);
-                    // TODO: 从 ItemStack 读取药水效果
-                    MC_UNUSED(stack);
+                    // 设置 ItemStack 以便 onImpact() 读取药水效果
+                    potion->setItemStack(stack);
                 }
             }
             return entity;
@@ -190,6 +197,7 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
     );
 
     // 滞留药水: velocity=1.1, inaccuracy=6.0
+    // 参考 MC 1.16.5: PotionEntity.setItemStack() 在 onImpact() 中读取效果
     registerBehavior<ProjectileDispenseBehavior>(
         "minecraft:lingering_potion",
         [](IWorld& world, const Vector3& pos, const ItemStack& stack) -> std::unique_ptr<mc::Entity> {
@@ -199,8 +207,8 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors() {
                 auto* potion = dynamic_cast<entity::PotionEntity*>(entity.get());
                 if (potion) {
                     potion->setLingering(true);
-                    // TODO: 从 ItemStack 读取药水效果
-                    MC_UNUSED(stack);
+                    // 设置 ItemStack 以便 onImpact() 读取药水效果
+                    potion->setItemStack(stack);
                 }
             }
             return entity;
