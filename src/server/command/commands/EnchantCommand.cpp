@@ -7,6 +7,13 @@
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include <sstream>
 
 namespace mc {
@@ -44,7 +51,7 @@ void EnchantCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // /enchant <player> <enchantment> <level>
     auto levelNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
         "level",
-        IntegerArgumentType::integer(1, 10)
+        IntegerArgumentType::integer(0, 32767)  // MC 1.16.5 允许任意正整数等级
     );
     levelNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return enchantItem(ctx);
@@ -74,8 +81,31 @@ i32 EnchantCommand::enchantItem(CommandContext<ServerCommandSource>& context) {
         level = context.getArgument<i32>("level");
     }
 
+    // 解析附魔名称（支持简写，自动添加 minecraft: 前缀）
+    std::string enchantmentId = enchantmentName;
+    if (enchantmentId.find(':') == std::string::npos) {
+        enchantmentId = "minecraft:" + enchantmentName;
+    }
+
+    // 获取附魔实例
+    const item::enchant::Enchantment* enchantment = item::enchant::EnchantmentRegistry::get(enchantmentId);
+    if (enchantment == nullptr) {
+        source.sendError("Unknown enchantment: " + enchantmentName);
+        return 0;
+    }
+
+    // 检查等级是否有效
+    if (level > enchantment->maxLevel()) {
+        std::ostringstream ss;
+        ss << "Level " << level << " is too high for " << enchantmentName
+           << " (maximum is " << enchantment->maxLevel() << ")";
+        source.sendError(ss.str());
+        return 0;
+    }
+
     auto* server = source.server();
     auto& playerManager = server->playerManager();
+    server::ServerWorld* world = source.world();
     i32 successCount = 0;
 
     for (PlayerId playerId : playerIds) {
@@ -84,18 +114,71 @@ i32 EnchantCommand::enchantItem(CommandContext<ServerCommandSource>& context) {
             continue;
         }
 
-        // TODO: 实现附魔逻辑
-        // 1. 获取玩家手持物品
-        // 2. 检查附魔是否有效
-        // 3. 应用附魔
-        // 需要访问 PlayerInventory 和 EnchantmentRegistry
+        // 获取玩家实体
+        Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
+        if (!player) {
+            continue;
+        }
 
+        // 获取主手物品
+        ItemStack heldItem = player->inventory().getSelectedStack();
+
+        // 检查物品是否为空
+        if (heldItem.isEmpty()) {
+            if (playerIds.size() == 1) {
+                source.sendError(player->username() + " has no item in their hand");
+            }
+            continue;
+        }
+
+        // 检查附魔是否可应用于该物品
+        if (!enchantment->canApply(heldItem)) {
+            if (playerIds.size() == 1) {
+                source.sendError("The enchantment " + enchantmentName + " cannot be applied to this item");
+            }
+            continue;
+        }
+
+        // 检查与现有附魔的兼容性
+        auto existingEnchantments = item::enchant::EnchantmentHelper::getEnchantments(heldItem);
+        bool compatible = true;
+        for (const auto& [existingEnch, existingLevel] : existingEnchantments) {
+            if (existingEnch && !enchantment->isCompatibleWith(*existingEnch)) {
+                compatible = false;
+                break;
+            }
+        }
+
+        if (!compatible) {
+            if (playerIds.size() == 1) {
+                source.sendError("The enchantment " + enchantmentName + " is incompatible with existing enchantments");
+            }
+            continue;
+        }
+
+        // 应用附魔
+        heldItem.addEnchantment(enchantmentId, level);
         successCount++;
     }
 
-    std::ostringstream ss;
-    ss << "Applied " << enchantmentName << " level " << level;
-    source.sendMessage(ss.str());
+    // 发送成功消息
+    if (successCount == 0) {
+        source.sendError("Could not enchant any items");
+        return 0;
+    }
+
+    // 获取附魔显示名称（带等级）
+    std::string enchantDisplayName = enchantment->getNameKey(level);
+
+    if (successCount == 1) {
+        std::ostringstream ss;
+        ss << "Applied " << enchantDisplayName << " to 1 player";
+        source.sendMessage(ss.str());
+    } else {
+        std::ostringstream ss;
+        ss << "Applied " << enchantDisplayName << " to " << successCount << " players";
+        source.sendMessage(ss.str());
+    }
 
     return successCount;
 }
