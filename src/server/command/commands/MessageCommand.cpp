@@ -7,6 +7,8 @@
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "common/network/packet/ProtocolPackets.hpp"
 #include <sstream>
 
 namespace mc {
@@ -67,6 +69,11 @@ i32 MessageCommand::sendMessage(CommandContext<ServerCommandSource>& context) {
 
     const std::string& message = context.getArgument<std::string>("message");
     auto* server = source.server();
+    if (server == nullptr) {
+        source.sendError("Server not available");
+        return 0;
+    }
+
     auto& playerManager = server->playerManager();
 
     // 获取发送者名称
@@ -80,25 +87,41 @@ i32 MessageCommand::sendMessage(CommandContext<ServerCommandSource>& context) {
             continue;
         }
 
-        // 发送私聊消息给目标玩家
-        std::ostringstream ss;
-        ss << senderName << " whispers to you: " << message;
+        // 构建私聊消息给接收者
+        // 格式: "<sender> whispers to you: <message>" (灰色斜体)
+        // MC 1.16.5: TranslationTextComponent("commands.message.display.incoming", senderName, message)
+        std::ostringstream incomingMsg;
+        incomingMsg << "§7§o" << senderName << " whispers to you: " << message;
 
-        // 通过连接发送消息
-        auto conn = targetData->getConnection();
-        if (conn && conn->isConnected()) {
-            // TODO: 使用专用的私聊消息包
+        // 通过 ConnectionManager 发送消息包给目标玩家
+        network::ChatMessagePacket chatPacket(incomingMsg.str(), 0);
+        network::PacketSerializer payload;
+        chatPacket.serialize(payload);
+
+        if (server->connectionManager().sendPacketToPlayer(
+                playerId,
+                network::PacketType::ChatBroadcast,
+                payload.buffer())) {
             successCount++;
         }
     }
 
     // 给发送者确认
-    if (successCount > 0 && playerIds.size() == 1) {
-        auto* targetData = playerManager.getPlayer(playerIds[0]);
-        if (targetData) {
-            std::ostringstream ss;
-            ss << "You whisper to " << targetData->username << ": " << message;
-            source.sendMessage(ss.str());
+    if (successCount > 0) {
+        if (playerIds.size() == 1) {
+            auto* targetData = playerManager.getPlayer(playerIds[0]);
+            if (targetData) {
+                // 格式: "You whisper to <target>: <message>" (灰色斜体)
+                // MC 1.16.5: TranslationTextComponent("commands.message.display.outgoing", targetName, message)
+                std::ostringstream outgoingMsg;
+                outgoingMsg << "§7§oYou whisper to " << targetData->username << ": " << message;
+                source.sendMessage(outgoingMsg.str());
+            }
+        } else {
+            // 多个接收者
+            std::ostringstream outgoingMsg;
+            outgoingMsg << "§7§oYou whisper to " << successCount << " players: " << message;
+            source.sendMessage(outgoingMsg.str());
         }
     }
 
