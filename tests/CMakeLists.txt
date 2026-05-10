@@ -181,6 +181,7 @@ add_executable(mc_tests
     server/command/MessageCommandTest.cpp
     server/command/ExperienceCommandTest.cpp
     server/command/AttributeCommandTest.cpp
+    server/command/SpawnPointCommandTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
     client/world/player/LocalPlayerIdentityTest.cpp
     client/world/player/ClientPlayerPredictorTest.cpp

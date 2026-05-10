@@ -657,7 +657,49 @@ public:
 
 - `/spreadplayers <center> <spreadDistance> <maxRange> <respectTeams> <targets>` - 分散玩家
 
+**参数：**
+
+- `center` - 分散区域的中心坐标（Vec2）
+- `spreadDistance` - 玩家之间的最小距离
+- `maxRange` - 从中心到边缘的最大范围
+- `respectTeams` - 是否保持队伍成员在一起
+- `targets` - 要分散的目标玩家选择器
+
 **权限等级：** 2
+
+**实现状态：** ✅ 基本实现
+
+**实现细节：**
+
+- 使用 `IWorld::getHeight()` 获取分散位置的地面高度
+- 随机分散玩家到指定区域内
+- 支持 @a、@p 等选择器
+
+#### SpawnPointCommand - /spawnpoint 命令
+
+设置玩家的重生点。
+
+**用法：**
+
+- `/spawnpoint` - 设置自己的重生点到当前位置
+- `/spawnpoint <player>` - 设置指定玩家的重生点到其当前位置
+- `/spawnpoint <player> <pos>` - 设置指定玩家的重生点到指定位置
+
+**参数：**
+
+- `player` - 目标玩家选择器（可选，默认为执行者）
+- `pos` - 重生点坐标（可选，默认为玩家当前位置）
+
+**权限等级：** 2
+
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- 通过 `ServerPlayerEntityManager::getPlayerEntity()` 获取任意玩家的实体
+- 支持为任意目标玩家设置重生点，不再限于只能设置自己
+- 使用 `Player::setSpawnPoint()` 设置维度和坐标
+- 支持 @a、@p、玩家名等选择器
 
 #### TagCommand - /tag 命令
 
