@@ -446,6 +446,8 @@ TEST_F(BiomeRegistryTest, CreateMushroomFields) {
     EXPECT_FLOAT_EQ(biome.scale(), 0.3f);
     EXPECT_FLOAT_EQ(biome.temperature(), 0.9f);
     EXPECT_FLOAT_EQ(biome.humidity(), 1.0f);
+    // MC 1.16.5: 蘑菇岛生物群系类别应为 Mushroom
+    EXPECT_EQ(biome.category(), Biome::Category::Mushroom);
 }
 
 TEST_F(BiomeRegistryTest, CreateMushroomFieldShore) {
@@ -454,6 +456,8 @@ TEST_F(BiomeRegistryTest, CreateMushroomFieldShore) {
     EXPECT_EQ(biome.name(), "mushroom_field_shore");
     EXPECT_FLOAT_EQ(biome.depth(), 0.0f);
     EXPECT_FLOAT_EQ(biome.scale(), 0.025f);
+    // MC 1.16.5: 蘑菇岛海岸生物群系类别应为 Mushroom
+    EXPECT_EQ(biome.category(), Biome::Category::Mushroom);
 }
 
 TEST_F(BiomeRegistryTest, CreateDesertHills) {

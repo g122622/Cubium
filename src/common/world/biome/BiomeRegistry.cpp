@@ -1135,6 +1135,7 @@ Biome createMushroomFields()
     // MC: depth=0.2F, scale=0.3F
     // 蘑菇岛
     Biome biome(Biomes::MushroomFields, "mushroom_fields");
+    biome.setCategory(Biome::Category::Mushroom);
     biome.setDepth(0.2f);
     biome.setScale(0.3f);
     biome.setTemperature(0.9f);
@@ -1153,6 +1154,7 @@ Biome createMushroomFieldShore()
     // MC: depth=0.0F, scale=0.025F
     // 蘑菇岛海岸
     Biome biome(Biomes::MushroomFieldShore, "mushroom_field_shore");
+    biome.setCategory(Biome::Category::Mushroom);
     biome.setDepth(0.0f);
     biome.setScale(0.025f);
     biome.setTemperature(0.9f);
