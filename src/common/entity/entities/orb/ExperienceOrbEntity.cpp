@@ -1,5 +1,6 @@
 #include "ExperienceOrbEntity.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
 #include "../player/Player.hpp"
 #include "../../core/EntityRegistry.hpp"
 #include "../../core/EntityUtils.hpp"
@@ -8,6 +9,7 @@
 #include "../../inventory/PlayerInventory.hpp"
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include <cmath>
 #include <algorithm>
 #include <limits>
@@ -179,8 +181,19 @@ void ExperienceOrbEntity::onCollideWithPlayer(Player& player) {
         // 设置玩家的拾取冷却（参考 MC 1.16.5: 2 ticks）
         player.setXpCooldown(2);
 
-        // TODO: 播放拾取音效
-        // world.playSound(position, SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, ...)
+        // MC 1.16.5: 播放拾取音效
+        // world.playSound(position, SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.PLAYERS, 0.1F, 0.5F * ((random.nextFloat() - random.nextFloat()) * 0.7F + 1.8F))
+        if (m_world != nullptr) {
+            math::Random rng(static_cast<u64>(m_id) ^ static_cast<u64>(m_age));
+            f32 pitch = 0.5f * ((rng.nextFloat() - rng.nextFloat()) * 0.7f + 1.8f);
+            m_world->playSound(
+                SoundEvents::ENTITY_EXPERIENCE_ORB_PICKUP,
+                sound::SoundCategory::Players,
+                m_position,
+                0.1f,
+                pitch
+            );
+        }
 
         remove();
     }
@@ -219,11 +232,22 @@ void ExperienceOrbEntity::updateMovement() {
 
     vel = velocity();
     if (onGround()) {
-        // TODO: 获取脚下方块的实际滑度 (block.getSlipperiness())
-        constexpr f32 DEFAULT_SLIPPERINESS = 0.6f;
-        constexpr f32 GROUND_FRICTION = DEFAULT_SLIPPERINESS * 0.98f;
-        vel.x *= GROUND_FRICTION;
-        vel.z *= GROUND_FRICTION;
+        // MC 1.16.5: 获取脚下方块的实际滑度
+        f32 slipperiness = 0.6f;  // 默认滑度
+        if (m_world != nullptr) {
+            BlockPos groundPos(
+                static_cast<i32>(std::floor(m_position.x)),
+                static_cast<i32>(std::floor(m_position.y - 0.2)),  // 脚下方块
+                static_cast<i32>(std::floor(m_position.z))
+            );
+            const BlockState* groundState = m_world->getBlockState(groundPos);
+            if (groundState != nullptr) {
+                slipperiness = groundState->getBlock().getSlipperiness(*groundState, m_world, &groundPos, this);
+            }
+        }
+        f32 groundFriction = slipperiness * 0.98f;
+        vel.x *= groundFriction;
+        vel.z *= groundFriction;
         vel.y *= -0.9f;  // Y轴反弹
     } else {
         vel.x *= 0.98;

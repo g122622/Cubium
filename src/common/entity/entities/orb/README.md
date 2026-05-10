@@ -125,7 +125,9 @@ classDiagram
 | 水中浮力 | `vel.y = min(vel.y + 0.0005, 0.06)` | ✅ |
 | 岩浆行为 | 随机运动 + 上升 0.2 | ✅ |
 | 地面反弹 | Y轴 `-0.9` | ✅ |
+| 地面滑度 | 使用脚下方块的 `getSlipperiness()` | ✅ 支持史莱姆块、冰块等 |
 | 吸引Y偏移 | `eyeHeight / 2` | ✅ |
+| 拾取音效 | `ENTITY_EXPERIENCE_ORB_PICKUP` | ✅ 音量 0.1，随机音调 |
 | 附魔消耗 | 直接消耗，不检查 | ✅ `ExperienceManager::onEnchant()` |
 | 负经验 | 触发降级 | ✅ `addExperience()` 支持 |
 
