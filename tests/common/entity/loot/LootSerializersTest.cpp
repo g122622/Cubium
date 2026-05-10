@@ -9,6 +9,7 @@
 #include "entity/loot/LootPool.hpp"
 #include "entity/loot/LootEntry.hpp"
 #include "entity/loot/LootConditions.hpp"
+#include "entity/loot/StatePropertiesPredicate.hpp"
 #include "entity/loot/LootFunctions.hpp"
 #include "util/math/random/Random.hpp"
 #include "item/core/ItemRegistry.hpp"
@@ -17,6 +18,7 @@
 #include "world/border/WorldBorder.hpp"
 #include "world/chunk/ChunkData.hpp"
 #include "world/block/Block.hpp"
+#include "world/block/VanillaBlocks.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/tick/manager/TickManager.hpp"
 #include "core/Constants.hpp"
@@ -373,6 +375,118 @@ TEST_F(LootSerializersTest, ParseCondition_UnknownType) {
 
     auto result = LootSerializers::parseCondition(json);
     EXPECT_FALSE(result.success());
+}
+
+TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_BlockOnly) {
+    // 仅检查方块 ID
+    nlohmann::json json = {
+        {"condition", "minecraft:block_state_property"},
+        {"block", "minecraft:stone"}
+    };
+
+    auto result = LootSerializers::parseCondition(json);
+    ASSERT_TRUE(result.success());
+
+    auto condition = result.value();
+    EXPECT_EQ("block_state_property", condition->getType());
+
+    auto* blockStateCond = dynamic_cast<BlockStateCondition*>(condition.get());
+    ASSERT_NE(blockStateCond, nullptr);
+    EXPECT_EQ(blockStateCond->getBlockId(), "minecraft:stone");
+    EXPECT_TRUE(blockStateCond->getProperties().isEmpty());
+}
+
+TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_WithExactProperty) {
+    // 检查方块 ID + 精确属性匹配
+    nlohmann::json json = {
+        {"condition", "minecraft:block_state_property"},
+        {"block", "minecraft:beetroots"},
+        {"properties", {
+            {"age", "3"}
+        }}
+    };
+
+    auto result = LootSerializers::parseCondition(json);
+    ASSERT_TRUE(result.success());
+
+    auto condition = result.value();
+    EXPECT_EQ("block_state_property", condition->getType());
+
+    auto* blockStateCond = dynamic_cast<BlockStateCondition*>(condition.get());
+    ASSERT_NE(blockStateCond, nullptr);
+    EXPECT_EQ(blockStateCond->getBlockId(), "minecraft:beetroots");
+    EXPECT_EQ(blockStateCond->getProperties().matcherCount(), 1);
+}
+
+TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_WithRangeProperty) {
+    // 检查方块 ID + 范围属性匹配
+    nlohmann::json json = {
+        {"condition", "minecraft:block_state_property"},
+        {"block", "minecraft:wheat"},
+        {"properties", {
+            {"age", {{"min", "5"}, {"max", "7"}}}
+        }}
+    };
+
+    auto result = LootSerializers::parseCondition(json);
+    ASSERT_TRUE(result.success());
+
+    auto condition = result.value();
+    EXPECT_EQ("block_state_property", condition->getType());
+
+    auto* blockStateCond = dynamic_cast<BlockStateCondition*>(condition.get());
+    ASSERT_NE(blockStateCond, nullptr);
+    EXPECT_EQ(blockStateCond->getBlockId(), "minecraft:wheat");
+    EXPECT_EQ(blockStateCond->getProperties().matcherCount(), 1);
+}
+
+TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_WithMultipleProperties) {
+    // 多属性匹配
+    nlohmann::json json = {
+        {"condition", "minecraft:block_state_property"},
+        {"block", "minecraft:oak_door"},
+        {"properties", {
+            {"facing", "north"},
+            {"open", "true"}
+        }}
+    };
+
+    auto result = LootSerializers::parseCondition(json);
+    ASSERT_TRUE(result.success());
+
+    auto condition = result.value();
+    EXPECT_EQ("block_state_property", condition->getType());
+
+    auto* blockStateCond = dynamic_cast<BlockStateCondition*>(condition.get());
+    ASSERT_NE(blockStateCond, nullptr);
+    EXPECT_EQ(blockStateCond->getBlockId(), "minecraft:oak_door");
+    EXPECT_EQ(blockStateCond->getProperties().matcherCount(), 2);
+}
+
+TEST_F(LootSerializersTest, ParseCondition_BlockStateProperty_MissingBlock) {
+    // 缺少 block 字段
+    nlohmann::json json = {
+        {"condition", "minecraft:block_state_property"},
+        {"properties", {{"age", "3"}}}
+    };
+
+    auto result = LootSerializers::parseCondition(json);
+    EXPECT_FALSE(result.success());
+}
+
+TEST_F(LootSerializersTest, BlockStateCondition_Serialization) {
+    // 测试序列化
+    StatePropertiesPredicate properties;
+    properties.addExactMatch("age", "3");
+
+    BlockStateCondition condition("minecraft:wheat", std::move(properties));
+
+    nlohmann::json json = LootSerializers::toJson(condition);
+    EXPECT_EQ(json["condition"], "minecraft:block_state_property");
+    EXPECT_EQ(json["block"], "minecraft:wheat");
+    EXPECT_TRUE(json.contains("properties"));
+    EXPECT_TRUE(json["properties"].contains("age"));
+    EXPECT_EQ(json["properties"]["age"], "3");
 }
 
 // ============================================================================

@@ -204,6 +204,13 @@ void OrCondition::addCondition(std::unique_ptr<LootCondition> condition) {
 
 BlockStateCondition::BlockStateCondition(const std::string& blockId)
     : m_blockId(blockId)
+    , m_properties()
+{
+}
+
+BlockStateCondition::BlockStateCondition(const std::string& blockId, StatePropertiesPredicate properties)
+    : m_blockId(blockId)
+    , m_properties(std::move(properties))
 {
 }
 
@@ -213,12 +220,22 @@ bool BlockStateCondition::test(LootContext& context) const {
     if (!blockState) {
         return false;
     }
+
     // 检查方块ID是否匹配
-    return blockState->blockLocation().toString() == m_blockId;
+    if (blockState->blockLocation().toString() != m_blockId) {
+        return false;
+    }
+
+    // 如果有属性匹配条件，检查属性
+    if (!m_properties.isEmpty()) {
+        return m_properties.matches(*blockState);
+    }
+
+    return true;
 }
 
 std::unique_ptr<LootCondition> BlockStateCondition::clone() const {
-    return std::make_unique<BlockStateCondition>(m_blockId);
+    return std::make_unique<BlockStateCondition>(m_blockId, m_properties);
 }
 
 // ============================================================================
@@ -292,6 +309,12 @@ std::unique_ptr<LootCondition> LootConditionBuilder::or_(std::vector<std::unique
 
 std::unique_ptr<LootCondition> LootConditionBuilder::blockState(const std::string& blockId) {
     return std::make_unique<BlockStateCondition>(blockId);
+}
+
+std::unique_ptr<LootCondition> LootConditionBuilder::blockState(
+    const std::string& blockId,
+    StatePropertiesPredicate properties) {
+    return std::make_unique<BlockStateCondition>(blockId, std::move(properties));
 }
 
 std::unique_ptr<LootCondition> LootConditionBuilder::toolType(u8 toolType) {

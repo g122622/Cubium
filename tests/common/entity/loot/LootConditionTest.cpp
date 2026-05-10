@@ -5,6 +5,7 @@
 #include "entity/loot/LootPool.hpp"
 #include "entity/loot/LootEntry.hpp"
 #include "entity/loot/LootConditions.hpp"
+#include "entity/loot/StatePropertiesPredicate.hpp"
 #include "entity/loot/RandomRanges.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/Items.hpp"
@@ -377,4 +378,242 @@ TEST_F(LootConditionsTest, EmptyOrCondition) {
     auto context = LootContextBuilder(m_world).withRandom(random).build();
 
     EXPECT_FALSE(emptyOr.test(*context));
+}
+
+// ============================================================================
+// StatePropertiesPredicate 测试
+// ============================================================================
+
+class StatePropertiesPredicateTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+};
+
+TEST_F(StatePropertiesPredicateTest, EmptyPredicate) {
+    // 空谓词应该匹配任何方块状态
+    StatePropertiesPredicate empty;
+    EXPECT_TRUE(empty.isEmpty());
+    EXPECT_EQ(empty.matcherCount(), 0);
+
+    // 获取一个真实的方块状态进行测试
+    const BlockState& state = VanillaBlocks::STONE->defaultState();
+    EXPECT_TRUE(empty.matches(state));
+}
+
+TEST_F(StatePropertiesPredicateTest, ExactMatcher_BooleanProperty) {
+    // 测试布尔属性的精确匹配
+    StatePropertiesPredicate predicate;
+    predicate.addExactMatch("lit", "true");
+
+    // 获取红石灯（有 lit 属性）并测试
+    const auto& lampStates = VanillaBlocks::REDSTONE_LAMP->stateContainer().validStates();
+    int litCount = 0;
+    int unlitCount = 0;
+
+    for (size_t i = 0; i < lampStates.size(); ++i) {
+        const BlockState* state = lampStates[i].get();
+        if (predicate.matches(*state)) {
+            litCount++;
+        } else {
+            unlitCount++;
+        }
+    }
+
+    // 红石灯有 lit 和 unlit 两个状态
+    EXPECT_EQ(litCount, 1);
+    EXPECT_EQ(unlitCount, 1);
+}
+
+TEST_F(StatePropertiesPredicateTest, ExactMatcher_IntegerProperty) {
+    // 测试整数属性的精确匹配 - 使用红石灯
+    StatePropertiesPredicate predicate;
+    predicate.addExactMatch("lit", "false");
+
+    // 获取红石灯状态
+    const BlockState& defaultState = VanillaBlocks::REDSTONE_LAMP->defaultState();
+
+    // 默认状态应该是 unlit
+    EXPECT_TRUE(predicate.matches(defaultState));
+}
+
+TEST_F(StatePropertiesPredicateTest, MultipleMatchers) {
+    // 测试多属性匹配 - 使用门
+    StatePropertiesPredicate predicate;
+    predicate.addExactMatch("facing", "north");
+    predicate.addExactMatch("open", "true");
+
+    // 获取门（有 facing 和 open 属性）
+    const auto& doorStates = VanillaBlocks::OAK_DOOR->stateContainer().validStates();
+    int matchCount = 0;
+    for (size_t i = 0; i < doorStates.size(); ++i) {
+        const BlockState* state = doorStates[i].get();
+        if (predicate.matches(*state)) {
+            matchCount++;
+        }
+    }
+    // 应该至少有一个状态匹配（facing=north, open=true）
+    EXPECT_GT(matchCount, 0);
+}
+
+TEST_F(StatePropertiesPredicateTest, Clone) {
+    StatePropertiesPredicate original;
+    original.addExactMatch("age", "3");
+    original.addRangeMatch("power", "5", "10");
+
+    StatePropertiesPredicate cloned = original;
+
+    EXPECT_EQ(original.matcherCount(), cloned.matcherCount());
+    EXPECT_EQ(original.matcherCount(), 2);
+}
+
+TEST_F(StatePropertiesPredicateTest, ToJson) {
+    StatePropertiesPredicate predicate;
+    predicate.addExactMatch("age", "3");
+
+    std::string json = predicate.toJson();
+    EXPECT_TRUE(json.find("age") != std::string::npos);
+    EXPECT_TRUE(json.find("3") != std::string::npos);
+
+    predicate.addRangeMatch("power", "5", "10");
+    json = predicate.toJson();
+    EXPECT_TRUE(json.find("power") != std::string::npos);
+    EXPECT_TRUE(json.find("min") != std::string::npos);
+    EXPECT_TRUE(json.find("max") != std::string::npos);
+}
+
+// ============================================================================
+// BlockStateCondition 测试
+// ============================================================================
+
+class BlockStateConditionTest : public ::testing::Test {
+protected:
+    LootConditionTestWorld m_world;
+
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+};
+
+TEST_F(BlockStateConditionTest, BlockIdOnly) {
+    math::Random random(12345);
+
+    // 创建一个只检查方块 ID 的条件
+    BlockStateCondition condition("minecraft:stone");
+
+    // 测试不匹配的方块
+    const BlockState& dirtState = VanillaBlocks::DIRT->defaultState();
+    auto dirtContext = LootContextBuilder(m_world)
+        .withRandom(random)
+        .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(&dirtState))
+        .build();
+
+    EXPECT_FALSE(condition.test(*dirtContext));
+
+    // 测试匹配的方块
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    auto stoneContext = LootContextBuilder(m_world)
+        .withRandom(random)
+        .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(&stoneState))
+        .build();
+
+    EXPECT_TRUE(condition.test(*stoneContext));
+}
+
+TEST_F(BlockStateConditionTest, NoBlockState) {
+    math::Random random(12345);
+
+    BlockStateCondition condition("minecraft:stone");
+
+    // 没有设置 BLOCK_STATE 参数
+    auto context = LootContextBuilder(m_world).withRandom(random).build();
+    EXPECT_FALSE(condition.test(*context));
+}
+
+TEST_F(BlockStateConditionTest, WithProperties_ExactMatch) {
+    math::Random random(12345);
+
+    // 创建带属性匹配的条件 - 使用红石灯的 lit 属性
+    StatePropertiesPredicate properties;
+    properties.addExactMatch("lit", "true");
+
+    BlockStateCondition condition("minecraft:redstone_lamp", std::move(properties));
+
+    // 获取红石灯状态
+    const auto& lampStates = VanillaBlocks::REDSTONE_LAMP->stateContainer().validStates();
+
+    int matchCount = 0;
+    for (size_t i = 0; i < lampStates.size(); ++i) {
+        const BlockState* state = lampStates[i].get();
+        auto context = LootContextBuilder(m_world)
+            .withRandom(random)
+            .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(state))
+            .build();
+
+        if (condition.test(*context)) {
+            matchCount++;
+        }
+    }
+
+    // 只有一个状态匹配（lit=true）
+    EXPECT_EQ(matchCount, 1);
+}
+
+TEST_F(BlockStateConditionTest, WithProperties_WrongBlock) {
+    math::Random random(12345);
+
+    StatePropertiesPredicate properties;
+    properties.addExactMatch("lit", "true");
+
+    BlockStateCondition condition("minecraft:redstone_lamp", std::move(properties));
+
+    // 用石头测试（没有 lit 属性）
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    auto context = LootContextBuilder(m_world)
+        .withRandom(random)
+        .withParameter(LootParams::BLOCK_STATE, const_cast<BlockState*>(&stoneState))
+        .build();
+
+    // 方块 ID 不匹配
+    EXPECT_FALSE(condition.test(*context));
+}
+
+TEST_F(BlockStateConditionTest, Clone) {
+    StatePropertiesPredicate properties;
+    properties.addExactMatch("lit", "true");
+
+    BlockStateCondition original("minecraft:redstone_lamp", std::move(properties));
+    auto cloned = original.clone();
+
+    auto* blockStateCond = dynamic_cast<BlockStateCondition*>(cloned.get());
+    ASSERT_NE(blockStateCond, nullptr);
+    EXPECT_EQ(blockStateCond->getBlockId(), "minecraft:redstone_lamp");
+    EXPECT_EQ(blockStateCond->getProperties().matcherCount(), 1);
+}
+
+TEST_F(BlockStateConditionTest, BuilderMethods) {
+    // 测试只有方块 ID 的构建
+    auto condition1 = LootConditionBuilder::blockState("minecraft:stone");
+    EXPECT_NE(condition1, nullptr);
+    EXPECT_EQ(condition1->getType(), "block_state_property");
+
+    auto* blockStateCond1 = dynamic_cast<BlockStateCondition*>(condition1.get());
+    ASSERT_NE(blockStateCond1, nullptr);
+    EXPECT_EQ(blockStateCond1->getBlockId(), "minecraft:stone");
+    EXPECT_TRUE(blockStateCond1->getProperties().isEmpty());
+
+    // 测试带属性的构建
+    StatePropertiesPredicate properties;
+    properties.addExactMatch("lit", "true");
+
+    auto condition2 = LootConditionBuilder::blockState("minecraft:redstone_lamp", std::move(properties));
+    EXPECT_NE(condition2, nullptr);
+
+    auto* blockStateCond2 = dynamic_cast<BlockStateCondition*>(condition2.get());
+    ASSERT_NE(blockStateCond2, nullptr);
+    EXPECT_EQ(blockStateCond2->getBlockId(), "minecraft:redstone_lamp");
+    EXPECT_EQ(blockStateCond2->getProperties().matcherCount(), 1);
 }

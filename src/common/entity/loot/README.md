@@ -13,6 +13,7 @@ src/common/entity/loot/
 ├── LootPool.hpp/cpp         # 掉落池，按权重随机选择条目
 ├── LootTable.hpp/cpp        # 掉落表，管理多个池
 ├── LootSerializers.hpp/cpp  # JSON 序列化器，从 JSON 解析掉落表
+├── StatePropertiesPredicate.hpp/cpp  # 方块状态属性匹配谓词
 └── (RandomRanges 已移至 common/util/math/random/)
 ```
 
@@ -69,8 +70,22 @@ src/common/entity/loot/
 | `NotCondition` | `inverted` | 取反条件 |
 | `AndCondition` | `alternative` | 与条件（所有条件都满足） |
 | `OrCondition` | `or` | 或条件（任一条件满足） |
-| `BlockStateCondition` | `block_state_property` | 方块状态条件 |
+| `BlockStateCondition` | `block_state_property` | 方块状态条件（支持属性匹配） |
 | `ToolTypeCondition` | `match_tool` | 工具类型条件 |
+
+**BlockStateCondition 属性匹配**:
+
+`BlockStateCondition` 支持通过 `StatePropertiesPredicate` 检查方块属性：
+
+```cpp
+// 创建属性匹配谓词
+StatePropertiesPredicate properties;
+properties.addExactMatch("lit", "true");       // 精确匹配
+properties.addRangeMatch("age", "5", "7");     // 范围匹配
+
+// 创建条件
+BlockStateCondition condition("minecraft:redstone_lamp", std::move(properties));
+```
 
 **时运加成计算** (`FortuneCondition::applyFortuneBonus`):
 ```
@@ -747,7 +762,7 @@ entry.generate(consumer, context);  // 条件在这里检查
 ### 测试覆盖
 
 | 测试类别 | 测试内容 |
-|---------|---------|
+||---------|---------|
 | RandomValueRange | 固定值、范围值生成 |
 | BinomialRange | 二项分布生成、边界条件 |
 | LootContext | 构建器、幸运值、掠夺附魔 |
@@ -760,6 +775,8 @@ entry.generate(consumer, context);  // 条件在这里检查
 | AndCondition | 与逻辑、空条件 |
 | OrCondition | 或逻辑、空条件 |
 | FortuneCondition | 等级获取、加成计算 |
+| BlockStateCondition | 方块ID匹配、属性匹配、属性不匹配、构建器方法 |
+| StatePropertiesPredicate | 空谓词、布尔属性匹配、整数属性匹配、多属性匹配、克隆、JSON序列化 |
 | LootConditionBuilder | 工厂方法 |
 | EntryCondition | 条件克隆、多条件 |
 | PoolCondition | 池条件测试 |
@@ -774,7 +791,7 @@ entry.generate(consumer, context);  // 条件在这里检查
 | ExplorationMapFunction | 创建、目的地类型 |
 | SetStewEffectFunction | 创建、效果添加 |
 | LootFunctionBuilder | 所有新函数工厂方法 |
-| LootSerializers | RandomValueRange/IRandomRange 解析、条件解析、函数解析、条目解析、池解析、掉落表解析、序列化、往返测试 |
+| LootSerializers | RandomValueRange/IRandomRange 解析、条件解析、函数解析、条目解析、池解析、掉落表解析、序列化、往返测试、BlockStateCondition JSON解析（含properties字段） |
 
 ### 运行测试
 

@@ -2,6 +2,7 @@
 
 #include "common/core/Types.hpp"
 #include "LootContext.hpp"
+#include "StatePropertiesPredicate.hpp"
 #include <memory>
 #include <vector>
 #include <functional>
@@ -254,25 +255,69 @@ private:
 /**
  * @brief 方块状态条件
  *
- * 检查被破坏的方块是否为指定类型。
+ * 检查被破坏的方块是否为指定类型，并可选地检查方块属性值。
+ *
+ * 支持：
+ * - 精确匹配：检查属性值是否等于指定值
+ * - 范围匹配：检查属性值是否在指定范围内（适用于整数属性）
+ *
  * 参考: net.minecraft.loot.conditions.BlockStateProperty
+ *
+ * JSON 格式示例:
+ * @code
+ * // 仅检查方块类型
+ * {
+ *   "condition": "minecraft:block_state_property",
+ *   "block": "minecraft:beetroots"
+ * }
+ *
+ * // 检查方块类型和精确属性
+ * {
+ *   "condition": "minecraft:block_state_property",
+ *   "block": "minecraft:beetroots",
+ *   "properties": { "age": "3" }
+ * }
+ *
+ * // 检查方块类型和范围属性
+ * {
+ *   "condition": "minecraft:block_state_property",
+ *   "block": "minecraft:wheat",
+ *   "properties": { "age": { "min": "5", "max": "7" } }
+ * }
+ *
+ * // 多属性检查
+ * {
+ *   "condition": "minecraft:block_state_property",
+ *   "block": "minecraft:oak_door",
+ *   "properties": { "open": "true", "facing": "north" }
+ * }
+ * @endcode
  */
 class BlockStateCondition : public LootCondition {
 public:
     /**
-     * @brief 构造方块状态条件
+     * @brief 构造方块状态条件（仅检查方块ID）
      * @param blockId 方块ID（如 "minecraft:diamond_ore"）
      */
     explicit BlockStateCondition(const std::string& blockId);
+
+    /**
+     * @brief 构造方块状态条件（检查方块ID和属性）
+     * @param blockId 方块ID（如 "minecraft:beetroots"）
+     * @param properties 属性匹配谓词
+     */
+    BlockStateCondition(const std::string& blockId, StatePropertiesPredicate properties);
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
     [[nodiscard]] std::string getType() const override { return "block_state_property"; }
 
     [[nodiscard]] const std::string& getBlockId() const { return m_blockId; }
+    [[nodiscard]] const StatePropertiesPredicate& getProperties() const { return m_properties; }
 
 private:
     std::string m_blockId;
+    StatePropertiesPredicate m_properties;
 };
 
 /**
@@ -361,10 +406,19 @@ public:
     [[nodiscard]] static std::unique_ptr<LootCondition> or_(std::vector<std::unique_ptr<LootCondition>> conditions);
 
     /**
-     * @brief 创建方块状态条件
+     * @brief 创建方块状态条件（仅检查方块ID）
      * @param blockId 方块ID
      */
     [[nodiscard]] static std::unique_ptr<LootCondition> blockState(const std::string& blockId);
+
+    /**
+     * @brief 创建方块状态条件（检查方块ID和属性）
+     * @param blockId 方块ID
+     * @param properties 属性匹配谓词
+     */
+    [[nodiscard]] static std::unique_ptr<LootCondition> blockState(
+        const std::string& blockId,
+        StatePropertiesPredicate properties);
 
     /**
      * @brief 创建工具类型条件

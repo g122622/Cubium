@@ -6,6 +6,7 @@
  */
 
 #include "LootSerializers.hpp"
+#include "StatePropertiesPredicate.hpp"
 #include <sstream>
 
 namespace mc {
@@ -267,7 +268,53 @@ Result<std::vector<std::unique_ptr<LootCondition>>> LootSerializers::parseCondit
 nlohmann::json LootSerializers::toJson(const LootCondition& condition) {
     nlohmann::json json;
     json["condition"] = "minecraft:" + condition.getType();
-    // 各子类可以扩展此方法
+
+    // 特殊处理 BlockStateCondition
+    if (condition.getType() == "block_state_property") {
+        const auto* blockStateCond = dynamic_cast<const BlockStateCondition*>(&condition);
+        if (blockStateCond) {
+            return toJson(*blockStateCond);
+        }
+    }
+
+    return json;
+}
+
+nlohmann::json LootSerializers::toJson(const BlockStateCondition& condition) {
+    nlohmann::json json;
+    json["condition"] = "minecraft:block_state_property";
+    json["block"] = condition.getBlockId();
+
+    const auto& properties = condition.getProperties();
+    if (!properties.isEmpty()) {
+        nlohmann::json propsJson = toJson(properties);
+        json["properties"] = propsJson;
+    }
+
+    return json;
+}
+
+nlohmann::json LootSerializers::toJson(const StatePropertiesPredicate& predicate) {
+    nlohmann::json json = nlohmann::json::object();
+
+    for (const auto& matcher : predicate.matchers()) {
+        const std::string& propName = matcher->propertyName();
+
+        // 使用 dynamic_cast 来判断匹配器类型
+        if (const auto* exactMatcher = dynamic_cast<const StatePropertiesPredicate::ExactMatcher*>(matcher.get())) {
+            json[propName] = exactMatcher->value();
+        } else if (const auto* rangedMatcher = dynamic_cast<const StatePropertiesPredicate::RangedMatcher*>(matcher.get())) {
+            nlohmann::json rangeJson = nlohmann::json::object();
+            if (rangedMatcher->minValue().has_value()) {
+                rangeJson["min"] = *rangedMatcher->minValue();
+            }
+            if (rangedMatcher->maxValue().has_value()) {
+                rangeJson["max"] = *rangedMatcher->maxValue();
+            }
+            json[propName] = rangeJson;
+        }
+    }
+
     return json;
 }
 
@@ -385,10 +432,38 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::parseBlockStatePropertyC
 
     std::string blockId = json["block"].get<std::string>();
 
-    // TODO: 解析 properties 字段
-    // 目前只检查方块 ID
+    // 解析 properties 字段
+    StatePropertiesPredicate properties;
 
-    return castToBase<BlockStateCondition, LootCondition>(std::make_unique<BlockStateCondition>(blockId));
+    if (json.contains("properties") && json["properties"].is_object()) {
+        const auto& propsJson = json["properties"];
+
+        for (auto it = propsJson.begin(); it != propsJson.end(); ++it) {
+            const std::string& propName = it.key();
+            const auto& propValue = it.value();
+
+            if (propValue.is_string()) {
+                // 精确匹配：{ "age": "3" }
+                properties.addExactMatch(propName, propValue.get<std::string>());
+            } else if (propValue.is_object()) {
+                // 范围匹配：{ "age": { "min": "5", "max": "7" } }
+                std::optional<std::string> min;
+                std::optional<std::string> max;
+
+                if (propValue.contains("min") && propValue["min"].is_string()) {
+                    min = propValue["min"].get<std::string>();
+                }
+                if (propValue.contains("max") && propValue["max"].is_string()) {
+                    max = propValue["max"].get<std::string>();
+                }
+
+                properties.addRangeMatch(propName, std::move(min), std::move(max));
+            }
+        }
+    }
+
+    return castToBase<BlockStateCondition, LootCondition>(
+        std::make_unique<BlockStateCondition>(blockId, std::move(properties)));
 }
 
 Result<std::unique_ptr<LootCondition>> LootSerializers::parseMatchToolCondition(const nlohmann::json& json) {

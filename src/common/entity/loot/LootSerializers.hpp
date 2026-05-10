@@ -160,6 +160,16 @@ public:
      */
     static nlohmann::json toJson(const LootCondition& condition);
 
+    /**
+     * @brief 序列化 BlockStateCondition 到 JSON
+     */
+    static nlohmann::json toJson(const BlockStateCondition& condition);
+
+    /**
+     * @brief 序列化 StatePropertiesPredicate 到 JSON
+     */
+    static nlohmann::json toJson(const StatePropertiesPredicate& predicate);
+
     // ========================================================================
     // LootFunction 解析
     // ========================================================================
