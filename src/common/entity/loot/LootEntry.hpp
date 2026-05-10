@@ -342,6 +342,10 @@ class LootEntryBuilder {
 public:
     LootEntryBuilder() = default;
 
+    // 移动构造和赋值（unique_ptr 成员需要）
+    LootEntryBuilder(LootEntryBuilder&&) = default;
+    LootEntryBuilder& operator=(LootEntryBuilder&&) = default;
+
     /**
      * @brief 设置权重
      */

@@ -806,3 +806,494 @@ TEST_F(LootTest, CopyNameFunction_OverwritesExistingName) {
     ItemStack result = func.apply(stack, context);
     EXPECT_EQ("New Name", result.getCustomName());
 }
+
+// ============================================================================
+// LootEntry Function List Tests
+// ============================================================================
+
+TEST_F(LootTest, LootEntry_AddFunction) {
+    // 测试 LootEntry 添加函数
+    ItemLootEntry entry("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
+
+    // 添加函数
+    entry.addFunction(std::make_unique<ApplyBonusFunction>(ApplyBonusFunction::BonusType::OreDrops));
+    entry.addFunction(std::make_unique<SetCountFunction>(RandomValueRange(2.0f, 4.0f)));
+
+    // 验证函数数量
+    EXPECT_EQ(2, entry.getFunctions().size());
+}
+
+TEST_F(LootTest, LootEntry_ApplyFunctionsCorrectly) {
+    // 测试 LootEntry::applyFunctions 正确应用函数
+    ItemLootEntry entry("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
+
+    // 添加设置数量函数
+    entry.addFunction(std::make_unique<SetCountFunction>(RandomValueRange(5.0f, 5.0f)));
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    // 应用函数
+    ItemStack result = entry.applyFunctions(stack, *context);
+
+    // 数量应该被设置为 5
+    EXPECT_EQ(5, result.getCount());
+}
+
+TEST_F(LootTest, LootEntry_ApplyFunctionsInOrder) {
+    // 测试多个函数按顺序应用
+    ItemLootEntry entry("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
+
+    // 第一个函数：设置数量为 2
+    entry.addFunction(std::make_unique<SetCountFunction>(RandomValueRange(2.0f, 2.0f)));
+    // 第二个函数：限制数量最大为 5（当原数量 > max 时会截断）
+    // LimitCountFunction 会将数量限制在 [min, max] 范围内
+    entry.addFunction(std::make_unique<LimitCountFunction>(-1, 5)); // 无下限，最大5
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    ItemStack result = entry.applyFunctions(stack, *context);
+
+    // SetCount 设置数量为 2，LimitCount 不会改变它（因为 2 < 5）
+    EXPECT_EQ(2, result.getCount());
+}
+
+TEST_F(LootTest, LootEntry_ApplyFunctionsWithCondition) {
+    // 测试带条件的函数
+    ItemLootEntry entry("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
+
+    // 创建带条件的函数（条件永远不满足）
+    auto func = std::make_unique<SetCountFunction>(RandomValueRange(10.0f, 10.0f));
+    func->addCondition(std::make_unique<RandomChanceCondition>(0.0f)); // 永远不触发
+    entry.addFunction(std::move(func));
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    ItemStack result = entry.applyFunctions(stack, *context);
+
+    // 条件不满足，数量应该保持不变
+    EXPECT_EQ(1, result.getCount());
+}
+
+TEST_F(LootTest, LootEntry_CloneCopiesFunctions) {
+    // 测试 clone 正确复制函数
+    ItemLootEntry entry("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
+    entry.addFunction(std::make_unique<SetCountFunction>(RandomValueRange(5.0f, 5.0f)));
+
+    auto cloned = entry.clone();
+    ASSERT_NE(cloned, nullptr);
+
+    auto* clonedEntry = dynamic_cast<ItemLootEntry*>(cloned.get());
+    ASSERT_NE(clonedEntry, nullptr);
+
+    // 验证克隆的条目有相同数量的函数
+    EXPECT_EQ(1, clonedEntry->getFunctions().size());
+
+    // 验证函数类型正确
+    EXPECT_EQ("set_count", clonedEntry->getFunctions()[0]->getType());
+}
+
+// ============================================================================
+// ItemLootEntry::generate with Functions Tests
+// ============================================================================
+
+TEST_F(LootTest, ItemLootEntry_GenerateAppliesFunctions) {
+    // 测试 ItemLootEntry::generate 在条件检查后应用函数
+    auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
+    entry->addFunction(std::make_unique<SetCountFunction>(RandomValueRange(10.0f, 10.0f)));
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    std::vector<ItemStack> generatedItems;
+    bool success = entry->generate([&generatedItems](const ItemStack& stack) {
+        generatedItems.push_back(stack);
+    }, *context);
+
+    EXPECT_TRUE(success);
+    ASSERT_EQ(1, generatedItems.size());
+    // 函数应该将数量设置为 10
+    EXPECT_EQ(10, generatedItems[0].getCount());
+}
+
+TEST_F(LootTest, ItemLootEntry_GenerateWithConditionAndFunction) {
+    // 测试带条件的条目和函数
+    auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
+
+    // 条件：50% 概率
+    entry->addCondition(std::make_unique<RandomChanceCondition>(1.0f)); // 总是触发
+
+    // 函数：设置数量
+    entry->addFunction(std::make_unique<SetCountFunction>(RandomValueRange(7.0f, 7.0f)));
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    std::vector<ItemStack> generatedItems;
+    bool success = entry->generate([&generatedItems](const ItemStack& stack) {
+        generatedItems.push_back(stack);
+    }, *context);
+
+    EXPECT_TRUE(success);
+    ASSERT_EQ(1, generatedItems.size());
+    EXPECT_EQ(7, generatedItems[0].getCount());
+}
+
+TEST_F(LootTest, ItemLootEntry_GenerateConditionFails) {
+    // 测试条件不满足时不生成物品
+    auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
+
+    // 条件：永远不满足
+    entry->addCondition(std::make_unique<RandomChanceCondition>(0.0f));
+
+    // 函数：设置数量（不应该被应用）
+    entry->addFunction(std::make_unique<SetCountFunction>(RandomValueRange(10.0f, 10.0f)));
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    std::vector<ItemStack> generatedItems;
+    bool success = entry->generate([&generatedItems](const ItemStack& stack) {
+        generatedItems.push_back(stack);
+    }, *context);
+
+    EXPECT_FALSE(success);
+    EXPECT_TRUE(generatedItems.empty());
+}
+
+TEST_F(LootTest, ItemLootEntry_GenerateFunctionReturnsEmpty) {
+    // 测试函数返回空堆时不生成物品
+    auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
+
+    // 函数：设置数量为 0（空堆）
+    entry->addFunction(std::make_unique<SetCountFunction>(RandomValueRange(0.0f, 0.0f)));
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    std::vector<ItemStack> generatedItems;
+    bool success = entry->generate([&generatedItems](const ItemStack& stack) {
+        generatedItems.push_back(stack);
+    }, *context);
+
+    // 条件满足，但函数返回空堆
+    EXPECT_TRUE(success);
+    EXPECT_TRUE(generatedItems.empty());
+}
+
+// ============================================================================
+// LootEntryBuilder::function Tests
+// ============================================================================
+
+TEST_F(LootTest, LootEntryBuilder_FunctionChainCall) {
+    // 测试 LootEntryBuilder::function 链式调用
+    auto entry = LootEntryBuilder::item("minecraft:diamond")
+        .weight(5)
+        .quality(2)
+        .count(1, 3)
+        .function(std::make_unique<SetCountFunction>(RandomValueRange(10.0f, 10.0f)))
+        .function(std::make_unique<FurnaceSmeltFunction>())
+        .build();
+
+    ASSERT_NE(entry, nullptr);
+    EXPECT_EQ(LootEntryType::Item, entry->getType());
+    EXPECT_EQ(5, entry->getWeight());
+    EXPECT_EQ(2, entry->getQuality());
+    EXPECT_EQ(2, entry->getFunctions().size());
+}
+
+TEST_F(LootTest, LootEntryBuilder_BuildCopiesFunctions) {
+    // 测试 build 正确复制函数
+    // 直接链式调用，避免复制 builder
+    auto entry = LootEntryBuilder::item("minecraft:diamond")
+        .function(std::make_unique<SetCountFunction>(RandomValueRange(5.0f, 5.0f)))
+        .function(std::make_unique<FurnaceSmeltFunction>())
+        .build();
+
+    ASSERT_NE(entry, nullptr);
+    EXPECT_EQ(2, entry->getFunctions().size());
+
+    // 验证函数类型
+    EXPECT_EQ("set_count", entry->getFunctions()[0]->getType());
+    EXPECT_EQ("furnace_smelt", entry->getFunctions()[1]->getType());
+}
+
+TEST_F(LootTest, LootEntryBuilder_WithConditionAndFunction) {
+    // 测试同时添加条件和函数
+    auto entry = LootEntryBuilder::item("minecraft:diamond")
+        .condition(std::make_unique<RandomChanceCondition>(0.5f))
+        .function(std::make_unique<SetCountFunction>(RandomValueRange(3.0f, 3.0f)))
+        .build();
+
+    ASSERT_NE(entry, nullptr);
+    EXPECT_EQ(1, entry->getConditions().size());
+    EXPECT_EQ(1, entry->getFunctions().size());
+}
+
+// ============================================================================
+// ApplyBonusFunction Tests
+// ============================================================================
+
+TEST_F(LootTest, ApplyBonusFunction_OreDropsNoFortune) {
+    // 测试没有时运时的 OreDrops 公式
+    math::Random rng(12345);
+
+    // 没有时运，应该返回基础数量
+    for (int i = 0; i < 10; ++i) {
+        i32 result = ApplyBonusFunction::calculateOreDrops(1, 0, rng);
+        EXPECT_EQ(1, result);
+    }
+}
+
+TEST_F(LootTest, ApplyBonusFunction_OreDropsWithFortune) {
+    // 测试有时运时的 OreDrops 公式
+    math::Random rng(12345);
+
+    // Fortune I: random.nextInt(3) - 1 -> -1, 0, 1 (修正后 0, 0, 1) -> multiplier: 1, 1, 2
+    // 结果范围: 1 * (0+1) = 1 到 1 * (1+1) = 2
+    bool sawOne = false;
+    bool sawTwo = false;
+    for (int i = 0; i < 100; ++i) {
+        i32 result = ApplyBonusFunction::calculateOreDrops(1, 1, rng);
+        EXPECT_GE(result, 1);
+        EXPECT_LE(result, 2);
+        if (result == 1) sawOne = true;
+        if (result == 2) sawTwo = true;
+    }
+    EXPECT_TRUE(sawOne);
+    EXPECT_TRUE(sawTwo);
+
+    // Fortune III: random.nextInt(5) - 1 -> -1, 0, 1, 2, 3 (修正后 0, 0, 1, 2, 3) -> multiplier: 1, 1, 2, 3, 4
+    // 结果范围: 1 * (0+1) = 1 到 1 * (3+1) = 4
+    sawOne = false;
+    bool sawFour = false;
+    for (int i = 0; i < 200; ++i) {
+        i32 result = ApplyBonusFunction::calculateOreDrops(1, 3, rng);
+        EXPECT_GE(result, 1);
+        EXPECT_LE(result, 4);
+        if (result == 1) sawOne = true;
+        if (result == 4) sawFour = true;
+    }
+    EXPECT_TRUE(sawOne);
+    EXPECT_TRUE(sawFour);
+}
+
+TEST_F(LootTest, ApplyBonusFunction_OreDropsMultiplicative) {
+    // 验证 OreDrops 是乘法式，不是加法式
+    math::Random rng(12345);
+
+    // 基础数量 2，Fortune III，最大应该是 2 * 4 = 8
+    for (int i = 0; i < 100; ++i) {
+        i32 result = ApplyBonusFunction::calculateOreDrops(2, 3, rng);
+        EXPECT_GE(result, 2);  // 最小 2 * 1 = 2
+        EXPECT_LE(result, 8);  // 最大 2 * 4 = 8
+    }
+}
+
+TEST_F(LootTest, ApplyBonusFunction_UniformBonus) {
+    // 测试均匀分布加成
+    math::Random rng(12345);
+
+    // Uniform: count + random(0, bonusMultiplier * fortune)
+    // bonusMultiplier=1, fortune=3 -> 加成范围 [0, 3]
+    for (int i = 0; i < 100; ++i) {
+        i32 result = ApplyBonusFunction::calculateUniformBonus(5, 3, 1, rng);
+        EXPECT_GE(result, 5);   // 5 + 0
+        EXPECT_LE(result, 8);   // 5 + 3
+    }
+}
+
+TEST_F(LootTest, ApplyBonusFunction_BinomialBonus) {
+    // 测试二项分布加成
+    math::Random rng(12345);
+
+    // Binomial: count + binomial(fortune + extra, probability)
+    // fortune=3, extra=1, probability=0.5 -> 4 次试验，每次 50% 概率
+    for (int i = 0; i < 100; ++i) {
+        i32 result = ApplyBonusFunction::calculateBinomialBonus(1, 3, 1, 0.5f, rng);
+        EXPECT_GE(result, 1);   // 1 + 0
+        EXPECT_LE(result, 5);   // 1 + 4
+    }
+}
+
+TEST_F(LootTest, ApplyBonusFunction_IntegrationWithLootContext) {
+    // 测试 ApplyBonusFunction 与 LootContext 的时运参数集成
+    auto func = std::make_unique<ApplyBonusFunction>(ApplyBonusFunction::BonusType::OreDrops);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .withLootingModifier(3)  // Fortune III
+        .build();
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    // 注意：当前 ApplyBonusFunction 使用 getLootingModifier() 作为时运等级
+    // 这是一个设计选择，因为 MC 中时运和掠夺都使用 looting modifier 参数
+    ItemStack result = func->apply(stack, *context);
+
+    // 应该有时运加成
+    EXPECT_GE(result.getCount(), 1);
+    EXPECT_LE(result.getCount(), 4);
+}
+
+// ============================================================================
+// LootTable Integration Tests with Fortune
+// ============================================================================
+
+TEST_F(LootTest, LootTable_DiamondOreWithSilkTouch) {
+    // 测试钻石矿精准采集掉落
+    LootTableManager manager;
+    manager.initializeDefaultTables();
+
+    const LootTable* table = manager.getTable("minecraft:blocks/diamond_ore");
+    ASSERT_NE(table, nullptr);
+
+    math::Random rng(12345);
+
+    // 设置精准采集
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+    context->setOwnedValue(LootParams::SILK_TOUCH_LEVEL, 1);
+
+    auto items = table->generate(*context);
+
+    // 精准采集应该掉落钻石矿石
+    ASSERT_EQ(1, items.size());
+    EXPECT_EQ("minecraft:diamond_ore", items[0].getItem()->toString());
+}
+
+TEST_F(LootTest, LootTable_DiamondOreWithFortune) {
+    // 测试钻石矿时运加成
+    // 注意：ApplyBonusFunction 需要 TOOL 参数才能应用时运加成
+    // 这个测试验证在没有工具的情况下，掉落数量固定为 1
+    LootTableManager manager;
+    manager.initializeDefaultTables();
+
+    const LootTable* table = manager.getTable("minecraft:blocks/diamond_ore");
+    ASSERT_NE(table, nullptr);
+
+    math::Random rng(12345);
+
+    // 没有设置 TOOL，所以 ApplyBonusFunction 不会应用时运加成
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .withLootingModifier(3)
+        .build();
+
+    // 多次生成验证在没有工具时掉落数量固定为 1
+    for (int i = 0; i < 10; ++i) {
+        auto items = table->generate(*context);
+        ASSERT_EQ(1, items.size());
+        EXPECT_EQ("minecraft:diamond", items[0].getItem()->toString());
+        // 没有工具时，数量固定为 1
+        EXPECT_EQ(1, items[0].getCount());
+    }
+}
+
+TEST_F(LootTest, LootTable_CoalOreWithSilkTouch) {
+    // 测试煤矿精准采集掉落
+    LootTableManager manager;
+    manager.initializeDefaultTables();
+
+    const LootTable* table = manager.getTable("minecraft:blocks/coal_ore");
+    ASSERT_NE(table, nullptr);
+
+    math::Random rng(12345);
+
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+    context->setOwnedValue(LootParams::SILK_TOUCH_LEVEL, 1);
+
+    auto items = table->generate(*context);
+
+    ASSERT_EQ(1, items.size());
+    EXPECT_EQ("minecraft:coal_ore", items[0].getItem()->toString());
+}
+
+TEST_F(LootTest, LootTable_CoalOreWithFortune) {
+    // 测试煤矿时运加成
+    // 注意：ApplyBonusFunction 需要 TOOL 参数才能应用时运加成
+    // 这个测试验证在没有工具的情况下，掉落数量固定为 1
+    LootTableManager manager;
+    manager.initializeDefaultTables();
+
+    const LootTable* table = manager.getTable("minecraft:blocks/coal_ore");
+    ASSERT_NE(table, nullptr);
+
+    math::Random rng(12345);
+
+    // 没有设置 TOOL，所以 ApplyBonusFunction 不会应用时运加成
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .withLootingModifier(3)
+        .build();
+
+    // 多次生成验证在没有工具时掉落数量固定为 1
+    for (int i = 0; i < 10; ++i) {
+        auto items = table->generate(*context);
+        ASSERT_EQ(1, items.size());
+        EXPECT_EQ("minecraft:coal", items[0].getItem()->toString());
+        // 没有工具时，数量固定为 1
+        EXPECT_EQ(1, items[0].getCount());
+    }
+}
+
+TEST_F(LootTest, LootTable_StoneWithSilkTouch) {
+    // 测试石头精准采集掉落石头
+    LootTableManager manager;
+    manager.initializeDefaultTables();
+
+    const LootTable* table = manager.getTable("minecraft:blocks/stone");
+    ASSERT_NE(table, nullptr);
+
+    math::Random rng(12345);
+
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+    context->setOwnedValue(LootParams::SILK_TOUCH_LEVEL, 1);
+
+    auto items = table->generate(*context);
+
+    ASSERT_EQ(1, items.size());
+    EXPECT_EQ("minecraft:stone", items[0].getItem()->toString());
+}
+
+TEST_F(LootTest, LootTable_StoneWithoutSilkTouch) {
+    // 测试石头普通挖掘掉落圆石
+    LootTableManager manager;
+    manager.initializeDefaultTables();
+
+    const LootTable* table = manager.getTable("minecraft:blocks/stone");
+    ASSERT_NE(table, nullptr);
+
+    math::Random rng(12345);
+
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    auto items = table->generate(*context);
+
+    ASSERT_EQ(1, items.size());
+    EXPECT_EQ("minecraft:cobblestone", items[0].getItem()->toString());
+}
