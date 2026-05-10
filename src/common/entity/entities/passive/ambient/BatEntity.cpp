@@ -1,6 +1,8 @@
 #include "BatEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/Block.hpp"
 
 namespace mc {
 
@@ -22,18 +24,35 @@ std::unique_ptr<Entity> BatEntity::create(IWorld* /*world*/) {
 }
 
 bool BatEntity::canRest() const {
-    // TODO: 检查上方是否有固体方块
-    // BlockPos above = position().above();
-    // BlockState state = world()->getBlockState(above);
-    // return state.isSolid();
-    return false;
+    // MC 1.16.5: 检查上方是否有固体方块
+    // 参考 BatEntity.canRest() 第82-88行
+    if (m_world == nullptr) {
+        return false;
+    }
+    BlockPos above(
+        static_cast<i32>(std::floor(m_position.x)),
+        static_cast<i32>(std::floor(m_position.y + 1.0)),
+        static_cast<i32>(std::floor(m_position.z)));
+    const BlockState* state = m_world->getBlockState(above);
+    if (state == nullptr) {
+        return false;
+    }
+    // 检查方块是否是固体的（可以挂在上面的）
+    return state->getBlock().isSolid(*state);
 }
 
 void BatEntity::tick() {
     AmbientEntity::tick();
 
-    // TODO: 检查是否是白天
-    // bool isDay = world()->isDay();
+    // MC 1.16.5: 检查是否是白天
+    // 参考 BatEntity.tick() 第109-132行
+    bool isDay = false;
+    if (m_world != nullptr) {
+        // dayTime() 返回一天中的时间 (0-23999)
+        // 白天: 0-11999, 夜晚: 12000-23999
+        i64 timeOfDay = m_world->dayTime() % 24000;
+        isDay = timeOfDay < 12000;
+    }
 
     // 简化逻辑：随机决定是否休息
     if (m_flying && !m_resting) {
@@ -51,12 +70,15 @@ void BatEntity::tick() {
 
     // 休息状态更新
     if (m_resting) {
-        // 保持静止
-        // TODO: 检查是否应该唤醒
-        // if (world()->isNight() || nearbyPlayer) {
-        //     m_resting = false;
-        //     m_flying = true;
-        // }
+        // MC 1.16.5: 在夜间或附近有玩家时唤醒
+        // 暂时只检查白天/夜晚
+        if (isDay) {
+            // 白天保持休息
+        } else {
+            // 夜间唤醒并开始飞行
+            m_resting = false;
+            m_flying = true;
+        }
     }
 }
 
