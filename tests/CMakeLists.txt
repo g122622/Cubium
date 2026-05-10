@@ -49,6 +49,7 @@ add_executable(mc_tests
     common/item/weapon/WeaponItemTest.cpp
     common/item/special/BucketItemTest.cpp
     common/item/special/FishBucketItemTest.cpp
+    common/item/food/ChorusFruitItemTest.cpp
     common/item/NewItemTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp
@@ -62,6 +63,7 @@ add_executable(mc_tests
     common/entity/entities/passive/basic/ChickenEntityTest.cpp
     common/entity/entities/passive/basic/RabbitEntityTest.cpp
     common/entity/entities/passive/basic/MooshroomEntityTest.cpp
+    common/entity/DolphinEntityTest.cpp
     common/entity/entities/monster/SlimeEntityTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp

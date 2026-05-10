@@ -117,10 +117,21 @@ Entity
 
 ## 待实现功能
 
-- 气泡柱检测（需要 Blocks::BUBBLE_COLUMN 实现）
 - 海豚 AI 目标（需要 AI 系统完善）
 - 鱿鱼 AI 目标（需要 AI 系统完善）
-- 喷墨粒子效果（需要粒子系统）
+
+## 已实现功能
+
+### DolphinEntity（2026-05-10）
+- ✅ `canJumpOutOfWater()`: 检查海豚是否接近水面（上方有空气）
+- ✅ `isFoodItem()`: 检测鳕鱼、鲑鱼、河豚、热带鱼
+
+### WaterMobEntity（2026-05-10）
+- ✅ `isInWaterOrBubble()`: 检测实体是否在水中或气泡柱中，使用 `VanillaBlocks::BUBBLE_COLUMN` 检测气泡柱方块
+
+### 测试用例
+
+- [tests/common/entity/DolphinEntityTest.cpp](../../../../../../tests/common/entity/DolphinEntityTest.cpp) - 海豚实体测试
 
 ## 参考
 
