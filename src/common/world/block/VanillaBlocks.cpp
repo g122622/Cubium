@@ -8,6 +8,7 @@
 #include "blocks/CauldronBlock.hpp"
 #include "blocks/EnchantingTableBlock.hpp"
 #include "blocks/ChestBlock.hpp"
+#include "blocks/TrappedChestBlock.hpp"
 #include "blocks/building/StairsBlock.hpp"
 #include "blocks/building/SlabBlock.hpp"
 #include "blocks/building/WallBlock.hpp"
@@ -18,6 +19,15 @@
 #include "blocks/decorative/ChainBlock.hpp"
 #include "blocks/decorative/ScaffoldingBlock.hpp"
 #include "blocks/decorative/StainedGlassBlock.hpp"
+#include "blocks/decorative/CarpetBlock.hpp"
+#include "blocks/functional/LoomBlock.hpp"
+#include "blocks/functional/BarrelBlock.hpp"
+#include "blocks/functional/CartographyTableBlock.hpp"
+#include "blocks/functional/FletchingTableBlock.hpp"
+#include "blocks/functional/SmithingTableBlock.hpp"
+#include "blocks/functional/ComposterBlock.hpp"
+#include "blocks/functional/LecternBlock.hpp"
+#include "blocks/functional/JukeboxBlock.hpp"
 #include "blocks/ice/IceBlock.hpp"
 #include "blocks/ice/SnowBlock.hpp"
 #include "blocks/dirt/SpreadableSnowyDirtBlock.hpp"
@@ -157,6 +167,15 @@ Block* VanillaBlocks::CRAFTING_TABLE = nullptr;
 Block* VanillaBlocks::CAULDRON = nullptr;
 Block* VanillaBlocks::ENCHANTING_TABLE = nullptr;
 Block* VanillaBlocks::CHEST = nullptr;
+Block* VanillaBlocks::TRAPPED_CHEST = nullptr;
+Block* VanillaBlocks::LOOM = nullptr;
+Block* VanillaBlocks::BARREL = nullptr;
+Block* VanillaBlocks::CARTOGRAPHY_TABLE = nullptr;
+Block* VanillaBlocks::FLETCHING_TABLE = nullptr;
+Block* VanillaBlocks::SMITHING_TABLE = nullptr;
+Block* VanillaBlocks::COMPOSTER = nullptr;
+Block* VanillaBlocks::LECTERN = nullptr;
+Block* VanillaBlocks::JUKEBOX = nullptr;
 
 // 含水方块
 Block* VanillaBlocks::LADDER = nullptr;
@@ -208,6 +227,24 @@ Block* VanillaBlocks::BROWN_WOOL = nullptr;
 Block* VanillaBlocks::GREEN_WOOL = nullptr;
 Block* VanillaBlocks::RED_WOOL = nullptr;
 Block* VanillaBlocks::BLACK_WOOL = nullptr;
+
+// 地毯
+Block* VanillaBlocks::WHITE_CARPET = nullptr;
+Block* VanillaBlocks::ORANGE_CARPET = nullptr;
+Block* VanillaBlocks::MAGENTA_CARPET = nullptr;
+Block* VanillaBlocks::LIGHT_BLUE_CARPET = nullptr;
+Block* VanillaBlocks::YELLOW_CARPET = nullptr;
+Block* VanillaBlocks::LIME_CARPET = nullptr;
+Block* VanillaBlocks::PINK_CARPET = nullptr;
+Block* VanillaBlocks::GRAY_CARPET = nullptr;
+Block* VanillaBlocks::LIGHT_GRAY_CARPET = nullptr;
+Block* VanillaBlocks::CYAN_CARPET = nullptr;
+Block* VanillaBlocks::PURPLE_CARPET = nullptr;
+Block* VanillaBlocks::BLUE_CARPET = nullptr;
+Block* VanillaBlocks::BROWN_CARPET = nullptr;
+Block* VanillaBlocks::GREEN_CARPET = nullptr;
+Block* VanillaBlocks::RED_CARPET = nullptr;
+Block* VanillaBlocks::BLACK_CARPET = nullptr;
 
 // 木板变种
 Block* VanillaBlocks::SPRUCE_PLANKS = nullptr;
@@ -616,6 +653,10 @@ void VanillaBlocks::initialize() {
     {
         MC_TRACE_EVENT("client.initialization", "registerWoolBlocks");
         registerWoolBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerCarpetBlocks");
+        registerCarpetBlocks();
     }
     {
         MC_TRACE_EVENT("client.initialization", "registerPlanksVariants");
@@ -1262,6 +1303,69 @@ void VanillaBlocks::registerFunctionalBlocks() {
         ResourceLocation("minecraft:oak_fence_gate"),
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid().flammable()
     );
+
+    // 陷阱箱 - 含水方块
+    // 参考: new TrappedChestBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F).notSolid())
+    TRAPPED_CHEST = &registry.registerBlock<blocks::TrappedChestBlock>(
+        ResourceLocation("minecraft:trapped_chest"),
+        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().flammable()
+    );
+
+    // 织布机
+    // 参考: new LoomBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))
+    LOOM = &registry.registerBlock<blocks::LoomBlock>(
+        ResourceLocation("minecraft:loom"),
+        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable()
+    );
+
+    // 木桶
+    // 参考: new BarrelBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))
+    BARREL = &registry.registerBlock<blocks::BarrelBlock>(
+        ResourceLocation("minecraft:barrel"),
+        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable()
+    );
+
+    // 制图台
+    // 参考: new CartographyTableBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))
+    CARTOGRAPHY_TABLE = &registry.registerBlock<blocks::CartographyTableBlock>(
+        ResourceLocation("minecraft:cartography_table"),
+        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable()
+    );
+
+    // 制箭台
+    // 参考: new FletchingTableBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))
+    FLETCHING_TABLE = &registry.registerBlock<blocks::FletchingTableBlock>(
+        ResourceLocation("minecraft:fletching_table"),
+        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable()
+    );
+
+    // 锻造台
+    // 参考: new SmithingTableBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))
+    SMITHING_TABLE = &registry.registerBlock<blocks::SmithingTableBlock>(
+        ResourceLocation("minecraft:smithing_table"),
+        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable()
+    );
+
+    // 堆肥桶
+    // 参考: new ComposterBlock(Properties.create(Material.WOOD).hardnessAndResistance(0.6F))
+    COMPOSTER = &registry.registerBlock<blocks::ComposterBlock>(
+        ResourceLocation("minecraft:composter"),
+        BlockProperties(Material::WOOD).hardness(0.6f).flammable()
+    );
+
+    // 讲台
+    // 参考: new LecternBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))
+    LECTERN = &registry.registerBlock<blocks::LecternBlock>(
+        ResourceLocation("minecraft:lectern"),
+        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable()
+    );
+
+    // 唱片机
+    // 参考: new JukeboxBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.0F))
+    JUKEBOX = &registry.registerBlock<blocks::JukeboxBlock>(
+        ResourceLocation("minecraft:jukebox"),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(6.0f).flammable()
+    );
 }
 
 // ============================================================================
@@ -1306,6 +1410,50 @@ void VanillaBlocks::registerWoolBlocks() {
         ResourceLocation("minecraft:red_wool"), woolProps);
     BLACK_WOOL = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:black_wool"), woolProps);
+}
+
+// ============================================================================
+// 地毯注册 (16色)
+// ============================================================================
+void VanillaBlocks::registerCarpetBlocks() {
+    auto& registry = BlockRegistry::instance();
+
+    // 参考: new CarpetBlock(Properties.create(Material.WOOL).hardnessAndResistance(0.1F).notSolid())
+    // 所有地毯使用相同的属性
+    BlockProperties carpetProps = BlockProperties(Material::WOOL).hardness(0.1f).notSolid();
+
+    WHITE_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:white_carpet"), carpetProps);
+    ORANGE_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:orange_carpet"), carpetProps);
+    MAGENTA_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:magenta_carpet"), carpetProps);
+    LIGHT_BLUE_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:light_blue_carpet"), carpetProps);
+    YELLOW_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:yellow_carpet"), carpetProps);
+    LIME_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:lime_carpet"), carpetProps);
+    PINK_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:pink_carpet"), carpetProps);
+    GRAY_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:gray_carpet"), carpetProps);
+    LIGHT_GRAY_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:light_gray_carpet"), carpetProps);
+    CYAN_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:cyan_carpet"), carpetProps);
+    PURPLE_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:purple_carpet"), carpetProps);
+    BLUE_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:blue_carpet"), carpetProps);
+    BROWN_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:brown_carpet"), carpetProps);
+    GREEN_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:green_carpet"), carpetProps);
+    RED_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:red_carpet"), carpetProps);
+    BLACK_CARPET = &registry.registerBlock<blocks::CarpetBlock>(
+        ResourceLocation("minecraft:black_carpet"), carpetProps);
 }
 
 // ============================================================================

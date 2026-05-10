@@ -259,24 +259,98 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
             return 4001;
         }
 
+        // ========== 梯子 (300 tick = 15 秒) ==========
+        // 参考: MC 1.16.5 第 117 行: addItemBurnTime(map, Blocks.LADDER, 300);
+        if (isBlockItem(item, VanillaBlocks::LADDER)) {
+            return 300;
+        }
+
+        // ========== 死灌木 (100 tick = 5 秒) ==========
+        // 参考: MC 1.16.5 第 135 行: addItemBurnTime(map, Blocks.DEAD_BUSH, 100);
+        if (isBlockItem(item, VanillaBlocks::DEAD_BUSH)) {
+            return 100;
+        }
+
+        // ========== 箱子 (300 tick = 15 秒) ==========
+        // 参考: MC 1.16.5 第 114 行: addItemBurnTime(map, Blocks.CHEST, 300);
+        if (isBlockItem(item, VanillaBlocks::CHEST)) {
+            return 300;
+        }
+
+        // ========== 陷阱箱 (300 tick = 15 秒) ==========
+        // 参考: MC 1.16.5 第 125 行: addItemBurnTime(map, Blocks.TRAPPED_CHEST, 300);
+        if (isBlockItem(item, VanillaBlocks::TRAPPED_CHEST)) {
+            return 300;
+        }
+
+        // ========== 织布机 (300 tick = 15 秒) ==========
+        // 参考: MC 1.16.5 第 151 行: addItemBurnTime(map, Blocks.LOOM, 300);
+        if (isBlockItem(item, VanillaBlocks::LOOM)) {
+            return 300;
+        }
+
+        // ========== 木桶 (300 tick = 15 秒) ==========
+        // 参考: MC 1.16.5 第 152 行: addItemBurnTime(map, Blocks.BARREL, 300);
+        if (isBlockItem(item, VanillaBlocks::BARREL)) {
+            return 300;
+        }
+
+        // ========== 制图台 (300 tick = 15 秒) ==========
+        // 参考: MC 1.16.5 第 153 行: addItemBurnTime(map, Blocks.CARTOGRAPHY_TABLE, 300);
+        if (isBlockItem(item, VanillaBlocks::CARTOGRAPHY_TABLE)) {
+            return 300;
+        }
+
+        // ========== 制箭台 (300 tick = 15 秒) ==========
+        // 参考: MC 1.16.5 第 154 行: addItemBurnTime(map, Blocks.FLETCHING_TABLE, 300);
+        if (isBlockItem(item, VanillaBlocks::FLETCHING_TABLE)) {
+            return 300;
+        }
+
+        // ========== 锻造台 (300 tick = 15 秒) ==========
+        // 参考: MC 1.16.5 第 155 行: addItemBurnTime(map, Blocks.SMITHING_TABLE, 300);
+        if (isBlockItem(item, VanillaBlocks::SMITHING_TABLE)) {
+            return 300;
+        }
+
+        // ========== 堆肥桶 (300 tick = 15 秒) ==========
+        // 参考: MC 1.16.5 第 156 行: addItemBurnTime(map, Blocks.COMPOSTER, 300);
+        if (isBlockItem(item, VanillaBlocks::COMPOSTER)) {
+            return 300;
+        }
+
+        // ========== 讲台 (300 tick = 15 秒) ==========
+        // 参考: MC 1.16.5 第 122 行: addItemBurnTime(map, Blocks.LECTERN, 300);
+        if (isBlockItem(item, VanillaBlocks::LECTERN)) {
+            return 300;
+        }
+
+        // ========== 唱片机 (300 tick = 15 秒) ==========
+        // 参考: MC 1.16.5 第 123 行: addItemBurnTime(map, Blocks.JUKEBOX, 300);
+        if (isBlockItem(item, VanillaBlocks::JUKEBOX)) {
+            return 300;
+        }
+
+        // ========== 地毯 (67 tick) ==========
+        // 参考: MC 1.16.5 第 145 行: addItemTagBurnTime(map, ItemTags.CARPETS, 67);
+        if (isBlockInList(item, {
+            VanillaBlocks::WHITE_CARPET, VanillaBlocks::ORANGE_CARPET,
+            VanillaBlocks::MAGENTA_CARPET, VanillaBlocks::LIGHT_BLUE_CARPET,
+            VanillaBlocks::YELLOW_CARPET, VanillaBlocks::LIME_CARPET,
+            VanillaBlocks::PINK_CARPET, VanillaBlocks::GRAY_CARPET,
+            VanillaBlocks::LIGHT_GRAY_CARPET, VanillaBlocks::CYAN_CARPET,
+            VanillaBlocks::PURPLE_CARPET, VanillaBlocks::BLUE_CARPET,
+            VanillaBlocks::BROWN_CARPET, VanillaBlocks::GREEN_CARPET,
+            VanillaBlocks::RED_CARPET, VanillaBlocks::BLACK_CARPET
+        })) {
+            return 67;
+        }
+
         // ========== TODO 待实现的物品 ==========
         // 木船 (BOAT): 1200 tick (60 秒) - 待物品注册
-        // 地毯 (CARPET): 67 tick - 待方块注册
         // 煤炭块 (COAL_BLOCK): 16000 tick (800 秒) - 待方块注册
         // 旗帜 (BANNER): 300 tick - 待方块注册
         // 告示牌 (SIGN): 200 tick - 待物品注册
-        // 箱子 (CHEST): 300 tick - 待物品注册
-        // 陷阱箱 (TRAPPED_CHEST): 300 tick - 待方块注册
-        // 织布机 (LOOM): 300 tick - 待方块注册
-        // 木桶 (BARREL): 300 tick - 待方块注册
-        // 制图台 (CARTOGRAPHY_TABLE): 300 tick - 待方块注册
-        // 制箭台 (FLETCHING_TABLE): 300 tick - 待方块注册
-        // 锻造台 (SMITHING_TABLE): 300 tick - 待方块注册
-        // 堆肥桶 (COMPOSTER): 300 tick - 待方块注册
-        // 梯子 (LADDER): 300 tick - 待物品注册
-        // 讲台 (LECTERN): 300 tick - 待方块注册
-        // 唱片机 (JUKEBOX): 300 tick - 待方块注册
-        // 死灌木 (DEAD_BUSH): 100 tick - 待方块注册
 
         return 0;
     }

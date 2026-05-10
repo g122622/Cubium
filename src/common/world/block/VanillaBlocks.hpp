@@ -112,6 +112,15 @@ public:
     static Block* CAULDRON;
     static Block* ENCHANTING_TABLE;
     static Block* CHEST;              // 箱子（含水）
+    static Block* TRAPPED_CHEST;      // 陷阱箱（含水）
+    static Block* LOOM;               // 织布机
+    static Block* BARREL;             // 木桶
+    static Block* CARTOGRAPHY_TABLE;  // 制图台
+    static Block* FLETCHING_TABLE;    // 制箭台
+    static Block* SMITHING_TABLE;     // 锻造台
+    static Block* COMPOSTER;          // 堆肥桶
+    static Block* LECTERN;            // 讲台
+    static Block* JUKEBOX;            // 唱片机
 
     // ========================================================================
     // 含水方块
@@ -179,6 +188,26 @@ public:
     static Block* GREEN_WOOL;
     static Block* RED_WOOL;
     static Block* BLACK_WOOL;
+
+    // ========================================================================
+    // 地毯 (16色)
+    // ========================================================================
+    static Block* WHITE_CARPET;
+    static Block* ORANGE_CARPET;
+    static Block* MAGENTA_CARPET;
+    static Block* LIGHT_BLUE_CARPET;
+    static Block* YELLOW_CARPET;
+    static Block* LIME_CARPET;
+    static Block* PINK_CARPET;
+    static Block* GRAY_CARPET;
+    static Block* LIGHT_GRAY_CARPET;
+    static Block* CYAN_CARPET;
+    static Block* PURPLE_CARPET;
+    static Block* BLUE_CARPET;
+    static Block* BROWN_CARPET;
+    static Block* GREEN_CARPET;
+    static Block* RED_CARPET;
+    static Block* BLACK_CARPET;
 
     // ========================================================================
     // 木板变种
@@ -620,6 +649,7 @@ private:
     static void registerBuildingBlocks();
     static void registerFunctionalBlocks();
     static void registerWoolBlocks();
+    static void registerCarpetBlocks();        // 地毯
     static void registerPlanksVariants();
     static void registerNetherBlocks();
     static void registerTreeVariants();
