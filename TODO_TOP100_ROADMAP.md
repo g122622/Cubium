@@ -105,7 +105,7 @@
 - `src/common/entity/loot/LootTable.cpp:94,99`：**待实现** JSON 解析与序列化。当前 `fromJson()` 返回 `Unsupported` 错误。需要创建 `LootSerializers` 类实现完整的 JSON 解析逻辑（支持 MC 1.16.5 掉落表格式）。README 已标注为"未来计划"。
 - `src/common/entity/entities/passive/horse/AbstractHorseEntity.cpp:20`：补马鞍标志设置，逻辑很局部。
 - `src/client/sound/backend/AudioBuffer.cpp:63`、`src/client/sound/handler/BiomeAmbientHandler.cpp:51`、`src/client/sound/MusicPlayer.cpp:306`：这三处都在收尾客户端音频链路，建议一起处理。
-- `src/client/ui/kagero/template/parser/Parser.cpp:526` 与 `src/client/ui/kagero/template/parser/Ast.hpp` 中的 `bind:xxx / on:xxx / for:xxx` 示例：前者是真 TODO，后者是语法示例，不要混淆。
+- ✅ 已完成 `src/client/ui/kagero/template/parser/Parser.cpp:526`：ID 唯一性检查。在 Parser 类中添加 `m_seenIds` 集合，在 `validateElement()` 中检测重复 ID 并添加 `DuplicateId` 错误；添加 9 个单元测试覆盖各种场景。注：`src/client/ui/kagero/template/parser/Ast.hpp` 中的 `bind:xxx / on:xxx / for:xxx` 是语法示例，不是 TODO。
 - `src/common/entity/core/Entity.cpp:332,617,630,648`：补溺水、车辆、视线阻挡等核心判定，建议先对照原版再补单测。
 - `src/common/entity/core/LivingEntity.cpp:280,310,329,335`：补生命恢复、摔落保护、跳跃增强和冲刺跳跃，属于原版行为对齐点。
 - `src/common/entity/combat/AttackContext.cpp:70,71`：补附魔伤害与保护。
