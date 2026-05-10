@@ -456,6 +456,18 @@ public:
         return mc::hasFlag(m_flags, flag);
     }
 
+    /**
+     * @brief 检查是否正在鞘翅飞行
+     *
+     * 参考 MC 1.16.5: LivingEntity.isElytraFlying()
+     * 通过检查 FallFlying 标志位（第7位）来判断。
+     *
+     * @return 如果正在鞘翅飞行返回 true
+     */
+    [[nodiscard]] bool isElytraFlying() const {
+        return hasFlag(EntityFlags::FallFlying);
+    }
+
     // ========== 尺寸 ==========
 
     /**

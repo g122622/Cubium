@@ -754,6 +754,50 @@ public:
      */
     [[nodiscard]] bool isUsingItem() const { return m_activeItemUseCount > 0 && !m_activeItem.isEmpty(); }
 
+    // ========== 三叉戟激流攻击 ==========
+
+    /**
+     * @brief 检查是否正在进行激流攻击（旋转攻击）
+     *
+     * 参考 MC 1.16.5: LivingEntity.isSpinAttacking()
+     * 通过检查 LIVING_FLAGS 的第2位（0x04）来判断。
+     *
+     * @return 如果正在进行激流攻击返回 true
+     */
+    [[nodiscard]] bool isSpinAttacking() const;
+
+    /**
+     * @brief 开始激流攻击
+     *
+     * 参考 MC 1.16.5: LivingEntity.startSpinAttack()
+     * 设置 SpinAttack 标志并初始化持续时间。
+     * 持续时间内实体会以 SpinAttack 姿态旋转前进。
+     *
+     * @param duration 攻击持续时间（ticks）
+     */
+    void startSpinAttack(i32 duration);
+
+    /**
+     * @brief 停止激流攻击
+     *
+     * 参考 MC 1.16.5: LivingEntity.stopSpinAttack()
+     * 清除 SpinAttack 标志。
+     */
+    void stopSpinAttack();
+
+    /**
+     * @brief 更新激流攻击状态
+     *
+     * 在 tick() 中调用，递减持续时间计时器。
+     */
+    void updateSpinAttack();
+
+    /**
+     * @brief 获取激流攻击剩余时间
+     * @return 剩余 ticks，0 表示不在攻击中
+     */
+    [[nodiscard]] i32 spinAttackDuration() const { return m_spinAttackDuration; }
+
     /**
      * @brief 更新物品使用
      *
@@ -1034,6 +1078,9 @@ protected:
 
     // 溺水伤害计时器
     i32 m_drownDamageTimer = 0;          // 溺水伤害间隔计时器
+
+    // 三叉戟激流攻击状态
+    i32 m_spinAttackDuration = 0;        // 激流攻击剩余持续时间（ticks）
 };
 
 } // namespace mc

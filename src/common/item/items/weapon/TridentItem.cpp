@@ -115,7 +115,8 @@ void TridentItem::onPlayerStoppedUsing(
         player->addVelocity(f2, f3, f4);
 
         // 开始旋转攻击
-        // player->startSpinAttack(20);
+        // MC 1.16.5: 玩家以 SpinAttack 姿态冲刺 20 ticks
+        player->startSpinAttack(20);
 
         // 如果在地面，额外提升
         if (player->isOnGround()) {

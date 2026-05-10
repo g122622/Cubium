@@ -154,6 +154,7 @@ add_executable(mc_tests
     entity/RandomWalkingGoalTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/MinecartTests.cpp
+    entity/ElytraAndSpinAttackTest.cpp
     common/SettingsTest.cpp
     server/ServerWorldTest.cpp
     server/ServerWorldBlockUpdateCallbackTest.cpp

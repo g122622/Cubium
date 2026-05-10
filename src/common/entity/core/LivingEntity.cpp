@@ -466,6 +466,9 @@ void LivingEntity::tick() {
         m_inCombat = false;
         sendEndCombat();
     }
+
+    // 更新激流攻击状态
+    updateSpinAttack();
 }
 
 void LivingEntity::syncMetadataFromDataManager() {
@@ -1174,6 +1177,66 @@ void LivingEntity::updateAirSupply() {
         i32 newAir = determineNextAir(air());
         setAir(newAir);
         m_drownDamageTimer = 0;
+    }
+}
+
+// ============================================================================
+// 三叉戟激流攻击
+// ============================================================================
+
+bool LivingEntity::isSpinAttacking() const {
+    // MC 1.16.5: LivingEntity.isSpinAttacking()
+    // 检查 LIVING_FLAGS 的第2位（0x04）
+    // LIVING_FLAGS 位定义：
+    // - 位 0 (0x01): 是否正在使用物品 (isHandActive)
+    // - 位 1 (0x02): 使用的手（0=主手，1=副手）
+    // - 位 2 (0x04): 是否正在旋转攻击（三叉戟激流）
+    i8 flags = m_dataManager.get<i8>(LIVING_FLAGS_PARAM);
+    return (flags & 0x04) != 0;
+}
+
+void LivingEntity::startSpinAttack(i32 duration) {
+    // MC 1.16.5: LivingEntity.startSpinAttack(int)
+    // 设置旋转攻击持续时间和标志
+    m_spinAttackDuration = duration;
+
+    // 设置 LIVING_FLAGS 的第2位（0x04）
+    // 只在服务端设置，客户端通过数据参数同步
+    if (m_world == nullptr || !m_world->isClientSide()) {
+        i8 flags = m_dataManager.get<i8>(LIVING_FLAGS_PARAM);
+        flags |= 0x04;
+        m_dataManager.set(LIVING_FLAGS_PARAM, flags);
+    }
+}
+
+void LivingEntity::stopSpinAttack() {
+    // MC 1.16.5: LivingEntity.stopSpinAttack()
+    // 清除旋转攻击状态
+    m_spinAttackDuration = 0;
+
+    // 清除 LIVING_FLAGS 的第2位（0x04）
+    // 只在服务端设置，客户端通过数据参数同步
+    if (m_world == nullptr || !m_world->isClientSide()) {
+        i8 flags = m_dataManager.get<i8>(LIVING_FLAGS_PARAM);
+        flags &= ~0x04;
+        m_dataManager.set(LIVING_FLAGS_PARAM, flags);
+    }
+}
+
+void LivingEntity::updateSpinAttack() {
+    // MC 1.16.5: LivingEntity.livingTick() 中的旋转攻击更新
+    // 每tick递减持续时间，归零时停止
+    if (m_spinAttackDuration > 0) {
+        m_spinAttackDuration--;
+
+        // 检查是否结束
+        if (m_spinAttackDuration <= 0) {
+            stopSpinAttack();
+        } else if (isWet()) {
+            // 在水中或雨中时，激流攻击会有额外的上升速度
+            // MC 1.16.5: 每tick向上移动一小段距离
+            // 注意：这部分在 Player 的 travel() 中更详细实现
+        }
     }
 }
 

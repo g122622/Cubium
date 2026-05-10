@@ -1408,14 +1408,11 @@ void Player::updatePose() {
     bool isRidingVehicle = isRiding();
 
     // 1. 鞘翅飞行（优先级最高）
-    // TODO: 实现 isElytraFlying()
-    // if (isElytraFlying()) {
-    //     targetPose = EntityPose::FallFlying;
-    // }
-    // else
-
+    if (isElytraFlying()) {
+        targetPose = EntityPose::FallFlying;
+    }
     // 2. 睡眠
-    if (m_isSleeping) {
+    else if (m_isSleeping) {
         targetPose = EntityPose::Sleeping;
     }
     // 3. 游泳
@@ -1423,10 +1420,9 @@ void Player::updatePose() {
         targetPose = EntityPose::Swimming;
     }
     // 4. 三叉戟激流攻击
-    // TODO: 实现 isSpinAttacking()
-    // else if (isSpinAttacking()) {
-    //     targetPose = EntityPose::SpinAttack;
-    // }
+    else if (isSpinAttacking()) {
+        targetPose = EntityPose::SpinAttack;
+    }
     // 5. 潜行（非飞行模式）
     else if (m_isSneaking && !m_abilities.flying) {
         targetPose = EntityPose::Crouching;
