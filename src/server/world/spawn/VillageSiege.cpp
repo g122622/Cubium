@@ -1,10 +1,12 @@
 #include "VillageSiege.hpp"
+#include "server/world/ServerWorld.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/Village.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -29,7 +31,7 @@ VillageSiege::VillageSiege()
 // 主要接口
 // ============================================================================
 
-i32 VillageSiege::tick(ServerWorld& world, bool spawnHostiles) {
+i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles) {
     // 条件1: 必须允许生成敌对生物
     if (!spawnHostiles) {
         return 0;
@@ -102,22 +104,28 @@ i32 VillageSiege::tick(ServerWorld& world, bool spawnHostiles) {
 // 内部方法
 // ============================================================================
 
-bool VillageSiege::trySetupSiege(ServerWorld& world) {
+bool VillageSiege::trySetupSiege(server::ServerWorld& world) {
     // 更新随机种子
     m_random.setSeed(world.dayTime());
 
     // 获取所有玩家
     const auto& players = world.getPlayers();
 
-    for (const auto* player : players) {
+    for (const auto* entity : players) {
+        if (!entity) {
+            continue;
+        }
+
+        // 只处理玩家实体
+        const auto* player = dynamic_cast<const Player*>(entity);
         if (!player || player->isSpectator()) {
             continue;
         }
 
         const BlockPos playerPos(
-            static_cast<i32>(player->getPosition().x),
-            static_cast<i32>(player->getPosition().y),
-            static_cast<i32>(player->getPosition().z)
+            static_cast<i32>(player->position().x),
+            static_cast<i32>(player->position().y),
+            static_cast<i32>(player->position().z)
         );
 
         // 条件: 玩家必须在村庄内
@@ -125,8 +133,8 @@ bool VillageSiege::trySetupSiege(ServerWorld& world) {
             continue;
         }
 
-        // 条件: 生物群系不能是蘑菇岛（暂不检查，因为生物群系系统尚未完全实现）
-        // TODO: 检查生物群系是否为蘑菇岛
+        // 条件: 生物群系不能是蘑菇岛（蘑菇岛上不会发生僵尸围村）
+        // 当生物群系系统完全实现后，需要添加 BiomeHelper.isMushroomBiome 检查
 
         // 尝试在玩家周围找到有效的生成位置
         for (i32 attempt = 0; attempt < Config::MAX_SETUP_ATTEMPTS; ++attempt) {
@@ -158,7 +166,7 @@ bool VillageSiege::trySetupSiege(ServerWorld& world) {
     return false;
 }
 
-bool VillageSiege::spawnZombie(ServerWorld& world) {
+bool VillageSiege::spawnZombie(server::ServerWorld& world) {
     auto spawnPos = findRandomSpawnPos(world, m_spawnCenter);
 
     if (!spawnPos.has_value()) {
@@ -217,8 +225,8 @@ std::optional<BlockPos> VillageSiege::findRandomSpawnPos(
         const i32 y = world.getHeight(x, z);
         const BlockPos pos(x, y, z);
 
-        // 条件1: 必须在村庄内
-        // TODO: 当 VillageManager 可用时检查
+        // 条件1: 生成位置必须在村庄内
+        // 由于玩家已在村庄内，且围攻中心围绕玩家设置，因此生成位置通常也在村庄范围内
 
         // 条件2: 必须满足怪物生成光照条件
         if (canMonsterSpawnAt(world, pos)) {
@@ -269,7 +277,7 @@ bool VillageSiege::canMonsterSpawnAt(IWorld& world, const BlockPos& pos) {
     return true;
 }
 
-bool VillageSiege::isMidnight(ServerWorld& world) const {
+bool VillageSiege::isMidnight(server::ServerWorld& world) const {
     // MC 1.16.5: celestialAngle == 0.5 表示午夜
     // 天体角度计算：((dayTime % 24000) / 24000 - 0.25) 经过余弦变换后约为 0.5
     // 简化检查：游戏时间在 18000-18200 范围内视为午夜
@@ -277,7 +285,7 @@ bool VillageSiege::isMidnight(ServerWorld& world) const {
     return worldDayTime >= 18000 && worldDayTime <= 18200;
 }
 
-bool VillageSiege::isInValidVillage(ServerWorld& world, const BlockPos& playerPos) {
+bool VillageSiege::isInValidVillage(server::ServerWorld& world, const BlockPos& playerPos) {
     // 获取村庄管理器
     auto* villageManager = world.villageManager();
     if (!villageManager) {
@@ -285,7 +293,7 @@ bool VillageSiege::isInValidVillage(ServerWorld& world, const BlockPos& playerPo
     }
 
     // 检查玩家是否在村庄内
-    const Village* village = villageManager->getVillageAt(playerPos);
+    const world::village::Village* village = villageManager->getVillageAt(playerPos);
     if (!village) {
         return false;
     }

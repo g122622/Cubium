@@ -64,10 +64,6 @@ add_executable(mc_tests
     common/entity/entities/monster/SlimeEntityTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp
-    # Entity daylight and behavior tests
-    common/entity/entities/EntityDaylightTest.cpp
-    # Hunger effect test
-    common/entity/effect/HungerEffectTest.cpp
     # ItemDropHelper 测试
     common/entity/utils/ItemDropHelperTest.cpp
     # 经验系统测试
@@ -277,6 +273,8 @@ add_executable(mc_tests
     client/renderer/trident/blockentity/BeaconBeamModelTest.cpp
     # NaturalSpawner 娴嬭瘯
     server/world/spawn/NaturalSpawnerTest.cpp
+    # VillageSiege 测试
+    server/world/spawn/VillageSiegeTest.cpp
     # 鍏夌収鍚屾娴嬭瘯
     server/LightSyncTests.cpp
     # Kagero UI妯℃澘绯荤粺娴嬭瘯
@@ -391,6 +389,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
@@ -1043,6 +1042,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp

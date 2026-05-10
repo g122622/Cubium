@@ -119,5 +119,5 @@ f32 modifier = village.getPriceModifier(playerId);
 - [x] 实现袭击系统 (raid/)
 - [x] 实现交易系统 (trade/) - MerchantOffer NBT序列化已完成
 - [x] 实现僵尸围村 (VillageSiege) - 位于 `src/server/world/spawn/`
-- [ ] 集成 VillageSiege 到 ServerWorld
-- [ ] 编写单元测试
+- [x] 集成 VillageSiege 到 ServerWorld
+- [x] 编写单元测试 - tests/server/world/spawn/VillageSiegeTest.cpp (26个测试用例)

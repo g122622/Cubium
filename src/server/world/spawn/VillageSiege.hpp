@@ -9,8 +9,11 @@ namespace mc {
 
 // 前向声明
 class IWorld;
-class ServerWorld;
 class Player;
+
+namespace server {
+class ServerWorld;  // 前向声明
+}
 
 namespace world::village {
 class VillageManager;
@@ -84,7 +87,7 @@ public:
      * @param spawnHostiles 是否允许生成敌对生物
      * @return 生成的僵尸数量
      */
-    i32 tick(ServerWorld& world, bool spawnHostiles);
+    i32 tick(server::ServerWorld& world, bool spawnHostiles);
 
     // ========== 状态查询 ==========
 
@@ -169,7 +172,7 @@ private:
      * @param world 服务端世界
      * @return 是否成功设置
      */
-    bool trySetupSiege(ServerWorld& world);
+    bool trySetupSiege(server::ServerWorld& world);
 
     /**
      * @brief 生成一个僵尸
@@ -177,7 +180,7 @@ private:
      * @param world 服务端世界
      * @return 是否成功生成
      */
-    bool spawnZombie(ServerWorld& world);
+    bool spawnZombie(server::ServerWorld& world);
 
     /**
      * @brief 查找随机生成位置
@@ -207,7 +210,7 @@ private:
      * @param world 世界
      * @return 是否为午夜
      */
-    [[nodiscard]] bool isMidnight(ServerWorld& world) const;
+    [[nodiscard]] bool isMidnight(server::ServerWorld& world) const;
 
     /**
      * @brief 检查玩家是否在有效的村庄内
@@ -216,7 +219,7 @@ private:
      * @param playerPos 玩家位置
      * @return 是否在有效村庄内
      */
-    [[nodiscard]] bool isInValidVillage(ServerWorld& world, const BlockPos& playerPos);
+    [[nodiscard]] bool isInValidVillage(server::ServerWorld& world, const BlockPos& playerPos);
 };
 
 } // namespace server::spawn

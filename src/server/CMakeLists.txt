@@ -30,6 +30,7 @@ add_executable(minecraft-server
     world/spawn/NaturalSpawner.cpp
     world/spawn/SpawnConditions.cpp
     world/spawn/DespawnManager.cpp
+    world/spawn/VillageSiege.cpp
     world/entity/EntityTracker.cpp
     world/entity/ItemPickupManager.cpp
     world/player/ServerPlayerEntityManager.cpp

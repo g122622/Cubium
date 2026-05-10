@@ -11,6 +11,7 @@
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
+#include "server/world/spawn/VillageSiege.hpp"
 #include "common/world/storage/WorldStorageService.hpp"
 #include "common/world/storage/save/SaveManager.hpp"
 #include "common/world/border/WorldBorder.hpp"
@@ -645,6 +646,9 @@ private:
     // 村庄和袭击系统
     std::unique_ptr<::mc::world::village::VillageManager> m_villageManager;
     std::unique_ptr<::mc::world::village::raid::RaidManager> m_raidManager;
+
+    // 村庄围攻系统
+    server::spawn::VillageSiege m_villageSiege;
 
     std::function<void(LightType, const SectionPos&)> m_onLightChanged;
     std::function<void(const BlockPos&, u32)> m_onBlockChanged;

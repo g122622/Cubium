@@ -778,6 +778,13 @@ void ServerWorld::tick()
         m_raidManager->tick();
     }
 
+    // 更新村庄围攻系统（僵尸围村）
+    // 调试世界不执行村庄围攻
+    if (!m_config.isDebugWorld) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::VillageSiege");
+        m_villageSiege.tick(*this, true);  // spawnHostiles = true
+    }
+
     // 更新世界边界（渐变动画）
     m_worldBorder.tick();
 
