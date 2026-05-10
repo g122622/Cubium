@@ -438,6 +438,13 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 
     spdlog::info("Player '{}' attempting to join", username);
 
+    // 白名单检查（MC 1.16.5 行为：白名单启用时拒绝不在名单中的玩家）
+    if (m_whitelistManager->isEnabled() && !m_whitelistManager->isNameWhitelisted(username)) {
+        spdlog::info("Player '{}' rejected: not in whitelist", username);
+        sendLoginResponse(false, 0, INVALID_ENTITY_ID, username, "You are not whitelisted on this server!");
+        return;
+    }
+
     // 创建本地连接
     m_clientConnection = std::make_shared<network::LocalServerConnection>(&m_connectionPair->serverEndpoint());
 
