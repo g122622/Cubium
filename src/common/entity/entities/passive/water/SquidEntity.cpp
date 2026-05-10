@@ -1,6 +1,8 @@
 #include "SquidEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 namespace mc {
 
@@ -22,7 +24,32 @@ void SquidEntity::sprayInk() {
     if (!m_sprayingInk) {
         m_sprayingInk = true;
         m_sprayTimer = SPRAY_INK_DURATION;
-        // TODO: 生成墨汁粒子
+
+        // MC 1.16.5: 在鱿鱼位置生成墨汁粒子
+        // 参考: SquidEntity.squirtInk() - world.addParticle(ParticleTypes.SQUID_INK, ...)
+        if (world() != nullptr && world()->isClientSide()) {
+            using namespace mc::client::renderer::trident::particle;
+            math::Random& random = world()->getRandom();
+
+            // 生成多个墨汁粒子形成云状效果
+            for (i32 i = 0; i < 30; ++i) {
+                // 粒子位置：在鱿鱼周围随机分布
+                f32 px = static_cast<f32>(x()) + (random.nextFloat() - 0.5f) * width() * 2.0f;
+                f32 py = static_cast<f32>(y()) + random.nextFloat() * height();
+                f32 pz = static_cast<f32>(z()) + (random.nextFloat() - 0.5f) * width() * 2.0f;
+
+                // 粒子速度：向外扩散
+                f32 vx = (random.nextFloat() - 0.5f) * 0.5f;
+                f32 vy = random.nextFloat() * 0.1f;
+                f32 vz = (random.nextFloat() - 0.5f) * 0.5f;
+
+                world()->addParticle(
+                    ParticleTypeId::SquidInk,
+                    Vector3(px, py, pz),
+                    Vector3(vx, vy, vz)
+                );
+            }
+        }
     }
 }
 
