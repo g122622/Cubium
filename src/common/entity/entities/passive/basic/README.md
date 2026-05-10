@@ -72,9 +72,20 @@ MobEntity
 - 生命值：10
 - 繁殖物品：小麦
 - 两种皮肤：红色哞菇（默认）、棕色哞菇
-- 可剪羊毛：使用剪刀获得蘑菇并变成普通牛（实现 IShearable 接口）
-- 可用空碗获取蘑菇汤
-- **雷击转换**（MC 1.16.5）：
+- 实现 IShearable 接口
+- **剪毛行为** (shear)：
+  - 返回 5 个对应颜色的蘑菇（红色哞菇 → 红蘑菇，棕色哞菇 → 棕蘑菇）
+  - 播放 `ENTITY_MOOSHROOM_SHEAR` 音效（音量 1.0，音调 1.0）
+  - 服务端生成 20 个 `Explosion` 粒子
+  - 转换为普通牛实体，继承位置、朝向、生命值、自定义名称、持久性、无敌状态
+- **碗交互** (canBeStewed/getStew)：
+  - canBeStewed()：检查物品是否为空碗且哞菇为成年
+  - getStew()：返回蘑菇汤物品（Items::MUSHROOM_STEW）
+- **繁殖行为** (spawnBaby)：
+  - 创建小哞菇实体
+  - 类型遗传：随机继承父母一方类型
+  - 变异机制：双亲类型相同时有 1/1024 概率变异为另一种类型
+- **雷击转换** (onStruckByLightning)：
   - 红色哞菇 + 雷击 → 棕色哞菇
   - 棕色哞菇 + 雷击 → 红色哞菇
   - 播放 `ENTITY_MOOSHROOM_CONVERT` 音效（音量 2.0，音调 1.0）
@@ -104,5 +115,5 @@ if (animal1->isInLove() && animal2->isInLove() && animal1->canMateWith(animal2))
 |------|------|
 | `tests/common/entity/entities/passive/basic/ChickenEntityTest.cpp` | 验证鸡蛋生成与计时器重置 |
 | `tests/common/entity/entities/passive/basic/RabbitEntityTest.cpp` | 兔子行为测试 |
-| `tests/common/entity/entities/passive/basic/MooshroomEntityTest.cpp` | 哞菇类型系统、雷击转换、音效播放、粒子生成测试 |
+| `tests/common/entity/entities/passive/basic/MooshroomEntityTest.cpp` | 哞菇完整测试：类型系统、雷击转换、音效播放、粒子生成、剪毛返回蘑菇、碗交互、繁殖类型遗传与变异（22个测试用例） |
 | `tests/entity/EatGrassGoalTest.cpp` | 验证羊颜色混合和吃草行为 |
