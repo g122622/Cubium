@@ -9,6 +9,8 @@
 #include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/application/IServer.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <cmath>
 #include <sstream>
@@ -124,19 +126,23 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 namespace {
 
 /**
- * @brief 获取玩家的 ServerPlayer 实例
+ * @brief 获取玩家的 Player 实体
  *
- * 当前项目架构中，ServerPlayerData 存储玩家数据，
- * 但 ServerPlayer 实例可能不在 PlayerManager 中直接可用。
- *
- * 当前实现：通过 source.player() 获取执行者的 ServerPlayer。
- * TODO: 当 PlayerManager 支持获取 ServerPlayer 实例时，应改用目标玩家。
+ * 通过 ServerPlayerEntityManager 获取目标玩家的实体对象。
  */
-ServerPlayer* getTargetPlayer(ServerCommandSource& source, PlayerId playerId)
+Player* getTargetPlayer(ServerCommandSource& source, PlayerId playerId)
 {
-    // 当前简化实现：只支持对命令执行者操作
-    // 完整实现需要 PlayerManager::getServerPlayer(PlayerId)
-    return source.player();
+    auto* server = source.server();
+    if (server == nullptr) {
+        return nullptr;
+    }
+
+    auto* world = source.world();
+    if (world == nullptr) {
+        return nullptr;
+    }
+
+    return server->playerEntityManager().getPlayerEntity(playerId, *world);
 }
 
 /**
@@ -154,7 +160,7 @@ PlayerId resolveFirstPlayer(ServerCommandSource& source, const EntitySelector& s
 /**
  * @brief 获取玩家名称用于命令反馈
  */
-std::string getPlayerName(ServerCommandSource& source, PlayerId playerId, ServerPlayer* player)
+std::string getPlayerName(ServerCommandSource& source, PlayerId playerId, Player* player)
 {
     if (source.server() != nullptr) {
         mc::server::core::PlayerManager& pm = source.server()->playerManager();
@@ -183,8 +189,8 @@ i32 ExperienceCommand::addPoints(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    // 获取 ServerPlayer 实例
-    ServerPlayer* player = getTargetPlayer(source, playerId);
+    // 获取 Player 实体
+    Player* player = getTargetPlayer(source, playerId);
     if (player == nullptr) {
         source.sendError("commands.experience.add.failed.noPlayer");
         return 0;
@@ -212,8 +218,8 @@ i32 ExperienceCommand::addLevels(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    // 获取 ServerPlayer 实例
-    ServerPlayer* player = getTargetPlayer(source, playerId);
+    // 获取 Player 实体
+    Player* player = getTargetPlayer(source, playerId);
     if (player == nullptr) {
         source.sendError("commands.experience.add.failed.noPlayer");
         return 0;
@@ -241,8 +247,8 @@ i32 ExperienceCommand::setPoints(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    // 获取 ServerPlayer 实例
-    ServerPlayer* player = getTargetPlayer(source, playerId);
+    // 获取 Player 实体
+    Player* player = getTargetPlayer(source, playerId);
     if (player == nullptr) {
         source.sendError("commands.experience.set.failed.noPlayer");
         return 0;
@@ -271,8 +277,8 @@ i32 ExperienceCommand::setLevels(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    // 获取 ServerPlayer 实例
-    ServerPlayer* player = getTargetPlayer(source, playerId);
+    // 获取 Player 实体
+    Player* player = getTargetPlayer(source, playerId);
     if (player == nullptr) {
         source.sendError("commands.experience.set.failed.noPlayer");
         return 0;
@@ -299,8 +305,8 @@ i32 ExperienceCommand::queryPoints(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    // 获取 ServerPlayer 实例
-    ServerPlayer* player = getTargetPlayer(source, playerId);
+    // 获取 Player 实体
+    Player* player = getTargetPlayer(source, playerId);
     if (player == nullptr) {
         source.sendError("commands.experience.query.failed.noPlayer");
         return 0;
@@ -327,8 +333,8 @@ i32 ExperienceCommand::queryLevels(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    // 获取 ServerPlayer 实例
-    ServerPlayer* player = getTargetPlayer(source, playerId);
+    // 获取 Player 实体
+    Player* player = getTargetPlayer(source, playerId);
     if (player == nullptr) {
         source.sendError("commands.experience.query.failed.noPlayer");
         return 0;
