@@ -20,6 +20,7 @@
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/UuidUtils.hpp"
 
 #include <stdexcept>
 #include <vector>
@@ -258,7 +259,8 @@ public:
     [[nodiscard]] server::ServerPlayerData* addTestPlayer(PlayerId playerId, const std::string& username)
     {
         auto connection = std::make_shared<FakeConnection>();
-        auto* player = m_playerManager.addPlayer(playerId, username, connection);
+        std::string uuid = util::uuidToString(util::generateOfflineUuid(username));
+        auto* player = m_playerManager.addPlayer(playerId, uuid, username, connection);
         if (player != nullptr) {
             m_connections.push_back(connection);
             m_inventoryManager.initializeInventory(playerId);

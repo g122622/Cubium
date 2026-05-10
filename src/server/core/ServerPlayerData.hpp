@@ -35,8 +35,11 @@ namespace mc::server {
  * @endcode
  */
 struct ServerPlayerData {
-    /// 玩家ID
+    /// 玩家ID（服务器分配的会话ID）
     PlayerId playerId = 0;
+
+    /// 玩家唯一标识符（持久化ID，用于存档）
+    std::string uuid;
 
     /// 用户名
     std::string username;

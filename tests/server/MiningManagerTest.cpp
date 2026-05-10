@@ -16,6 +16,7 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/network/connection/LocalServerConnection.hpp"
+#include "common/util/UuidUtils.hpp"
 
 using namespace mc;
 
@@ -50,7 +51,7 @@ protected:
         // 创建玩家管理器
         m_playerManager = std::make_unique<server::core::PlayerManager>();
         auto connection = std::make_shared<network::LocalServerConnection>(&m_connectionPair->serverEndpoint());
-        m_player = m_playerManager->addPlayer(m_playerId, "MiningTester", connection);
+        m_player = m_playerManager->addPlayer(m_playerId, mc::util::uuidToString(mc::util::generateOfflineUuid("MiningTester")), "MiningTester", connection);
         ASSERT_NE(m_player, nullptr);
 
         // 设置玩家位置

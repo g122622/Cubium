@@ -5,6 +5,7 @@
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/network/packet/Packet.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/UuidUtils.hpp"
 
 using namespace mc::server::core;
 using namespace mc::network;
@@ -38,7 +39,7 @@ protected:
 
 TEST_F(ConnectionManagerTest, SendToPlayer) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     std::vector<mc::u8> data = {1, 2, 3, 4, 5};
     EXPECT_TRUE(m_connectionManager->sendToPlayer(1, data.data(), data.size()));
@@ -49,7 +50,7 @@ TEST_F(ConnectionManagerTest, SendToPlayer) {
 
 TEST_F(ConnectionManagerTest, SendPacketToPlayer) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     std::vector<mc::u8> payload = {1, 2, 3};
     EXPECT_TRUE(m_connectionManager->sendPacketToPlayer(1, PacketType::KeepAlive, payload));
@@ -58,8 +59,8 @@ TEST_F(ConnectionManagerTest, SendPacketToPlayer) {
 TEST_F(ConnectionManagerTest, Broadcast) {
     auto conn1 = createConnection();
     auto conn2 = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn1);
-    m_playerManager->addPlayer(2, "Alex", conn2);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
+    m_playerManager->addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
 
     std::vector<mc::u8> data = {1, 2, 3};
     // 广播应不会崩溃
@@ -69,8 +70,8 @@ TEST_F(ConnectionManagerTest, Broadcast) {
 TEST_F(ConnectionManagerTest, BroadcastExcept) {
     auto conn1 = createConnection();
     auto conn2 = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn1);
-    m_playerManager->addPlayer(2, "Alex", conn2);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
+    m_playerManager->addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
 
     std::vector<mc::u8> data = {1, 2, 3};
     // 广播给除玩家1以外的所有玩家
@@ -79,7 +80,7 @@ TEST_F(ConnectionManagerTest, BroadcastExcept) {
 
 TEST_F(ConnectionManagerTest, BroadcastPacket) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     std::vector<mc::u8> payload = {1, 2, 3};
     m_connectionManager->broadcastPacket(PacketType::KeepAlive, payload);
@@ -87,7 +88,7 @@ TEST_F(ConnectionManagerTest, BroadcastPacket) {
 
 TEST_F(ConnectionManagerTest, DisconnectPlayer) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     EXPECT_TRUE(m_playerManager->hasPlayer(1));
 
@@ -99,8 +100,8 @@ TEST_F(ConnectionManagerTest, DisconnectPlayer) {
 TEST_F(ConnectionManagerTest, DisconnectAll) {
     auto conn1 = createConnection();
     auto conn2 = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn1);
-    m_playerManager->addPlayer(2, "Alex", conn2);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
+    m_playerManager->addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
 
     EXPECT_EQ(m_playerManager->playerCount(), 2u);
 
@@ -111,7 +112,7 @@ TEST_F(ConnectionManagerTest, DisconnectAll) {
 
 TEST_F(ConnectionManagerTest, CleanupDisconnectedPlayers) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     // 手动断开连接
     conn->disconnect("Test");

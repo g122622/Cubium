@@ -10,6 +10,7 @@
 #include "common/network/connection/LocalServerConnection.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/network/packet/Packet.hpp"
+#include "common/util/UuidUtils.hpp"
 
 using namespace mc::server::core;
 using namespace mc::network;
@@ -47,7 +48,7 @@ protected:
 
 TEST_F(KeepAliveManagerTest, NeedsKeepAlive) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     // 初始时应该需要发送心跳
     EXPECT_TRUE(m_keepAliveManager->needsKeepAlive(1, 2000));
@@ -69,8 +70,8 @@ TEST_F(KeepAliveManagerTest, NeedsKeepAliveNonexistentPlayer) {
 TEST_F(KeepAliveManagerTest, GetPlayersNeedingKeepAlive) {
     auto conn1 = createConnection();
     auto conn2 = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn1);
-    m_playerManager->addPlayer(2, "Alex", conn2);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
+    m_playerManager->addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
 
     // 两个玩家都需要心跳
     auto players = m_keepAliveManager->getPlayersNeedingKeepAlive(2000);
@@ -87,7 +88,7 @@ TEST_F(KeepAliveManagerTest, GetPlayersNeedingKeepAlive) {
 
 TEST_F(KeepAliveManagerTest, HandleKeepAliveResponse) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     // 记录发送时间
     m_keepAliveManager->recordKeepAliveSent(1, 1000, 20);
@@ -102,7 +103,7 @@ TEST_F(KeepAliveManagerTest, HandleKeepAliveResponse) {
 
 TEST_F(KeepAliveManagerTest, HandleKeepAliveResponseWrongTimestamp) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     m_keepAliveManager->recordKeepAliveSent(1, 1000, 20);
 
@@ -116,7 +117,7 @@ TEST_F(KeepAliveManagerTest, HandleKeepAliveResponseWrongTimestamp) {
 
 TEST_F(KeepAliveManagerTest, IsTimedOut) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     // 初始时不应该超时（没有接收过心跳）
     EXPECT_FALSE(m_keepAliveManager->isTimedOut(1, 1000));
@@ -134,8 +135,8 @@ TEST_F(KeepAliveManagerTest, IsTimedOut) {
 TEST_F(KeepAliveManagerTest, GetTimedOutPlayers) {
     auto conn1 = createConnection();
     auto conn2 = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn1);
-    m_playerManager->addPlayer(2, "Alex", conn2);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
+    m_playerManager->addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
 
     // 记录玩家1的接收时间
     m_keepAliveManager->updateKeepAlive(1, 1000);
@@ -152,7 +153,7 @@ TEST_F(KeepAliveManagerTest, GetTimedOutPlayers) {
 
 TEST_F(KeepAliveManagerTest, UpdateKeepAlive) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     m_keepAliveManager->updateKeepAlive(1, 1000);
     EXPECT_EQ(m_keepAliveManager->getLastKeepAliveReceived(1), 1000u);
@@ -195,7 +196,7 @@ TEST(KeepAlivePacketHandler, HandleFullPacket) {
     connectionPair->connect();
     auto connection = std::make_shared<mc::network::LocalServerConnection>(&connectionPair->serverEndpoint());
 
-    auto* player = playerManager.addPlayer(1, "Steve", connection);
+    auto* player = playerManager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", connection);
     ASSERT_NE(player, nullptr);
     playerManager.mapSessionToPlayer(1, 1);
 

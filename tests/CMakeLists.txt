@@ -354,6 +354,10 @@ add_executable(mc_tests
     common/util/thread/ServerWorkerPoolTest.cpp
     # SHA-256 加密工具测试
     common/util/crypto/Sha256Test.cpp
+    # MD5 加密工具测试
+    common/util/crypto/Md5Test.cpp
+    # UUID 工具测试
+    common/util/UuidUtilsTest.cpp
     # 璋冭瘯鍖哄潡鐢熸垚鍣ㄦ祴璇?    common/world/gen/DebugChunkGeneratorTest.cpp
     # 鐢熺墿缇ょ郴棰滆壊娴嬭瘯
     client/world/color/BiomeColorsTest.cpp
@@ -797,6 +801,9 @@ target_sources(mc_tests
         # Assert搴?        ${CMAKE_SOURCE_DIR}/src/common/util/assert/Assert.cpp
         # Crypto utilities
         ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Sha256.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Md5.cpp
+        # UUID utilities
+        ${CMAKE_SOURCE_DIR}/src/common/util/UuidUtils.cpp
         # 澹伴煶绯荤粺 - Common
         ${CMAKE_SOURCE_DIR}/src/common/sound/SoundCategory.cpp
         ${CMAKE_SOURCE_DIR}/src/common/sound/SoundEvent.cpp

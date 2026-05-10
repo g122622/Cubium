@@ -683,8 +683,13 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     // 分配玩家ID
     PlayerId playerId = m_playerManager->nextPlayerId();
 
+    // 生成离线模式 UUID（基于用户名）
+    // 参考 MC 1.16.5: UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(UTF_8))
+    Uuid offlineUuid = util::generateOfflineUuid(username);
+    std::string uuidStr = util::uuidToString(offlineUuid);
+
     // 添加玩家会话信息
-    auto* playerData = m_playerManager->addPlayer(playerId, username, connection);
+    auto* playerData = m_playerManager->addPlayer(playerId, uuidStr, username, connection);
     if (!playerData) {
         sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, "Failed to add player");
         session->disconnect("Failed to add player");

@@ -1,3 +1,13 @@
+/**
+ * @file UuidUtils.hpp
+ * @brief UUID 工具函数
+ *
+ * 提供 UUID 格式转换和离线模式 UUID 生成功能。
+ *
+ * Minecraft 1.16.5 离线模式 UUID 生成算法：
+ * UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(StandardCharsets.UTF_8))
+ * 这会生成一个 UUID v3（基于 MD5 哈希的命名空间 UUID）。
+ */
 #pragma once
 
 #include "common/command/ICommandSource.hpp"  // for Uuid and UuidHash
@@ -46,6 +56,106 @@ inline std::string uuidToString(const Uuid& uuid) {
         oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
     }
     return oss.str();
+}
+
+/**
+ * @brief 将 UUID 转换为带连字符的标准格式
+ *
+ * @param uuid 16 字节的 UUID 数组
+ * @return 带连字符的 UUID 字符串（格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
+ */
+inline std::string uuidToStringWithDashes(const Uuid& uuid) {
+    std::ostringstream oss;
+    oss << std::hex << std::setfill('0');
+
+    // 时间戳低 32 位 (time_low)
+    for (size_t i = 0; i < 4; ++i) {
+        oss << std::setw(2) << static_cast<int>(uuid[i]);
+    }
+    oss << '-';
+
+    // 时间戳中间 16 位 (time_mid)
+    for (size_t i = 4; i < 6; ++i) {
+        oss << std::setw(2) << static_cast<int>(uuid[i]);
+    }
+    oss << '-';
+
+    // 时间戳高 16 位 + 版本 (time_hi_and_version)
+    for (size_t i = 6; i < 8; ++i) {
+        oss << std::setw(2) << static_cast<int>(uuid[i]);
+    }
+    oss << '-';
+
+    // 时钟序列 + 变体 (clock_seq_hi_and_reserved, clock_seq_low)
+    for (size_t i = 8; i < 10; ++i) {
+        oss << std::setw(2) << static_cast<int>(uuid[i]);
+    }
+    oss << '-';
+
+    // 节点 ID (node)
+    for (size_t i = 10; i < 16; ++i) {
+        oss << std::setw(2) << static_cast<int>(uuid[i]);
+    }
+
+    return oss.str();
+}
+
+/**
+ * @brief 从 MD5 哈希生成 UUID v3
+ *
+ * 将 MD5 哈希结果转换为 UUID v3 格式。
+ * UUID v3 的格式要求：
+ * - 第 6 字节的高 4 位设置版本号为 3 (0x30)
+ * - 第 8 字节的高 2 位设置变体为 RFC 4122 (0x80)
+ *
+ * @param md5Hash MD5 哈希结果（16 字节）
+ * @return UUID v3 数组
+ */
+inline Uuid uuidFromMd5(const std::array<u8, 16>& md5Hash) {
+    Uuid uuid = md5Hash;
+
+    // 设置版本号为 3 (name-based UUID using MD5)
+    // 版本号位于 time_hi_and_version 字段的高 4 位
+    // uuid[6] = (uuid[6] & 0x0F) | 0x30
+    uuid[6] = (uuid[6] & 0x0F) | 0x30;
+
+    // 设置变体为 RFC 4122
+    // 变体位于 clock_seq_hi_and_reserved 字段的高 2 位
+    // uuid[8] = (uuid[8] & 0x3F) | 0x80
+    uuid[8] = (uuid[8] & 0x3F) | 0x80;
+
+    return uuid;
+}
+
+/**
+ * @brief 生成 Minecraft 离线模式 UUID
+ *
+ * 参考 MC 1.16.5 PlayerEntity.getOfflineUUID():
+ * UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(StandardCharsets.UTF_8))
+ *
+ * 这是一个 UUID v3（基于 MD5 哈希的命名空间 UUID）。
+ *
+ * @param username 玩家用户名
+ * @return 离线模式 UUID（16 字节数组）
+ */
+inline Uuid generateOfflineUuid(const std::string& username) {
+    // 前向声明 MD5 哈希函数（实际实现在 Md5.hpp 中）
+    // 这里需要包含 Md5.hpp，但为了保持头文件独立性，我们使用外部函数
+    extern std::array<u8, 16> computeMd5Hash(const std::string& data);
+
+    std::string input = "OfflinePlayer:" + username;
+    std::array<u8, 16> md5Hash = computeMd5Hash(input);
+    return uuidFromMd5(md5Hash);
+}
+
+/**
+ * @brief 将 UUID 转换为字符串（用于 Entity::uuid() 兼容）
+ *
+ * @param uuid 16 字节的 UUID 数组
+ * @return 32 个十六进制字符的小写字符串
+ */
+inline std::string uuidToHexString(const Uuid& uuid) {
+    return uuidToString(uuid);
 }
 
 } // namespace util

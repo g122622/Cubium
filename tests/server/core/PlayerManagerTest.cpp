@@ -4,6 +4,7 @@
 #include "common/network/connection/LocalServerConnection.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/UuidUtils.hpp"
 #include <algorithm>
 
 using namespace mc::server::core;
@@ -50,7 +51,7 @@ TEST_F(PlayerManagerTest, AddPlayer) {
     PlayerManager manager;
     auto conn = createConnection();
 
-    auto* player = manager.addPlayer(1, "Steve", conn);
+    auto* player = manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player, nullptr);
     EXPECT_EQ(player->playerId, 1u);
     EXPECT_EQ(player->username, "Steve");
@@ -63,11 +64,11 @@ TEST_F(PlayerManagerTest, AddPlayerDuplicate) {
     PlayerManager manager;
     auto conn = createConnection();
 
-    auto* player1 = manager.addPlayer(1, "Steve", conn);
+    auto* player1 = manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     ASSERT_NE(player1, nullptr);
 
     // 添加重复ID应返回 nullptr
-    auto* player2 = manager.addPlayer(1, "Alex", conn);
+    auto* player2 = manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn);
     EXPECT_EQ(player2, nullptr);
     EXPECT_EQ(manager.playerCount(), 1u);
 }
@@ -80,11 +81,11 @@ TEST_F(PlayerManagerTest, AddPlayerWhenFull) {
     auto conn2 = createConnection();
     auto conn3 = createConnection();
 
-    ASSERT_NE(manager.addPlayer(1, "Player1", conn1), nullptr);
-    ASSERT_NE(manager.addPlayer(2, "Player2", conn2), nullptr);
+    ASSERT_NE(manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Player1")), "Player1", conn1), nullptr);
+    ASSERT_NE(manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Player2")), "Player2", conn2), nullptr);
 
     // 已满时应返回 nullptr
-    EXPECT_EQ(manager.addPlayer(3, "Player3", conn3), nullptr);
+    EXPECT_EQ(manager.addPlayer(3, mc::util::uuidToString(mc::util::generateOfflineUuid("Player3")), "Player3", conn3), nullptr);
     EXPECT_TRUE(manager.isFull());
 }
 
@@ -92,7 +93,7 @@ TEST_F(PlayerManagerTest, RemovePlayer) {
     PlayerManager manager;
     auto conn = createConnection();
 
-    manager.addPlayer(1, "Steve", conn);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     EXPECT_EQ(manager.playerCount(), 1u);
 
     manager.removePlayer(1);
@@ -111,7 +112,7 @@ TEST_F(PlayerManagerTest, GetPlayer) {
     PlayerManager manager;
     auto conn = createConnection();
 
-    manager.addPlayer(1, "Steve", conn);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     auto* player = manager.getPlayer(1);
     ASSERT_NE(player, nullptr);
@@ -128,7 +129,7 @@ TEST_F(PlayerManagerTest, SessionMapping) {
     PlayerManager manager;
     auto conn = createConnection();
 
-    manager.addPlayer(1, "Steve", conn);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     manager.mapSessionToPlayer(100, 1);
 
     EXPECT_EQ(manager.getPlayerIdBySession(100), 1u);
@@ -142,7 +143,7 @@ TEST_F(PlayerManagerTest, RemovePlayerBySessionId) {
     PlayerManager manager;
     auto conn = createConnection();
 
-    manager.addPlayer(1, "Steve", conn);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
     manager.mapSessionToPlayer(100, 1);
     EXPECT_EQ(manager.playerCount(), 1u);
 
@@ -156,8 +157,8 @@ TEST_F(PlayerManagerTest, ForEachPlayer) {
     auto conn1 = createConnection();
     auto conn2 = createConnection();
 
-    manager.addPlayer(1, "Steve", conn1);
-    manager.addPlayer(2, "Alex", conn2);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
+    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
 
     std::vector<mc::PlayerId> ids;
     manager.forEachPlayer([&ids](mc::server::ServerPlayerData& player) {
@@ -174,8 +175,8 @@ TEST_F(PlayerManagerTest, ForEachPlayerCanNestGetPlayerCall) {
     auto conn1 = createConnection();
     auto conn2 = createConnection();
 
-    manager.addPlayer(1, "Steve", conn1);
-    manager.addPlayer(2, "Alex", conn2);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
+    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
 
     size_t nestedLookupSuccess = 0;
     manager.forEachPlayer([&](mc::server::ServerPlayerData& player) {
@@ -194,9 +195,9 @@ TEST_F(PlayerManagerTest, ForEachPlayerSupportsRemovalDuringIteration) {
     auto conn2 = createConnection();
     auto conn3 = createConnection();
 
-    manager.addPlayer(1, "Steve", conn1);
-    manager.addPlayer(2, "Alex", conn2);
-    manager.addPlayer(3, "Eve", conn3);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
+    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
+    manager.addPlayer(3, mc::util::uuidToString(mc::util::generateOfflineUuid("Eve")), "Eve", conn3);
 
     manager.forEachPlayer([&](mc::server::ServerPlayerData& player) {
         if (player.playerId == 2) {
@@ -213,8 +214,8 @@ TEST_F(PlayerManagerTest, GetPlayerIds) {
     auto conn1 = createConnection();
     auto conn2 = createConnection();
 
-    manager.addPlayer(1, "Steve", conn1);
-    manager.addPlayer(2, "Alex", conn2);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
+    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
 
     auto ids = manager.getPlayerIds();
     EXPECT_EQ(ids.size(), 2u);

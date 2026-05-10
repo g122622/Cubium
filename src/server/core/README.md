@@ -91,7 +91,7 @@ struct ServerCoreConfig {
 **主要方法：**
 | 方法 | 描述 |
 |------|------|
-| `addPlayer(playerId, username, connection)` | 添加玩家 |
+| `addPlayer(playerId, uuid, username, connection)` | 添加玩家 |
 | `removePlayer(playerId)` | 移除玩家 |
 | `removePlayerBySessionId(sessionId)` | 根据会话ID移除玩家 |
 | `getPlayer(playerId)` | 获取玩家数据 |

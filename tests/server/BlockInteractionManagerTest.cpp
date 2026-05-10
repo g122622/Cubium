@@ -11,6 +11,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/util/UuidUtils.hpp"
 
 using namespace mc;
 
@@ -38,7 +39,7 @@ protected:
 
         m_playerManager = std::make_unique<server::core::PlayerManager>();
         auto connection = std::make_shared<network::LocalServerConnection>(&m_connectionPair->serverEndpoint());
-        m_player = m_playerManager->addPlayer(m_playerId, "PlacementTester", connection);
+        m_player = m_playerManager->addPlayer(m_playerId, mc::util::uuidToString(mc::util::generateOfflineUuid("PlacementTester")), "PlacementTester", connection);
         ASSERT_NE(m_player, nullptr);
         m_player->x = 0.5f;
         m_player->y = 64.0f;

@@ -10,6 +10,7 @@ PlayerManager::PlayerManager(const ServerCoreConfig& config)
 }
 
 ServerPlayerData* PlayerManager::addPlayer(PlayerId playerId,
+                                            const std::string& uuid,
                                             const std::string& username,
                                             network::ConnectionPtr connection) {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
@@ -31,6 +32,7 @@ ServerPlayerData* PlayerManager::addPlayer(PlayerId playerId,
 
     auto& player = it->second;
     player.playerId = playerId;
+    player.uuid = uuid;
     player.username = username;
     player.connection = connection;
     player.loggedIn = true;
@@ -40,7 +42,7 @@ ServerPlayerData* PlayerManager::addPlayer(PlayerId playerId,
     (void)m_chunkSyncManager.getTracker(playerId);
     m_chunkSyncManager.updatePlayerPosition(playerId, player.x, player.z);
 
-    spdlog::debug("PlayerManager: Player {} ({}) added", username, playerId);
+    spdlog::debug("PlayerManager: Player {} ({}, UUID: {}) added", username, playerId, uuid);
     return &player;
 }
 

@@ -5,6 +5,7 @@
 #include "common/network/connection/LocalServerConnection.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/UuidUtils.hpp"
 
 using namespace mc::server::core;
 using namespace mc::network;
@@ -41,7 +42,7 @@ protected:
 
 TEST_F(TeleportManagerTest, RequestTeleport) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     mc::u32 teleportId = m_teleportManager->requestTeleport(1, 100.0, 64.0, 200.0, 90.0f, 45.0f);
     EXPECT_NE(teleportId, 0u);
@@ -67,7 +68,7 @@ TEST_F(TeleportManagerTest, RequestTeleportNonexistentPlayer) {
 
 TEST_F(TeleportManagerTest, ConfirmTeleport) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     mc::u32 teleportId = m_teleportManager->requestTeleport(1, 100.0, 64.0, 200.0);
 
@@ -79,7 +80,7 @@ TEST_F(TeleportManagerTest, ConfirmTeleport) {
 
 TEST_F(TeleportManagerTest, ConfirmTeleportWrongId) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     m_teleportManager->requestTeleport(1, 100.0, 64.0, 200.0);
 
@@ -91,7 +92,7 @@ TEST_F(TeleportManagerTest, ConfirmTeleportWrongId) {
 
 TEST_F(TeleportManagerTest, ConfirmTeleportWithoutRequest) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     // 没有传送请求时确认
     bool result = m_teleportManager->confirmTeleport(1, 1);
@@ -105,7 +106,7 @@ TEST_F(TeleportManagerTest, ConfirmTeleportNonexistentPlayer) {
 
 TEST_F(TeleportManagerTest, MultipleTeleports) {
     auto conn = createConnection();
-    m_playerManager->addPlayer(1, "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
 
     mc::u32 id1 = m_teleportManager->requestTeleport(1, 100.0, 64.0, 200.0);
     mc::u32 id2 = m_teleportManager->requestTeleport(1, 200.0, 64.0, 300.0);

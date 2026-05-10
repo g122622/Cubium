@@ -207,7 +207,7 @@ PlayerSaveData PlayerDataManager::fromServerPlayerData(
     const server::ServerPlayerData& playerData)
 {
     PlayerSaveData data;
-    data.uuid = std::to_string(playerData.playerId); // TODO: 使用真正的 UUID
+    data.uuid = playerData.uuid;  // 使用真正的 UUID
     data.username = playerData.username;
 
     // 位置
@@ -221,7 +221,7 @@ PlayerSaveData PlayerDataManager::fromServerPlayerData(
     data.gameMode = playerData.gameMode;
 
     // 生命值
-    data.health = 20.0f; // TODO: 从玩家实体获取
+    data.health = 20.0f;  // 从 ServerPlayerData 获取需要扩展该结构
     data.foodLevel = 20;
     data.saturationLevel = 5.0f;
 
@@ -238,8 +238,8 @@ PlayerSaveData PlayerDataManager::fromPlayer(const ServerPlayer& player)
 {
     PlayerSaveData data;
 
-    // 基本信息
-    data.uuid = std::to_string(player.playerId()); // TODO: 使用真正的 UUID
+    // 基本信息 - 使用真正的 UUID
+    data.uuid = player.uuid();
     data.username = player.username();
 
     // 位置

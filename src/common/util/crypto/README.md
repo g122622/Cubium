@@ -8,6 +8,8 @@
 crypto/
 ├── Sha256.hpp       # SHA-256 哈希算法头文件
 ├── Sha256.cpp       # SHA-256 哈希算法实现
+├── Md5.hpp          # MD5 哈希算法头文件
+├── Md5.cpp          # MD5 哈希算法实现
 └── README.md        # 本文档
 ```
 
@@ -28,6 +30,32 @@ crypto/
 | `toHexString(const Digest&)` | 将哈希结果转换为十六进制字符串 |
 | `bytesToU64LE(std::span<const u8, 8>)` | 小端序字节转 u64 |
 | `bytesToU64BE(std::span<const u8, 8>)` | 大端序字节转 u64 |
+
+### Md5 - MD5 哈希算法
+
+符合 RFC 1321 标准的 MD5 哈希计算器，主要用于 Minecraft 离线模式 UUID 生成。
+
+**注意：MD5 不应用于安全敏感的场景，仅用于 UUID 生成等兼容性需求。**
+
+#### 主要功能
+
+| 方法 | 说明 |
+|------|------|
+| `hash(std::span<const u8>)` | 计算字节数组的 MD5 哈希 |
+| `hash(std::string_view)` | 计算字符串的 MD5 哈希 |
+| `toHexString(const Digest&)` | 将哈希结果转换为十六进制字符串 |
+
+#### Minecraft 离线 UUID 生成
+
+```cpp
+#include "common/util/crypto/Md5.hpp"
+#include "common/util/UuidUtils.hpp"
+
+// 生成 Minecraft 离线模式 UUID
+std::string input = "OfflinePlayer:Steve";
+Md5::Digest md5 = Md5::hash(input);
+Uuid uuid = uuidFromMd5(md5);  // 设置版本和变体
+```
 
 #### 使用示例
 

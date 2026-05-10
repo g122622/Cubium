@@ -46,12 +46,14 @@ public:
     /**
      * @brief 添加玩家
      * @param playerId 玩家ID（由调用方生成）
+     * @param uuid 玩家UUID（持久化标识符）
      * @param username 用户名
      * @param connection 连接接口
      * @return 玩家数据指针，如果ID已存在则返回 nullptr
      * @note 线程安全
      */
     ServerPlayerData* addPlayer(PlayerId playerId,
+                                 const std::string& uuid,
                                  const std::string& username,
                                  network::ConnectionPtr connection);
 
