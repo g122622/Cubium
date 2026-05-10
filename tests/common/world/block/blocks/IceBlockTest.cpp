@@ -47,15 +47,19 @@ public:
         const BlockPos pos(x, y, z);
         if (state == nullptr || state->isAir()) {
             m_blocks.erase(pos);
+            m_ownedStates.erase(pos);
         } else {
-            m_blocks[pos] = state;
+            // 存储 BlockState 的副本到 m_ownedStates 中
+            // 因为传入的 state 可能是临时对象
+            auto [it, inserted] = m_ownedStates.insert_or_assign(pos, *state);
+            m_blocks[pos] = &it->second;
         }
         return true;
     }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
 
     [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override {
@@ -77,7 +81,7 @@ public:
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
     [[nodiscard]] DimensionId dimension() const override { return 0; }
     [[nodiscard]] u64 seed() const override { return 12345; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
@@ -124,6 +128,13 @@ public:
         throw std::runtime_error("IceTestWorld::worldBorder not implemented");
     }
 
+    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+
+    void advanceTick() {
+        tickManager().tick(m_currentTick);
+        ++m_currentTick;
+    }
+
 private:
     [[nodiscard]] static u8 sampleLight(const std::map<BlockPos, u8>& lights, i32 x, i32 y, i32 z) {
         const BlockPos pos(x, y, z);
@@ -135,10 +146,12 @@ private:
     }
 
     std::map<BlockPos, const BlockState*> m_blocks;
+    std::map<BlockPos, BlockState> m_ownedStates;  // 存储方块状态副本，避免悬空指针
     std::map<BlockPos, u8> m_blockLight;
     std::map<BlockPos, u8> m_skyLight;
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
     math::Random m_random{12345};  // 固定种子的随机数生成器
+    u64 m_currentTick = 0;          // 当前游戏刻
     bool m_isUltraWarm = false;
 };
 
@@ -261,14 +274,50 @@ TEST_F(IceBlockTest, RandomTickTurnsIceIntoAirInUltraWarmDimension) {
     EXPECT_EQ(world.getBlockState(pos), nullptr);
 }
 
-// TODO: 修复测试环境 - 需要完整的 TickManager 和 FluidRegistry 初始化
-TEST_F(IceBlockTest, DISABLED_RandomTickTurnsFrostedIceIntoWaterInNormalDimension) {
+// FrostedIceBlock 融化测试：
+// FrostedIceBlock::randomTick() 调用 tick()
+// tick() 检查融化条件，如果满足则调用 slightlyMelt() 增加 AGE 或融化
+// 每次调用 randomTick 都会处理一次 tick 逻辑
+// 霜冰需要 AGE 从 0 增加到 3（4 次），然后才会融化成水
+TEST_F(IceBlockTest, RandomTickTurnsFrostedIceIntoWaterInNormalDimension) {
     IceTestWorld world;
-    FrostedIceBlock frostedIce(BlockProperties(Material::ICE).hardness(0.5f));
-    // 为每次 tick 提供足够的随机值：nextInt(3) 和 nextInt(20, 40)
-    SequenceRandom random({0, 25, 0, 25, 0, 25, 0, 25, 0, 25, 0, 25, 0, 25, 0, 25});
+    world.ensureTickManager();  // 确保 TickManager 已初始化
+
+    // 使用已注册的 FROSTED_ICE 方块，确保状态正确初始化
+    ASSERT_NE(VanillaBlocks::FROSTED_ICE, nullptr) << "FROSTED_ICE should be registered";
+    const BlockState& state = VanillaBlocks::FROSTED_ICE->defaultState();
     const BlockPos pos(8, 64, 8);
-    BlockState state = frostedIce.defaultState();
+
+    world.setBlockAt(pos, &state);
+    world.setSkyLightAt(pos, 15);
+    world.setBlockLightAt(pos, 15);
+
+    // 霜冰需要 4 次 tick 才能融化（age 0->1->2->3->melt）
+    // 使用足够高的光照确保融化
+    // 每次调用 randomTick 会处理一个 tick
+    // 注意：tick() 内部会调度下一次 tick，但我们直接调用 randomTick 即可
+    for (int i = 0; i < 4; ++i) {
+        const BlockState* currentState = world.getBlockState(pos);
+        if (currentState == nullptr) break;  // 已经融化
+        BlockState mutableState = *currentState;
+        // 使用世界的随机数生成器（固定种子，确定性测试）
+        VanillaBlocks::FROSTED_ICE->randomTick(world, pos, mutableState, world.getRandom());
+    }
+
+    const BlockState* finalState = world.getBlockState(pos);
+    ASSERT_NE(finalState, nullptr) << "Frosted ice should have melted into water";
+    EXPECT_EQ(finalState->stateId(), VanillaBlocks::WATER->defaultState().stateId());
+}
+
+TEST_F(IceBlockTest, RandomTickTurnsFrostedIceIntoAirInUltraWarmDimension) {
+    IceTestWorld world;
+    world.ensureTickManager();  // 确保 TickManager 已初始化
+    world.setUltraWarm(true);
+
+    // 使用已注册的 FROSTED_ICE 方块
+    ASSERT_NE(VanillaBlocks::FROSTED_ICE, nullptr) << "FROSTED_ICE should be registered";
+    const BlockState& state = VanillaBlocks::FROSTED_ICE->defaultState();
+    const BlockPos pos(10, 64, 10);
 
     world.setBlockAt(pos, &state);
     world.setSkyLightAt(pos, 15);
@@ -279,36 +328,11 @@ TEST_F(IceBlockTest, DISABLED_RandomTickTurnsFrostedIceIntoWaterInNormalDimensio
         const BlockState* currentState = world.getBlockState(pos);
         if (currentState == nullptr) break;  // 已经融化
         BlockState mutableState = *currentState;
-        frostedIce.randomTick(world, pos, mutableState, random);
+        VanillaBlocks::FROSTED_ICE->randomTick(world, pos, mutableState, world.getRandom());
     }
 
-    const BlockState* finalState = world.getBlockState(pos);
-    ASSERT_NE(finalState, nullptr);
-    EXPECT_EQ(finalState->stateId(), VanillaBlocks::WATER->defaultState().stateId());
-}
-
-// TODO: 修复测试环境 - 需要完整的 TickManager 和 FluidRegistry 初始化
-TEST_F(IceBlockTest, DISABLED_RandomTickTurnsFrostedIceIntoAirInUltraWarmDimension) {
-    IceTestWorld world;
-    FrostedIceBlock frostedIce(BlockProperties(Material::ICE).hardness(0.5f));
-    SequenceRandom random({0, 0, 0, 0});  // 需要多次 tick 才能完全融化
-    const BlockPos pos(10, 64, 10);
-    BlockState state = frostedIce.defaultState();
-
-    world.setUltraWarm(true);
-    world.setBlockAt(pos, &state);
-    world.setSkyLightAt(pos, 15);
-    world.setBlockLightAt(pos, 15);
-
-    // 霜冰需要 4 次 tick 才能融化（age 0->1->2->3->melt）
-    for (int i = 0; i < 4; ++i) {
-        const BlockState* currentState = world.getBlockState(pos);
-        ASSERT_NE(currentState, nullptr);
-        BlockState mutableState = *currentState;
-        frostedIce.randomTick(world, pos, mutableState, random);
-    }
-
-    EXPECT_EQ(world.getBlockState(pos), nullptr);
+    // 在超热维度（下界），霜冰融化后变成空气而非水
+    EXPECT_EQ(world.getBlockState(pos), nullptr) << "Frosted ice should have melted into air in ultra-warm dimension";
 }
 
 } // namespace
