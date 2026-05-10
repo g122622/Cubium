@@ -2,6 +2,7 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/arguments/BlockStateArgument.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -22,54 +23,6 @@ namespace command {
 namespace {
 
 /**
- * @brief 解析方块ID
- *
- * 格式：minecraft:stone 或 stone
- * TODO: 支持方块状态属性 [facing=north,half=bottom]
- *
- * @param input 输入字符串
- * @return 方块指针，失败返回nullptr
- */
-Block* parseBlockId(const std::string& input) {
-    auto& registry = BlockRegistry::instance();
-
-    // 解析资源位置
-    std::string namespace_;
-    std::string path;
-    size_t colonPos = input.find(':');
-    if (colonPos != std::string::npos) {
-        namespace_ = input.substr(0, colonPos);
-        path = input.substr(colonPos + 1);
-    } else {
-        namespace_ = "minecraft";
-        path = input;
-    }
-
-    // 去除状态属性部分
-    size_t bracketPos = path.find('[');
-    if (bracketPos != std::string::npos) {
-        path = path.substr(0, bracketPos);
-    }
-
-    ResourceLocation location(namespace_, path);
-    return registry.getBlock(location);
-}
-
-/**
- * @brief 获取方块的默认状态
- *
- * @param blockId 方块ID字符串
- * @return 方块状态指针，失败返回nullptr
- */
-const BlockState* resolveBlockState(const std::string& blockId) {
-    Block* block = parseBlockId(blockId);
-    if (block == nullptr) {
-        return nullptr;
-    }
-    return &block->defaultState();
-}
-
-/**
  * @brief 执行 setblock 命令
  *
  * @param context 命令上下文
@@ -80,7 +33,7 @@ const BlockState* resolveBlockState(const std::string& blockId) {
 i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir, bool doDrop) {
     auto& source = context.getSource();
     Vector3i position = context.getArgument<Vector3i>("pos");
-    std::string blockInput = context.getArgument<std::string>("block");
+    BlockStateInput blockInput = context.getArgument<BlockStateInput>("block");
 
     // 获取世界
     server::ServerWorld* world = source.world();
@@ -90,11 +43,9 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
     }
 
     // 获取方块状态
-    const BlockState* state = resolveBlockState(blockInput);
+    const BlockState* state = blockInput.state();
     if (state == nullptr) {
-        std::ostringstream ss;
-        ss << "commands.setblock.failed.invalidBlock: " << blockInput;
-        source.sendMessage(ss.str());
+        source.sendError("commands.setblock.failed.invalidBlock");
         return 0;
     }
 
@@ -116,7 +67,7 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
         const BlockState* oldState = world->getBlockState(position.x, position.y, position.z);
         if (oldState != nullptr && !oldState->isAir()) {
             // 播放方块破坏效果（粒子 + 音效）
-            // 事件ID 2001，data 为方块状态ID
+            // eventID 2001，data 为方块状态ID
             world->playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos, static_cast<i32>(oldState->stateId()));
 
             // 获取掉落表管理器
@@ -180,9 +131,9 @@ void SetBlockCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
         BlockPosArgumentType::blockPos()
     );
 
-    auto blockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto blockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
         "block",
-        StringArgumentType::string()
+        BlockStateArgumentType::blockState()
     );
     blockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return setBlockState(ctx);

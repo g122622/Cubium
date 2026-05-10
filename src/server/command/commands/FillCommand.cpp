@@ -2,6 +2,7 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/arguments/BlockStateArgument.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -30,44 +31,6 @@ enum class FillMode {
 };
 
 /**
- * @brief 解析方块ID
- */
-Block* parseBlockId(const std::string& input) {
-    auto& registry = BlockRegistry::instance();
-
-    std::string namespace_;
-    std::string path;
-    size_t colonPos = input.find(':');
-    if (colonPos != std::string::npos) {
-        namespace_ = input.substr(0, colonPos);
-        path = input.substr(colonPos + 1);
-    } else {
-        namespace_ = "minecraft";
-        path = input;
-    }
-
-    // 去除状态属性部分
-    size_t bracketPos = path.find('[');
-    if (bracketPos != std::string::npos) {
-        path = path.substr(0, bracketPos);
-    }
-
-    ResourceLocation location(namespace_, path);
-    return registry.getBlock(location);
-}
-
-/**
- * @brief 获取方块的默认状态
- */
-const BlockState* resolveBlockState(const std::string& blockId) {
-    Block* block = parseBlockId(blockId);
-    if (block == nullptr) {
-        return nullptr;
-    }
-    return &block->defaultState();
-}
-
-/**
  * @brief 计算填充区域的方块数量
  */
 i32 calculateBlockCount(const Vector3i& from, const Vector3i& to) {
@@ -84,11 +47,11 @@ i32 calculateBlockCount(const Vector3i& from, const Vector3i& to) {
 /**
  * @brief 执行填充操作
  */
-i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, const std::string& filterBlock = "") {
+i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, const BlockState* filterState = nullptr) {
     auto& source = context.getSource();
     Vector3i from = context.getArgument<Vector3i>("from");
     Vector3i to = context.getArgument<Vector3i>("to");
-    std::string blockInput = context.getArgument<std::string>("block");
+    BlockStateInput blockInput = context.getArgument<BlockStateInput>("block");
 
     // 获取世界
     server::ServerWorld* world = source.world();
@@ -105,24 +68,10 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
     }
 
     // 获取填充方块
-    const BlockState* fillState = resolveBlockState(blockInput);
+    const BlockState* fillState = blockInput.state();
     if (fillState == nullptr) {
-        std::ostringstream ss;
-        ss << "commands.fill.failed.invalidBlock: " << blockInput;
-        source.sendMessage(ss.str());
+        source.sendError("commands.fill.failed.invalidBlock");
         return 0;
-    }
-
-    // 获取过滤方块（replace模式）
-    const BlockState* filterState = nullptr;
-    if (!filterBlock.empty() && mode == FillMode::Replace) {
-        filterState = resolveBlockState(filterBlock);
-        if (filterState == nullptr) {
-            std::ostringstream ss;
-            ss << "commands.fill.failed.invalidBlock: " << filterBlock;
-            source.sendMessage(ss.str());
-            return 0;
-        }
     }
 
     // 计算边界
@@ -264,9 +213,9 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         BlockPosArgumentType::blockPos()
     );
 
-    auto blockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto blockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
         "block",
-        StringArgumentType::string()
+        BlockStateArgumentType::blockState()
     );
     blockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return fill(ctx);
@@ -303,16 +252,14 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     });
 
     // /fill <from> <to> <block> replace <filter>
-    auto filterArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto filterArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
         "filter",
-        StringArgumentType::string()
+        BlockStateArgumentType::blockState()
     );
     filterArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         auto& source = ctx.getSource();
         Vector3i from = ctx.getArgument<Vector3i>("from");
         Vector3i to = ctx.getArgument<Vector3i>("to");
-        std::string blockInput = ctx.getArgument<std::string>("block");
-        std::string filterInput = ctx.getArgument<std::string>("filter");
 
         server::ServerWorld* world = source.world();
         if (world == nullptr) {
@@ -326,15 +273,8 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
             return 0;
         }
 
-        const BlockState* fillState = resolveBlockState(blockInput);
-        if (fillState == nullptr) {
-            std::ostringstream ss;
-            ss << "commands.fill.failed.invalidBlock: " << blockInput;
-            source.sendMessage(ss.str());
-            return 0;
-        }
-
-        return executeFill(ctx, FillMode::Replace, filterInput);
+        BlockStateInput filterInput = ctx.getArgument<BlockStateInput>("filter");
+        return executeFill(ctx, FillMode::Replace, filterInput.state());
     });
 
     replaceNode->addChild(filterArg);

@@ -1015,6 +1015,7 @@ endif()
 add_executable(mc_command_tests
     server/command/CommandRegistryTest.cpp
     server/command/PlayerResolverTest.cpp
+    common/command/arguments/BlockStateArgumentTest.cpp
 )
 
 target_sources(mc_command_tests
