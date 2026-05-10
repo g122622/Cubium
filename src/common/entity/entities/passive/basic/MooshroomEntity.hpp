@@ -136,7 +136,7 @@ private:
     MooshroomType m_mooshroomType = MooshroomType::Red;
 
     // 效果花（棕色哞菇用）
-    // TODO: 效果系统
+    // 注：迷之炖菜效果系统待效果系统实现后添加
     // EffectInstance m_effect;
 };
 

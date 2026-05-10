@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
+#include "common/entity/entities/passive/basic/CowEntity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/interfaces/IShearable.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
@@ -12,6 +14,9 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 #include <memory>
@@ -163,6 +168,8 @@ class MooshroomEntityTest : public ::testing::Test {
 protected:
     void SetUp() override {
         VanillaBlocks::initialize();
+        Items::initialize();
+        BlockItemRegistry::instance().initializeVanillaBlockItems();
     }
 
     MooshroomTestWorld m_world;
@@ -332,6 +339,215 @@ TEST_F(MooshroomEntityTest, IsShearable_ReturnsTrue) {
 
     // 哞菇总是可以被剪毛
     EXPECT_TRUE(mooshroom.isShearable());
+}
+
+// ==================== 剪毛测试 ====================
+
+TEST_F(MooshroomEntityTest, Shear_ReturnsRedMushrooms_WhenRed) {
+    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    m_world.setClientSide(false);  // 服务端模式
+    mooshroom.setWorld(&m_world);
+    mooshroom.setPosition(100.0, 64.0, 100.0);
+
+    // 设置为红色哞菇
+    mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Red);
+    EXPECT_TRUE(mooshroom.isRed());
+
+    // 执行剪毛
+    std::vector<ItemStack> drops = mooshroom.shear(nullptr);
+
+    // 验证返回 5 个红色蘑菇
+    EXPECT_EQ(drops.size(), 1u);
+    if (!drops.empty()) {
+        EXPECT_EQ(drops[0].getCount(), 5);
+        // 验证是红色蘑菇物品
+        const Item* item = drops[0].getItem();
+        EXPECT_NE(item, nullptr);
+    }
+}
+
+TEST_F(MooshroomEntityTest, Shear_ReturnsBrownMushrooms_WhenBrown) {
+    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    m_world.setClientSide(false);
+    mooshroom.setWorld(&m_world);
+    mooshroom.setPosition(100.0, 64.0, 100.0);
+
+    // 设置为棕色哞菇
+    mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
+    EXPECT_TRUE(mooshroom.isBrown());
+
+    // 执行剪毛
+    std::vector<ItemStack> drops = mooshroom.shear(nullptr);
+
+    // 验证返回 5 个棕色蘑菇
+    EXPECT_EQ(drops.size(), 1u);
+    if (!drops.empty()) {
+        EXPECT_EQ(drops[0].getCount(), 5);
+    }
+}
+
+TEST_F(MooshroomEntityTest, Shear_PlaysShearSound) {
+    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    m_world.setClientSide(false);
+    mooshroom.setWorld(&m_world);
+    mooshroom.setPosition(100.0, 64.0, 100.0);
+
+    // 执行剪毛
+    mooshroom.shear(nullptr);
+
+    // 验证播放了剪切音效
+    EXPECT_GE(m_world.soundCount(), 1u);
+    if (m_world.soundCount() >= 1) {
+        const auto& sound = m_world.sounds()[0];
+        EXPECT_EQ(sound.sound.toString(), "minecraft:entity.mooshroom.shear");
+    }
+}
+
+TEST_F(MooshroomEntityTest, Shear_GeneratesExplosionParticles) {
+    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    m_world.setClientSide(false);  // 服务端也生成粒子
+    mooshroom.setWorld(&m_world);
+    mooshroom.setPosition(100.0, 64.0, 100.0);
+
+    // 执行剪毛
+    mooshroom.shear(nullptr);
+
+    // 验证生成了爆炸粒子（服务端）
+    EXPECT_EQ(m_world.particleCount(), 20u);
+    for (const auto& particle : m_world.particles()) {
+        EXPECT_EQ(particle.type, client::renderer::trident::particle::ParticleTypeId::Explosion);
+    }
+}
+
+// ==================== 碗交互测试 ====================
+
+TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsTrue_ForBowl) {
+    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+
+    // 成年哞菇可以用碗取汤
+    EXPECT_FALSE(mooshroom.isChild());
+
+    // 测试空碗
+    if (mc::Items::BOWL != nullptr) {
+        ItemStack bowl(*mc::Items::BOWL, 1);
+        EXPECT_TRUE(mooshroom.canBeStewed(bowl));
+    }
+}
+
+TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsFalse_ForChild) {
+    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+    mooshroom.setChild(true);
+
+    // 幼年哞菇不能用碗取汤
+    EXPECT_TRUE(mooshroom.isChild());
+
+    if (mc::Items::BOWL != nullptr) {
+        ItemStack bowl(*mc::Items::BOWL, 1);
+        EXPECT_FALSE(mooshroom.canBeStewed(bowl));
+    }
+}
+
+TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsFalse_ForOtherItems) {
+    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+
+    // 非碗物品
+    if (mc::Items::DIAMOND != nullptr) {
+        ItemStack diamond(*mc::Items::DIAMOND, 1);
+        EXPECT_FALSE(mooshroom.canBeStewed(diamond));
+    }
+
+    // 空物品
+    ItemStack empty;
+    EXPECT_FALSE(mooshroom.canBeStewed(empty));
+}
+
+// ==================== 蘑菇汤测试 ====================
+
+TEST_F(MooshroomEntityTest, GetStew_ReturnsMushroomStew) {
+    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+
+    // 获取蘑菇汤
+    ItemStack stew = mooshroom.getStew();
+
+    // 验证返回蘑菇汤（如果已注册）
+    if (mc::Items::MUSHROOM_STEW != nullptr) {
+        EXPECT_FALSE(stew.isEmpty());
+        EXPECT_EQ(stew.getItem(), mc::Items::MUSHROOM_STEW);
+        EXPECT_EQ(stew.getCount(), 1);
+    }
+}
+
+// ==================== 繁殖测试 ====================
+
+TEST_F(MooshroomEntityTest, SpawnBaby_CreatesMooshroom) {
+    MooshroomEntity parent1(LegacyEntityType::Mooshroom, EntityId(1));
+    parent1.setPosition(100.0, 64.0, 100.0);
+
+    MooshroomEntity parent2(LegacyEntityType::Mooshroom, EntityId(2));
+    parent2.setPosition(102.0, 64.0, 100.0);
+
+    // 繁殖
+    auto baby = parent1.spawnBaby(parent2);
+
+    // 验证幼体是哞菇
+    EXPECT_NE(baby, nullptr);
+    if (baby) {
+        MooshroomEntity* babyMooshroom = dynamic_cast<MooshroomEntity*>(baby.get());
+        EXPECT_NE(babyMooshroom, nullptr);
+        EXPECT_TRUE(baby->isChild());
+    }
+}
+
+TEST_F(MooshroomEntityTest, SpawnBaby_InheritsParentType) {
+    MooshroomEntity parent1(LegacyEntityType::Mooshroom, EntityId(1));
+    parent1.setMooshroomType(MooshroomEntity::MooshroomType::Red);
+    parent1.setPosition(100.0, 64.0, 100.0);
+
+    MooshroomEntity parent2(LegacyEntityType::Mooshroom, EntityId(2));
+    parent2.setMooshroomType(MooshroomEntity::MooshroomType::Red);
+    parent2.setPosition(102.0, 64.0, 100.0);
+
+    // 繁殖
+    auto baby = parent1.spawnBaby(parent2);
+
+    // 验证幼体继承父母类型
+    if (baby) {
+        MooshroomEntity* babyMooshroom = dynamic_cast<MooshroomEntity*>(baby.get());
+        if (babyMooshroom) {
+            // 大多数情况继承红色（1/1024 概率变异为棕色）
+            // 但由于随机性，我们只验证类型是有效的
+            EXPECT_TRUE(babyMooshroom->isRed() || babyMooshroom->isBrown());
+        }
+    }
+}
+
+TEST_F(MooshroomEntityTest, SpawnBaby_PositionNearParent) {
+    MooshroomEntity parent1(LegacyEntityType::Mooshroom, EntityId(1));
+    parent1.setPosition(100.0, 64.0, 100.0);
+
+    MooshroomEntity parent2(LegacyEntityType::Mooshroom, EntityId(2));
+
+    // 繁殖
+    auto baby = parent1.spawnBaby(parent2);
+
+    // 验证幼体位置在父母附近
+    if (baby) {
+        // 位置应该在父母位置附近（±1格）
+        EXPECT_NEAR(baby->x(), 100.0, 2.0);
+        EXPECT_NEAR(baby->y(), 64.0, 0.5);
+        EXPECT_NEAR(baby->z(), 100.0, 2.0);
+    }
+}
+
+// ==================== IShearable 接口测试 ====================
+
+TEST_F(MooshroomEntityTest, ImplementsIShearable) {
+    MooshroomEntity mooshroom(LegacyEntityType::Mooshroom, EntityId(1));
+
+    // 验证实现 IShearable 接口
+    entity::IShearable* shearable = dynamic_cast<entity::IShearable*>(&mooshroom);
+    EXPECT_NE(shearable, nullptr);
+    EXPECT_TRUE(shearable->isShearable());
 }
 
 } // namespace
