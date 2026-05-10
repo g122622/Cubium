@@ -27,7 +27,7 @@ src/client/application/features/
 - `ClientApplicationHelpers.hpp`：客户端应用的通用辅助函数声明，当前包含容器同步、鼠标捕获和方块挖掘增量计算等逻辑。
 - `ClientApplicationHelpers.cpp`：上述非模板辅助函数的实现。
 - `ClientApplicationBootstrap.cpp`：客户端应用初始化骨架，负责核心注册表、窗口/输入、渲染、游戏系统与 UI 的分层初始化调度。
-- `ClientApplicationSession.cpp`：游戏会话管理，包含状态机回调、启动世界、销毁会话、返回主菜单等生命周期逻辑。
+- `ClientApplicationSession.cpp`：游戏会话管理，包含状态机回调、启动世界、销毁会话、返回主菜单等生命周期逻辑。创建世界时使用 `WorldNameSanitizer` 生成合法且不冲突的目录名。
 - `ClientApplicationAudio.cpp`：音频初始化、玩家脚步/游泳音效、入水/出水提示音、听者同步与暂停状态逻辑。
 - `ClientApplicationInput.cpp`：输入绑定、相机初始化、鼠标捕获、挖掘状态机、放置和玩家位置同步逻辑。
 - `ClientApplicationNetwork.cpp`：网络回调、补全候选收集和聊天命令处理逻辑。
@@ -62,6 +62,8 @@ src/client/application/features/
 
 - `src/client/application/ClientApplication.cpp`
 - `common/entity`、`common/item`、`common/world`、`common/screen`
+- `common/world/storage/core/WorldStoragePaths.hpp`（会话管理：获取存档目录路径）
+- `common/world/storage/list/WorldNameSanitizer.hpp`（会话管理：生成合法世界目录名）
 - `client/input/InputManager`
 - `client/network/NetworkClient`
 - `client/resource/ResourceManager`
