@@ -16,6 +16,11 @@ namespace entity {
  *
  * 在末地生成，用于治愈末影龙。
  *
+ * MC 1.16.5 对齐：
+ * - innerRotation: 递增的旋转计数器，用于渲染动画
+ * - showBottom: 是否显示基岩底座
+ * - beamTarget: 光束指向的目标位置（末地传送门）
+ *
  * 参考 MC 1.16.5 EnderCrystalEntity
  */
 class EnderCrystalEntity : public Entity {
@@ -37,6 +42,11 @@ public:
     void setShowBottom(bool show) { m_showBottom = show; }
 
     /**
+     * @brief 获取内部旋转计数器（用于渲染动画）
+     */
+    [[nodiscard]] i32 innerRotation() const { return m_innerRotation; }
+
+    /**
      * @brief 设置关联的末地传送门位置
      */
     void setBeamTarget(BlockPos pos);
@@ -56,9 +66,8 @@ public:
 private:
     BlockPos m_beamTarget;
     bool m_showBottom = false;
+    i32 m_innerRotation = 0;  ///< 内部旋转计数器（用于渲染动画）
     i32 m_healCooldown = 0;
-    i32 m_innerRotation = 0;  ///< MC 1.16.5: 用于渲染动画的旋转值
-    bool m_rotationInitialized = false;  ///< 是否已初始化旋转值
     static constexpr i32 HEAL_COOLDOWN = 10;
     static constexpr f32 EXPLOSION_RADIUS = 6.0f;
 };
