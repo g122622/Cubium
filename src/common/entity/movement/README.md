@@ -229,8 +229,10 @@ void onJumpBoostEffectRemoved() {
    - 潜行状态也不触发
 
 6. **蜂蜜块检测**:
-   - 当前 `getJumpFactor()` 在 Player 中默认返回 1.0
-   - 实现蜂蜜块后需要修改此方法返回 0.5
+   - 蜂蜜块会让 `getJumpFactor()` 返回 0.5
+   - `AutoJump::shouldCheckForAutoJump()` 中检测跳跃因子 < 1.0 时禁用自动跳跃
+   - 参考 MC 1.16.5: `if ((double)this.getJumpFactor() < 1.0D) return;`
+   - 当前 Player::getJumpFactor() 默认返回 1.0，待蜂蜜块实现后需修改
 
 ### 涉及的测试用例
 

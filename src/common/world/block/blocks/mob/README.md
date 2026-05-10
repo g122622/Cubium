@@ -62,7 +62,9 @@ mob/
 - [ ] 孵化时生成小海龟
 
 ### BeehiveBlock (基础框架)
-- [x] 状态属性框架
+- [x] 状态属性: HONEY_LEVEL_0_5 (蜂蜜等级 0-5), HORIZONTAL_FACING (朝向)
+- [x] getHoneyLevel()/withHoneyLevel() 方法
+- [x] 状态旋转/镜像支持
 - [ ] 蜂蜜等级变化
 - [ ] 蜜蜂存储/释放
 - [ ] 与玻璃瓶/剪刀交互

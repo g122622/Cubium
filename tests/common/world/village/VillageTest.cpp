@@ -534,6 +534,82 @@ TEST_F(VillageTickTest, CanBreed_NoVillagers_ReturnsFalse) {
     EXPECT_FALSE(village.canBreed());
 }
 
+// ========== Village ID 测试 ==========
+
+TEST_F(VillageTickTest, VillageId_InitiallyZero) {
+    Village village(BlockPos(0, 64, 0));
+    EXPECT_EQ(village.getId(), 0);
+}
+
+TEST_F(VillageTickTest, VillageId_CanBeSetAndRetrieved) {
+    Village village(BlockPos(0, 64, 0));
+    village.setId(12345);
+    EXPECT_EQ(village.getId(), 12345);
+}
+
+TEST_F(VillageTickTest, VillageId_SerializeDeserialize) {
+    Village original(BlockPos(100, 64, 200));
+    original.setId(42);
+
+    nbt::tags::compound_tag tag;
+    original.serialize(tag);
+
+    Village deserialized = Village::deserialize(tag);
+    EXPECT_EQ(deserialized.getId(), 42);
+}
+
+TEST_F(VillageTickTest, VillageId_DeserializeBackwardCompatibility_NoIdField) {
+    // 测试没有 ID 字段的旧数据（向后兼容）
+    nbt::tags::compound_tag tag;
+    tag.put("CenterX", 0);
+    tag.put("CenterY", 64);
+    tag.put("CenterZ", 0);
+    tag.put("Radius", 64.0f);
+    tag.put("BedCount", 0);
+    tag.put("WorkstationCount", 0);
+    tag.put("UnderRaid", static_cast<i8>(0));
+    tag.put("LastRaidTime", static_cast<i64>(0));
+    tag.put("CreatedTime", static_cast<i64>(0));
+    tag.put("LastPOIStatUpdateTime", static_cast<i64>(0));
+    // 不设置 Id 字段
+
+    Village deserialized = Village::deserialize(tag);
+    EXPECT_EQ(deserialized.getId(), 0);  // 默认值
+}
+
+TEST_F(VillageTickTest, VillageId_LargeIdValue) {
+    Village village(BlockPos(0, 64, 0));
+    village.setId(UINT64_MAX);
+    EXPECT_EQ(village.getId(), UINT64_MAX);
+}
+
+TEST_F(VillageTickTest, VillageId_MultipleVillagesHaveUniqueIds) {
+    Village village1(BlockPos(0, 64, 0));
+    Village village2(BlockPos(100, 64, 100));
+
+    village1.setId(1);
+    village2.setId(2);
+
+    EXPECT_NE(village1.getId(), village2.getId());
+}
+
+TEST_F(VillageTickTest, VillageId_SerializePreservesAllFields) {
+    Village original(BlockPos(50, 70, 100));
+    original.setId(999);
+    original.setBedCount(10);
+    original.setWorkstationCount(5);
+    original.addVillager(123);
+
+    nbt::tags::compound_tag tag;
+    original.serialize(tag);
+
+    Village deserialized = Village::deserialize(tag);
+    EXPECT_EQ(deserialized.getId(), 999);
+    EXPECT_EQ(deserialized.getBedCount(), 10);
+    EXPECT_EQ(deserialized.getWorkstationCount(), 5);
+    EXPECT_TRUE(deserialized.hasVillager(123));
+}
+
 } // namespace
 } // namespace world::village::test
 } // namespace mc

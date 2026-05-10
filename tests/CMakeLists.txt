@@ -90,6 +90,7 @@ add_executable(mc_tests
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp
     common/world/block/blocks/CauldronBlockTest.cpp
+    common/world/block/blocks/MobBlocksTest.cpp
     common/world/block/DispenseItemBehaviorTest.cpp
     common/world/storage/StorageTaskTest.cpp
     common/world/storage/PlayerStorageTest.cpp

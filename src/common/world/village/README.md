@@ -35,11 +35,26 @@ village/
 
 **注意**: 僵尸围村系统 (VillageSiege) 位于 `src/server/world/spawn/VillageSiege.hpp/cpp`
 
+## 核心类型
+
+### VillageId
+
+村庄唯一标识符类型：
+
+```cpp
+using VillageId = u64;
+```
+
+- 用于 `Village` 类的 `m_id` 字段
+- 由 `VillageManager` 自动分配（`m_nextVillageId` 递增）
+- 支持 NBT 序列化（`Id` 字段）
+
 ## 核心类
 
 ### Village
 
 村庄数据管理类，负责：
+- **村庄ID**：唯一标识符，用于村庄管理和区块映射
 - 村庄边界计算（基于床位和工作站分布）
 - 村民列表管理
 - 床位和工作站计数
@@ -55,6 +70,10 @@ bool canBreed = village.canBreed();  // 是否有足够床位繁殖
 
 // tick 更新（每游戏刻调用）
 village.tick(world, gameTime, &poiStorage);
+
+// 村庄 ID 管理
+VillageId id = village.getId();
+village.setId(newId);
 ```
 
 #### Village::tick() 实现细节
@@ -69,23 +88,38 @@ village.tick(world, gameTime, &poiStorage);
 ### VillageManager
 
 世界级村庄管理器，负责：
-- 村庄生命周期管理
+- 村庄生命周期管理（自动分配唯一ID）
 - 村民与村庄的关联
 - POI注册和管理
 - 区块加载/卸载回调
+- 区块到村庄映射（用于快速查找）
 
 ```cpp
 VillageManager manager(serverWorld);
 
+// 村庄创建时自动分配 ID
+Village* village = manager.createVillage(centerPos);
+VillageId id = village->getId();
+
 // 区块加载时
 manager.onChunkLoaded(x, z);
 
-// 村民加入时
+// 村民加入时（更新区块映射）
 manager.onVillagerJoin(villagerId, pos);
 
 // 方块放置时（可能创建新POI）
 manager.onBlockPlaced(pos, blockId);
+
+// 区块到村庄映射查询
+auto villages = manager.getVillagesInChunk(chunkX, chunkZ);
 ```
+
+#### 区块到村庄映射
+
+`VillageManager` 维护 `m_chunkToVillages` 映射，用于：
+- 快速查找区块内的所有村庄
+- 村民加入时更新映射关系
+- 区块卸载时清理映射
 
 ### VillageGossipManager
 
@@ -120,4 +154,6 @@ f32 modifier = village.getPriceModifier(playerId);
 - [x] 实现交易系统 (trade/) - MerchantOffer NBT序列化已完成
 - [x] 实现僵尸围村 (VillageSiege) - 位于 `src/server/world/spawn/`
 - [x] 集成 VillageSiege 到 ServerWorld
+- [x] 实现 Village ID 系统和区块映射
 - [x] 编写单元测试 - tests/server/world/spawn/VillageSiegeTest.cpp (26个测试用例)
+- [x] 编写 Village ID 单元测试 - tests/common/world/village/VillageTest.cpp

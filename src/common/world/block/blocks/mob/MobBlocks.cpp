@@ -55,8 +55,30 @@ const BlockState& BeehiveBlock::rotate(const BlockState& state, Rotation rotatio
 
 const BlockState& BeehiveBlock::mirror(const BlockState& state, Mirror mirror) const {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    Rotation rotation = Directions::mirrorToRotation(mirror, facing);
-    Direction newFacing = Directions::rotateDirection(facing, rotation);
+    Direction newFacing = facing;
+
+    switch (mirror) {
+        case Mirror::LeftRight:
+            // 左右镜像：东西互换
+            if (facing == Direction::East) {
+                newFacing = Direction::West;
+            } else if (facing == Direction::West) {
+                newFacing = Direction::East;
+            }
+            break;
+        case Mirror::FrontBack:
+            // 前后镜像：南北互换
+            if (facing == Direction::North) {
+                newFacing = Direction::South;
+            } else if (facing == Direction::South) {
+                newFacing = Direction::North;
+            }
+            break;
+        case Mirror::None:
+        default:
+            break;
+    }
+
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
