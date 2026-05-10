@@ -20,8 +20,9 @@ std::unique_ptr<Entity> GuardianEntity::create(IWorld* /*world*/) {
 }
 
 bool GuardianEntity::isInWater() const {
-    // TODO: 检查是否在水中
-    return false;
+    // 调用父类的 isInWater() 方法
+    // Entity::isInWater() 已经在 updateEnvironmentState() 中正确更新
+    return MonsterEntity::isInWater();
 }
 
 void GuardianEntity::tick() {

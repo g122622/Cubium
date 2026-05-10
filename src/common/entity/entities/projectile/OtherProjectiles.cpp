@@ -102,11 +102,11 @@ void FishingBobberEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pit
 
     // 添加不准确性
     if (inaccuracy > 0.0f) {
-        // 简化实现：添加随机偏移
-        // TODO: 使用真正的随机数生成器
-        f32 offsetX = (static_cast<f32>(rand()) / RAND_MAX - 0.5f) * inaccuracy * 0.1f;
-        f32 offsetY = (static_cast<f32>(rand()) / RAND_MAX - 0.5f) * inaccuracy * 0.1f;
-        f32 offsetZ = (static_cast<f32>(rand()) / RAND_MAX - 0.5f) * inaccuracy * 0.1f;
+        // MC 1.16.5: 使用世界的随机数生成器添加高斯偏移
+        math::Random& random = shooter.world()->getRandom();
+        f32 offsetX = random.nextGaussian() * inaccuracy * 0.0075f;
+        f32 offsetY = random.nextGaussian() * inaccuracy * 0.0075f;
+        f32 offsetZ = random.nextGaussian() * inaccuracy * 0.0075f;
         x += offsetX;
         y += offsetY;
         z += offsetZ;

@@ -20,8 +20,9 @@ std::unique_ptr<Entity> DrownedEntity::create(IWorld* /*world*/) {
 }
 
 bool DrownedEntity::isInWater() const {
-    // TODO: 检查是否在水中
-    return false;
+    // 调用父类的 isInWater() 方法
+    // Entity::isInWater() 已经在 updateEnvironmentState() 中正确更新
+    return ZombieEntity::isInWater();
 }
 
 bool DrownedEntity::shouldBurnInDaylight() const {
@@ -33,10 +34,9 @@ void DrownedEntity::tick() {
     ZombieEntity::tick();
 
     // 在水中时的特殊行为
-    if (isInWater()) {
-        // 可以游泳
-        // TODO: 设置游泳状态
-    }
+    // MC 1.16.5: 溺尸在水中可以游泳，游泳状态由AI目标控制
+    // SwimGoal 会在水中自动启用游泳导航
+    (void)isInWater();  // 暂时避免未使用警告，AI目标实现后会使用
 }
 
 void DrownedEntity::registerAttributes() {

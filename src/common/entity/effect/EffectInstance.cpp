@@ -1,6 +1,7 @@
 #include "EffectInstance.hpp"
 #include "EffectAttributeModifiers.hpp"
 #include "../core/LivingEntity.hpp"
+#include "../entities/player/Player.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
 namespace mc {
@@ -212,11 +213,12 @@ void EffectInstance::applyEffect(LivingEntity& entity) {
         }
 
         case EffectType::Hunger: {
-            // 每tick增加饥饿消耗（如果玩家）
-            // TODO: 需要Player类和食物系统
-            // if (auto* player = dynamic_cast<PlayerEntity*>(&entity)) {
-            //     player->addExhaustion(0.005f * (m_amplifier + 1));
-            // }
+            // MC 1.16.5: 每tick增加饥饿消耗
+            // 参考 EffectInstance.performEffect() 第455-459行
+            // exhaustion += 0.005F * (amplifier + 1)
+            if (auto* player = dynamic_cast<Player*>(&entity)) {
+                player->addExhaustion(0.005f * static_cast<f32>(m_amplifier + 1));
+            }
             break;
         }
 
