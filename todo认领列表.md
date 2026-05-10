@@ -38,3 +38,18 @@
   - 对普通物品继续使用 `ItemStack::addEnchantment()` 存储附魔（Enchantments）
 
 ---
+
+## TODO #3: 测试快速装填附魔减少装填时间
+
+- **文件**: `tests/common/item/weapon/WeaponItemTest.cpp`
+- **内容**: TODO: 测试快速装填附魔减少装填时间
+- **认领时间**: 2026-05-10
+- **完成时间**: 2026-05-10
+- **状态**: 已完成
+- **描述**: 为 `CrossbowItem::getChargeTime()` 添加了完整的测试用例：
+  - 测试基础装填时间（25 tick）
+  - 测试快速装填 I（20 tick）
+  - 测试快速装填 II（15 tick）
+  - 测试快速装填 III（10 tick）
+
+---
