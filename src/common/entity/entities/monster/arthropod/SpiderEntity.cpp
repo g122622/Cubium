@@ -1,5 +1,8 @@
 #include "SpiderEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/BlockPos.hpp"
+#include <cmath>
 
 namespace mc {
 
@@ -18,22 +21,30 @@ std::unique_ptr<Entity> SpiderEntity::create(IWorld* /*world*/) {
 }
 
 bool SpiderEntity::shouldAttack(LivingEntity* target) const {
-    // 蜘蛛只在黑暗中攻击
-    // TODO: 检查光照等级
-    // return world()->getLightLevel(position()) < 7;
+    // MC 1.16.5: 蜘蛛只在黑暗中攻击
+    // 参考 SpiderEntity.shouldAttack() 第94-101行
+    // 光照等级 < 7 时攻击（亮度阈值 = 0.5 * 15 = 7.5）
+    if (m_world != nullptr) {
+        u8 lightLevel = m_world->getLightSubtracted(BlockPos(
+            static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(m_position.y)),
+            static_cast<i32>(std::floor(m_position.z))), 0);
+        if (lightLevel < 7) {
+            return MonsterEntity::shouldAttack(target);
+        }
+        // 在明亮处不攻击
+        return false;
+    }
     return MonsterEntity::shouldAttack(target);
 }
 
 void SpiderEntity::tick() {
     MonsterEntity::tick();
 
-    // 更新攀爬状态
-    // TODO: 检查是否贴着墙壁
-    // if (isCollidedHorizontally) {
-    //     m_climbing = true;
-    // } else {
-    //     m_climbing = false;
-    // }
+    // MC 1.16.5: 更新攀爬状态
+    // 参考 SpiderEntity.tick() 第67-72行
+    // 蜘蛛在碰到墙壁时可以攀爬
+    m_climbing = collidedHorizontally();
 
     m_wasOnGround = onGround();
 }
