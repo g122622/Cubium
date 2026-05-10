@@ -921,10 +921,167 @@ TEST_F(ParserTest, NumericAttributeValues) {
 
 TEST_F(ParserTest, ClassesAttribute) {
     // Note: Classes are parsed as regular attributes, not specially handled yet
-    auto doc = parse(R"(<text class="title large"/>")");
+    auto doc = parse(R"(<text class="title large"/>)");
     ASSERT_NE(doc, nullptr);
     ASSERT_NE(doc->rootElement(), nullptr);
     EXPECT_TRUE(doc->rootElement()->hasAttribute("class"));
+}
+
+TEST_F(ParserTest, UniqueIdsNoError) {
+    // 每个元素都有唯一的ID - 不应产生错误
+    parser::Lexer lexer(R"(
+        <screen>
+            <text id="title"/>
+            <text id="subtitle"/>
+            <button id="submit"/>
+        </screen>
+    )", "<test>");
+    lexer.tokenize();
+
+    parser::Parser parser(lexer, m_config);
+    auto doc = parser.parse();
+
+    EXPECT_FALSE(parser.hasErrors()) << (parser.hasErrors() ? parser.errors()[0].message : "");
+    ASSERT_NE(doc, nullptr);
+}
+
+TEST_F(ParserTest, DuplicateIdsError) {
+    // 重复的ID - 应该产生DuplicateId错误
+    parser::Lexer lexer(R"(
+        <screen>
+            <text id="duplicate"/>
+            <text id="duplicate"/>
+        </screen>
+    )", "<test>");
+    lexer.tokenize();
+
+    parser::Parser parser(lexer, m_config);
+    auto doc = parser.parse();
+
+    // 应该检测到重复ID错误
+    EXPECT_TRUE(parser.hasErrors());
+    ASSERT_EQ(parser.errors().size(), 1u);
+    EXPECT_EQ(parser.errors()[0].type, core::TemplateErrorType::DuplicateId);
+    EXPECT_TRUE(parser.errors()[0].message.find("duplicate") != std::string::npos);
+}
+
+TEST_F(ParserTest, DuplicateIdsNested) {
+    // 嵌套元素中的重复ID - 应该检测到
+    parser::Lexer lexer(R"(
+        <screen id="main">
+            <widget id="content">
+                <text id="item"/>
+                <text id="item"/>
+            </widget>
+        </screen>
+    )", "<test>");
+    lexer.tokenize();
+
+    parser::Parser parser(lexer, m_config);
+    auto doc = parser.parse();
+
+    EXPECT_TRUE(parser.hasErrors());
+    ASSERT_EQ(parser.errors().size(), 1u);
+    EXPECT_EQ(parser.errors()[0].type, core::TemplateErrorType::DuplicateId);
+}
+
+TEST_F(ParserTest, DuplicateIdsAcrossBranches) {
+    // 不同分支中的重复ID - 应该检测到
+    parser::Lexer lexer(R"(
+        <screen>
+            <widget>
+                <text id="sameId"/>
+            </widget>
+            <widget>
+                <text id="sameId"/>
+            </widget>
+        </screen>
+    )", "<test>");
+    lexer.tokenize();
+
+    parser::Parser parser(lexer, m_config);
+    auto doc = parser.parse();
+
+    EXPECT_TRUE(parser.hasErrors());
+    ASSERT_EQ(parser.errors().size(), 1u);
+    EXPECT_EQ(parser.errors()[0].type, core::TemplateErrorType::DuplicateId);
+}
+
+TEST_F(ParserTest, MultipleDuplicateIds) {
+    // 多组重复ID - 应该报告多个错误
+    parser::Lexer lexer(R"(
+        <screen>
+            <text id="dup1"/>
+            <text id="dup1"/>
+            <text id="dup2"/>
+            <text id="dup2"/>
+        </screen>
+    )", "<test>");
+    lexer.tokenize();
+
+    parser::Parser parser(lexer, m_config);
+    auto doc = parser.parse();
+
+    EXPECT_TRUE(parser.hasErrors());
+    // 应该有2个错误：dup1重复和dup2重复
+    ASSERT_EQ(parser.errors().size(), 2u);
+    EXPECT_EQ(parser.errors()[0].type, core::TemplateErrorType::DuplicateId);
+    EXPECT_EQ(parser.errors()[1].type, core::TemplateErrorType::DuplicateId);
+}
+
+TEST_F(ParserTest, DuplicateIdErrorLocation) {
+    // 验证错误位置信息
+    parser::Lexer lexer(R"(
+        <screen>
+            <text id="first"/>
+            <text id="first"/>
+        </screen>
+    )", "<test>");
+    lexer.tokenize();
+
+    parser::Parser parser(lexer, m_config);
+    auto doc = parser.parse();
+
+    EXPECT_TRUE(parser.hasErrors());
+    // 错误应该指向第二个重复ID的位置
+    EXPECT_TRUE(parser.errors()[0].location.isValid());
+}
+
+TEST_F(ParserTest, NoIdNoError) {
+    // 没有ID的元素 - 不应产生错误
+    parser::Lexer lexer(R"(
+        <screen>
+            <text/>
+            <text/>
+            <text/>
+        </screen>
+    )", "<test>");
+    lexer.tokenize();
+
+    parser::Parser parser(lexer, m_config);
+    auto doc = parser.parse();
+
+    EXPECT_FALSE(parser.hasErrors()) << (parser.hasErrors() ? parser.errors()[0].message : "");
+    ASSERT_NE(doc, nullptr);
+}
+
+TEST_F(ParserTest, CaseSensitiveIds) {
+    // ID区分大小写 - 不同大小写应该被视为不同ID
+    parser::Lexer lexer(R"(
+        <screen>
+            <text id="MyId"/>
+            <text id="myid"/>
+            <text id="MYID"/>
+        </screen>
+    )", "<test>");
+    lexer.tokenize();
+
+    parser::Parser parser(lexer, m_config);
+    auto doc = parser.parse();
+
+    // 不同大小写的ID应该被认为是不同的ID，不应该产生错误
+    EXPECT_FALSE(parser.hasErrors()) << (parser.hasErrors() ? parser.errors()[0].message : "");
+    ASSERT_NE(doc, nullptr);
 }
 
 // ==================== AST Tests ====================
@@ -4552,7 +4709,7 @@ TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithAllBindingTypes) {
 }
 
 TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithDuplicateIds) {
-    // 重复ID（行为取决于实现）
+    // 重复ID - 现在应该在解析阶段检测到错误
     compiler::TemplateCompiler compiler(m_config);
 
     auto result = compiler.compile(R"(
@@ -4563,7 +4720,11 @@ TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithDuplicateIds) {
     )");
 
     ASSERT_NE(result, nullptr);
-    // 可能成功或产生警告
+    // 应该检测到重复ID错误
+    EXPECT_TRUE(result->hasErrors());
+    EXPECT_EQ(result->errors().size(), 1u);
+    EXPECT_EQ(result->errors()[0].type, core::TemplateErrorType::DuplicateId);
+    EXPECT_TRUE(result->errors()[0].message.find("duplicate") != std::string::npos);
 }
 
 TEST_F(CompiledTemplateEdgeCaseTest, TemplateWithDeepNesting) {

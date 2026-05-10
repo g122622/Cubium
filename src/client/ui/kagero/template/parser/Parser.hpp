@@ -7,6 +7,7 @@
 #include <memory>
 #include <functional>
 #include <algorithm>
+#include <unordered_set>
 
 namespace mc::client::ui::kagero::tpl::parser {
 
@@ -309,6 +310,13 @@ private:
     TemplateConfig m_config;
     size_t m_current = 0;
     std::vector<TemplateErrorInfo> m_errors;
+
+    /**
+     * @brief 已收集的ID集合（用于检测重复ID）
+     *
+     * 在parse()过程中收集所有元素的ID，用于validateElement()中的唯一性检查
+     */
+    std::unordered_set<std::string> m_seenIds;
 };
 
 } // namespace mc::client::ui::kagero::tpl::parser

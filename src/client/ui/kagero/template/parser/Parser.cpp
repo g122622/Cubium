@@ -18,6 +18,7 @@ Parser::Parser(const Lexer& lexer, const TemplateConfig& config)
 std::unique_ptr<DocumentNode> Parser::parse() {
     m_errors.clear();
     m_current = 0;
+    m_seenIds.clear();  // 清空已收集的ID集合
 
     auto document = std::make_unique<DocumentNode>();
     document->range.start = currentLocation();
@@ -523,7 +524,16 @@ bool Parser::parseEndTag(const std::string& expectedTagName) {
 void Parser::validateElement(ElementNode& element) {
     // 验证ID唯一性（如果有）
     if (!element.id.empty()) {
-        // TODO: 检查ID唯一性（需要父文档）
+        // 检查ID是否已经被使用
+        if (m_seenIds.find(element.id) != m_seenIds.end()) {
+            // ID重复，添加错误
+            addError(TemplateErrorType::DuplicateId,
+                     "Duplicate ID: '" + element.id + "'. Each ID must be unique within the document.",
+                     element.range.start);
+        } else {
+            // ID唯一，添加到已收集的ID集合
+            m_seenIds.insert(element.id);
+        }
     }
 
     // 验证所有属性
