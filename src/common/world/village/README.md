@@ -10,7 +10,6 @@ village/
 ├── VillageManager.hpp/cpp       # 村庄管理器（世界级）
 ├── VillageGossip.hpp/cpp        # 流言系统
 ├── VillageGossipType.hpp/cpp    # 流言类型枚举
-├── VillageSiege.hpp/cpp         # 僵尸围村（TODO）
 ├── README.md                     # 本文档
 │
 ├── poi/                          # POI子系统
@@ -30,9 +29,11 @@ village/
     ├── Merchant.hpp
     ├── MerchantOffer.hpp/cpp     # ✅ NBT序列化已实现
     ├── MerchantOffers.hpp/cpp
-    ├── VillagerTrades.hpp/cpp    # TODO
+    ├── VillagerTrades.hpp/cpp    # ✅ 所有职业交易配方已实现
     └── README.md
 ```
+
+**注意**: 僵尸围村系统 (VillageSiege) 位于 `src/server/world/spawn/VillageSiege.hpp/cpp`
 
 ## 核心类
 
@@ -117,6 +118,6 @@ f32 modifier = village.getPriceModifier(playerId);
 - [x] 实现 Village::tick() 袭击状态检查
 - [x] 实现袭击系统 (raid/)
 - [x] 实现交易系统 (trade/) - MerchantOffer NBT序列化已完成
-- [ ] 实现僵尸围村 (VillageSiege)
-- [ ] 集成到ServerWorld
+- [x] 实现僵尸围村 (VillageSiege) - 位于 `src/server/world/spawn/`
+- [ ] 集成 VillageSiege 到 ServerWorld
 - [ ] 编写单元测试
