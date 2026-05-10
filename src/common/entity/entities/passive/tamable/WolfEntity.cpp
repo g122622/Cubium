@@ -40,7 +40,7 @@ bool WolfEntity::isTameItem(const ItemStack& itemStack) const {
 }
 
 bool WolfEntity::isBreedingItem(const ItemStack& itemStack) const {
-    // 驯服后用肉类繁殖
+    // 驯服后用肉类繁殖（MC 1.16.5: item.isFood() && item.getFood().isMeat()）
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
     return item == Items::PORKCHOP
@@ -52,8 +52,8 @@ bool WolfEntity::isBreedingItem(const ItemStack& itemStack) const {
         || item == Items::RABBIT
         || item == Items::COOKED_RABBIT
         || item == Items::MUTTON
-        || item == Items::COOKED_MUTTON;
-        // TODO: 添加 ROTTEN_FLESH（腐肉）当 Items 中定义后
+        || item == Items::COOKED_MUTTON
+        || item == Items::ROTTEN_FLESH;
 }
 
 bool WolfEntity::isFoodItem(const ItemStack& itemStack) const {

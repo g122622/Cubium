@@ -1,5 +1,6 @@
 #include "FallingBlock.hpp"
 #include "../BlockRegistry.hpp"
+#include "../BlockTags.hpp"
 #include "../../IWorld.hpp"
 #include "../../tick/manager/TickManager.hpp"
 #include "../../../entity/entities/misc/MiscEntities.hpp"
@@ -97,6 +98,11 @@ bool FallingBlock::canFallThrough(const BlockState* state) {
         return true;
     }
 
+    // 火焰可穿透（MC 1.16.5: state.isIn(BlockTags.FIRE)）
+    if (BlockTags::FIRE().contains(*state)) {
+        return true;
+    }
+
     // 液体可穿透
     if (state->getMaterial().isLiquid()) {
         return true;
@@ -106,9 +112,6 @@ bool FallingBlock::canFallThrough(const BlockState* state) {
     if (state->getMaterial().isReplaceable()) {
         return true;
     }
-
-    // TODO: 添加火焰标签检查
-    // if (state->is(BlockTags::FIRE)) { return true; }
 
     // 不阻挡移动的方块可穿透
     return !state->blocksMovement();
