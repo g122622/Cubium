@@ -186,7 +186,8 @@ bool AutoJump::shouldCheckForAutoJump(
     }
 
     // 7. 检查跳跃因子（蜂蜜块等会降低）
-    // 目前总是返回 true，待实现蜂蜜块后修改
+    // 蜂蜜块会让跳跃因子变为 0.5f，此时禁用自动跳跃
+    // 参考 MC 1.16.5: if ((double)this.getJumpFactor() < 1.0D) return;
     if (player.getJumpFactor() < static_cast<f32>(JUMP_FACTOR_THRESHOLD)) {
         return false;
     }
