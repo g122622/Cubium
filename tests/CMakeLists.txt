@@ -117,6 +117,7 @@ add_executable(mc_tests
     common/world/block/blocks/FallingBlockTest.cpp
     common/world/block/blocks/VegetationBlockTest.cpp
     common/world/block/blocks/SweetBerryBushBlockTest.cpp
+    common/world/block/blocks/SeagrassBlockTest.cpp
     common/world/block/BlockTagsTest.cpp
     common/entity/EntityMotionMultiplierTest.cpp
     common/world/block/blocks/CropBlocksTest.cpp

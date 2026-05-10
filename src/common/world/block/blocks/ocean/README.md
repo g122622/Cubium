@@ -42,6 +42,23 @@ ocean/
 - `minecraft:dried_kelp_block`
 - `minecraft:conduit`
 
+### 海草骨粉催熟 (MC 1.16.5 对齐)
+
+`SeagrassBlock` 实现了 `IGrowable` 接口，支持骨粉催熟：
+
+- **canGrow()**: 检查上方是否有水源方块（流体等级=8）
+- **canUseBonemeal()**: 总是返回 true
+- **grow()**: 将海草变成高海草（双格植物）
+
+```cpp
+// 骨粉对海草使用时会变成高海草
+SeagrassBlock seagrass(...);
+if (seagrass.canGrow(world, pos, state, false)) {
+    seagrass.grow(world, random, pos, state);
+    // 海草变成高海草（LOWER + UPPER 两部分）
+}
+```
+
 ### 海泡菜发光
 
 - 在水中时发光
