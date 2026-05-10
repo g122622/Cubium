@@ -64,6 +64,8 @@ add_executable(mc_tests
     common/entity/entities/monster/SlimeEntityTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp
+    # Hunger effect test
+    common/entity/effect/HungerEffectTest.cpp
     # ItemDropHelper 测试
     common/entity/utils/ItemDropHelperTest.cpp
     # 经验系统测试
