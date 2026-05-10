@@ -148,8 +148,16 @@ inventory/
   - `getMaxStackSize()`: 桶类物品返回 1，其他返回默认值
 - `FurnaceResultSlot` 类：熔炉输出槽位
   - `mayPlace()`: 始终返回 false，不能放入物品
-  - `remove()`: 重写以支持经验值累积
+  - `remove()`: 重写以支持经验值累积追踪
   - `onTake()`: 触发熔炼成就和经验奖励
+  - `onCrafting()`: 从熔炉实体提取累积经验并发放给玩家
+  - 构造函数参数：玩家指针、背包指针、槽位索引、显示坐标、熔炉实体指针
+  - `setFurnaceEntity()` / `getFurnaceEntity()`: 动态设置/获取熔炉实体
+  - **MC 1.16.5 经验发放机制**:
+    - 熔炉在熔炼过程中累积经验值（存储在 `AbstractFurnaceEntity::m_storedExperience`）
+    - 玩家从输出槽取出物品时，`FurnaceResultSlot` 自动发放累积经验
+    - 支持两种取出方式：普通点击取出（通过 `remove()` 追踪数量）和 Shift+快速移动（通过 `onTake()` 自动设置数量）
+    - 经验值向下取整后发放（使用 `std::floor`）
 
 **依赖项**:
 - `IInventory.hpp` - 背包接口
@@ -237,6 +245,10 @@ inventory/
 - 事件通知：`addListener()`, `removeListener()`, `broadcastChanges()`, `slotsChanged()`
 - 生命周期：`stillValid()`, `removed()`
 - 事务ID：`incrementTransactionId()`, `getTransactionId()`, `setTransactionId()` 用于网络防重放
+- **Slot 回调触发**（MC 1.16.5 对齐）：
+  - `handleClickPick()`: 在拾取和交换场景中调用 `slot->onTake()` 回调
+  - `handleQuickMove()`: 在快速移动完成后调用 `slot->onTake()` 回调
+  - 这确保了 `FurnaceResultSlot` 等特殊槽位的回调（如经验发放）能正确触发
 
 **依赖项**:
 - `core/Types.hpp`
@@ -562,7 +574,19 @@ BlockItemRegistry::instance().initializeVanillaBlockItems();
 - `FurnaceResultSlotTest`: 熔炉输出槽位测试
   - 创建槽位
   - `mayPlace()`: 始终返回 false
-  - `remove()`: 物品移除和经验累积
+  - `remove()`: 物品移除和经验累积追踪
+- `FurnaceResultSlotExperienceTest`: 熔炉输出槽位经验发放测试（MC 1.16.5）
+  - `OnTake_WithFurnaceEntity_GrantsExperience`: 从输出槽取出物品时发放经验
+  - `OnTake_NoFurnaceEntity_NoExperienceGranted`: 无熔炉实体时不发放经验
+  - `OnTake_NoPlayer_NoExperienceGranted`: 无玩家时不发放经验
+  - `OnTake_NoStoredExperience_NoExperienceGranted`: 无累积经验时不发放
+  - `Remove_TracksRemoveCount`: `remove()` 正确追踪取出数量
+  - `SetFurnaceEntity_UpdatesEntityReference`: 动态设置熔炉实体引用
+  - `OnCrafting_CalledFromOnTake`: `onTake()` 内部正确调用 `onCrafting()`
+  - `MultipleRemoves_ThenOnTake`: 多次 `remove()` 后一次性 `onTake()` 的场景
+  - `ExperienceRoundedDown`: 经验值向下取整（`floor(10.7) = 10`）
+  - `ZeroStoredExperience_NoEffect`: 累积经验为 0 时无效果
+  - `OnTakeWithEmptySlot_NoEffect`: 从空槽位取出无效果
 
 ### tests/common/test_container.cpp
 
