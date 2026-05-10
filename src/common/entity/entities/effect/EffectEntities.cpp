@@ -1,6 +1,7 @@
 #include "EffectEntities.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/VanillaBlocks.hpp"
+#include "../../../world/explosion/ExplosionMode.hpp"
 #include "../player/Player.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
@@ -53,7 +54,20 @@ void EnderCrystalEntity::healDragon() {
 }
 
 void EnderCrystalEntity::explode() {
-    // TODO: 创建爆炸
+    // MC 1.16.5: 末地水晶爆炸
+    // 参考: EnderCrystalEntity.attackEntityFrom() line 105
+    // this.world.createExplosion((Entity)null, this.getPosX(), this.getPosY(), this.getPosZ(), 6.0F, Explosion.Mode.DESTROY);
+    IWorld* worldPtr = world();
+    if (worldPtr != nullptr) {
+        // 爆炸半径 6.0，模式 DESTROY（破坏方块并掉落物品）
+        worldPtr->createExplosion(
+            m_position,
+            6.0f,  // MC 1.16.5: 末地水晶爆炸半径
+            world::explosion::ExplosionMode::Destroy,
+            false,  // 不生成火焰
+            nullptr  // 无爆炸源实体
+        );
+    }
     remove();
 }
 
