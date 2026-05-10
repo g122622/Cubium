@@ -78,6 +78,7 @@
 #include "../entities/vehicle/MinecartEntity.hpp"
 #include "../entities/item/ItemEntity.hpp"
 #include "../entities/orb/ExperienceOrbEntity.hpp"
+#include "../entities/misc/MiscEntities.hpp"
 #include <spdlog/spdlog.h>
 #include <mutex>
 
@@ -895,6 +896,17 @@ private:
                 .size(0.5f, 0.5f)
                 .trackingRange(6)
                 .updateInterval(1)  // 经验球需要频繁更新
+                .canSummon(true)
+                .build()
+        );
+
+        // ========== TNT ==========
+        registry.registerType(
+            EntityTypes::TNT,
+            EntityType::Builder(&entity::TNTEntity::create, EntityClassification::Misc)
+                .size(0.98f, 0.98f)
+                .trackingRange(10)
+                .updateInterval(1)  // TNT 需要频繁更新（引信倒计时）
                 .canSummon(true)
                 .build()
         );

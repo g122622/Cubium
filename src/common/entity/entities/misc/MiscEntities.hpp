@@ -77,8 +77,15 @@ private:
 class TNTEntity : public Entity {
 public:
     TNTEntity();
-    TNTEntity(f64 x, f64 y, f64 z);
+    TNTEntity(LegacyEntityType type, EntityId id);
     ~TNTEntity() override = default;
+
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
 
     void tick() override;
 
@@ -101,8 +108,19 @@ public:
 
     /**
      * @brief 点燃TNT
+     *
+     * 设置引信时间并开始倒计时。
      */
     void ignite();
+
+    /**
+     * @brief 设置点燃者
+     * @param igniter 点燃TNT的实体（可为nullptr）
+     *
+     * 用于追踪爆炸责任的归属。
+     */
+    void setOwner(LivingEntity* igniter) { m_owner = igniter; }
+    [[nodiscard]] LivingEntity* getOwner() const { return m_owner; }
 
     /**
      * @brief 爆炸
@@ -118,8 +136,8 @@ private:
     i32 m_fuse = 0;
     f32 m_explosionRadius = 4.0f;
     bool m_exploded = false;
-    Entity* m_owner = nullptr;
-    static constexpr i32 DEFAULT_FUSE = 80; // 4秒
+    LivingEntity* m_owner = nullptr;
+    static constexpr i32 DEFAULT_FUSE = 80; // 4秒（80 ticks）
 };
 
 /**

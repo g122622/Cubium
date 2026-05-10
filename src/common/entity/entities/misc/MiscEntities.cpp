@@ -73,17 +73,29 @@ TNTEntity::TNTEntity()
 {
 }
 
-TNTEntity::TNTEntity(f64 x, f64 y, f64 z)
-    : Entity(LegacyEntityType::Unknown, EntityId(0))
+TNTEntity::TNTEntity(LegacyEntityType type, EntityId id)
+    : Entity(type, id)
 {
-    setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+}
+
+std::unique_ptr<Entity> TNTEntity::create(IWorld* world) {
+    MC_UNUSED(world);
+    // 创建时使用Unknown类型，会在spawnEntity时分配ID
+    return std::make_unique<TNTEntity>();
 }
 
 void TNTEntity::tick() {
     Entity::tick();
 
+    // 引信倒计时
     if (m_fuse > 0) {
         m_fuse--;
+
+        // MC 1.16.5: 客户端添加烟雾粒子效果
+        if (world() != nullptr && world()->isClientSide()) {
+            // TODO: 添加烟雾粒子效果
+            // world()->addParticle(ParticleTypes::SMOKE, x(), y() + 0.5, z(), 0, 0, 0);
+        }
 
         if (m_fuse <= 0 && !m_exploded) {
             explode();
@@ -91,18 +103,32 @@ void TNTEntity::tick() {
     }
 
     // 重力
-    Vector3 vel = velocity();
-    vel.y -= 0.04f;
+    if (!hasNoGravity()) {
+        Vector3 vel = velocity();
+        vel.y -= 0.04f;  // MC 1.16.5: 重力加速度
+        setVelocity(vel);
+    }
 
     // 移动
+    Vector3 vel = velocity();
     move(vel.x, vel.y, vel.z);
     checkOnGround();
 
-    // 减速
+    // 空气阻力
+    vel = velocity();
     vel.x *= 0.98f;
     vel.y *= 0.98f;
     vel.z *= 0.98f;
     setVelocity(vel);
+
+    // 地面碰撞弹跳
+    if (onGround()) {
+        vel = velocity();
+        vel.x *= 0.7f;
+        vel.y *= -0.5f;  // 反弹
+        vel.z *= 0.7f;
+        setVelocity(vel);
+    }
 }
 
 void TNTEntity::ignite() {
@@ -114,11 +140,12 @@ void TNTEntity::explode() {
     m_exploded = true;
 
     IWorld* worldPtr = world();
-    if (worldPtr) {
+    if (worldPtr != nullptr) {
         // TNT 爆炸半径 4.0，模式 BREAK（破坏方块但不掉落物品）
-        // 爆炸位置在 TNT 底部（Y 偏移 0.0625）
+        // 爆炸位置在 TNT 底部（Y 偏移 0.0625，即 1/16 格）
+        // 参考 MC 1.16.5: TNTEntity.explode()
         worldPtr->createExplosion(
-            Vector3(x(), y() + 0.0625f, z()),
+            Vector3(static_cast<f32>(x()), static_cast<f32>(y()) + 0.0625f, static_cast<f32>(z())),
             m_explosionRadius,
             world::explosion::ExplosionMode::Break,
             false,  // 不生成火焰

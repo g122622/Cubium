@@ -1,9 +1,15 @@
 #include "TNTBlock.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../explosion/Explosion.hpp"
+#include "../../../explosion/ExplosionMode.hpp"
+#include "../../../../entity/entities/misc/MiscEntities.hpp"
+#include "../../../../entity/core/EntityRegistry.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../sound/SoundCategory.hpp"
+#include "../../VanillaBlocks.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -69,26 +75,59 @@ void TNTBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighb
 void TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& state) {
     MC_UNUSED(state);
 
+    // 仅服务端执行
+    if (world.isClientSide()) {
+        return;
+    }
+
     // 移除TNT方块
     world.setBlockState(pos, nullptr, 11);
 
     // 生成点燃的TNT实体
-    // TODO: 生成 PrimedTntEntity
-    // world.spawnEntity(std::make_unique<PrimedTntEntity>(world, pos, ...));
+    // 参考 MC 1.16.5 TNTBlock.onCaughtFire
+    auto& registry = entity::EntityRegistry::instance();
+    const entity::EntityType* tntType = registry.getType(entity::EntityTypes::TNT);
 
-    // MC 1.16.5: 播放点燃音效
-    if (!world.isClientSide()) {
-        world.playSound(
-            SoundEvents::ENTITY_TNT_PRIMED,
-            sound::SoundCategory::Blocks,
-            pos.center(),
-            1.0f,
-            1.0f
-        );
+    if (tntType != nullptr && tntType->isValid()) {
+        auto tntEntity = tntType->create(&world);
+        if (tntEntity != nullptr) {
+            // 设置TNT位置（方块中心）
+            f32 centerX = static_cast<f32>(pos.x) + 0.5f;
+            f32 centerY = static_cast<f32>(pos.y);
+            f32 centerZ = static_cast<f32>(pos.z) + 0.5f;
+
+            // 使用动态转换获取 TNTEntity
+            auto* tnt = dynamic_cast<entity::TNTEntity*>(tntEntity.get());
+            if (tnt != nullptr) {
+                // 设置位置
+                tnt->setPosition(centerX, centerY, centerZ);
+
+                // 设置随机初始速度
+                // MC 1.16.5: 随机水平方向 + 向上 0.2
+                math::Random& rng = world.getRandom();
+                f32 angle = rng.nextFloat() * static_cast<f32>(math::TWO_PI);
+                f32 vx = -std::sin(angle) * 0.02f;
+                f32 vy = 0.2f;
+                f32 vz = -std::cos(angle) * 0.02f;
+                tnt->setVelocity(Vector3(vx, vy, vz));
+
+                // 点燃TNT（设置引信时间）
+                tnt->ignite();
+            }
+
+            // 生成实体
+            world.spawnEntity(std::move(tntEntity));
+        }
     }
 
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
+    // MC 1.16.5: 播放点燃音效
+    world.playSound(
+        SoundEvents::ENTITY_TNT_PRIMED,
+        sound::SoundCategory::Blocks,
+        Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+        1.0f,
+        1.0f
+    );
 }
 
 void TNTBlock::explode(IWorld& world, const BlockPos& pos, f32 power) {
@@ -96,12 +135,14 @@ void TNTBlock::explode(IWorld& world, const BlockPos& pos, f32 power) {
     world.setBlockState(pos, nullptr, 11);
 
     // 创建爆炸
-    // TODO: 实现爆炸系统
-    // world.createExplosion(pos, power, ExplosionMode::BreakBlocks);
-
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(power);
+    // 参考 MC 1.16.5: world.createExplosion(pos, power, Explosion.Mode.BREAK)
+    world.createExplosion(
+        Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.0625f, static_cast<f32>(pos.z) + 0.5f),
+        power,
+        world::explosion::ExplosionMode::Break,
+        false,  // 不生成火焰
+        nullptr // 无爆炸源实体
+    );
 }
 
 bool TNTBlock::hasFlammableNeighbor(IWorld& world, const BlockPos& pos) const {
@@ -111,13 +152,16 @@ bool TNTBlock::hasFlammableNeighbor(IWorld& world, const BlockPos& pos) const {
         BlockPos neighborPos = pos.offset(dir);
         const BlockState* neighborState = world.getBlockState(neighborPos);
 
-        if (neighborState) {
-            // TODO: 检查是否是火焰或熔岩
-            // if (neighborState->is(Blocks::FIRE) ||
-            //     neighborState->is(Blocks::LAVA)) {
-            //     return true;
-            // }
-            MC_UNUSED(neighborState);
+        if (neighborState != nullptr) {
+            // 检查是否是火焰（包括灵魂火）
+            if (neighborState->is(VanillaBlocks::FIRE) ||
+                neighborState->is(VanillaBlocks::SOUL_FIRE)) {
+                return true;
+            }
+            // 检查是否是熔岩
+            if (neighborState->is(VanillaBlocks::LAVA)) {
+                return true;
+            }
         }
     }
 

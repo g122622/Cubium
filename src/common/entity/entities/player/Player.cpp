@@ -1032,6 +1032,55 @@ i32 Player::armorValue() const {
     return item::items::ArmorItem::getTotalArmorValue(*this);
 }
 
+const ItemStack& Player::getEquipment(EquipmentSlot slot) const {
+    // MC 1.16.5: Player 重写 getEquipment 从 PlayerInventory 获取装备
+    // 参考: PlayerEntity.getItemStackFromSlot
+    switch (slot) {
+        case EquipmentSlot::MainHand:
+            return m_inventory.getSelectedStackRef();
+        case EquipmentSlot::OffHand:
+            return m_inventory.getOffhandItemRef();
+        case EquipmentSlot::Head:
+            return m_inventory.getHelmetRef();
+        case EquipmentSlot::Chest:
+            return m_inventory.getChestplateRef();
+        case EquipmentSlot::Legs:
+            return m_inventory.getLeggingsRef();
+        case EquipmentSlot::Feet:
+            return m_inventory.getBootsRef();
+        default:
+            static ItemStack empty;
+            return empty;
+    }
+}
+
+void Player::setEquipment(EquipmentSlot slot, const ItemStack& stack) {
+    // MC 1.16.5: Player 重写 setEquipment 设置装备到 PlayerInventory
+    // 参考: PlayerEntity.setItemStackToSlot
+    switch (slot) {
+        case EquipmentSlot::MainHand:
+            m_inventory.getSelectedStackRef() = stack;
+            break;
+        case EquipmentSlot::OffHand:
+            m_inventory.setOffhandItem(stack);
+            break;
+        case EquipmentSlot::Head:
+            m_inventory.setHelmet(stack);
+            break;
+        case EquipmentSlot::Chest:
+            m_inventory.setChestplate(stack);
+            break;
+        case EquipmentSlot::Legs:
+            m_inventory.setLeggings(stack);
+            break;
+        case EquipmentSlot::Feet:
+            m_inventory.setBoots(stack);
+            break;
+        default:
+            break;
+    }
+}
+
 void Player::setCreativeModeInventory() {
     fillCreativeModeInventory(m_inventory);
 }
