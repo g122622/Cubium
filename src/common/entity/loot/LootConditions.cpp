@@ -57,23 +57,18 @@ i32 FortuneCondition::applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::R
         return baseCount;
     }
 
-    // MC 1.16.5 时运公式:
-    // Fortune I: 33% 概率 +1
-    // Fortune II: 25% 概率 +1, 25% 概率 +2 (累计 +0~2)
-    // Fortune III: 20% 概率 +1, 20% 概率 +2, 20% 概率 +3 (累计 +0~3)
+    // MC 1.16.5 OreDropsFormula (乘法式):
+    // int i = random.nextInt(fortune + 2) - 1;
+    // if (i < 0) i = 0;
+    // return baseCount * (i + 1);
     //
-    // 实现: 每级时运有 1/(level+2) 的概率增加1，最多增加level
-
-    i32 bonus = 0;
-    for (i32 i = 0; i < fortuneLevel; ++i) {
-        // 每级有 1/(fortuneLevel+2) 的概率增加1
-        f32 chance = 1.0f / static_cast<f32>(fortuneLevel + 2);
-        if (random.nextFloat() < chance) {
-            ++bonus;
-        }
+    // 注意：此方法已弃用，请使用 ApplyBonusFunction::calculateOreDrops()
+    i32 i = random.nextInt(fortuneLevel + 2) - 1;
+    if (i < 0) {
+        i = 0;
     }
 
-    return baseCount + bonus;
+    return baseCount * (i + 1);
 }
 
 // ============================================================================

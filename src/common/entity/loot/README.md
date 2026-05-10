@@ -144,8 +144,8 @@ if (limit > 0 && stack.count > limit) stack.count = limit
 **时运集成状态**：
 - `ApplyBonusFunction` 已实现三种时运公式（OreDrops、Uniform、Binomial）
 - 通过 `LootContext` 的 `FORTUNE_LEVEL` 参数获取时运等级
-- **限制**：当前 `LootEntry` 不支持添加 `LootFunction`，需要扩展架构
-- **临时方案**：时运效果通过 `BlockDropHandler::applyFortuneBonus()` 实现
+- **已实现**：`LootEntry` 现在支持添加 `LootFunction`，函数在条件检查后、物品返回前执行
+- **掉落表集成**：钻石矿、煤矿等矿石掉落表已使用 `ApplyBonusFunction` 支持时运加成
 
 **参考**: `net.minecraft.loot.functions.*`
 
@@ -170,6 +170,13 @@ if (limit > 0 && stack.count > limit) stack.count = limit
 - `weight` - 权重（用于加权随机选择）
 - `quality` - 质量（幸运值加成系数）
 - `conditions` - 条件列表（所有条件必须满足才能生成）
+- `functions` - 函数列表（条件检查后、物品返回前执行，用于修改物品）
+
+**函数执行流程**:
+1. 条件检查 (`testConditions`)
+2. 创建物品堆
+3. 应用函数 (`applyFunctions`) - 按顺序执行，前一个输出作为后一个输入
+4. 传递物品给消费者
 
 **权重计算**: `effectiveWeight = weight + luck * quality`
 

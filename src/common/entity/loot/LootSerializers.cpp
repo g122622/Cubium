@@ -1148,8 +1148,15 @@ void LootSerializers::parseEntryBase(LootEntry& entry, const nlohmann::json& jso
         }
     }
 
-    // 注意：当前 LootEntry 类不支持函数列表
-    // 如果需要支持 entry 级别的函数，需要修改 LootEntry 类
+    // 解析函数列表
+    if (json.contains("functions") && json["functions"].is_array()) {
+        for (const auto& funcJson : json["functions"]) {
+            auto funcResult = parseFunction(funcJson);
+            if (funcResult.success()) {
+                entry.addFunction(funcResult.value());
+            }
+        }
+    }
 }
 
 Result<std::unique_ptr<LootEntry>> LootSerializers::parseEmptyEntry(const nlohmann::json& json) {
@@ -1171,6 +1178,16 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::parseEmptyEntry(const nlohma
             auto condResult = parseCondition(condJson);
             if (condResult.success()) {
                 entry->addCondition(condResult.value());
+            }
+        }
+    }
+
+    // 解析函数列表
+    if (json.contains("functions") && json["functions"].is_array()) {
+        for (const auto& funcJson : json["functions"]) {
+            auto funcResult = parseFunction(funcJson);
+            if (funcResult.success()) {
+                entry->addFunction(funcResult.value());
             }
         }
     }
@@ -1217,8 +1234,15 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::parseItemEntry(const nlohman
         }
     }
 
-    // 注意：当前 LootEntry 类不支持函数列表
-    // 如果需要支持 entry 级别的函数，需要修改 LootEntry 类
+    // 解析函数列表
+    if (json.contains("functions") && json["functions"].is_array()) {
+        for (const auto& funcJson : json["functions"]) {
+            auto funcResult = parseFunction(funcJson);
+            if (funcResult.success()) {
+                entry->addFunction(funcResult.value());
+            }
+        }
+    }
 
     return castToBase<ItemLootEntry, LootEntry>(std::move(entry));
 }
@@ -1252,6 +1276,16 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::parseTableEntry(const nlohma
         }
     }
 
+    // 解析函数列表
+    if (json.contains("functions") && json["functions"].is_array()) {
+        for (const auto& funcJson : json["functions"]) {
+            auto funcResult = parseFunction(funcJson);
+            if (funcResult.success()) {
+                entry->addFunction(funcResult.value());
+            }
+        }
+    }
+
     return castToBase<TableLootEntry, LootEntry>(std::move(entry));
 }
 
@@ -1277,6 +1311,16 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::parseAlternativesEntry(const
             auto condResult = parseCondition(condJson);
             if (condResult.success()) {
                 entry->addCondition(condResult.value());
+            }
+        }
+    }
+
+    // 解析函数列表
+    if (json.contains("functions") && json["functions"].is_array()) {
+        for (const auto& funcJson : json["functions"]) {
+            auto funcResult = parseFunction(funcJson);
+            if (funcResult.success()) {
+                entry->addFunction(funcResult.value());
             }
         }
     }
@@ -1310,6 +1354,16 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::parseSequenceEntry(const nlo
         }
     }
 
+    // 解析函数列表
+    if (json.contains("functions") && json["functions"].is_array()) {
+        for (const auto& funcJson : json["functions"]) {
+            auto funcResult = parseFunction(funcJson);
+            if (funcResult.success()) {
+                entry->addFunction(funcResult.value());
+            }
+        }
+    }
+
     return castToBase<SequenceLootEntry, LootEntry>(std::move(entry));
 }
 
@@ -1329,12 +1383,22 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::parseGroupEntry(const nlohma
 
     auto entry = std::make_unique<GroupLootEntry>(std::move(children));
 
-    // 解析条件
-    if (json.contains("conditions") && json["children"].is_array()) {
+    // 解析条件（注意：原代码有bug，检查的是 children 而非 conditions）
+    if (json.contains("conditions") && json["conditions"].is_array()) {
         for (const auto& condJson : json["conditions"]) {
             auto condResult = parseCondition(condJson);
             if (condResult.success()) {
                 entry->addCondition(condResult.value());
+            }
+        }
+    }
+
+    // 解析函数列表
+    if (json.contains("functions") && json["functions"].is_array()) {
+        for (const auto& funcJson : json["functions"]) {
+            auto funcResult = parseFunction(funcJson);
+            if (funcResult.success()) {
+                entry->addFunction(funcResult.value());
             }
         }
     }

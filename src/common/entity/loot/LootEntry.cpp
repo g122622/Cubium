@@ -1,5 +1,6 @@
 #include "LootEntry.hpp"
 #include "LootConditions.hpp"
+#include "LootFunctions.hpp"
 #include "LootTable.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include <algorithm>
@@ -24,6 +25,22 @@ bool LootEntry::testConditions(LootContext& context) const {
         });
 }
 
+void LootEntry::addFunction(std::unique_ptr<LootFunction> function) {
+    m_functions.push_back(std::move(function));
+}
+
+ItemStack LootEntry::applyFunctions(ItemStack stack, LootContext& context) const {
+    for (const auto& func : m_functions) {
+        if (func && func->testConditions(context)) {
+            stack = func->apply(std::move(stack), context);
+            if (stack.isEmpty()) {
+                break;  // 函数可以返回空堆来取消掉落
+            }
+        }
+    }
+    return stack;
+}
+
 // ============================================================================
 // EmptyLootEntry
 // ============================================================================
@@ -32,6 +49,9 @@ std::unique_ptr<LootEntry> EmptyLootEntry::clone() const {
     auto entry = std::make_unique<EmptyLootEntry>(m_weight, m_quality);
     for (const auto& cond : m_conditions) {
         entry->addCondition(cond->clone());
+    }
+    for (const auto& func : m_functions) {
+        entry->addFunction(func->clone());
     }
     return entry;
 }
@@ -67,6 +87,10 @@ std::unique_ptr<LootEntry> ItemLootEntry::clone() const {
     for (const auto& cond : m_conditions) {
         entry->addCondition(cond->clone());
     }
+    // 复制函数
+    for (const auto& func : m_functions) {
+        entry->addFunction(func->clone());
+    }
     return entry;
 }
 
@@ -96,7 +120,14 @@ bool ItemLootEntry::generate(std::function<void(const ItemStack&)> consumer,
 
     // 创建物品堆
     ItemStack stack(*item, count);
-    consumer(stack);
+
+    // 应用条目级函数
+    stack = applyFunctions(std::move(stack), context);
+
+    // 如果函数返回空堆，则不生成物品
+    if (!stack.isEmpty()) {
+        consumer(stack);
+    }
 
     return true;
 }
@@ -115,6 +146,9 @@ std::unique_ptr<LootEntry> TableLootEntry::clone() const {
     auto entry = std::make_unique<TableLootEntry>(m_tableId, m_weight, m_quality);
     for (const auto& cond : m_conditions) {
         entry->addCondition(cond->clone());
+    }
+    for (const auto& func : m_functions) {
+        entry->addFunction(func->clone());
     }
     return entry;
 }
@@ -164,6 +198,9 @@ std::unique_ptr<LootEntry> AlternativesLootEntry::clone() const {
     for (const auto& cond : m_conditions) {
         entry->addCondition(cond->clone());
     }
+    for (const auto& func : m_functions) {
+        entry->addFunction(func->clone());
+    }
     return entry;
 }
 
@@ -210,6 +247,9 @@ std::unique_ptr<LootEntry> SequenceLootEntry::clone() const {
     for (const auto& cond : m_conditions) {
         entry->addCondition(cond->clone());
     }
+    for (const auto& func : m_functions) {
+        entry->addFunction(func->clone());
+    }
     return entry;
 }
 
@@ -255,6 +295,9 @@ std::unique_ptr<LootEntry> GroupLootEntry::clone() const {
     auto entry = std::make_unique<GroupLootEntry>(std::move(clonedChildren));
     for (const auto& cond : m_conditions) {
         entry->addCondition(cond->clone());
+    }
+    for (const auto& func : m_functions) {
+        entry->addFunction(func->clone());
     }
     return entry;
 }
@@ -320,15 +363,32 @@ LootEntryBuilder& LootEntryBuilder::count(i32 value) {
 }
 
 std::unique_ptr<LootEntry> LootEntryBuilder::build() const {
+    std::unique_ptr<LootEntry> entry;
+
     switch (m_type) {
         case LootEntryType::Item:
-            return std::make_unique<ItemLootEntry>(m_itemId, m_count, m_weight, m_quality);
+            entry = std::make_unique<ItemLootEntry>(m_itemId, m_count, m_weight, m_quality);
+            break;
         case LootEntryType::Table:
-            return std::make_unique<TableLootEntry>(m_tableId, m_weight, m_quality);
+            entry = std::make_unique<TableLootEntry>(m_tableId, m_weight, m_quality);
+            break;
         case LootEntryType::Empty:
         default:
-            return std::make_unique<EmptyLootEntry>(m_weight, m_quality);
+            entry = std::make_unique<EmptyLootEntry>(m_weight, m_quality);
+            break;
     }
+
+    // 添加条件
+    for (const auto& cond : m_conditions) {
+        entry->addCondition(cond->clone());
+    }
+
+    // 添加函数
+    for (const auto& func : m_functions) {
+        entry->addFunction(func->clone());
+    }
+
+    return entry;
 }
 
 } // namespace loot

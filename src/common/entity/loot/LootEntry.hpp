@@ -3,6 +3,8 @@
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "LootContext.hpp"
+#include "LootConditions.hpp"
+#include "LootFunctions.hpp"
 #include "RandomRanges.hpp"
 #include <functional>
 #include <memory>
@@ -13,8 +15,6 @@ namespace loot {
 
 // Forward declarations
 class LootPool;
-class LootContext;
-class LootCondition;
 
 /**
  * @brief 掉落条目类型
@@ -105,6 +105,34 @@ public:
      */
     [[nodiscard]] bool testConditions(LootContext& context) const;
 
+    // ========== 函数管理 ==========
+
+    /**
+     * @brief 添加掉落函数
+     *
+     * 函数在条件检查之后、物品返回之前执行。
+     * 多个函数按顺序执行，前一个函数的输出作为后一个函数的输入。
+     *
+     * @param function 函数
+     */
+    void addFunction(std::unique_ptr<LootFunction> function);
+
+    /**
+     * @brief 获取所有函数
+     */
+    [[nodiscard]] const std::vector<std::unique_ptr<LootFunction>>& getFunctions() const {
+        return m_functions;
+    }
+
+    /**
+     * @brief 应用所有函数到物品堆
+     *
+     * @param stack 原始物品堆
+     * @param context 掉落上下文
+     * @return 修改后的物品堆
+     */
+    [[nodiscard]] ItemStack applyFunctions(ItemStack stack, LootContext& context) const;
+
     /**
      * @brief 扩展条目（生成候选列表）
      *
@@ -136,6 +164,7 @@ protected:
     i32 m_weight = 1;
     i32 m_quality = 0;
     std::vector<std::unique_ptr<LootCondition>> m_conditions;
+    std::vector<std::unique_ptr<LootFunction>> m_functions;
 };
 
 /**
@@ -355,6 +384,22 @@ public:
     LootEntryBuilder& count(i32 value);
 
     /**
+     * @brief 添加条件
+     */
+    LootEntryBuilder& condition(std::unique_ptr<LootCondition> cond) {
+        m_conditions.push_back(std::move(cond));
+        return *this;
+    }
+
+    /**
+     * @brief 添加函数
+     */
+    LootEntryBuilder& function(std::unique_ptr<LootFunction> func) {
+        m_functions.push_back(std::move(func));
+        return *this;
+    }
+
+    /**
      * @brief 构建条目
      */
     [[nodiscard]] std::unique_ptr<LootEntry> build() const;
@@ -366,6 +411,8 @@ private:
     RandomValueRange m_count{1.0f, 1.0f};
     i32 m_weight = 1;
     i32 m_quality = 0;
+    std::vector<std::unique_ptr<LootCondition>> m_conditions;
+    std::vector<std::unique_ptr<LootFunction>> m_functions;
 };
 
 } // namespace loot

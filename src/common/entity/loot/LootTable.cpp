@@ -1,5 +1,6 @@
 #include "LootTable.hpp"
 #include "LootConditions.hpp"
+#include "LootFunctions.hpp"
 #include "LootSerializers.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include <algorithm>
@@ -229,8 +230,6 @@ void LootTableManager::initializeDefaultTables() {
     // 钻石矿石掉落表
     // - 精准采集: 掉落钻石矿石
     // - 无精准采集: 掉落钻石（受时运影响）
-    // TODO: 需要集成 ApplyBonusFunction 到 LootEntry 以支持时运加成
-    // 时运效果目前通过 BlockDropHandler::applyFortuneBonus() 实现
     {
         auto table = std::make_unique<LootTable>();
 
@@ -245,7 +244,7 @@ void LootTableManager::initializeDefaultTables() {
         silkTouchPool->addEntry(std::move(silkTouchEntry));
         table->addPool(std::move(silkTouchPool));
 
-        // 池2: 无精准采集时掉落钻石
+        // 池2: 无精准采集时掉落钻石（受时运影响）
         auto normalPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
         auto normalEntry = std::make_unique<ItemLootEntry>(
             "minecraft:diamond",
@@ -253,6 +252,8 @@ void LootTableManager::initializeDefaultTables() {
             1, 0
         );
         normalEntry->addCondition(std::make_unique<NotCondition>(std::make_unique<SilkTouchCondition>()));
+        // 添加时运加成函数（OreDrops 公式）
+        normalEntry->addFunction(std::make_unique<ApplyBonusFunction>(ApplyBonusFunction::BonusType::OreDrops));
         normalPool->addEntry(std::move(normalEntry));
         table->addPool(std::move(normalPool));
 
@@ -293,8 +294,6 @@ void LootTableManager::initializeDefaultTables() {
     // 煤矿掉落表
     // - 精准采集: 掉落煤矿
     // - 无精准采集: 掉落煤炭（受时运影响）
-    // TODO: 需要集成 ApplyBonusFunction 到 LootEntry 以支持时运加成
-    // 时运效果目前通过 BlockDropHandler::applyFortuneBonus() 实现
     {
         auto table = std::make_unique<LootTable>();
 
@@ -309,7 +308,7 @@ void LootTableManager::initializeDefaultTables() {
         silkTouchPool->addEntry(std::move(silkTouchEntry));
         table->addPool(std::move(silkTouchPool));
 
-        // 无精准采集时掉落煤炭
+        // 无精准采集时掉落煤炭（受时运影响）
         auto normalPool = std::make_unique<LootPool>(RandomValueRange(1.0f, 1.0f));
         auto normalEntry = std::make_unique<ItemLootEntry>(
             "minecraft:coal",
@@ -317,6 +316,8 @@ void LootTableManager::initializeDefaultTables() {
             1, 0
         );
         normalEntry->addCondition(std::make_unique<NotCondition>(std::make_unique<SilkTouchCondition>()));
+        // 添加时运加成函数（OreDrops 公式）
+        normalEntry->addFunction(std::make_unique<ApplyBonusFunction>(ApplyBonusFunction::BonusType::OreDrops));
         normalPool->addEntry(std::move(normalEntry));
         table->addPool(std::move(normalPool));
 
