@@ -21,6 +21,8 @@ src/server/command/
 └── commands/                  # 具体命令实现
     ├── ClearCommand.hpp       # /clear 命令
     ├── ClearCommand.cpp
+    ├── CloneCommand.hpp       # /clone 命令
+    ├── CloneCommand.cpp
     ├── ForceLoadCommand.hpp   # /forceload 命令
     ├── ForceLoadCommand.cpp
     ├── GameModeCommand.hpp    # /gamemode 命令
@@ -353,6 +355,57 @@ public:
 - `/clear <player> <item> <maxCount>` - 清空指定物品，限制数量
 
 清空逻辑现在通过 `IServer::playerInventory()` 统一获取单机/联机库存，命令层不再直接依赖 `IntegratedServer`。
+
+**权限等级：** 2
+
+#### CloneCommand - /clone 命令
+
+复制方块区域到另一个位置。
+
+**用法：**
+
+- `/clone <begin> <end> <destination>` - 复制区域（默认 replace + normal 模式）
+- `/clone <begin> <end> <destination> replace` - 复制所有方块
+- `/clone <begin> <end> <destination> masked` - 只复制非空气方块
+- `/clone <begin> <end> <destination> filtered <block>` - 只复制指定方块
+- `/clone <begin> <end> <destination> [filter] force` - 强制复制（允许重叠）
+- `/clone <begin> <end> <destination> [filter] move` - 移动模式（复制后清空源区域）
+
+**参数：**
+
+- `begin` - 源区域起始坐标
+- `end` - 源区域结束坐标
+- `destination` - 目标位置坐标
+- `filter` - 过滤模式：`replace`（全部）、`masked`（非空气）、`filtered`（指定方块）
+- `mode` - 执行模式：`normal`（禁止重叠）、`force`（允许重叠）、`move`（移动）
+
+**过滤模式说明：**
+
+| 模式 | 说明 |
+|------|------|
+| `replace` | 复制所有方块（包括空气） |
+| `masked` | 只复制非空气方块 |
+| `filtered` | 只复制匹配指定方块的方块 |
+
+**执行模式说明：**
+
+| 模式 | 说明 |
+|------|------|
+| `normal` | 源区域和目标区域不能重叠（默认） |
+| `force` | 允许源区域和目标区域重叠 |
+| `move` | 复制后清空源区域 |
+
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- 使用 `IWorld::hasChunk()` 检查区域是否已加载
+- 使用 `IWorld::getBlockState()` 和 `IWorld::setBlockState()` 进行方块操作
+- 使用 `BlockEntity::save()` 和 `BlockEntity::load()` 保存/恢复方块实体数据
+- 使用 `IInventory::clear()` 在 move 模式下清空容器内容
+- 支持方块状态过滤（filtered 模式）
+- 限制最多复制 32768 个方块（MC 1.16.5 标准）
+- 方块放置顺序：普通方块 → 方块实体 → 透明方块（反转顺序避免更新问题）
 
 **权限等级：** 2
 
@@ -983,6 +1036,7 @@ MyCommand::registerTo(m_dispatcher);
 - `CommandRegistryTest.cpp` - 命令注册表测试
 - `PlayerResolverTest.cpp` - 玩家选择器解析测试（IntRange、游戏模式过滤、距离过滤等）
 - `SetBlockCommandTest.cpp` - /setblock 命令测试
+- `CloneCommandTest.cpp` - /clone 命令测试（命令注册、权限检查、过滤模式、执行模式）
 - `GiveCommandTest.cpp` - /give 命令测试
 - `MessageCommandTest.cpp` - /msg 命令测试（命令注册、权限检查、别名）
 - `ExperienceCommandTest.cpp` - /experience 命令测试（add/set/query 语法、xp 别名）

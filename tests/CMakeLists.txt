@@ -181,6 +181,7 @@ add_executable(mc_tests
     server/world/spawn/DespawnManagerTest.cpp
     server/command/CommandRegistryTest.cpp
     server/command/SetBlockCommandTest.cpp
+    server/command/CloneCommandTest.cpp
     server/command/GiveCommandTest.cpp
     server/command/PlayerResolverTest.cpp
     server/command/MessageCommandTest.cpp
