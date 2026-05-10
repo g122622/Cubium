@@ -28,6 +28,9 @@ EndermiteEntity::EndermiteEntity(LegacyEntityType type, EntityId id)
     setBurnsInDaylight(false);
     // MC 1.16.5: 经验值 3
     setExperienceValue(3);
+
+    // 注册属性（基类构造函数中调用 registerAttributes() 不会派发到子类）
+    registerAttributes();
 }
 
 void EndermiteEntity::tick() {
@@ -99,6 +102,9 @@ SilverfishEntity::SilverfishEntity(LegacyEntityType type, EntityId id)
     setBurnsInDaylight(false);
     // MC 1.16.5: 经验值 5
     setExperienceValue(5);
+
+    // 注册属性（基类构造函数中调用 registerAttributes() 不会派发到子类）
+    registerAttributes();
 }
 
 void SilverfishEntity::tick() {

@@ -67,6 +67,7 @@ add_executable(mc_tests
     common/entity/entities/passive/tamable/WolfEntityTest.cpp
     common/entity/DolphinEntityTest.cpp
     common/entity/entities/monster/SlimeEntityTest.cpp
+    common/entity/entities/monster/EndermiteEntityTest.cpp
     common/entity/entities/monster/ZombieVillagerEntityTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp
