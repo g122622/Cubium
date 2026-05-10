@@ -89,7 +89,26 @@ void AbstractVillagerEntity::addExperience(i32 amount) {
 }
 
 f32 AbstractVillagerEntity::experienceProgress() const {
-    return 0.0f;  // TODO: 根据当前等级和经验计算
+    // 村民最高等级为 5，已满级则进度为 0
+    if (m_experience <= 0) {
+        return 0.0f;
+    }
+
+    // 获取当前等级（子类可能有自己的等级系统）
+    i32 currentLevel = getTradingLevel();
+    if (currentLevel >= VillagerData::getMaxLevel()) {
+        // 已满级，进度为 0（不再显示经验条）
+        return 0.0f;
+    }
+
+    // 获取升到下一级所需的经验
+    i32 requiredXp = VillagerData::getExperienceForLevel(currentLevel);
+    if (requiredXp <= 0) {
+        return 0.0f;
+    }
+
+    // 计算进度（0-1）
+    return static_cast<f32>(m_experience) / static_cast<f32>(requiredXp);
 }
 
 void AbstractVillagerEntity::resetBreedWillingness() {

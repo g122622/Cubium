@@ -197,6 +197,14 @@ public:
     void addExperience(i32 amount);
 
     /**
+     * @brief 获取交易等级（子类实现）
+     *
+     * VillagerEntity 返回 villagerData.level()
+     * WanderingTraderEntity 返回 0（流浪商人没有等级系统）
+     */
+    [[nodiscard]] virtual i32 getTradingLevel() const { return 0; }
+
+    /**
      * @brief 获取经验条填充度（0-1）
      */
     [[nodiscard]] f32 experienceProgress() const;

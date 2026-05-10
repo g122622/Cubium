@@ -123,6 +123,11 @@ public:
      */
     void addVillagerExperience(i32 amount) { m_villagerData.addExperience(amount); }
 
+    /**
+     * @brief 获取交易等级（重写）
+     */
+    [[nodiscard]] i32 getTradingLevel() const override { return m_villagerData.level(); }
+
     // ========== 工作 ==========
 
     /**
