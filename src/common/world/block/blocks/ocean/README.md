@@ -21,7 +21,7 @@ ocean/
 |------|------|----------|
 | `SeaPickleBlock` | 海泡菜（可堆叠1-4个，水下发光） | PICKLES_1_4, WATERLOGGED |
 | `KelpBlock` | 海带（可生长到很高） | AGE_0_25, WATERLOGGED |
-| `SeagrassBlock` | 海草（单格水下植物） | 无 |
+| `SeagrassBlock` | 海草（单格水下植物，可骨粉催熟） | 无 |
 | `TallSeagrassBlock` | 高海草（双格水下植物） | HALF, WATERLOGGED |
 | `BubbleColumnBlock` | 气泡柱（推动实体） | DRAG |
 | `DriedKelpBlock` | 干海带块（装饰性方块） | 无 |
@@ -71,6 +71,15 @@ if (seagrass.canGrow(world, pos, state, false)) {
 - 高度限制基于 AGE_0_25 (最大 25 格)
 - 只能在水中生长
 - 生长概率约 14%
+
+### 海草骨粉催熟 (MC 1.16.5)
+
+- 海草实现 `IGrowable` 接口，可被骨粉催熟
+- `canGrow()`: 检查上方是否有水源方块
+- `canUseBonemeal()`: 总是返回 true
+- `grow()`: 将海草转换为高海草（双格方块）
+- 高海草由 `TallSeagrassBlock` 实现，使用 `DOUBLE_BLOCK_HALF` 属性
+- 放置条件：需要固体支撑和水源方块（流体等级 == 8）
 
 ### 气泡柱 (MC 1.16.5 对齐)
 

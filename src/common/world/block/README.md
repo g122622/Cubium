@@ -398,6 +398,8 @@ const BlockState& state = stone->defaultState();
 | `WOOL()` | 羊毛类 | 16色羊毛 |
 | `SOUL_FIRE_BASE_BLOCKS()` | 灵魂火基座 | soul_sand, soul_soil |
 | `BAMBOO_PLANTABLE_ON()` | 竹子可种植 | grass_block, dirt, sand 等 |
+| `WALL_CORALS()` | 墙珊瑚扇 | tube_coral_wall_fan, brain_coral_wall_fan 等 10 种 |
+| `UNDERWATER_BONEMEALS()` | 水下骨粉方块 | seagrass, kelp, tube_coral_fan 等 7 种 |
 | 原木子标签 | 各类原木 | OAK_LOGS, SPRUCE_LOGS, BIRCH_LOGS 等 |
 
 **使用示例**：
@@ -426,6 +428,16 @@ if (BlockTags::WOOL().contains(ResourceLocation("minecraft:red_wool"))) {
 - `SoulFireBlock::isSoulFireBase()` 静态方法检查方块是否可放置灵魂火
 - `FlintAndSteelItem::getFireForPlacement()` 根据下方方块返回普通火或灵魂火
 - 灵魂火只能在灵魂沙/灵魂土上方存在
+
+**水下骨粉系统**：
+- `WALL_CORALS` 标签包含 10 种墙珊瑚扇：
+  - 活珊瑚墙扇：tube_coral_wall_fan, brain_coral_wall_fan, bubble_coral_wall_fan, fire_coral_wall_fan, horn_coral_wall_fan
+  - 死珊瑚墙扇：dead_tube_coral_wall_fan, dead_brain_coral_wall_fan, dead_bubble_coral_wall_fan, dead_fire_coral_wall_fan, dead_horn_coral_wall_fan
+- `UNDERWATER_BONEMEALS` 标签包含 7 种水下骨粉方块：
+  - seagrass（海草）, kelp（海带）
+  - tube_coral_fan, brain_coral_fan, bubble_coral_fan, fire_coral_fan, horn_coral_fan（珊瑚扇）
+- `BoneMealItem::growSeagrass()` 在温暖海洋生物群系使用这些标签放置珊瑚
+- 参考 MC 1.16.5: `net.minecraft.tags.BlockTags`
 
 ### blocks/ 子目录
 
