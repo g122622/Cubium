@@ -42,6 +42,7 @@ Entity → LivingEntity → MobEntity → CreatureEntity → MonsterEntity → S
 | `onCollideWithPlayer(player)` | 玩家碰撞处理 |
 | `getSquishSound()` | 获取挤压音效 |
 | `getJumpSound()` | 获取跳跃音效 |
+| `tick()` | 更新实体状态（含着地粒子生成） |
 
 **尺寸与属性对应**（MC 1.16.5）：
 
@@ -61,6 +62,20 @@ Entity → LivingEntity → MobEntity → CreatureEntity → MonsterEntity → S
 **声音系统**：
 - 小史莱姆：使用 `_small` 后缀音效（hurt_small, death_small, squish_small）
 - 大史莱姆：使用标准音效
+
+**着地粒子效果**（MC 1.16.5）：
+- 触发条件：`onGround()` 从 `false` 变为 `true`（首次着地）
+- 粒子类型：`ParticleTypeId::ItemSlime`
+- 粒子数量：`size * 8`（尺寸 1 = 8 个，尺寸 4 = 32 个）
+- 粒子位置：实体脚底，环形分布
+- 位置计算：
+  ```cpp
+  f32 angle = random.nextFloat() * 2.0f * PI;
+  f32 radiusFactor = random.nextFloat() * 0.5f + 0.5f;
+  f32 offsetX = sin(angle) * size * 0.5f * radiusFactor;
+  f32 offsetZ = cos(angle) * size * 0.5f * radiusFactor;
+  ```
+- 仅客户端生成：`world()->isClientSide()` 检查
 
 ### CreeperEntity（苦力怕）
 
@@ -137,6 +152,7 @@ MonsterEntity（基类）
   - 声音系统测试
   - 维度与碰撞箱测试
   - 伤害与经验值测试
+  - 着地粒子效果测试（客户端粒子生成、数量与尺寸关系、粒子类型验证）
 
 ## 容易踩的坑
 

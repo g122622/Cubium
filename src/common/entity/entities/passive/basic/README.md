@@ -11,6 +11,7 @@
 | CowEntity.hpp/cpp | 牛 |
 | SheepEntity.hpp/cpp | 羊 |
 | ChickenEntity.hpp/cpp | 鸡 |
+| MooshroomEntity.hpp/cpp | 哞菇 |
 
 ## 继承
 
@@ -22,7 +23,8 @@ MobEntity
             ├── PigEntity
             ├── CowEntity
             ├── SheepEntity
-            └── ChickenEntity
+            ├── ChickenEntity
+            └── MooshroomEntity (implements IShearable)
 ```
 
 ## 动物特性
@@ -66,6 +68,18 @@ MobEntity
 - 计时归零时会生成鸡蛋物品实体并重置计时器
 - 不会摔伤（滑翔）
 
+### 哞菇 (MooshroomEntity)
+- 生命值：10
+- 繁殖物品：小麦
+- 两种皮肤：红色哞菇（默认）、棕色哞菇
+- 可剪羊毛：使用剪刀获得蘑菇并变成普通牛（实现 IShearable 接口）
+- 可用空碗获取蘑菇汤
+- **雷击转换**（MC 1.16.5）：
+  - 红色哞菇 + 雷击 → 棕色哞菇
+  - 棕色哞菇 + 雷击 → 红色哞菇
+  - 播放 `ENTITY_MOOSHROOM_CONVERT` 音效（音量 2.0，音调 1.0）
+  - 客户端生成 20 个 `Explosion` 粒子（环形分布，位于实体碰撞箱内）
+
 ## 繁殖系统
 
 ```cpp
@@ -89,4 +103,6 @@ if (animal1->isInLove() && animal2->isInLove() && animal1->canMateWith(animal2))
 | 文件 | 说明 |
 |------|------|
 | `tests/common/entity/entities/passive/basic/ChickenEntityTest.cpp` | 验证鸡蛋生成与计时器重置 |
+| `tests/common/entity/entities/passive/basic/RabbitEntityTest.cpp` | 兔子行为测试 |
+| `tests/common/entity/entities/passive/basic/MooshroomEntityTest.cpp` | 哞菇类型系统、雷击转换、音效播放、粒子生成测试 |
 | `tests/entity/EatGrassGoalTest.cpp` | 验证羊颜色混合和吃草行为 |

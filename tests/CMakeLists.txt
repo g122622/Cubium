@@ -61,6 +61,7 @@ add_executable(mc_tests
     common/entity/inventory/container/AnvilContainerTest.cpp
     common/entity/entities/passive/basic/ChickenEntityTest.cpp
     common/entity/entities/passive/basic/RabbitEntityTest.cpp
+    common/entity/entities/passive/basic/MooshroomEntityTest.cpp
     common/entity/entities/monster/SlimeEntityTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp
@@ -346,6 +347,7 @@ add_executable(mc_tests
     client/renderer/particle/ParticleTest.cpp
     client/renderer/particle/ParticleRegistryTest.cpp
     client/renderer/particle/ParticleManagerTest.cpp
+    client/renderer/trident/particle/particles/special/NautilusParticleTest.cpp
     # 绗竴浜虹О鎵嬮儴娓叉煋娴嬭瘯
     client/renderer/firstperson/MatrixStackTest.cpp
     client/renderer/firstperson/FirstPersonRendererTest.cpp
