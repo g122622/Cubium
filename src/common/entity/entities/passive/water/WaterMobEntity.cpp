@@ -2,6 +2,9 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../../physics/PhysicsConstants.hpp"
+#include "../../../../world/block/VanillaBlocks.hpp"
+#include "../../../../world/IWorld.hpp"
+#include <cmath>
 
 namespace mc {
 
@@ -20,8 +23,27 @@ bool WaterMobEntity::isInWater() const {
 
 bool WaterMobEntity::isInWaterOrBubble() const {
     // 检查是否在水中或气泡柱中
-    // TODO: 添加气泡柱检测 (依赖: Blocks::BUBBLE_COLUMN 实现)
-    return isInWater();
+    if (isInWater()) {
+        return true;
+    }
+
+    // 检查是否在气泡柱中
+    const IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return false;
+    }
+
+    // 获取实体当前位置的方块
+    const BlockPos blockPos(static_cast<i32>(std::floor(position().x)),
+                           static_cast<i32>(std::floor(position().y)),
+                           static_cast<i32>(std::floor(position().z)));
+    const BlockState* state = worldPtr->getBlockState(blockPos);
+    if (state == nullptr) {
+        return false;
+    }
+
+    // 检查是否为气泡柱方块
+    return &state->owner() == VanillaBlocks::BUBBLE_COLUMN;
 }
 
 void WaterMobEntity::tick() {
