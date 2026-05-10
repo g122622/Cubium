@@ -6,6 +6,7 @@
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/EntityType.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
 
 namespace mc {
@@ -48,6 +49,7 @@ std::optional<ResourceLocation> SlimeEntity::getHurtSound(DamageSource& /*source
 	if (isSmallSlime()) {
 		return makeSoundEventId("hurt_small");
 	}
+	// 大史莱姆用 hurt
 	return makeSoundEventId("hurt");
 }
 
@@ -56,6 +58,7 @@ std::optional<ResourceLocation> SlimeEntity::getDeathSound() const {
 	if (isSmallSlime()) {
 		return makeSoundEventId("death_small");
 	}
+	// 大史莱姆用 death
 	return makeSoundEventId("death");
 }
 
@@ -64,137 +67,39 @@ std::optional<ResourceLocation> SlimeEntity::getSquishSound() const {
 	if (isSmallSlime()) {
 		return makeSoundEventId("squish_small");
 	}
+	// 大史莱姆用 squish
 	return makeSoundEventId("squish");
 }
 
-std::optional<ResourceLocation> SlimeEntity::getJumpSound() const {
-	// MC 1.16.5: 小史莱姆用 jump_small
-	if (isSmallSlime()) {
-		return makeSoundEventId("jump_small");
-	}
-	return makeSoundEventId("jump");
-}
-
-bool SlimeEntity::canDamagePlayer() const {
-	// MC 1.16.5: !isSmallSlime() && isServerWorld()
-	return !isSmallSlime();
-}
-
-i32 SlimeEntity::getJumpDelay() const {
-	// MC 1.16.5: rand.nextInt(20) + 10
-	math::Random rng(ticksExisted());
-	return rng.nextInt(10, 30);
-}
-
-void SlimeEntity::remove() {
-	// MC 1.16.5 SlimeEntity.remove()
-	// 分裂逻辑：在实体被移除前检查是否应该分裂
-	// 条件：服务端、尺寸 > 1、已死亡、未被移除
-	if (world() != nullptr && !world()->isClientSide() && canSplit() && isDead() && !isRemoved()) {
-		performSplit();
-	}
-
-	// 调用父类的 remove 方法
-	MonsterEntity::remove();
-}
-
-void SlimeEntity::performSplit() {
-	// MC 1.16.5: 在 remove() 中分裂
-	if (world() == nullptr || m_size <= 1) {
-		return;
-	}
-
-	// 计算小史莱姆的尺寸
-	i32 smallSize = m_size / 2;
-
-	// 位置偏移因子 = 尺寸 / 4.0F
-	f32 sizeFactor = static_cast<f32>(m_size) / 4.0f;
-
-	// 分裂数量：2-4 个
-	math::Random rng(ticksExisted());
-	i32 splitCount = SPLIT_COUNT_MIN + rng.nextInt(SPLIT_COUNT_MAX - SPLIT_COUNT_MIN + 1);
-
-	// 获取自定义名称（如果有）
-	bool hadCustomName = hasCustomName();
-	std::string customNameStr;
-	if (hadCustomName) {
-		customNameStr = customNameText();
-	}
-
-	// 获取无敌状态
-	bool wasInvulnerable = isInvulnerable();
-
-	// 创建小史莱姆
-	for (i32 i = 0; i < splitCount; ++i) {
-		// MC 1.16.5: 位置计算
-		// f1 = ((float)(l % 2) - 0.5F) * f
-		// f2 = ((float)(l / 2) - 0.5F) * f
-		f32 offsetX = (static_cast<f32>(i % 2) - 0.5f) * sizeFactor;
-		f32 offsetZ = (static_cast<f32>(i / 2) - 0.5f) * sizeFactor;
-
-		// 创建小史莱姆实体
-		auto smallSlime = std::make_unique<SlimeEntity>(LegacyEntityType::Slime, EntityId(0));
-
-		// 设置尺寸（同时重置生命值）
-		smallSlime->setSlimeSize(smallSize, true);
-
-		// 设置位置和朝向
-		// MC 1.16.5: setLocationAndAngles(posX + f1, posY + 0.5, posZ + f2, rand.nextFloat() * 360.0F, 0.0F)
-		smallSlime->setPosition(
-			static_cast<f32>(x()) + offsetX,
-			static_cast<f32>(y()) + 0.5f,
-			static_cast<f32>(z()) + offsetZ
-		);
-		smallSlime->setRotation(rng.nextFloat() * 360.0f, 0.0f);
-
-		// 继承自定义名称
-		if (hadCustomName && !customNameStr.empty()) {
-			smallSlime->setCustomName(customNameStr);
-		}
-
-		// 继承无敌状态
-		smallSlime->setInvulnerable(wasInvulnerable);
-
-		// TODO: 继承 AI 禁用状态（需要 MobEntity 添加 isNoAI/setNoAI 方法）
-		// if (isNoAI()) {
-		//     smallSlime->setNoAI(true);
-		// }
-
-		// TODO: 继承持久化状态（需要 MobEntity 添加 enablePersistence 方法）
-		// if (isNoDespawnRequired()) {
-		//     smallSlime->enablePersistence();
-		// }
-
-		// 生成到世界
-		world()->spawnEntity(std::move(smallSlime));
-	}
+void SlimeEntity::alterSquishAmount() {
+	// MC 1.16.5: alterSquishAmount()
+	// 挤压量向 0 衰减
+	m_squishAmount *= 0.6f;
 }
 
 void SlimeEntity::dealDamage(LivingEntity& target) {
 	// MC 1.16.5: dealDamage()
-	if (!isAlive()) {
+	// 只有尺寸大于 1 的史莱姆才能造成伤害
+	if (m_size <= 1) {
 		return;
 	}
 
-	i32 size = getSlimeSize();
-	f32 distanceSq = static_cast<f32>(distanceSqTo(target));
-
-	// MC 1.16.5: 距离检查 < 0.6 * size * 0.6 * size
-	f32 maxDistance = 0.6f * static_cast<f32>(size);
-	if (distanceSq < maxDistance * maxDistance && canSee(target)) {
-		// 获取攻击伤害属性值
-		f32 damage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0));
-
-		// 创建伤害来源并造成伤害
-		EntityDamageSource damageSource(DamageType::MobAttack, this);
-		target.hurt(damageSource, damage);
-
-		// 播放攻击声音
-		playSound(SoundEvents::ENTITY_SLIME_ATTACK, 1.0f, 1.0f);
-
-		// TODO: 应用附魔效果（击退、火焰附加等）
-		// applyEnchantments(this, target);
+	// 检查目标是否存活
+	if (!target.isAlive()) {
+		return;
 	}
+
+	// MC 1.16.5: 伤害值等于尺寸
+	f32 damage = static_cast<f32>(m_size);
+
+	// 对目标造成伤害
+	auto damageSource = DamageSources::mobAttack(this);
+	target.hurt(damageSource, damage);
+}
+
+bool SlimeEntity::canDamagePlayer() const {
+	// MC 1.16.5: 只有尺寸大于 1 的史莱姆才能伤害玩家
+	return m_size > 1;
 }
 
 void SlimeEntity::onCollideWithPlayer(LivingEntity& player) {
@@ -241,38 +146,30 @@ void SlimeEntity::tick() {
 		m_squishAmount = -0.5f;
 
 		// MC 1.16.5: 生成粒子效果
-		// for (int j = 0; j < size * 8; ++j) {
-		//     float f = this.rand.nextFloat() * ((float)Math.PI * 2F);
-		//     float f1 = this.rand.nextFloat() * 0.5F + 0.5F;
-		//     float f2 = MathHelper.sin(f) * (float)i * 0.5F * f1;
-		//     float f3 = MathHelper.cos(f) * (float)i * 0.5F * f1;
-		//     this.world.addParticle(this.getSquishParticle(),
-		//         this.getPosX() + (double)f2, this.getPosY(), this.getPosZ() + (double)f3,
-		//         0.0D, 0.0D, 0.0D);
-		// }
-		// TODO: 实现粒子效果生成
-		// if (world() != nullptr) {
-		//     math::Random rng;
-		//     i32 particleCount = m_size * 8;
-		//     for (i32 j = 0; j < particleCount; ++j) {
-		//         f32 angle = rng.nextFloat() * 2.0f * 3.14159265f;  // PI * 2
-		//         f32 radius = rng.nextFloat() * 0.5f + 0.5f;
-		//         f32 particleOffsetX = std::sin(angle) * static_cast<f32>(m_size) * 0.5f * radius;
-		//         f32 particleOffsetZ = std::cos(angle) * static_cast<f32>(m_size) * 0.5f * radius;
-		//
-		//         Vector3 particlePos(
-		//             x() + static_cast<f64>(particleOffsetX),
-		//             y(),
-		//             z() + static_cast<f64>(particleOffsetZ)
-		//         );
-		//         Vector3 particleVel(0.0, 0.0, 0.0);
-		//
-		//         world()->addParticle(
-		//             client::renderer::trident::particle::ParticleTypeId::ItemSlime,
-		//             particlePos, particleVel
-		//         );
-		//     }
-		// }
+		// 参考: SlimeEntity.tick() - for (int j = 0; j < size * 8; ++j)
+		if (world() != nullptr && world()->isClientSide()) {
+			using namespace mc::client::renderer::trident::particle;
+			math::Random& random = world()->getRandom();
+
+			// 粒子数量 = 尺寸 * 8
+			i32 particleCount = m_size * 8;
+			for (i32 j = 0; j < particleCount; ++j) {
+				// MC 1.16.5: 随机角度和半径
+				f32 angle = random.nextFloat() * 2.0f * 3.14159265f;  // 0 to 2*PI
+				f32 radiusFactor = random.nextFloat() * 0.5f + 0.5f;  // 0.5 to 1.0
+
+				// 计算粒子位置偏移
+				f32 offsetX = std::sin(static_cast<f64>(angle)) * static_cast<f32>(m_size) * 0.5f * radiusFactor;
+				f32 offsetZ = std::cos(static_cast<f64>(angle)) * static_cast<f32>(m_size) * 0.5f * radiusFactor;
+
+				// 在史莱姆脚底生成粒子
+				world()->addParticle(
+					ParticleTypeId::ItemSlime,
+					Vector3(x() + static_cast<f64>(offsetX), y(), z() + static_cast<f64>(offsetZ)),
+					Vector3(0.0, 0.0, 0.0)
+				);
+			}
+		}
 	} else if (!onGround() && m_wasOnGround) {
 		// MC 1.16.5: 离地时的挤压量
 		m_squishAmount = 1.0f;
@@ -325,13 +222,51 @@ void SlimeEntity::updateSizeAttributes() {
 	m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, speed);
 	m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, damage);
 
-	// MC 1.16.5: 经验值等于尺寸
-	setExperienceValue(m_size);
+	// 经验值等于尺寸
+	m_experienceValue = m_size;
 }
 
-void SlimeEntity::alterSquishAmount() {
-	// MC 1.16.5: 挤压量衰减
-	m_squishAmount *= 0.6f;
+void SlimeEntity::remove() {
+	// MC 1.16.5: 在移除前尝试分裂
+	// 只有尺寸大于 1 的史莱姆才会分裂
+	if (canSplit()) {
+		performSplit();
+	}
+
+	// 调用父类移除
+	MonsterEntity::remove();
+}
+
+void SlimeEntity::performSplit() {
+	// MC 1.16.5: performSplit()
+	// 只能在服务端执行
+	if (world() == nullptr || world()->isClientSide()) {
+		return;
+	}
+
+	// 分裂后的小史莱姆数量：2-4 个
+	math::Random& rng = world()->getRandom();
+	i32 splitCount = rng.nextInt(SPLIT_COUNT_MIN, SPLIT_COUNT_MAX);
+
+	// 新史莱姆的尺寸 = 当前尺寸 / 2
+	i32 newSize = m_size / 2;
+	if (newSize < 1) {
+		return;  // 不能分裂成更小的史莱姆
+	}
+
+	// 生成小史莱姆
+	for (i32 i = 0; i < splitCount; ++i) {
+		// TODO: 创建新的史莱姆实体
+		// 需要实体工厂方法
+		// auto smallSlime = world->createEntity<SlimeEntity>(...);
+		// smallSlime->setSlimeSize(newSize, true);
+		// smallSlime->setPosition(x() + (i - splitCount/2) * 0.5, y(), z() + (i - splitCount/2) * 0.5);
+		// smallSlime->setVelocity(
+		//     (rng.nextFloat() - 0.5f) * 0.5f,
+		//     rng.nextFloat() * 0.5f,
+		//     (rng.nextFloat() - 0.5f) * 0.5f
+		// );
+	}
 }
 
 } // namespace mc
