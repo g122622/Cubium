@@ -171,9 +171,11 @@ private:
     EntityId m_lastEntityId = 0;
 };
 
-// ========== SeagrassBlock IGrowable 测试 ==========
+// ========== SeagrassBlock IGrowable 测试（用于 BoneMealItem 集成测试）==========
+// 注意：这些测试使用 BoneMealItemSeagrassIntegration 套件名以避免与
+// tests/common/world/block/blocks/SeagrassBlockTest.cpp 中的 SeagrassBlockTest 冲突
 
-TEST(SeagrassBlockTest, CanGrow_WhenWaterAbove_ReturnsTrue) {
+TEST(BoneMealItemSeagrassIntegration, CanGrow_WhenWaterAbove_ReturnsTrue) {
     SeagrassTestWorld world;
 
     // 在 y=41 放置海草（水源方块中）
@@ -192,7 +194,7 @@ TEST(SeagrassBlockTest, CanGrow_WhenWaterAbove_ReturnsTrue) {
     EXPECT_TRUE(growable->canGrow(world, BlockPos(8, 41, 8), *seagrassBlock, false));
 }
 
-TEST(SeagrassBlockTest, CanGrow_WhenNoWaterAbove_ReturnsFalse) {
+TEST(BoneMealItemSeagrassIntegration, CanGrow_WhenNoWaterAbove_ReturnsFalse) {
     SeagrassTestWorld world;
 
     // 在 y=62 放置海草（顶部水层）
@@ -211,7 +213,7 @@ TEST(SeagrassBlockTest, CanGrow_WhenNoWaterAbove_ReturnsFalse) {
     EXPECT_FALSE(growable->canGrow(world, BlockPos(8, 62, 8), *seagrassBlock, false));
 }
 
-TEST(SeagrassBlockTest, CanUseBonemeal_AlwaysReturnsTrue) {
+TEST(BoneMealItemSeagrassIntegration, CanUseBonemeal_AlwaysReturnsTrue) {
     SeagrassTestWorld world;
     math::Random random(12345);
 
@@ -228,7 +230,7 @@ TEST(SeagrassBlockTest, CanUseBonemeal_AlwaysReturnsTrue) {
     EXPECT_TRUE(growable->canUseBonemeal(world, random, BlockPos(8, 41, 8), *seagrassBlock));
 }
 
-TEST(SeagrassBlockTest, Grow_TransformsSeagrassToTallSeagrass) {
+TEST(BoneMealItemSeagrassIntegration, Grow_TransformsSeagrassToTallSeagrass) {
     SeagrassTestWorld world;
     math::Random random(12345);
 
@@ -329,7 +331,7 @@ TEST(BoneMealItemTest, GrowSeagrass_GrowsExistingSeagrass) {
 
 // ========== SeagrassBlock isValidPosition 测试 ==========
 
-TEST(SeagrassBlockTest, IsValidPosition_RequiresWaterAndSolidBelow) {
+TEST(BoneMealItemSeagrassIntegration, IsValidPosition_RequiresWaterAndSolidBelow) {
     SeagrassTestWorld world;
 
     const BlockState& seagrassState = VanillaBlocks::SEAGRASS->defaultState();
