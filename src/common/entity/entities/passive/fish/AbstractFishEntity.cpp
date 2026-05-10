@@ -7,8 +7,8 @@ namespace mc {
 AbstractFishEntity::AbstractFishEntity(LegacyEntityType type, EntityId id)
     : WaterMobEntity(type, id)
 {
-    setMaxAirSupply(MAX_AIR_SUPPLY);
-    setAirSupply(MAX_AIR_SUPPLY);
+    // 设置鱼类最大空气供应量（480 ticks = 24秒）
+    setAir(maxAir());
 
     registerGoals();
     registerAttributes();

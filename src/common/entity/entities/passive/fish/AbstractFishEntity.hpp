@@ -113,6 +113,12 @@ public:
         return !m_fromBucket && !hasCustomName();
     }
 
+    /**
+     * @brief 获取最大空气供应量
+     * 鱼类有更长的最大空气时间（480 ticks = 24秒）
+     */
+    [[nodiscard]] i32 maxAir() const override { return MAX_AIR_SUPPLY; }
+
     void tick() override;
 
 protected:

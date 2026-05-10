@@ -445,6 +445,9 @@ void LivingEntity::tick() {
     // 更新生命值
     tickHealth();
 
+    // 更新空气供应和溺水
+    updateAirSupply();
+
     // 更新死亡
     if (isDead()) {
         tickDeath();
@@ -1087,6 +1090,82 @@ void LivingEntity::updateActiveItem() {
         }
         m_activeItem = ItemStack();
         m_activeItemUseCount = 0;
+    }
+}
+
+// ============================================================================
+// 空气供应和溺水
+// ============================================================================
+
+i32 LivingEntity::decreaseAirSupply(i32 currentAir) {
+    // MC 1.16.5: LivingEntity.decreaseAirSupply()
+    // 水下呼吸附魔有概率不消耗空气
+    const ItemStack& helmet = getEquipment(EquipmentSlot::Head);
+    i32 respirationLevel = item::enchant::EnchantmentHelper::getRespirationLevel(helmet);
+
+    if (respirationLevel > 0 && m_world != nullptr) {
+        // 水下呼吸附魔: 每级有 level/(level+1) 的概率不消耗空气
+        // I级: 50%, II级: 66.7%, III级: 75%
+        math::Random& random = m_world->getRandom();
+        if (random.nextInt(respirationLevel + 1) > 0) {
+            return currentAir;  // 附魔生效，不消耗空气
+        }
+    }
+
+    return currentAir - 1;
+}
+
+i32 LivingEntity::determineNextAir(i32 currentAir) const {
+    // MC 1.16.5: LivingEntity.determineNextAir()
+    // 每tick恢复4点空气
+    return std::min(currentAir + 4, maxAir());
+}
+
+void LivingEntity::updateAirSupply() {
+    // MC 1.16.5: LivingEntity.baseTick() 中的空气处理逻辑
+    if (!isAlive()) {
+        return;
+    }
+
+    bool inWater = isInWater();
+    bool inLava = isInLava();
+
+    // 检查是否能水下呼吸
+    // MC 1.16.5: EffectUtils.canBreatheUnderwater()
+    // - 水下呼吸效果 (WaterBreathing)
+    // - 潮涌能量效果 (ConduitPower)
+    // - 亡灵生物天生可以水下呼吸
+    bool canBreathe = canBreatheUnderwater() ||
+                      hasEffect(entity::effect::EffectType::WaterBreathing) ||
+                      hasEffect(entity::effect::EffectType::ConduitPower);
+
+    if ((inWater || inLava) && !canBreathe) {
+        // 在水或岩浆中且不能呼吸
+        i32 newAir = decreaseAirSupply(air());
+        setAir(newAir);
+
+        // 空气耗尽到 -20 时触发溺水伤害
+        // MC 1.16.5: getAir() == -20 时重置为 0 并造成伤害
+        if (air() <= -20) {
+            setAir(0);
+
+            // 溺水伤害计时器
+            m_drownDamageTimer++;
+            if (m_drownDamageTimer >= physics::DROWN_DAMAGE_INTERVAL) {
+                m_drownDamageTimer = 0;
+
+                // 造成溺水伤害
+                // MC 1.16.5: attackEntityFrom(DamageSource.DROWN, 2.0F)
+                // LivingEntity 基类使用 2.0F 伤害
+                EnvironmentalDamage drownSource = DamageSources::drown();
+                hurt(drownSource, physics::DROWN_DAMAGE_AMOUNT);
+            }
+        }
+    } else {
+        // 不在水中或可以呼吸，恢复空气
+        i32 newAir = determineNextAir(air());
+        setAir(newAir);
+        m_drownDamageTimer = 0;
     }
 }
 

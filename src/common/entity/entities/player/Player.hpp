@@ -624,8 +624,9 @@ public:
 
     /**
      * @brief 更新空气供应和溺水
+     * 玩家有特殊的水下呼吸附魔处理
      */
-    void updateAirSupply();
+    void updateAirSupply() override;
 
     /**
      * @brief 更新移动距离（用于视野晃动和脚步声）
@@ -681,16 +682,6 @@ public:
      * @brief 获取脚步声位置
      */
     [[nodiscard]] BlockPos stepSoundPos() const { return m_stepSoundPos; }
-
-    /**
-     * @brief 获取空气供应量
-     */
-    [[nodiscard]] i32 airSupply() const { return m_airSupply; }
-
-    /**
-     * @brief 设置空气供应量
-     */
-    void setAirSupply(i32 air) { m_airSupply = air; }
 
     // ========== 受伤/死亡 ==========
 
@@ -1220,10 +1211,8 @@ private:
     f32 m_swimAnimation = 0.0f;
     f32 m_prevSwimAnimation = 0.0f;
 
-    // 空气供应和溺水
-    i32 m_airSupply = 300;              // 当前空气量（15秒）
-    i32 m_drownDamageTimer = 0;         // 溺水伤害计时器
-    bool m_wasInWater = false;          // 上一tick是否在水中（用于检测入水/出水）
+    // 入水/出水状态追踪（用于溅水声）
+    bool m_wasInWater = false;
 
     // 视野晃动
     Vector3 m_moveDistanceSamplePosition{0.0f, 0.0f, 0.0f}; // 上次步距采样位置

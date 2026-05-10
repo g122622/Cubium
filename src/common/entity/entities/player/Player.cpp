@@ -1470,75 +1470,24 @@ void Player::swimUp() {
 }
 
 void Player::updateAirSupply() {
-    // 参考 MC 1.16.5 LivingEntity.baseTick() 空气处理
+    // 创造模式和旁观者模式下不消耗空气
+    if (m_abilities.invulnerable) {
+        return;
+    }
 
+    // 检测入水/出水状态变化（需要在基类空气处理之前）
     bool inWater = isInWater();
-    bool inLava = isInLava();
-
-    // 检查是否能水下呼吸
-    // MC 1.16.5: EffectUtils.canBreatheUnderwater()
-    // - 水下呼吸效果 (WaterBreathing)
-    // - 潮涌能量效果 (ConduitPower)
-    bool canBreatheUnderwater = hasEffect(entity::effect::EffectType::WaterBreathing) ||
-                                  hasEffect(entity::effect::EffectType::ConduitPower);
-
-    // 创造模式或旁观者模式下不消耗空气
-    bool invulnerableToDrowning = m_abilities.invulnerable || canBreatheUnderwater;
-
-    // 检测入水/出水状态变化（需要在空气处理之前）
     bool justEnteredWater = inWater && !m_wasInWater;
-    bool justExitedWater = !inWater && m_wasInWater;
 
-    if (inWater || inLava) {
-        // 在水或岩浆中
-        if (!invulnerableToDrowning) {
-            // 空气消耗
-            // MC 1.16.5: decreaseAirSupply() 会考虑水下呼吸附魔
-            // 水下呼吸附魔(Respiration): 每级有 1/(level+1) 的概率不消耗空气
-            // 例如: I级=50%, II级=33%, III级=25% 概率不消耗
-            // TODO: 实现水下呼吸附魔的空气节约概率 (需: RespirationEnchantment等级获取)
-            m_airSupply--;
+    // 调用基类方法处理标准空气消耗和溺水逻辑
+    LivingEntity::updateAirSupply();
 
-            // 空气耗尽到 -20 时触发溺水
-            // MC 1.16.5: getAir() == -20 时重置为 0 并造成伤害
-            if (m_airSupply <= -20) {
-                m_airSupply = 0;
-
-                // 溺水伤害
-                m_drownDamageTimer++;
-                if (m_drownDamageTimer >= physics::DROWN_DAMAGE_INTERVAL) {
-                    m_drownDamageTimer = 0;
-                    // 造成溺水伤害
-                    // MC 1.16.5: attackEntityFrom(DamageSource.DROWN, 2.0F)
-                    auto drownSource = DamageSources::drown();
-                    hurt(drownSource, physics::DROWN_DAMAGE_AMOUNT);
-                }
-
-                // 溺水时生成气泡粒子
-                // TODO: 生成气泡粒子 (依赖: ParticleSystem 实现)
-                // MC 1.16.5: for (int i = 0; i < 8; ++i) {
-                //     world.addParticle(ParticleTypes.BUBBLE, ...);
-                // }
-            }
-        }
-
-        // 入水溅水声
-        if (justEnteredWater) {
-            // MC 1.16.5: this.world.playSound(null, this.getPosX(), this.getPosY(), this.getPosZ(),
-            //              SoundEvents.ENTITY_PLAYER_SPLASH, this.getSoundCategory(), 1.0F, 1.0F);
-            playSound(SoundEvents::ENTITY_PLAYER_SPLASH, 1.0f, 1.0f);
-            // TODO: 触发入水粒子效果（水花飞溅）
-        }
-    } else {
-        // 不在水中，恢复空气
-        // MC 1.16.5: determineNextAir() 每tick恢复4点
-        m_airSupply = std::min(m_airSupply + 4, physics::DEFAULT_MAX_AIR);
-        m_drownDamageTimer = 0;
-
-        // 出水声音（可选，MC 中没有专门的出水声）
-        if (justExitedWater) {
-            // MC 中出水没有特定声音，但可以添加轻微的声音效果
-        }
+    // 入水溅水声（玩家特有效果）
+    if (justEnteredWater) {
+        // MC 1.16.5: this.world.playSound(null, this.getPosX(), this.getPosY(), this.getPosZ(),
+        //              SoundEvents.ENTITY_PLAYER_SPLASH, this.getSoundCategory(), 1.0F, 1.0F);
+        playSound(SoundEvents::ENTITY_PLAYER_SPLASH, 1.0f, 1.0f);
+        // TODO: 触发入水粒子效果（水花飞溅）
     }
 
     // 更新上一帧状态

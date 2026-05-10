@@ -59,28 +59,24 @@ public:
 
     /**
      * @brief 获取空气供应量
+     * 水生生物使用基类的air()方法
      */
-    [[nodiscard]] i32 getAirSupply() const { return m_airSupply; }
+    [[nodiscard]] i32 getAirSupply() const { return air(); }
 
     /**
      * @brief 设置空气供应量
      */
-    void setAirSupply(i32 supply) { m_airSupply = supply; }
+    void setAirSupply(i32 supply) { setAir(supply); }
 
     /**
      * @brief 获取最大空气供应量
      */
-    [[nodiscard]] i32 getMaxAirSupply() const { return m_maxAirSupply; }
-
-    /**
-     * @brief 设置最大空气供应量
-     */
-    void setMaxAirSupply(i32 maxSupply) { m_maxAirSupply = maxSupply; }
+    [[nodiscard]] i32 getMaxAirSupply() const { return maxAir(); }
 
     /**
      * @brief 是否在窒息
      */
-    [[nodiscard]] bool isDrowning() const { return m_airSupply <= 0; }
+    [[nodiscard]] bool isDrowning() const { return air() <= 0; }
 
     // ========== 行为 ==========
 
@@ -104,8 +100,9 @@ protected:
 
     /**
      * @brief 更新空气供应
+     * 水生生物在陆地上消耗空气，在水中恢复空气
      */
-    void updateAirSupply();
+    void updateAirSupply() override;
 
     /**
      * @brief 当离开水时调用
@@ -118,13 +115,6 @@ protected:
     virtual void onEnterWater() {}
 
 private:
-    // 空气供应
-    i32 m_airSupply = 300;     // 当前空气量
-    i32 m_maxAirSupply = 300;  // 最大空气量（15秒）
-
-    // 溺水伤害计时器
-    i32 m_drownDamageTimer = 0;
-
     // 水状态追踪（用于 onEnterWater/onLeaveWater 回调）
     bool m_wasInWater = false;
 

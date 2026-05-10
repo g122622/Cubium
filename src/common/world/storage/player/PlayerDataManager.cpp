@@ -305,7 +305,7 @@ PlayerSaveData PlayerDataManager::fromPlayer(const ServerPlayer& player)
     }
 
     // 空气供应
-    data.airSupply = player.airSupply();
+    data.airSupply = player.air();
 
     // 状态
     data.onGround = player.isOnGround();

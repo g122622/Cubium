@@ -390,13 +390,15 @@ void Entity::baseTick() {
         }
     }
 
-    // 处理空气值
+    // 处理空气值（简化版本）
+    // 注意：LivingEntity 子类会在 updateAirSupply() 中实现完整的溺水逻辑
+    // 非 LivingEntity 实体（如物品实体）使用此简化版本
     if (isInWater() || isInLava()) {
         if (!m_invulnerable) {
             setAir(m_air - 1);
             if (m_air <= -20) {
                 setAir(0);
-                // TODO: 处理溺水伤害
+                // 非 LivingEntity 实体不处理溺水伤害
             }
         }
     } else {

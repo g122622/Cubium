@@ -49,27 +49,39 @@ void WaterMobEntity::registerAttributes() {
 }
 
 void WaterMobEntity::updateAirSupply() {
+    // MC 1.16.5: WaterMobEntity 在水中恢复空气，在陆地/岩浆中消耗空气
+    // 与普通生物相反！
+    if (!isAlive()) {
+        return;
+    }
+
     bool inWater = isInWater();
 
-    if (!inWater) {
-        // 不在水中，消耗空气（水生生物在水外会窒息）
-        m_airSupply--;
-        if (m_airSupply <= -20) {
-            m_airSupply = 0;
-            // 溺水伤害
-            m_drownDamageTimer++;
-            if (m_drownDamageTimer >= physics::DROWN_DAMAGE_INTERVAL) {
-                m_drownDamageTimer = 0;
-                // 造成溺水伤害
-                // 参考 MC 1.16.5 LivingEntity.baseTick()
-                auto damageSource = DamageSources::drown();
-                hurt(damageSource, DROWN_DAMAGE_AMOUNT);
-            }
-        }
-    } else {
+    // 检测水状态变化并触发回调
+    if (inWater && !m_wasInWater) {
+        onEnterWater();
+    } else if (!inWater && m_wasInWater) {
+        onLeaveWater();
+    }
+    m_wasInWater = inWater;
+
+    if (inWater) {
         // 在水中，恢复空气
-        m_airSupply = m_maxAirSupply;
-        m_drownDamageTimer = 0;
+        // MC 1.16.5: 水生生物在水中立即恢复空气
+        setAir(maxAir());
+    } else {
+        // 不在水中，消耗空气（水生生物在陆地窒息）
+        i32 newAir = air() - 1;
+        setAir(newAir);
+
+        // 空气耗尽到 -20 时触发窒息伤害
+        if (air() <= -20) {
+            setAir(0);
+
+            // 室息伤害
+            EnvironmentalDamage drownSource = DamageSources::drown();
+            hurt(drownSource, DROWN_DAMAGE_AMOUNT);
+        }
     }
 }
 

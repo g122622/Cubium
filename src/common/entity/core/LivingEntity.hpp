@@ -308,6 +308,49 @@ public:
         return CreatureAttribute::Undefined;
     }
 
+    // ========== 空气供应和溺水 ==========
+
+    /**
+     * @brief 是否可以在水下呼吸
+     *
+     * 亡灵生物（僵尸、骷髅等）可以在水下呼吸。
+     * 参考 MC 1.16.5 LivingEntity.canBreatheUnderwater()
+     *
+     * @return 如果可以在水下呼吸返回 true
+     */
+    [[nodiscard]] virtual bool canBreatheUnderwater() const {
+        return getCreatureAttribute() == CreatureAttribute::Undead;
+    }
+
+    /**
+     * @brief 减少空气供应
+     *
+     * 考虑水下呼吸附魔的概率性空气节约。
+     * 参考 MC 1.16.5 LivingEntity.decreaseAirSupply()
+     *
+     * @param currentAir 当前空气量
+     * @return 减少后的空气量
+     */
+    [[nodiscard]] i32 decreaseAirSupply(i32 currentAir);
+
+    /**
+     * @brief 计算下一个空气值（恢复空气）
+     *
+     * 参考 MC 1.16.5 LivingEntity.determineNextAir()
+     *
+     * @param currentAir 当前空气量
+     * @return 恢复后的空气量
+     */
+    [[nodiscard]] i32 determineNextAir(i32 currentAir) const;
+
+    /**
+     * @brief 更新空气供应和溺水伤害
+     *
+     * 每tick调用，处理空气消耗和溺水伤害。
+     * 参考 MC 1.16.5 LivingEntity.baseTick() 中的空气处理逻辑
+     */
+    virtual void updateAirSupply();
+
     // ========== 受伤无敌帧 ==========
 
     /**
@@ -978,6 +1021,9 @@ protected:
     Hand m_activeHand = Hand::MainHand;  // 正在使用的手
     ItemStack m_activeItem;              // 正在使用的物品堆
     i32 m_activeItemUseCount = 0;        // 剩余使用时间（ticks）
+
+    // 溺水伤害计时器
+    i32 m_drownDamageTimer = 0;          // 溺水伤害间隔计时器
 };
 
 } // namespace mc
