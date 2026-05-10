@@ -294,6 +294,7 @@ add_library(mc_common STATIC
     item/items/food/FoodItem.cpp
     item/items/food/HoneyBottleItem.cpp
     item/items/food/ChorusFruitItem.cpp
+    item/items/food/GoldenAppleItem.cpp
 
     # Item System - Armor
     item/armor/ArmorMaterial.cpp

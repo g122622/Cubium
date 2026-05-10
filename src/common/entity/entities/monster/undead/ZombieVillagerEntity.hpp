@@ -3,6 +3,7 @@
 #include "../undead/ZombieEntity.hpp"
 #include "../../villager/VillagerEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../entity/core/DataParameter.hpp"
 #include <memory>
 
 namespace mc {
@@ -23,6 +24,12 @@ namespace mc {
  * - 铁栏杆和床会加速治愈过程
  * - 力量效果会加速治愈（每级减少 10% 时间）
  * - 基础治愈时间：3600 ticks（3分钟）
+ *
+ * 数据同步参数：
+ * - CONVERTING: 是否正在治愈
+ * - VILLAGER_TYPE: 村民类型
+ * - VILLAGER_PROFESSION: 村民职业
+ * - VILLAGER_LEVEL: 村民等级
  *
  * 参考 MC 1.16.5 ZombieVillagerEntity
  */
@@ -51,6 +58,20 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
+    // ========== 数据同步 ==========
+
+    /**
+     * @brief 注册数据参数
+     * 注册 CONVERTING、VILLAGER_TYPE、VILLAGER_PROFESSION、VILLAGER_LEVEL 等参数
+     */
+    void registerData() override;
+
+    /**
+     * @brief 从数据管理器同步元数据
+     * 客户端调用，从 DataManager 读取同步的数据
+     */
+    void syncMetadataFromDataManager() override;
+
     // ========== 村民数据 ==========
 
     /**
@@ -61,7 +82,7 @@ public:
     /**
      * @brief 设置村民数据
      */
-    void setVillagerData(const entity::VillagerData& data) { m_villagerData = data; }
+    void setVillagerData(const entity::VillagerData& data);
 
     /**
      * @brief 获取村民职业
@@ -73,9 +94,7 @@ public:
     /**
      * @brief 设置村民职业
      */
-    void setProfession(entity::VillagerProfession profession) {
-        m_villagerData.setProfession(profession);
-    }
+    void setProfession(entity::VillagerProfession profession);
 
     /**
      * @brief 获取村民类型
@@ -87,9 +106,7 @@ public:
     /**
      * @brief 设置村民类型
      */
-    void setVillagerType(entity::VillagerType type) {
-        m_villagerData.setType(type);
-    }
+    void setVillagerType(entity::VillagerType type);
 
     /**
      * @brief 获取交易等级
@@ -99,7 +116,7 @@ public:
     /**
      * @brief 设置交易等级
      */
-    void setTradingLevel(i32 level) { m_villagerData.setLevel(level); }
+    void setTradingLevel(i32 level);
 
     /**
      * @brief 获取交易经验
@@ -109,7 +126,7 @@ public:
     /**
      * @brief 设置交易经验
      */
-    void setTradingExperience(i32 exp) { m_villagerData.setExperience(exp); }
+    void setTradingExperience(i32 exp);
 
     // ========== 治愈系统 ==========
 
@@ -171,19 +188,6 @@ public:
     void setConversionStarterUuid(const std::string& uuid) {
         m_conversionStarterUuid = uuid;
     }
-
-    // ========== 交互 ==========
-
-    /**
-     * @brief 玩家交互
-     *
-     * 玩家使用金苹果对虚弱状态的僵尸村民右键时开始治愈。
-     *
-     * @param player 玩家
-     * @param hand 手（主手/副手）
-     * @return 交互结果
-     */
-    // ActionResultType interact(Player& player, Hand hand) override;
 
     // ========== 属性 ==========
 
@@ -255,6 +259,12 @@ private:
     bool m_converting = false;
     i32 m_conversionTime = 0;
     std::string m_conversionStarterUuid;  // 发起治愈的玩家UUID
+
+    // 数据参数
+    static entity::DataParameter<bool> CONVERTING_PARAM;
+    static entity::DataParameter<i32> VILLAGER_TYPE_PARAM;
+    static entity::DataParameter<i32> VILLAGER_PROFESSION_PARAM;
+    static entity::DataParameter<i32> VILLAGER_LEVEL_PARAM;
 
     // 常量
     static constexpr i32 DEFAULT_CONVERSION_TIME = 3600;  // 3分钟（游戏时间）

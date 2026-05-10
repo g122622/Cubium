@@ -6,6 +6,7 @@
 #include "items/food/FoodItem.hpp"
 #include "items/food/HoneyBottleItem.hpp"
 #include "items/food/ChorusFruitItem.hpp"
+#include "items/food/GoldenAppleItem.hpp"
 #include "items/potion/PotionItem.hpp"
 #include "items/potion/SplashPotionItem.hpp"
 #include "items/potion/LingeringPotionItem.hpp"
@@ -1049,14 +1050,18 @@ void Items::registerFood() {
         ItemProperties().maxStackSize(64).food(&Foods::APPLE)
     );
 
-    GOLDEN_APPLE = &registry.registerItem(
+    // 金苹果 - 使用自定义 GoldenAppleItem 以支持僵尸村民治愈
+    GOLDEN_APPLE = &registry.registerItem<item::items::GoldenAppleItem>(
         ResourceLocation("minecraft:golden_apple"),
-        ItemProperties().maxStackSize(64).rarity(ItemRarity::Rare).food(&Foods::GOLDEN_APPLE)
+        &Foods::GOLDEN_APPLE,
+        ItemProperties().maxStackSize(64).rarity(ItemRarity::Rare)
     );
 
-    ENCHANTED_GOLDEN_APPLE = &registry.registerItem(
+    // 附魔金苹果 - 使用自定义 GoldenAppleItem
+    ENCHANTED_GOLDEN_APPLE = &registry.registerItem<item::items::GoldenAppleItem>(
         ResourceLocation("minecraft:enchanted_golden_apple"),
-        ItemProperties().maxStackSize(64).rarity(ItemRarity::Epic).food(&Foods::ENCHANTED_GOLDEN_APPLE)
+        &Foods::ENCHANTED_GOLDEN_APPLE,
+        ItemProperties().maxStackSize(64).rarity(ItemRarity::Epic)
     );
 
     BREAD = &registry.registerItem(

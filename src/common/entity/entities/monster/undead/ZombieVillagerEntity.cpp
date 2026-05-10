@@ -18,6 +18,22 @@
 namespace mc {
 
 // ============================================================================
+// 静态数据参数初始化
+// ============================================================================
+
+entity::DataParameter<bool> ZombieVillagerEntity::CONVERTING_PARAM =
+    entity::EntityDataManager::createKey<bool>();
+
+entity::DataParameter<i32> ZombieVillagerEntity::VILLAGER_TYPE_PARAM =
+    entity::EntityDataManager::createKey<i32>();
+
+entity::DataParameter<i32> ZombieVillagerEntity::VILLAGER_PROFESSION_PARAM =
+    entity::EntityDataManager::createKey<i32>();
+
+entity::DataParameter<i32> ZombieVillagerEntity::VILLAGER_LEVEL_PARAM =
+    entity::EntityDataManager::createKey<i32>();
+
+// ============================================================================
 // 常量
 // ============================================================================
 
@@ -45,12 +61,74 @@ namespace {
 ZombieVillagerEntity::ZombieVillagerEntity(LegacyEntityType type, EntityId id)
     : ZombieEntity(type, id)
 {
-    // 僵尸村民比普通僵尸慢
+    // MC 1.16.5: 僵尸村民比普通僵尸慢
     // 职业随机设置（在 VanillaEntities 中设置）
+
+    // 显式调用 registerData() 以注册僵尸村民特有的数据参数
+    // 注意：由于 C++ 虚函数在基类构造函数中的行为，
+    // Entity 构造函数调用的是 Entity::registerData() 而非派生类版本。
+    // 因此必须在派生类构造函数中显式调用 registerData()。
+    // registerData() 会先调用父类版本，确保参数按继承链正确注册。
+    registerData();
 }
 
 std::unique_ptr<Entity> ZombieVillagerEntity::create(IWorld* /*world*/) {
     return std::make_unique<ZombieVillagerEntity>(LegacyEntityType::Unknown, 0);
+}
+
+// ============================================================================
+// 数据同步
+// ============================================================================
+
+void ZombieVillagerEntity::registerData() {
+    ZombieEntity::registerData();
+
+    // 注册僵尸村民特有的数据参数
+    m_dataManager.registerParam(CONVERTING_PARAM, false);
+    m_dataManager.registerParam(VILLAGER_TYPE_PARAM, static_cast<i32>(entity::VillagerType::Plains));
+    m_dataManager.registerParam(VILLAGER_PROFESSION_PARAM, static_cast<i32>(entity::VillagerProfession::None));
+    m_dataManager.registerParam(VILLAGER_LEVEL_PARAM, 1);
+}
+
+void ZombieVillagerEntity::syncMetadataFromDataManager() {
+    ZombieEntity::syncMetadataFromDataManager();
+
+    // 从数据管理器同步治愈状态
+    m_converting = m_dataManager.get<bool>(CONVERTING_PARAM);
+
+    // 从数据管理器同步村民数据
+    m_villagerData.setType(static_cast<entity::VillagerType>(m_dataManager.get<i32>(VILLAGER_TYPE_PARAM)));
+    m_villagerData.setProfession(static_cast<entity::VillagerProfession>(m_dataManager.get<i32>(VILLAGER_PROFESSION_PARAM)));
+    m_villagerData.setLevel(m_dataManager.get<i32>(VILLAGER_LEVEL_PARAM));
+}
+
+void ZombieVillagerEntity::setVillagerData(const entity::VillagerData& data) {
+    m_villagerData = data;
+
+    // 同步到数据管理器
+    m_dataManager.set(VILLAGER_TYPE_PARAM, static_cast<i32>(data.type()));
+    m_dataManager.set(VILLAGER_PROFESSION_PARAM, static_cast<i32>(data.profession()));
+    m_dataManager.set(VILLAGER_LEVEL_PARAM, data.level());
+}
+
+void ZombieVillagerEntity::setProfession(entity::VillagerProfession profession) {
+    m_villagerData.setProfession(profession);
+    m_dataManager.set(VILLAGER_PROFESSION_PARAM, static_cast<i32>(profession));
+}
+
+void ZombieVillagerEntity::setVillagerType(entity::VillagerType type) {
+    m_villagerData.setType(type);
+    m_dataManager.set(VILLAGER_TYPE_PARAM, static_cast<i32>(type));
+}
+
+void ZombieVillagerEntity::setTradingLevel(i32 level) {
+    m_villagerData.setLevel(level);
+    m_dataManager.set(VILLAGER_LEVEL_PARAM, level);
+}
+
+void ZombieVillagerEntity::setTradingExperience(i32 exp) {
+    m_villagerData.setExperience(exp);
+    // 注意：经验值不需要同步到客户端，仅服务端保存
 }
 
 // ============================================================================
@@ -60,6 +138,9 @@ std::unique_ptr<Entity> ZombieVillagerEntity::create(IWorld* /*world*/) {
 void ZombieVillagerEntity::setConversionTime(i32 time) {
     m_conversionTime = time;
     m_converting = time > 0;
+
+    // 同步到数据管理器
+    m_dataManager.set(CONVERTING_PARAM, m_converting);
 }
 
 void ZombieVillagerEntity::startConverting(const std::string& starterUuid, i32 time) {
@@ -73,6 +154,9 @@ void ZombieVillagerEntity::startConverting(const std::string& starterUuid, i32 t
     m_conversionStarterUuid = starterUuid;
     m_conversionTime = time;
     m_converting = true;
+
+    // 同步到数据管理器
+    m_dataManager.set(CONVERTING_PARAM, true);
 
     // 移除虚弱效果
     removeEffect(entity::effect::EffectType::Weakness);
@@ -103,6 +187,9 @@ void ZombieVillagerEntity::stopConverting() {
     m_converting = false;
     m_conversionTime = 0;
     m_conversionStarterUuid.clear();
+
+    // 同步到数据管理器
+    m_dataManager.set(CONVERTING_PARAM, false);
 
     // 移除力量效果
     removeEffect(entity::effect::EffectType::Strength);

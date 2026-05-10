@@ -75,7 +75,7 @@ Entity
 | ZombieEntity | 僵尸 | 破门、召唤援军、转化为溺尸 |
 | HuskEntity | 尸壳 | 沙漠僵尸、脱水效果 |
 | DrownedEntity | 溺尸 | 水下僵尸、使用三叉戟 |
-| ZombieVillagerEntity | 僵尸村民 | 可治愈 |
+| ZombieVillagerEntity | 僵尸村民 | 虚弱药水+金苹果治愈、保留职业等级 |
 | SkeletonEntity | 骷髅 | 远程攻击、阳光下燃烧 |
 | StrayEntity | 流浪者 | 雪地骷髅、迟缓之箭 |
 | WitherSkeletonEntity | 凋灵骷髅 | 凋灵效果攻击、高攻击力 |
