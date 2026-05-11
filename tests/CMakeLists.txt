@@ -75,6 +75,8 @@ add_executable(mc_tests
     common/entity/entities/HangingEntityTest.cpp
     # BoostHelper NBT 序列化测试
     common/entity/core/BoostHelperTest.cpp
+    # 成就系统测试
+    advancement/AdvancementTest.cpp
     # ItemDropHelper 测试
     common/entity/utils/ItemDropHelperTest.cpp
     # 经验系统测试
@@ -738,7 +740,23 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootTable.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootSerializers.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootConditions.cpp
-        # 鏂瑰潡鎺夎惤澶勭悊
+        # 成就系统
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/Advancement.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/AdvancementProgress.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/AdvancementDisplay.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/AdvancementRewards.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/AdvancementList.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/AdvancementManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/Criterion.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/CriterionTrigger.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/CriterionTriggers.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/ItemPredicate.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/EntityPredicate.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/LocationPredicate.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/BlockPredicate.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/TickTrigger.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/InventoryChangedTrigger.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
         # 澶╀綋璁＄畻
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/sky/CelestialCalculations.cpp

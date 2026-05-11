@@ -37,6 +37,7 @@ add_library(mc_common STATIC
     network/packet/Packet.cpp
     network/packet/PacketSerializer.cpp
     network/packet/CommandTreePacket.cpp
+    network/packet/AdvancementPackets.cpp
     network/packet/InventoryPackets.cpp
     network/packet/ContainerPacketHandler.cpp
     network/packet/EntityPackets.cpp

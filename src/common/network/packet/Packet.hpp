@@ -110,6 +110,13 @@ enum class PacketType : u16 {
 
     // 世界边界包 (S->C)
     WorldBorder = 530,          // 世界边界同步
+
+    // 成就包 (S->C)
+    AdvancementInfo = 540,      // 成就信息同步
+    SelectAdvancementTab = 541, // 成就标签页选择
+
+    // 成就包 (C->S)
+    SeenAdvancements = 600,     // 成就界面操作
 };
 
 // 数据包头

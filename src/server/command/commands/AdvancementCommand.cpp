@@ -2,14 +2,131 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/advancement/AdvancementManager.hpp"
+#include "common/advancement/AdvancementList.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/advancement/PlayerAdvancements.hpp"
+#include <spdlog/spdlog.h>
 #include <sstream>
 
 namespace mc {
 namespace command {
+
+namespace {
+
+/**
+ * @brief 解析成就ID参数
+ */
+std::optional<ResourceLocation> parseAdvancementId(const std::string& input) {
+    if (input.empty()) {
+        return std::nullopt;
+    }
+
+    // 如果没有命名空间，默认使用 minecraft
+    if (input.find(':') == std::string::npos) {
+        return ResourceLocation("minecraft", input);
+    }
+    return ResourceLocation(input);
+}
+
+/**
+ * @brief 收集成就（根据模式）
+ */
+std::vector<advancement::AdvancementPtr> collectAdvancements(
+    advancement::AdvancementPtr target,
+    GrantMode mode,
+    advancement::AdvancementManager& manager)
+{
+    std::vector<advancement::AdvancementPtr> result;
+    std::set<advancement::AdvancementPtr> visited;
+
+    switch (mode) {
+        case GrantMode::Only:
+            if (target) {
+                result.push_back(target);
+            }
+            break;
+
+        case GrantMode::Everything:
+            manager.forEach([&result](advancement::AdvancementPtr adv) {
+                result.push_back(adv);
+                return true;
+            });
+            break;
+
+        case GrantMode::From:
+            // 授予指定成就及其所有子成就（递归向下）
+            if (target) {
+                std::function<void(advancement::AdvancementPtr)> collectChildren;
+                collectChildren = [&](advancement::AdvancementPtr adv) {
+                    if (visited.count(adv) > 0) return;
+                    visited.insert(adv);
+                    result.push_back(adv);
+                    for (const auto& child : adv->getChildren()) {
+                        collectChildren(child);
+                    }
+                };
+                collectChildren(target);
+            }
+            break;
+
+        case GrantMode::Through:
+            // 授予从根到指定成就的路径
+            if (target) {
+                // 向上遍历到根
+                std::vector<advancement::AdvancementPtr> path;
+                advancement::AdvancementPtr current = target;
+                while (current) {
+                    path.push_back(current);
+                    if (current->getParent().has_value()) {
+                        current = manager.get(current->getParent().value());
+                    } else {
+                        break;
+                    }
+                }
+                // 反转，从根开始添加
+                for (auto it = path.rbegin(); it != path.rend(); ++it) {
+                    result.push_back(*it);
+                }
+            }
+            break;
+
+        case GrantMode::Until:
+            // 授予指定成就及其所有父成就
+            if (target) {
+                advancement::AdvancementPtr current = target;
+                while (current) {
+                    result.push_back(current);
+                    if (current->getParent().has_value()) {
+                        current = manager.get(current->getParent().value());
+                    } else {
+                        break;
+                    }
+                }
+            }
+            break;
+    }
+
+    return result;
+}
+
+/**
+ * @brief 获取玩家的成就进度
+ */
+server::PlayerAdvancements* getPlayerAdvancements(server::ServerPlayerData* playerData) {
+    if (!playerData) {
+        return nullptr;
+    }
+    // TODO: PlayerData 需要添加 PlayerAdvancements 成员
+    // 目前返回 nullptr，等集成后实现
+    return nullptr;
+}
+
+} // namespace
 
 void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
@@ -26,15 +143,17 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
             {},
             true));
 
-    auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets",
-        EntityArgumentType::entities());
+    // ========== GRANT 子命令 ==========
+    auto grantNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("grant");
 
     // /advancement grant <targets> everything
-    auto grantNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("grant");
+    auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+        "targets",
+        EntityArgumentType::players());
+
     auto everythingNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("everything");
     everythingNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return grantAdvancement(ctx);
+        return grantAdvancement(ctx, GrantMode::Everything);
     });
 
     // /advancement grant <targets> only <advancement>
@@ -42,56 +161,134 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto advancementArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "advancement",
         StringArgumentType::string());
-    advancementArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return grantAdvancement(ctx);
+    advancementArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return grantAdvancement(ctx, GrantMode::Only);
     });
     onlyNode->addChild(advancementArg);
 
-    grantNode->addChild(everythingNode);
-    grantNode->addChild(onlyNode);
-    targetsArg->addChild(grantNode);
+    // /advancement grant <targets> from <advancement>
+    auto fromNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("from");
+    auto fromArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "advancement",
+        StringArgumentType::string());
+    fromArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return grantAdvancement(ctx, GrantMode::From);
+    });
+    fromNode->addChild(fromArg);
 
-    // /advancement revoke <targets> everything
+    // /advancement grant <targets> through <advancement>
+    auto throughNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("through");
+    auto throughArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "advancement",
+        StringArgumentType::string());
+    throughArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return grantAdvancement(ctx, GrantMode::Through);
+    });
+    throughNode->addChild(throughArg);
+
+    // /advancement grant <targets> until <advancement>
+    auto untilNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("until");
+    auto untilArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "advancement",
+        StringArgumentType::string());
+    untilArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return grantAdvancement(ctx, GrantMode::Until);
+    });
+    untilNode->addChild(untilArg);
+
+    // 组合 grant 节点
+    targetsArg->addChild(everythingNode);
+    targetsArg->addChild(onlyNode);
+    targetsArg->addChild(fromNode);
+    targetsArg->addChild(throughNode);
+    targetsArg->addChild(untilNode);
+    grantNode->addChild(targetsArg);
+
+    // ========== REVOKE 子命令 ==========
     auto revokeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("revoke");
+
+    auto revokeTargetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+        "targets",
+        EntityArgumentType::players());
+
     auto revokeEverythingNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("everything");
     revokeEverythingNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return revokeAdvancement(ctx);
+        return revokeAdvancement(ctx, GrantMode::Everything);
     });
 
     // /advancement revoke <targets> only <advancement>
     auto revokeOnlyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("only");
-    auto revokeAdvArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+    auto revokeOnlyArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "advancement",
         StringArgumentType::string());
-    revokeAdvArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return revokeAdvancement(ctx);
+    revokeOnlyArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return revokeAdvancement(ctx, GrantMode::Only);
     });
-    revokeOnlyNode->addChild(revokeAdvArg);
+    revokeOnlyNode->addChild(revokeOnlyArg);
 
-    revokeNode->addChild(revokeEverythingNode);
-    revokeNode->addChild(revokeOnlyNode);
-    targetsArg->addChild(revokeNode);
+    // /advancement revoke <targets> from <advancement>
+    auto revokeFromNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("from");
+    auto revokeFromArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "advancement",
+        StringArgumentType::string());
+    revokeFromArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return revokeAdvancement(ctx, GrantMode::From);
+    });
+    revokeFromNode->addChild(revokeFromArg);
 
-    // /advancement test <targets> <advancement>
+    // /advancement revoke <targets> through <advancement>
+    auto revokeThroughNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("through");
+    auto revokeThroughArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "advancement",
+        StringArgumentType::string());
+    revokeThroughArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return revokeAdvancement(ctx, GrantMode::Through);
+    });
+    revokeThroughNode->addChild(revokeThroughArg);
+
+    // /advancement revoke <targets> until <advancement>
+    auto revokeUntilNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("until");
+    auto revokeUntilArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "advancement",
+        StringArgumentType::string());
+    revokeUntilArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return revokeAdvancement(ctx, GrantMode::Until);
+    });
+    revokeUntilNode->addChild(revokeUntilArg);
+
+    // 组合 revoke 节点
+    revokeTargetsArg->addChild(revokeEverythingNode);
+    revokeTargetsArg->addChild(revokeOnlyNode);
+    revokeTargetsArg->addChild(revokeFromNode);
+    revokeTargetsArg->addChild(revokeThroughNode);
+    revokeTargetsArg->addChild(revokeUntilNode);
+    revokeNode->addChild(revokeTargetsArg);
+
+    // ========== TEST 子命令 ==========
     auto testNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("test");
+
     auto testTargetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets",
-        EntityArgumentType::entities());
+        EntityArgumentType::players());
+
     auto testAdvArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "advancement",
         StringArgumentType::string());
     testAdvArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return testAdvancement(ctx);
     });
+
     testTargetsArg->addChild(testAdvArg);
     testNode->addChild(testTargetsArg);
-    advancementNode->addChild(testNode);
 
-    advancementNode->addChild(targetsArg);
+    // 注册根节点
+    advancementNode->addChild(grantNode);
+    advancementNode->addChild(revokeNode);
+    advancementNode->addChild(testNode);
     dispatcher.registerCommand(advancementNode);
 }
 
-i32 AdvancementCommand::grantAdvancement(CommandContext<ServerCommandSource>& context)
+i32 AdvancementCommand::grantAdvancement(CommandContext<ServerCommandSource>& context, GrantMode mode)
 {
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
@@ -102,21 +299,68 @@ i32 AdvancementCommand::grantAdvancement(CommandContext<ServerCommandSource>& co
         return 0;
     }
 
-    std::string advancement = "everything";
-    if (context.hasArgument("advancement")) {
-        advancement = context.getArgument<std::string>("advancement");
+    auto& manager = advancement::AdvancementManager::instance();
+
+    // 获取目标成就（仅对非 Everything 模式需要）
+    advancement::AdvancementPtr targetAdvancement = nullptr;
+    std::string advancementId;
+    if (mode != GrantMode::Everything && context.hasArgument("advancement")) {
+        advancementId = context.getArgument<std::string>("advancement");
+        auto id = parseAdvancementId(advancementId);
+        if (!id.has_value()) {
+            source.sendError("Invalid advancement ID: " + advancementId);
+            return 0;
+        }
+        targetAdvancement = manager.get(id.value());
+        if (!targetAdvancement) {
+            source.sendError("Unknown advancement: " + id->toString());
+            return 0;
+        }
     }
 
+    // 收集要授予的成就
+    auto advancements = collectAdvancements(targetAdvancement, mode, manager);
+
+    // 授予成就给每个玩家
+    i32 successCount = 0;
+    for (PlayerId playerId : playerIds) {
+        auto* playerData = source.server()->playerManager().getPlayer(playerId);
+        if (!playerData) {
+            continue;
+        }
+
+        auto* playerAdvancements = getPlayerAdvancements(playerData);
+        if (!playerAdvancements) {
+            // TODO: 等待 PlayerAdvancements 集成到 PlayerData
+            spdlog::warn("PlayerAdvancements not yet integrated for player {}", playerId);
+            continue;
+        }
+
+        i32 playerSuccess = 0;
+        for (auto adv : advancements) {
+            if (playerAdvancements->grantAllCriteria(adv)) {
+                playerSuccess++;
+            }
+        }
+
+        if (playerSuccess > 0) {
+            successCount++;
+        }
+    }
+
+    // 发送反馈
     std::ostringstream ss;
-    ss << "Granted advancement '" << advancement << "' to " << playerIds.size() << " player(s)";
+    if (mode == GrantMode::Everything) {
+        ss << "Granted all advancements to " << successCount << " player(s)";
+    } else {
+        ss << "Granted " << advancements.size() << " advancement(s) to " << successCount << " player(s)";
+    }
     source.sendMessage(ss.str());
 
-    // TODO: 实现进度系统
-
-    return static_cast<i32>(playerIds.size());
+    return successCount;
 }
 
-i32 AdvancementCommand::revokeAdvancement(CommandContext<ServerCommandSource>& context)
+i32 AdvancementCommand::revokeAdvancement(CommandContext<ServerCommandSource>& context, GrantMode mode)
 {
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
@@ -127,25 +371,84 @@ i32 AdvancementCommand::revokeAdvancement(CommandContext<ServerCommandSource>& c
         return 0;
     }
 
-    std::string advancement = "everything";
-    if (context.hasArgument("advancement")) {
-        advancement = context.getArgument<std::string>("advancement");
+    auto& manager = advancement::AdvancementManager::instance();
+
+    // 获取目标成就（仅对非 Everything 模式需要）
+    advancement::AdvancementPtr targetAdvancement = nullptr;
+    std::string advancementId;
+    if (mode != GrantMode::Everything && context.hasArgument("advancement")) {
+        advancementId = context.getArgument<std::string>("advancement");
+        auto id = parseAdvancementId(advancementId);
+        if (!id.has_value()) {
+            source.sendError("Invalid advancement ID: " + advancementId);
+            return 0;
+        }
+        targetAdvancement = manager.get(id.value());
+        if (!targetAdvancement) {
+            source.sendError("Unknown advancement: " + id->toString());
+            return 0;
+        }
     }
 
+    // 收集要撤销的成就
+    auto advancements = collectAdvancements(targetAdvancement, mode, manager);
+
+    // 从每个玩家撤销成就
+    i32 successCount = 0;
+    for (PlayerId playerId : playerIds) {
+        auto* playerData = source.server()->playerManager().getPlayer(playerId);
+        if (!playerData) {
+            continue;
+        }
+
+        auto* playerAdvancements = getPlayerAdvancements(playerData);
+        if (!playerAdvancements) {
+            spdlog::warn("PlayerAdvancements not yet integrated for player {}", playerId);
+            continue;
+        }
+
+        i32 playerSuccess = 0;
+        for (auto adv : advancements) {
+            if (playerAdvancements->revokeAllCriteria(adv)) {
+                playerSuccess++;
+            }
+        }
+
+        if (playerSuccess > 0) {
+            successCount++;
+        }
+    }
+
+    // 发送反馈
     std::ostringstream ss;
-    ss << "Revoked advancement '" << advancement << "' from " << playerIds.size() << " player(s)";
+    if (mode == GrantMode::Everything) {
+        ss << "Revoked all advancements from " << successCount << " player(s)";
+    } else {
+        ss << "Revoked " << advancements.size() << " advancement(s) from " << successCount << " player(s)";
+    }
     source.sendMessage(ss.str());
 
-    // TODO: 实现进度系统
-
-    return static_cast<i32>(playerIds.size());
+    return successCount;
 }
 
 i32 AdvancementCommand::testAdvancement(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
-    const std::string advancement = context.getArgument<std::string>("advancement");
+    const std::string advancementIdStr = context.getArgument<std::string>("advancement");
+
+    auto id = parseAdvancementId(advancementIdStr);
+    if (!id.has_value()) {
+        source.sendError("Invalid advancement ID: " + advancementIdStr);
+        return 0;
+    }
+
+    auto& manager = advancement::AdvancementManager::instance();
+    auto advancement = manager.get(id.value());
+    if (!advancement) {
+        source.sendError("Unknown advancement: " + id->toString());
+        return 0;
+    }
 
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
@@ -153,17 +456,40 @@ i32 AdvancementCommand::testAdvancement(CommandContext<ServerCommandSource>& con
         return 0;
     }
 
-    // TODO: 实现进度系统
-    if (playerIds.size() == 1) {
-        auto player = source.server()->playerManager().getPlayer(playerIds[0]);
-        if (player) {
-            source.sendMessage(player->username + " has not completed advancement '" + advancement + "'");
+    // 测试每个玩家
+    i32 completedCount = 0;
+    for (PlayerId playerId : playerIds) {
+        auto* playerData = source.server()->playerManager().getPlayer(playerId);
+        if (!playerData) {
+            continue;
         }
-    } else {
-        source.sendMessage("Testing advancement '" + advancement + "' for " + std::to_string(playerIds.size()) + " players");
+
+        auto* playerAdvancements = getPlayerAdvancements(playerData);
+        if (!playerAdvancements) {
+            spdlog::warn("PlayerAdvancements not yet integrated for player {}", playerId);
+            continue;
+        }
+
+        if (playerAdvancements->isDone(advancement)) {
+            completedCount++;
+        }
     }
 
-    return 1;
+    // 发送结果
+    if (playerIds.size() == 1) {
+        auto* playerData = source.server()->playerManager().getPlayer(playerIds[0]);
+        if (playerData) {
+            std::string status = completedCount > 0 ? "has completed" : "has not completed";
+            source.sendMessage(playerData->username + " " + status + " advancement '" + id->toString() + "'");
+        }
+    } else {
+        std::ostringstream ss;
+        ss << completedCount << " of " << playerIds.size() << " players have completed advancement '"
+           << id->toString() << "'";
+        source.sendMessage(ss.str());
+    }
+
+    return completedCount;
 }
 
 } // namespace command
