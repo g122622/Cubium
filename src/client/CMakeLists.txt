@@ -355,6 +355,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
     ${CMAKE_SOURCE_DIR}/src/server/menu/CraftingMenu.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
