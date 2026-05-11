@@ -1,6 +1,7 @@
 #include "FoxEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/Items.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
@@ -14,7 +15,7 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../../sound/SoundEvents.hpp"
-#include <random>
+#include "../../../../util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -90,40 +91,54 @@ void FoxEntity::dropHeldItem() {
 }
 
 bool FoxEntity::isBreedingItem(const ItemStack& itemStack) const {
-    // TODO: 检查是否是甜浆果或发光浆果
-    // return itemStack.getItem() == Items::SWEET_BERRIES
-    //     || itemStack.getItem() == Items::GLOW_BERRIES;
-    (void)itemStack;
-    return false;
+    // MC 1.16.5: FoxEntity.isBreedingItem()
+    // 只有甜浆果可以用来繁殖狐狸
+    // 注意：发光浆果是 MC 1.17 添加的，MC 1.16.5 只有甜浆果
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+    return item == Items::SWEET_BERRIES;
 }
 
 std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner) {
-    // TODO: 创建小狐狸
-    // auto baby = std::make_unique<FoxEntity>(LegacyEntityType::Unknown, 0);
-    // baby->setChild(true);
-    //
-    // // 遗传皮肤类型
-    // FoxEntity* parent = dynamic_cast<FoxEntity*>(&partner);
-    // if (parent) {
-    //     static std::random_device rd;
-    //     static std::mt19937 gen(rd());
-    //     std::uniform_int_distribution<int> dist(0, 1);
-    //     baby->setFoxType(dist(gen) == 0 ? m_foxType : parent->getFoxType());
-    // }
-    //
-    // // 幼狐信任父母的信任玩家
-    // for (u64 playerId : m_trustedPlayers) {
-    //     baby->addTrustedPlayer(playerId);
-    // }
-    // if (parent) {
-    //     for (u64 playerId : parent->m_trustedPlayers) {
-    //         baby->addTrustedPlayer(playerId);
-    //     }
-    // }
-    //
-    // return baby;
-    (void)partner;
-    return nullptr;
+    // MC 1.16.5: FoxEntity.func_241840_a() (createChild)
+    auto baby = std::make_unique<FoxEntity>(LegacyEntityType::Unknown, 0);
+
+    // 设置为幼体
+    baby->setChild(true);
+
+    // MC 1.16.5: 遗传皮肤类型
+    // foxentity.setVariantType(this.rand.nextBoolean() ? this.getVariantType() : ((FoxEntity)p_241840_2_).getVariantType());
+    // 50% 概率从任一父母继承皮肤类型
+    FoxEntity* partnerFox = dynamic_cast<FoxEntity*>(&partner);
+    math::Random rng = getRandom();
+    if (rng.nextBoolean()) {
+        baby->setFoxType(m_foxType);
+    } else if (partnerFox != nullptr) {
+        baby->setFoxType(partnerFox->getFoxType());
+    } else {
+        // 如果配偶不是狐狸（不应该发生），使用自己的类型
+        baby->setFoxType(m_foxType);
+    }
+
+    // MC 1.16.5: 幼狐继承父母的信任玩家
+    // 参考 onChildSpawnFromEgg(): ((FoxEntity)child).addTrustedUUID(playerIn.getUniqueID());
+    // 在 BreedGoal 中，繁殖时幼狐应该信任喂食者
+    // 这里我们从父母继承信任玩家
+    for (u64 playerId : m_trustedPlayers) {
+        baby->addTrustedPlayer(playerId);
+    }
+    if (partnerFox != nullptr) {
+        for (u64 playerId : partnerFox->getTrustedPlayers()) {
+            baby->addTrustedPlayer(playerId);
+        }
+    }
+
+    // 设置位置
+    baby->setPosition(x(), y(), z());
+
+    return baby;
 }
 
 void FoxEntity::tick() {

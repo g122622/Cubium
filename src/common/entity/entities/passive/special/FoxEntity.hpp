@@ -103,6 +103,12 @@ public:
      */
     [[nodiscard]] std::optional<u64> getFirstTrustedPlayer() const;
 
+    /**
+     * @brief 获取所有信任的玩家列表
+     * @return 信任玩家ID列表的常量引用
+     */
+    [[nodiscard]] const std::vector<u64>& getTrustedPlayers() const { return m_trustedPlayers; }
+
     // ========== 睡眠状态 ==========
 
     /**
