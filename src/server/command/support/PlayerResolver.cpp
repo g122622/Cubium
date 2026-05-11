@@ -84,6 +84,38 @@ namespace {
         }
     }
 
+    // 检查俯仰角范围（x_rotation，-90 到 90 度）
+    // 参考 MC 1.16.5 EntitySelector 过滤逻辑
+    if (!selector.xRotation().isUnbounded()) {
+        // 优先使用实体实时角度，如果没有实体则使用存储的角度
+        f32 pitch = playerData.pitch;
+        if (server != nullptr && world != nullptr) {
+            Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);
+            if (player != nullptr) {
+                pitch = player->pitch();
+            }
+        }
+        if (!selector.xRotation().testAngle(pitch)) {
+            return false;
+        }
+    }
+
+    // 检查偏航角范围（y_rotation，-180 到 180 度）
+    // 参考 MC 1.16.5 EntitySelector 过滤逻辑
+    if (!selector.yRotation().isUnbounded()) {
+        // 优先使用实体实时角度，如果没有实体则使用存储的角度
+        f32 yaw = playerData.yaw;
+        if (server != nullptr && world != nullptr) {
+            Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);
+            if (player != nullptr) {
+                yaw = player->yaw();
+            }
+        }
+        if (!selector.yRotation().testAngle(yaw)) {
+            return false;
+        }
+    }
+
     // 检查游戏模式
     if (selector.hasGameMode()) {
         const std::string& mode = selector.gameMode();

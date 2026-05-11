@@ -70,6 +70,17 @@ public:
         return true;
     }
 
+    /**
+     * @brief 测试角度值是否在范围内（处理角度环绕）
+     *
+     * 角度范围需要特殊处理，因为角度在 -180 到 180 度之间环绕。
+     * 例如，范围 [170..-170] 表示接近正北方向（跨越 180/-180 边界）。
+     *
+     * @param value 角度值（度），将被规范化到 [-180, 180)
+     * @return true 如果角度在范围内
+     */
+    [[nodiscard]] bool testAngle(f32 value) const noexcept;
+
 private:
     std::optional<f32> m_min;
     std::optional<f32> m_max;
@@ -207,6 +218,27 @@ public:
         m_teamNegated = negated;
     }
 
+    // ========== 旋转角度范围 ==========
+
+    /**
+     * @brief 获取俯仰角范围（x_rotation）
+     *
+     * x_rotation 用于筛选实体的俯仰角度（pitch）。
+     * 范围：-90 到 90 度（-90 为直视下方，90 为直视上方）
+     */
+    [[nodiscard]] const FloatRange& xRotation() const noexcept { return m_xRotation; }
+    FloatRange& xRotation() { return m_xRotation; }
+
+    /**
+     * @brief 获取偏航角范围（y_rotation）
+     *
+     * y_rotation 用于筛选实体的偏航角度（yaw）。
+     * 范围：-180 到 180 度
+     * 注意：角度范围测试会处理 -180/180 边界环绕问题
+     */
+    [[nodiscard]] const FloatRange& yRotation() const noexcept { return m_yRotation; }
+    FloatRange& yRotation() { return m_yRotation; }
+
     [[nodiscard]] bool currentWorldOnly() const noexcept { return m_currentWorldOnly; }
     void setCurrentWorldOnly(bool currentWorldOnly) { m_currentWorldOnly = currentWorldOnly; }
 
@@ -280,6 +312,8 @@ private:
     bool m_gameModeNegated = false;
     std::string m_team;
     bool m_teamNegated = false;
+    FloatRange m_xRotation;  // 俯仰角范围（pitch，-90 到 90 度）
+    FloatRange m_yRotation;  // 偏航角范围（yaw，-180 到 180 度）
 };
 
 /**

@@ -146,6 +146,59 @@ EntitySelector selector = entityArg->parse(reader);
 | 参数 | 别名 | 说明 |
 |------|------|------|
 | `limit` | `c` | 限制选择数量 |
+| `distance` | - | 距离范围（支持 `min..max` 格式） |
+| `level` | - | 经验等级范围（仅玩家） |
+| `x`, `y`, `z` | - | 坐标偏移 |
+| `dx`, `dy`, `dz` | - | 体积尺寸 |
+| `sort` | - | 排序方式（nearest/furthest/random/arbitrary） |
+| `type` | - | 实体类型（支持 `!` 取反） |
+| `tag` | - | 实体标签（支持 `!` 取反，可多次使用） |
+| `name` | - | 实体名称（支持 `!` 取反） |
+| `gamemode` | `m` | 游戏模式（支持 `!` 取反，仅玩家） |
+| `team` | - | 队伍（支持 `!` 取反） |
+| `x_rotation` | - | 俯仰角范围（pitch，-90 到 90 度） |
+| `y_rotation` | - | 偏航角范围（yaw，-180 到 180 度） |
+
+#### `FloatRange` - 浮点数范围
+
+用于 `distance`、`x_rotation`、`y_rotation` 参数的范围筛选。
+
+```cpp
+FloatRange range;
+range.setMin(10.0f);
+range.setMax(50.0f);
+
+// 普通范围测试
+bool inRange = range.test(25.0f);  // true
+
+// 距离平方测试（用于 distance 参数）
+bool inDistanceSq = range.testSquared(900.0f);  // 30^2 = 900
+
+// 角度范围测试（处理 -180/180 边界环绕）
+FloatRange angleRange;
+angleRange.setMin(170.0f);
+angleRange.setMax(-170.0f);  // 跨越正北方向
+bool matches = angleRange.testAngle(175.0f);  // true
+```
+
+**角度范围测试说明**：
+
+`testAngle()` 方法专门处理角度环绕问题：
+- 角度会被规范化到 [-180, 180) 范围
+- 当 `min > max` 时，表示范围跨越 -180/180 边界，使用 OR 逻辑
+- 例如 `[170..-170]` 表示接近正北方向（170° 到 -170°，跨越 180°）
+
+#### `IntRange` - 整数范围
+
+用于 `level` 参数的范围筛选。
+
+```cpp
+IntRange range;
+range.setMin(10);
+range.setMax(30);
+
+bool inRange = range.test(20);  // true
+```
 
 ---
 
@@ -539,12 +592,23 @@ auto enumArg = std::shared_ptr<EnumArgumentType<Color>>(
 
 ## 测试用例
 
-相关测试位于 `tests/common/command/test_command_dispatcher.cpp`：
+相关测试：
 
-| 测试类 | 测试内容 |
-|--------|---------|
-| `StringReaderTest` | 字符串读取、引号处理、数字解析、范围检查 |
-| `ArgumentTypeTest` | 字符串参数、整数参数、浮点参数、布尔参数、枚举参数 |
+| 测试文件 | 测试内容 |
+|----------|----------|
+| `tests/common/command/test_command_dispatcher.cpp` | StringReader、CommandNode、ArgumentType、CommandResult、CommandException、Suggestions、CommandDispatcher |
+| `tests/common/command/arguments/EntityArgumentTest.cpp` | FloatRange、IntRange、EntitySelector、选择器解析、角度范围解析和测试 |
+
+**EntityArgumentTest 测试覆盖**：
+
+| 测试套件 | 测试数量 | 测试内容 |
+|----------|----------|----------|
+| `FloatRangeTest` | 6 | 默认无界、最小/最大边界、范围测试、平方测试 |
+| `IntRangeTest` | 3 | 默认无界、边界设置、范围测试 |
+| `EntitySelectorTest` | 15 | 工厂方法、属性设置（距离、等级、坐标、尺寸、排序、类型、标签、游戏模式、队伍） |
+| `EntitySelectorRotationTest` | 3 | x_rotation/y_rotation 默认无界、设置值 |
+| `EntityArgumentParseTest` | 25 | 选择器类型解析（@p/@a/@e/@r/@s）、参数解析（distance、level、limit、sort、坐标、尺寸、name、gamemode、type、tag、team、x_rotation、y_rotation） |
+| `EntityArgumentRotationParseTest` | 11 | x_rotation/y_rotation 解析（范围、单边界、精确值、跨越边界、与其他参数组合） |
 
 **示例测试代码**：
 
@@ -620,3 +684,4 @@ TEST_F(ArgumentTypeTest, EnumArgument) {
 | 2024-02 | 1.1 | 添加实体选择器参数支持 |
 | 2024-03 | 1.2 | 添加坐标和旋转参数类型 |
 | 2024-05 | 1.3 | 添加 BlockStateArgumentType，支持方块状态属性解析 |
+| 2026-05 | 1.4 | 实现 x_rotation/y_rotation 角度范围解析；添加 FloatRange::testAngle() 方法；修复 readSelectorArgumentToken() 支持 `!` 取反前缀；完善选择器参数支持（distance、level、x/y/z、dx/dy/dz、sort、type、tag、name、gamemode、team、x_rotation、y_rotation） |

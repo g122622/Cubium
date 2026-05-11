@@ -1,10 +1,41 @@
 #include "EntityArgument.hpp"
 
+#include "common/util/math/MathUtils.hpp"
 #include <algorithm>
+#include <cmath>
 #include <random>
 
 namespace mc {
 namespace command {
+
+// ========== FloatRange 角度测试实现 ==========
+
+bool FloatRange::testAngle(f32 value) const noexcept {
+    // 如果范围无界，所有值都通过
+    if (isUnbounded()) {
+        return true;
+    }
+
+    // 将输入角度规范化到 [-180, 180) 范围
+    const f32 normalizedValue = math::wrapDegrees(value);
+
+    // 获取范围边界并规范化
+    // 参考 MC 1.16.5 MinMaxBoundsWrapped.test() 的角度处理逻辑
+    // min 为空时默认 0，max 为空时默认 359（规范后为 -1）
+    const f32 min = m_min.has_value() ? math::wrapDegrees(m_min.value()) : 0.0f;
+    const f32 max = m_max.has_value() ? math::wrapDegrees(m_max.value()) : -1.0f;
+
+    // 核心角度范围测试逻辑（参考 MC 1.16.5 EntitySelector.createRotationPredicate）
+    // 如果 min > max，说明范围跨越了 -180/180 边界，需要使用 OR 逻辑
+    // 例如 [170..-170] 表示从 170 度到 -170 度（跨越正北方向）
+    if (min > max) {
+        // 跨越边界：值在 [min, 180) 或 [-180, max] 范围内
+        return normalizedValue >= min || normalizedValue <= max;
+    } else {
+        // 普通范围：值在 [min, max] 范围内
+        return normalizedValue >= min && normalizedValue <= max;
+    }
+}
 
 EntitySelector EntityArgumentType::parse(StringReader& reader) {
     const i32 start = reader.getCursor();
@@ -250,15 +281,19 @@ void EntityArgumentType::applySelectorArgument(EntitySelector& selector, const s
         return;
     }
 
-    // x_rotation - 俯仰角范围
+    // x_rotation - 俯仰角范围（pitch，-90 到 90 度）
     if (name == "x_rotation") {
-        // TODO: 解析角度范围
+        StringReader valueReader(value);
+        FloatRange range = parseFloatRange(valueReader);
+        selector.xRotation() = range;
         return;
     }
 
-    // y_rotation - 偏航角范围
+    // y_rotation - 偏航角范围（yaw，-180 到 180 度）
     if (name == "y_rotation") {
-        // TODO: 解析角度范围
+        StringReader valueReader(value);
+        FloatRange range = parseFloatRange(valueReader);
+        selector.yRotation() = range;
         return;
     }
 
@@ -312,7 +347,8 @@ std::string EntityArgumentType::readSelectorArgumentToken(StringReader& reader) 
     const i32 start = reader.getCursor();
     while (reader.canRead()) {
         const char ch = reader.peek();
-        if (StringReader::isWhitespace(ch) || ch == '=' || ch == ',' || ch == ']' || ch == '!') {
+        // 注意：'!' 是取反前缀，不是分隔符，不应在此处中断
+        if (StringReader::isWhitespace(ch) || ch == '=' || ch == ',' || ch == ']') {
             break;
         }
         reader.skip();
@@ -342,34 +378,80 @@ FloatRange EntityArgumentType::parseFloatRange(StringReader& reader) {
     FloatRange range;
 
     // 解析格式: "value" 或 "min..max" 或 "min.." 或 "..max"
+    // 注意：不能直接使用 readFloat()，因为它会把 "-" 和 ".." 误解析
+    // 例如 "-45..45" 中 readFloat() 会把 "-45." 解析为 -45.0
+
     bool hasMin = false;
     bool hasMax = false;
     f32 minValue = 0.0f;
     f32 maxValue = 0.0f;
 
     // 检查是否以 ".." 开头（只有最大值）
-    if (reader.canRead() && reader.peek() == '.') {
+    if (reader.canRead(2) && reader.peek() == '.' && reader.peek(1) == '.') {
         reader.skip(); // skip first '.'
-        if (reader.canRead() && reader.peek() == '.') {
-            reader.skip(); // skip second '.'
-            hasMax = true;
-            maxValue = reader.readFloat();
-        }
+        reader.skip(); // skip second '.'
+        hasMax = true;
+        maxValue = reader.readFloat();
     } else {
         // 读取最小值
-        minValue = reader.readFloat();
+        // 注意：需要手动处理负数和浮点数，因为 ".." 可能紧随其后
+        i32 start = reader.getCursor();
+
+        // 检查负号
+        bool negative = false;
+        if (reader.canRead() && reader.peek() == '-') {
+            negative = true;
+            reader.skip();
+        }
+
+        // 读取整数部分
+        f64 intPart = 0.0;
+        bool hasDigits = false;
+        while (reader.canRead() && StringReader::isDigit(reader.peek())) {
+            intPart = intPart * 10.0 + (reader.peek() - '0');
+            reader.skip();
+            hasDigits = true;
+        }
+
+        // 检查是否有小数部分，但要区分 ".." 和 "."
+        f64 fracPart = 0.0;
+        bool hasDecimal = false;
+        if (reader.canRead() && reader.peek() == '.') {
+            // 检查下一个字符是数字还是 '.'
+            if (reader.canRead(2) && StringReader::isDigit(reader.peek(1))) {
+                // 这是小数点，读取小数部分
+                reader.skip(); // skip '.'
+                hasDecimal = true;
+                f64 decimalPlace = 0.1;
+                while (reader.canRead() && StringReader::isDigit(reader.peek())) {
+                    fracPart += (reader.peek() - '0') * decimalPlace;
+                    decimalPlace *= 0.1;
+                    reader.skip();
+                    hasDigits = true;
+                }
+            }
+            // 如果下一个字符不是数字，说明可能是 ".." 范围分隔符，不消费 '.'
+        }
+
+        if (!hasDigits) {
+            throw CommandException(CommandErrorType::FloatExpected, "Expected float", start);
+        }
+
+        minValue = static_cast<f32>(negative ? -(intPart + fracPart) : (intPart + fracPart));
         hasMin = true;
 
         // 检查是否有 ".." 表示范围
-        if (reader.canRead() && reader.peek() == '.') {
+        if (reader.canRead(2) && reader.peek() == '.' && reader.peek(1) == '.') {
             reader.skip(); // skip first '.'
-            if (reader.canRead() && reader.peek() == '.') {
-                reader.skip(); // skip second '.'
-                if (reader.canRead() && reader.peek() != ']' && reader.peek() != ',') {
-                    maxValue = reader.readFloat();
-                    hasMax = true;
-                }
+            reader.skip(); // skip second '.'
+            if (reader.canRead() && reader.peek() != ']' && reader.peek() != ',') {
+                maxValue = reader.readFloat();
+                hasMax = true;
             }
+        } else {
+            // 没有 ".."，这是精确值，min = max
+            maxValue = minValue;
+            hasMax = true;
         }
     }
 
@@ -389,28 +471,28 @@ IntRange EntityArgumentType::parseIntRange(StringReader& reader) {
     i32 maxValue = 0;
 
     // 检查是否以 ".." 开头（只有最大值）
-    if (reader.canRead() && reader.peek() == '.') {
+    if (reader.canRead(2) && reader.peek() == '.' && reader.peek(1) == '.') {
         reader.skip(); // skip first '.'
-        if (reader.canRead() && reader.peek() == '.') {
-            reader.skip(); // skip second '.'
-            hasMax = true;
-            maxValue = reader.readInt();
-        }
+        reader.skip(); // skip second '.'
+        hasMax = true;
+        maxValue = reader.readInt();
     } else {
         // 读取最小值
         minValue = reader.readInt();
         hasMin = true;
 
         // 检查是否有 ".." 表示范围
-        if (reader.canRead() && reader.peek() == '.') {
+        if (reader.canRead(2) && reader.peek() == '.' && reader.peek(1) == '.') {
             reader.skip(); // skip first '.'
-            if (reader.canRead() && reader.peek() == '.') {
-                reader.skip(); // skip second '.'
-                if (reader.canRead() && reader.peek() != ']' && reader.peek() != ',') {
-                    maxValue = reader.readInt();
-                    hasMax = true;
-                }
+            reader.skip(); // skip second '.'
+            if (reader.canRead() && reader.peek() != ']' && reader.peek() != ',') {
+                maxValue = reader.readInt();
+                hasMax = true;
             }
+        } else {
+            // 没有 ".."，这是精确值，min = max
+            maxValue = minValue;
+            hasMax = true;
         }
     }
 

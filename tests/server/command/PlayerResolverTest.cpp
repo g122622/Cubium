@@ -723,3 +723,308 @@ TEST(PlayerResolverUtilTest, GetDifficultyCommandName)
     EXPECT_STREQ(getDifficultyCommandName(Difficulty::Normal), "normal");
     EXPECT_STREQ(getDifficultyCommandName(Difficulty::Hard), "hard");
 }
+
+// ========== FloatRange 角度测试（x_rotation/y_rotation 过滤核心逻辑）==========
+
+/**
+ * @brief FloatRange 角度范围测试
+ *
+ * 这些测试验证 EntitySelector 中的 x_rotation 和 y_rotation 参数过滤逻辑。
+ * 角度范围需要特殊处理，因为角度在 -180 到 180 度之间环绕。
+ *
+ * 参考 MC 1.16.5 EntitySelector.createRotationPredicate 实现逻辑：
+ * - 如果 min > max，说明范围跨越了 -180/180 边界，需要使用 OR 逻辑
+ * - 例如 [170..-170] 表示从 170 度到 -170 度（跨越正北方向）
+ */
+class FloatRangeAngleTest : public ::testing::Test {
+protected:
+    mc::command::FloatRange range;
+};
+
+TEST_F(FloatRangeAngleTest, UnboundedRangeAcceptsAnyAngle)
+{
+    EXPECT_TRUE(range.isUnbounded());
+    EXPECT_TRUE(range.testAngle(0.0f));
+    EXPECT_TRUE(range.testAngle(90.0f));
+    EXPECT_TRUE(range.testAngle(-90.0f));
+    EXPECT_TRUE(range.testAngle(180.0f));
+    EXPECT_TRUE(range.testAngle(-180.0f));
+    EXPECT_TRUE(range.testAngle(270.0f));   // 会被规范化为 -90
+    EXPECT_TRUE(range.testAngle(-270.0f));  // 会被规范化为 90
+}
+
+TEST_F(FloatRangeAngleTest, NormalRangeNoWraparound)
+{
+    // 普通范围：[10, 30]
+    range.setMin(10.0f);
+    range.setMax(30.0f);
+
+    EXPECT_TRUE(range.testAngle(10.0f));
+    EXPECT_TRUE(range.testAngle(20.0f));
+    EXPECT_TRUE(range.testAngle(30.0f));
+    EXPECT_FALSE(range.testAngle(9.0f));
+    EXPECT_FALSE(range.testAngle(31.0f));
+    EXPECT_FALSE(range.testAngle(0.0f));
+    EXPECT_FALSE(range.testAngle(-10.0f));
+}
+
+TEST_F(FloatRangeAngleTest, WraparoundRange)
+{
+    // 跨越边界的范围：[170, -170]（接近正北方向）
+    // 这表示角度在 [170, 180) 或 [-180, -170] 范围内
+    range.setMin(170.0f);
+    range.setMax(-170.0f);
+
+    // 在范围内（接近正北）
+    EXPECT_TRUE(range.testAngle(175.0f));
+    EXPECT_TRUE(range.testAngle(180.0f));   // 180 会被规范化为 -180
+    EXPECT_TRUE(range.testAngle(-180.0f));
+    EXPECT_TRUE(range.testAngle(-175.0f));
+    EXPECT_TRUE(range.testAngle(-170.0f));
+    EXPECT_TRUE(range.testAngle(170.0f));
+
+    // 不在范围内（远离正北）
+    EXPECT_FALSE(range.testAngle(0.0f));
+    EXPECT_FALSE(range.testAngle(90.0f));
+    EXPECT_FALSE(range.testAngle(-90.0f));
+    EXPECT_FALSE(range.testAngle(169.0f));
+    EXPECT_FALSE(range.testAngle(-169.0f));
+}
+
+TEST_F(FloatRangeAngleTest, WraparoundRangeLarge)
+{
+    // 大范围跨越：[90, -90]（覆盖整个后半球）
+    range.setMin(90.0f);
+    range.setMax(-90.0f);
+
+    // 在范围内（后半球：东 -> 南 -> 西 -> 北 -> 东）
+    EXPECT_TRUE(range.testAngle(90.0f));
+    EXPECT_TRUE(range.testAngle(180.0f));
+    EXPECT_TRUE(range.testAngle(-180.0f));
+    EXPECT_TRUE(range.testAngle(-90.0f));
+    EXPECT_TRUE(range.testAngle(120.0f));
+    EXPECT_TRUE(range.testAngle(-120.0f));
+
+    // 不在范围内（前半球）
+    EXPECT_FALSE(range.testAngle(0.0f));
+    EXPECT_FALSE(range.testAngle(45.0f));
+    EXPECT_FALSE(range.testAngle(-45.0f));
+    EXPECT_FALSE(range.testAngle(89.0f));
+    EXPECT_FALSE(range.testAngle(-89.0f));
+}
+
+TEST_F(FloatRangeAngleTest, PitchRangeNegative90To90)
+{
+    // 俯仰角范围（x_rotation）：[-45, 45]
+    // 表示从向下看 45 度到向上看 45 度
+    range.setMin(-45.0f);
+    range.setMax(45.0f);
+
+    EXPECT_TRUE(range.testAngle(0.0f));     // 正视前方
+    EXPECT_TRUE(range.testAngle(30.0f));    // 向上看 30 度
+    EXPECT_TRUE(range.testAngle(-30.0f));   // 向下看 30 度
+    EXPECT_TRUE(range.testAngle(45.0f));    // 边界
+    EXPECT_TRUE(range.testAngle(-45.0f));   // 边界
+
+    EXPECT_FALSE(range.testAngle(60.0f));   // 太高
+    EXPECT_FALSE(range.testAngle(-60.0f));  // 太低
+    EXPECT_FALSE(range.testAngle(90.0f));   // 直视上方
+    EXPECT_FALSE(range.testAngle(-90.0f));  // 直视下方
+}
+
+TEST_F(FloatRangeAngleTest, OnlyMinBound)
+{
+    // 只有最小值：[45, ...]
+    // MC 1.16.5 行为：min=45, max 默认为 null
+    // testAngle() 中，max 为 null 时使用默认值 359（规范后为 -1）
+    // 范围 [45, -1]，min > max，所以是跨越边界的范围
+    // 跨越边界匹配：value >= 45 || value <= -1
+    // 范围 = [45, 180) ∪ [-180, -1]
+    range.setMin(45.0f);
+
+    // 在跨越边界范围内 [45, 180) ∪ [-180, -1]
+    EXPECT_TRUE(range.testAngle(45.0f));
+    EXPECT_TRUE(range.testAngle(90.0f));
+    EXPECT_TRUE(range.testAngle(180.0f));   // 规范化为 -180，在 [-180, -1] 范围内
+    EXPECT_TRUE(range.testAngle(-180.0f));  // 在范围内
+    EXPECT_TRUE(range.testAngle(-1.0f));    // 在范围内边界
+    EXPECT_TRUE(range.testAngle(170.0f));
+    EXPECT_TRUE(range.testAngle(-170.0f));  // 在 [-180, -1] 范围内
+    EXPECT_TRUE(range.testAngle(-2.0f));    // 在 [-180, -1] 范围内
+    EXPECT_TRUE(range.testAngle(-90.0f));   // 在 [-180, -1] 范围内
+    EXPECT_TRUE(range.testAngle(-179.0f));  // 在范围内
+
+    // 不在范围内：[-0.999, 44.999]
+    // 这个范围是 "缺口"，即不包含的角度
+    EXPECT_FALSE(range.testAngle(0.0f));
+    EXPECT_FALSE(range.testAngle(-0.5f));
+    EXPECT_FALSE(range.testAngle(44.0f));
+    EXPECT_FALSE(range.testAngle(1.0f));
+    EXPECT_FALSE(range.testAngle(44.999f));
+}
+
+TEST_F(FloatRangeAngleTest, OnlyMaxBound)
+{
+    // 只有最大值：[..., 90]
+    range.setMax(90.0f);
+
+    // MC 行为：min 默认为 0，max=90
+    // 范围是 [0, 90]
+    EXPECT_TRUE(range.testAngle(0.0f));
+    EXPECT_TRUE(range.testAngle(45.0f));
+    EXPECT_TRUE(range.testAngle(90.0f));
+
+    EXPECT_FALSE(range.testAngle(-1.0f));
+    EXPECT_FALSE(range.testAngle(91.0f));
+    EXPECT_FALSE(range.testAngle(-45.0f));
+    EXPECT_FALSE(range.testAngle(180.0f));
+}
+
+TEST_F(FloatRangeAngleTest, AngleNormalization)
+{
+    // 测试角度规范化
+    range.setMin(0.0f);
+    range.setMax(90.0f);
+
+    // 270 度会被规范化为 -90 度
+    EXPECT_FALSE(range.testAngle(270.0f));
+    // -270 度会被规范化为 90 度
+    EXPECT_TRUE(range.testAngle(-270.0f));
+    // 360 度会被规范化为 0 度
+    EXPECT_TRUE(range.testAngle(360.0f));
+    // -360 度会被规范化为 0 度
+    EXPECT_TRUE(range.testAngle(-360.0f));
+    // 450 度会被规范化为 90 度
+    EXPECT_TRUE(range.testAngle(450.0f));
+}
+
+TEST_F(FloatRangeAngleTest, ExactAngleMatch)
+{
+    // 精确角度匹配：[45, 45]
+    range.setMin(45.0f);
+    range.setMax(45.0f);
+
+    EXPECT_TRUE(range.testAngle(45.0f));
+    EXPECT_FALSE(range.testAngle(44.9f));
+    EXPECT_FALSE(range.testAngle(45.1f));
+    EXPECT_FALSE(range.testAngle(0.0f));
+    EXPECT_FALSE(range.testAngle(-45.0f));
+}
+
+TEST_F(FloatRangeAngleTest, FullCircleRange)
+{
+    // 注意：[-180, 180] 的行为有些特殊
+    // 因为 wrapDegrees(180) = -180，所以这个范围实际上变成了 [-180, -180]
+    // 这是一个精确匹配范围
+
+    // 如果想要匹配所有角度，应该使用无界范围（不设置 min/max）
+    // 或者使用跨越边界的范围如 [-180, 179.999] 或 [-179, 180]
+
+    // 范围 [-180, 180] 变成精确匹配 -180
+    range.setMin(-180.0f);
+    range.setMax(180.0f);
+
+    // 只有 -180（或规范化为 -180 的值，如 180）匹配
+    EXPECT_TRUE(range.testAngle(-180.0f));
+    EXPECT_TRUE(range.testAngle(180.0f));   // 180 规范化为 -180
+    EXPECT_TRUE(range.testAngle(-180.0f));
+    EXPECT_TRUE(range.testAngle(540.0f));   // 540 = 180 + 360，规范化为 -180
+
+    // 其他值不匹配（因为 180 规范化后 min == max == -180）
+    EXPECT_FALSE(range.testAngle(-90.0f));
+    EXPECT_FALSE(range.testAngle(0.0f));
+    EXPECT_FALSE(range.testAngle(90.0f));
+}
+
+TEST_F(FloatRangeAngleTest, FullCircleRangeWraparound)
+{
+    // 如果要匹配几乎整个圆，可以使用跨越边界的范围
+    // 例如：[-179, 179] 表示除了正北方向（±180）以外的所有方向
+    range.setMin(-179.0f);
+    range.setMax(179.0f);
+
+    // min < max，所以使用 AND 逻辑
+    // 范围：[-179, 179]
+    EXPECT_TRUE(range.testAngle(-179.0f));
+    EXPECT_TRUE(range.testAngle(-90.0f));
+    EXPECT_TRUE(range.testAngle(0.0f));
+    EXPECT_TRUE(range.testAngle(90.0f));
+    EXPECT_TRUE(range.testAngle(179.0f));
+
+    // 不在范围内
+    EXPECT_FALSE(range.testAngle(180.0f));    // 规范化为 -180
+    EXPECT_FALSE(range.testAngle(-180.0f));
+}
+
+// ========== EntitySelector 角度范围解析测试 ==========
+
+class EntitySelectorAngleTest : public ::testing::Test {
+protected:
+    mc::command::EntitySelector selector;
+};
+
+TEST_F(EntitySelectorAngleTest, DefaultRotationRangesAreUnbounded)
+{
+    EXPECT_TRUE(selector.xRotation().isUnbounded());
+    EXPECT_TRUE(selector.yRotation().isUnbounded());
+}
+
+TEST_F(EntitySelectorAngleTest, SetXRotation)
+{
+    selector.xRotation().setMin(-45.0f);
+    selector.xRotation().setMax(45.0f);
+
+    EXPECT_FALSE(selector.xRotation().isUnbounded());
+    EXPECT_TRUE(selector.xRotation().hasMin());
+    EXPECT_TRUE(selector.xRotation().hasMax());
+    EXPECT_FLOAT_EQ(selector.xRotation().getMin(), -45.0f);
+    EXPECT_FLOAT_EQ(selector.xRotation().getMax(), 45.0f);
+}
+
+TEST_F(EntitySelectorAngleTest, SetYRotation)
+{
+    selector.yRotation().setMin(170.0f);
+    selector.yRotation().setMax(-170.0f);
+
+    EXPECT_FALSE(selector.yRotation().isUnbounded());
+    EXPECT_TRUE(selector.yRotation().hasMin());
+    EXPECT_TRUE(selector.yRotation().hasMax());
+    EXPECT_FLOAT_EQ(selector.yRotation().getMin(), 170.0f);
+    EXPECT_FLOAT_EQ(selector.yRotation().getMax(), -170.0f);
+}
+
+TEST_F(EntitySelectorAngleTest, XRotationFilterMatchesPitch)
+{
+    // 设置俯仰角范围：-30 到 30 度
+    selector.xRotation().setMin(-30.0f);
+    selector.xRotation().setMax(30.0f);
+
+    // 测试实体俯仰角
+    EXPECT_TRUE(selector.xRotation().testAngle(0.0f));
+    EXPECT_TRUE(selector.xRotation().testAngle(15.0f));
+    EXPECT_TRUE(selector.xRotation().testAngle(-15.0f));
+    EXPECT_TRUE(selector.xRotation().testAngle(30.0f));
+    EXPECT_TRUE(selector.xRotation().testAngle(-30.0f));
+
+    EXPECT_FALSE(selector.xRotation().testAngle(45.0f));
+    EXPECT_FALSE(selector.xRotation().testAngle(-45.0f));
+    EXPECT_FALSE(selector.xRotation().testAngle(90.0f));
+    EXPECT_FALSE(selector.xRotation().testAngle(-90.0f));
+}
+
+TEST_F(EntitySelectorAngleTest, YRotationFilterHandlesWraparound)
+{
+    // 设置偏航角范围：170 到 -170（接近正北）
+    selector.yRotation().setMin(170.0f);
+    selector.yRotation().setMax(-170.0f);
+
+    // 测试实体偏航角（跨越边界）
+    EXPECT_TRUE(selector.yRotation().testAngle(175.0f));
+    EXPECT_TRUE(selector.yRotation().testAngle(180.0f));
+    EXPECT_TRUE(selector.yRotation().testAngle(-180.0f));
+    EXPECT_TRUE(selector.yRotation().testAngle(-175.0f));
+
+    EXPECT_FALSE(selector.yRotation().testAngle(0.0f));
+    EXPECT_FALSE(selector.yRotation().testAngle(90.0f));
+    EXPECT_FALSE(selector.yRotation().testAngle(-90.0f));
+}

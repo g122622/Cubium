@@ -46,6 +46,8 @@ support/
 | `level` | `level=10..20` | `level=10..20` | 经验等级过滤 |
 | `limit` | `limit=n` | `limit=3` | 结果数量限制 |
 | `sort` | `sort=nearest` | `sort=nearest` | 排序方式 |
+| `x_rotation` | `x_rotation=-45..45` | `x_rotation=-30..30` | 俯仰角范围（pitch，-90 到 90 度） |
+| `y_rotation` | `y_rotation=170..-170` | `y_rotation=-90..90` | 偏航角范围（yaw，-180 到 180 度） |
 
 #### 排序方式
 
@@ -158,6 +160,39 @@ if (!selector.level().isUnbounded()) {
 }
 ```
 
+### 角度过滤实现
+
+角度过滤用于 `x_rotation`（俯仰角/pitch）和 `y_rotation`（偏航角/yaw）参数：
+
+1. 检查 `selector.xRotation().isUnbounded()` / `selector.yRotation().isUnbounded()`
+2. 优先使用实体实时角度（从 `Player` 实体获取 `pitch()` / `yaw()`）
+3. 如果实体不可用，使用 `ServerPlayerData` 中存储的角度
+4. 使用 `FloatRange::testAngle()` 检查角度是否在范围内
+
+```cpp
+// 核心逻辑
+if (!selector.xRotation().isUnbounded()) {
+    f32 pitch = playerData.pitch;
+    if (server != nullptr && world != nullptr) {
+        Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);
+        if (player != nullptr) {
+            pitch = player->pitch();
+        }
+    }
+    if (!selector.xRotation().testAngle(pitch)) {
+        return false;
+    }
+}
+```
+
+**角度环绕处理**：
+
+角度范围测试使用 `FloatRange::testAngle()` 方法，处理 -180/180 度边界环绕：
+- 角度值通过 `wrapDegrees()` 规范化到 [-180, 180) 范围
+- 当 `min > max` 时表示范围跨越边界（如 `[170..-170]` 表示接近正北方向）
+- 跨越边界时使用 OR 逻辑：`value >= min || value <= max`
+- 普通范围使用 AND 逻辑：`value >= min && value <= max`
+
 ### 性能考虑
 
 - 等级过滤需要为每个候选玩家获取实体，有额外开销
@@ -188,11 +223,29 @@ if (!selector.level().isUnbounded()) {
 测试文件位于 `tests/server/command/PlayerResolverTest.cpp`，涵盖：
 
 - **IntRange 测试** - 等级范围边界条件
+- **FloatRange 角度测试** - 角度范围环绕处理（-180/180 边界）
+- **EntitySelector 角度测试** - x_rotation/y_rotation 设置和过滤
 - **基础解析测试** - 空列表、用户名匹配、自选
 - **排序测试** - 最近、最远排序
 - **距离过滤测试** - 距离范围过滤
 - **游戏模式过滤测试** - 各种游戏模式匹配和排除
 - **限制测试** - 结果数量限制
+
+**FloatRange 角度测试覆盖**：
+
+| 测试用例 | 测试内容 |
+|----------|----------|
+| `UnboundedRangeAcceptsAnyAngle` | 无界范围接受任意角度 |
+| `NormalRangeNoWraparound` | 普通范围 [10, 30] 不处理环绕 |
+| `WraparoundRange` | 跨越边界范围 [170, -170] |
+| `WraparoundRangeLarge` | 大范围跨越 [90, -90] |
+| `PitchRangeNegative90To90` | 俯仰角范围 [-45, 45] |
+| `OnlyMinBound` | 只有最小值 [45, ...] |
+| `OnlyMaxBound` | 只有最大值 [..., 90] |
+| `AngleNormalization` | 角度规范化（270°→-90°） |
+| `ExactAngleMatch` | 精确角度匹配 [45, 45] |
+| `FullCircleRange` | 完整圆 [-180, 180] |
+| `FullCircleRangeWraparound` | 近完整圆 [-179, 179] |
 
 ## 容易踩的坑
 
@@ -223,5 +276,6 @@ ServerCommandSource consoleSource = ServerCommandSource::forConsole(server);
 
 ## 更新历史
 
+- **2026-05-11**: 实现 x_rotation/y_rotation 角度范围过滤，添加 FloatRange::testAngle() 方法处理角度环绕
 - **2026-05-09**: 实现经验等级过滤（`level=` 参数），修复 TODO
 - **初始版本**: 实现基础选择器解析（用户名、游戏模式、距离、排序、限制）
