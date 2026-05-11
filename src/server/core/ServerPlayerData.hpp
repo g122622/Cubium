@@ -19,6 +19,10 @@ class PlayerInventory;         // 前向声明
 }
 
 namespace mc::server {
+class PlayerAdvancements;  // 前向声明
+}
+
+namespace mc::server {
 
 /**
  * @brief 服务端玩家数据
@@ -87,6 +91,9 @@ struct ServerPlayerData {
     mc::AbstractContainerMenu* openMenu = nullptr;
     ContainerType openContainerType = ContainerType::Player;
     ContainerId nextContainerId = 1;
+
+    // 成就进度（使用共享指针管理生命周期）
+    std::shared_ptr<PlayerAdvancements> advancements;
 
     ServerPlayerData() = default;
 

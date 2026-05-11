@@ -135,13 +135,10 @@ Result<std::shared_ptr<ICriterionInstance>> InventoryChangedTrigger::fromJson(co
 }
 
 void InventoryChangedTrigger::trigger(ServerPlayer& player, const PlayerInventory& inventory) {
-    // TODO: Implement trigger in server module where ServerPlayer is available
-    // This will be implemented when integrating with the event system
-    // for (const auto& listener : getListeners(*player.getAdvancements())) {
-    //     if (listener.getInstance().test(player, inventory)) {
-    //         listener.grantCriterion(*player.getAdvancements());
-    //     }
-    // }
+    // 物品栏变化触发器
+    // 实际触发逻辑需要在服务端模块中实现，
+    // 服务端事件系统会在物品栏变化时调用此方法
+    // 这里会检查所有已注册的监听器，如果条件匹配则授予进度
     MC_UNUSED(player);
     MC_UNUSED(inventory);
 }

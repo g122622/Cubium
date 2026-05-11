@@ -121,9 +121,7 @@ server::PlayerAdvancements* getPlayerAdvancements(server::ServerPlayerData* play
     if (!playerData) {
         return nullptr;
     }
-    // TODO: PlayerData 需要添加 PlayerAdvancements 成员
-    // 目前返回 nullptr，等集成后实现
-    return nullptr;
+    return playerData->advancements.get();
 }
 
 } // namespace
@@ -331,8 +329,7 @@ i32 AdvancementCommand::grantAdvancement(CommandContext<ServerCommandSource>& co
 
         auto* playerAdvancements = getPlayerAdvancements(playerData);
         if (!playerAdvancements) {
-            // TODO: 等待 PlayerAdvancements 集成到 PlayerData
-            spdlog::warn("PlayerAdvancements not yet integrated for player {}", playerId);
+            spdlog::warn("PlayerAdvancements not initialized for player {}", playerId);
             continue;
         }
 

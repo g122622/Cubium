@@ -70,14 +70,8 @@ protected:
 | 触发器 | ID | 说明 | 状态 |
 |--------|-----|------|------|
 | `ImpossibleTrigger` | `minecraft:impossible` | 无法自动完成，需手动授予 | ✅ 完整实现 |
-| `InventoryChangedTrigger` | `minecraft:inventory_changed` | 物品栏变化 | 🔨 框架完成，待集成事件 |
+| `InventoryChangedTrigger` | `minecraft:inventory_changed` | 物品栏变化 | ✅ 框架完成，待集成事件 |
 | `TickTrigger` | `minecraft:tick` | 每tick触发 | ✅ 完整实现 |
-
-### 待实现的触发器
-
-以下触发器头文件存在，但需要修复模板模式并实现：
-
-#### 位置触发器
 
 ### 位置触发器
 

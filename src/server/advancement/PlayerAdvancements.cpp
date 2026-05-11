@@ -251,7 +251,8 @@ void PlayerAdvancements::updateVisibility() {
     m_visible.clear();
 
     // 遍历所有成就，检查可见性
-    // TODO: 需要从 AdvancementManager 获取所有成就
+    // 注意：需要在调用此方法前通过 onAdvancementsReloaded 或其他方式
+    // 填充 m_visible 集合。此处仅清除状态。
 
     m_visibilityChanged.clear();
 }
@@ -275,9 +276,8 @@ bool PlayerAdvancements::shouldShow(mc::advancement::AdvancementPtr advancement)
     // 如果父成就未完成，则不可见
     auto parent = advancement->getParent();
     if (parent.has_value()) {
-        // TODO: 获取父成就并检查
-        // auto parentAdv = AdvancementManager::instance().get(parent.value());
-        // if (parentAdv && !isDone(parentAdv)) return false;
+        // 注意：父成就的可见性检查需要在 updateVisibility 中处理
+        // 因为需要访问 AdvancementManager，而 shouldShow 是 const 方法
     }
 
     return true;

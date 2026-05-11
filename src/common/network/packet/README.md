@@ -39,7 +39,9 @@ src/common/network/packet/
 ├── TitlePacket.cpp                # 标题显示包实现
 ├── SleepPacket.hpp                # 睡眠状态同步包
 ├── WorldBorderPacket.hpp          # 世界边界同步包
-└── WorldBorderPacket.cpp          # 世界边界同步包实现
+├── WorldBorderPacket.cpp          # 世界边界同步包实现
+├── AdvancementPackets.hpp         # 成就系统数据包
+└── AdvancementPackets.cpp         # 成就数据包实现
 ```
 
 ## 文件详细说明
@@ -584,6 +586,62 @@ if (result.success()) {
 
 **参考**: MC 1.16.5 STitlePacket
 
+### 成就数据包
+
+#### AdvancementPackets.hpp / AdvancementPackets.cpp
+
+**职责**: 成就系统网络同步数据包
+
+**主要内容**:
+
+- **成就显示数据** (`AdvancementDisplayData`)
+  - 图标物品、标题、描述、框架类型
+  - 标志位: showToast, announceToChat, hidden
+  - 背景纹理（仅根成就）
+
+- **成就奖励数据** (`AdvancementRewardsData`)
+  - 经验值、配方列表、战利品表列表、函数ID
+
+- **成就同步数据** (`AdvancementData`)
+  - 成就ID、父成就、显示信息、奖励
+  - 条件映射、需求矩阵
+
+- **条件进度数据** (`CriterionProgressData`)
+  - 条件名称、完成时间戳
+
+- **成就进度数据** (`AdvancementProgressData`)
+  - 成就ID、条件进度列表
+
+- **成就信息同步包** (`AdvancementInfoPacket`) [S→C]
+  - 同步成就定义和进度到客户端
+  - 首次同步标志、添加/移除成就列表、进度更新
+
+- **成就标签页选择包** (`SelectAdvancementTabPacket`) [S→C]
+  - 通知客户端选中的成就标签页
+
+- **成就界面操作包** (`SeenAdvancementsPacket`) [C→S]
+  - 客户端通知服务端界面操作
+  - 操作类型: OpenedTab（打开标签页）、ClosedScreen（关闭界面）
+
+**协议格式** (MC 1.16.5 SPacketAdvancementInfo):
+- firstSync (bool): 是否首次同步
+- advancementsToAdd (list): 要添加的成就列表
+- advancementsToRemove (list): 要移除的成就ID列表
+- progress (map): 进度更新映射
+
+**使用示例**:
+```cpp
+// 服务端同步成就
+mc::AdvancementInfoPacket packet;
+packet.setFirstSync(true);
+packet.addAdvancement(advancementData);
+packet.setProgress(advancementId, progressData);
+
+// 序列化
+mc::network::PacketSerializer ser;
+packet.serialize(ser);
+```
+
 ## 文件关系图
 
 ```
@@ -644,6 +702,10 @@ PacketModule.hpp (统一入口)
     └── TitlePacket.hpp (标题显示包)
             ├── TitlePacket.cpp
             └── 依赖 Packet.hpp, ITextComponent.hpp
+
+    └── AdvancementPackets.hpp (成就同步包)
+            ├── AdvancementPackets.cpp
+            └── 依赖 PacketSerializer.hpp, Advancement.hpp, ItemStack.hpp
 ```
 
 ## 模块整体职责
