@@ -3,11 +3,16 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/util/text/ITextComponent.hpp"
+#include "common/util/text/StringTextComponent.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "common/network/packet/ProtocolPackets.hpp"
 #include <sstream>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 namespace command {
@@ -61,18 +66,45 @@ i32 TellRawCommand::sendRawMessage(CommandContext<ServerCommandSource>& context)
     auto& playerManager = server->playerManager();
     i32 successCount = 0;
 
+    // 解析 JSON 并构建聊天组件
+    std::string messageToSend;
+    try {
+        nlohmann::json json = nlohmann::json::parse(jsonMessage);
+        // 成功解析 JSON，直接使用原始 JSON 字符串发送
+        // 客户端会自行解析 JSON 格式的聊天消息
+        messageToSend = jsonMessage;
+    } catch (const nlohmann::json::exception&) {
+        // JSON 解析失败，将其作为纯文本发送
+        // 先尝试作为 JSON 字符串解析（带引号的字符串）
+        try {
+            nlohmann::json json = nlohmann::json::parse("\"" + jsonMessage + "\"");
+            messageToSend = jsonMessage;  // 纯文本，直接发送
+        } catch (...) {
+            // 完全无法解析，发送错误信息
+            source.sendError("Invalid JSON: " + jsonMessage);
+            return 0;
+        }
+    }
+
     for (PlayerId playerId : playerIds) {
         auto* playerData = playerManager.getPlayer(playerId);
         if (!playerData) {
             continue;
         }
 
-        // TODO: 解析 JSON 并构建聊天组件
-        // 当前直接发送原始文本
         auto conn = playerData->getConnection();
         if (conn && conn->isConnected()) {
-            // 发送原始 JSON 消息
-            successCount++;
+            // 发送 JSON 格式的聊天消息
+            network::ChatMessagePacket chatPacket(messageToSend, 0);
+            network::PacketSerializer payload;
+            chatPacket.serialize(payload);
+
+            if (server->connectionManager().sendPacketToPlayer(
+                    playerId,
+                    network::PacketType::ChatBroadcast,
+                    payload.buffer())) {
+                successCount++;
+            }
         }
     }
 
