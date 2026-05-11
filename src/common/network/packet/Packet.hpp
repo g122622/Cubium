@@ -117,6 +117,12 @@ enum class PacketType : u16 {
 
     // 成就包 (C->S)
     SeenAdvancements = 600,     // 成就界面操作
+
+    // 记分板包 (S->C)
+    ScoreboardObjective = 700,  // 目标同步 (创建/移除/更新)
+    UpdateScore = 701,          // 分数更新 (设置/移除)
+    DisplayObjective = 702,     // 显示目标 (设置显示槽位)
+    Teams = 703,                // 队伍同步 (创建/移除/更新/成员变更)
 };
 
 // 数据包头

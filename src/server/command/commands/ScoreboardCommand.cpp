@@ -4,10 +4,25 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/scoreboard/ServerScoreboard.hpp"
+#include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/util/text/StringTextComponent.hpp"
 #include <sstream>
 
 namespace mc {
 namespace command {
+
+// 辅助函数：获取服务端记分板
+static server::ServerScoreboard* getScoreboard(ServerCommandSource& source) {
+    auto* server = source.server();
+    if (!server) {
+        return nullptr;
+    }
+    auto& world = server->world();
+    // 暂时返回 nullptr，需要 ServerWorld 添加 scoreboard() 方法
+    // return world.scoreboard();
+    return nullptr;
+}
 
 void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
@@ -159,14 +174,50 @@ i32 ScoreboardCommand::addObjective(CommandContext<ServerCommandSource>& context
     const std::string name = context.getArgument<std::string>("name");
     const std::string criteria = context.getArgument<std::string>("criteria");
 
-    std::ostringstream ss;
-    ss << "Created new scoreboard objective '" << name << "' with criteria '" << criteria << "'";
-    source.sendMessage(ss.str());
+    // 获取记分板
+    auto* scoreboard = getScoreboard(source);
+    if (!scoreboard) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
 
-    // TODO: 实现记分板系统
-    // 1. 创建新的记分板目标
-    // 2. 验证准则类型
-    // 3. 注册到记分板管理器
+    // 验证目标名称长度
+    if (name.length() > scoreboard::ScoreObjective::MAX_NAME_LENGTH) {
+        std::ostringstream ss;
+        ss << "Objective name '" << name << "' is too long (max " << scoreboard::ScoreObjective::MAX_NAME_LENGTH << " characters)";
+        source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 检查目标是否已存在
+    if (scoreboard->hasObjective(name)) {
+        std::ostringstream ss;
+        ss << "An objective with the name '" << name << "' already exists";
+        source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 获取判据
+    auto& registry = scoreboard::ScoreCriteriaRegistry::instance();
+    auto* criteriaObj = registry.getCriteria(criteria);
+    if (!criteriaObj) {
+        std::ostringstream ss;
+        ss << "Unknown scoreboard criteria '" << criteria << "'";
+        source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 创建目标
+    auto displayName = std::make_unique<text::StringTextComponent>(name);
+    auto* objective = scoreboard->addObjective(name, *criteriaObj, std::move(displayName));
+    if (!objective) {
+        source.sendMessage("Failed to create objective");
+        return 0;
+    }
+
+    std::ostringstream ss;
+    ss << "Created new objective '" << name << "' with criteria '" << criteria << "'";
+    source.sendMessage(ss.str());
 
     return 1;
 }
@@ -176,11 +227,28 @@ i32 ScoreboardCommand::removeObjective(CommandContext<ServerCommandSource>& cont
     auto& source = context.getSource();
     const std::string name = context.getArgument<std::string>("name");
 
-    std::ostringstream ss;
-    ss << "Removed scoreboard objective '" << name << "'";
-    source.sendMessage(ss.str());
+    // 获取记分板
+    auto* scoreboard = getScoreboard(source);
+    if (!scoreboard) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
 
-    // TODO: 实现记分板系统
+    // 获取目标
+    auto* objective = scoreboard->getObjective(name);
+    if (!objective) {
+        std::ostringstream ss;
+        ss << "Unknown objective '" << name << "'";
+        source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 移除目标
+    scoreboard->removeObjective(*objective);
+
+    std::ostringstream ss;
+    ss << "Removed objective '" << name << "'";
+    source.sendMessage(ss.str());
 
     return 1;
 }
@@ -189,8 +257,26 @@ i32 ScoreboardCommand::listObjectives(CommandContext<ServerCommandSource>& conte
 {
     auto& source = context.getSource();
 
-    // TODO: 实现记分板系统，列出所有目标
-    source.sendMessage("Scoreboard objectives: (none)");
+    // 获取记分板
+    auto* scoreboard = getScoreboard(source);
+    if (!scoreboard) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
+
+    auto objectives = scoreboard->getObjectives();
+    if (objectives.empty()) {
+        source.sendMessage("There are no objectives");
+        return 1;
+    }
+
+    std::ostringstream ss;
+    ss << "There are " << objectives.size() << " objective(s): ";
+    for (size_t i = 0; i < objectives.size(); ++i) {
+        if (i > 0) ss << ", ";
+        ss << objectives[i]->getName();
+    }
+    source.sendMessage(ss.str());
 
     return 1;
 }
@@ -199,14 +285,44 @@ i32 ScoreboardCommand::setScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string target = context.getArgument<std::string>("target");
-    const std::string objective = context.getArgument<std::string>("objective");
+    const std::string objectiveName = context.getArgument<std::string>("objective");
     const i32 score = context.getArgument<i32>("score");
 
-    std::ostringstream ss;
-    ss << "Set " << target << "'s score in '" << objective << "' to " << score;
-    source.sendMessage(ss.str());
+    // 获取记分板
+    auto* scoreboard = getScoreboard(source);
+    if (!scoreboard) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
 
-    // TODO: 实现记分板系统
+    // 获取目标
+    auto* objective = scoreboard->getObjective(objectiveName);
+    if (!objective) {
+        std::ostringstream ss;
+        ss << "Unknown objective '" << objectiveName << "'";
+        source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 检查判据是否只读
+    if (objective->getCriteria().isReadOnly()) {
+        std::ostringstream ss;
+        ss << "Cannot set score for read-only criteria '" << objective->getCriteria().getName() << "'";
+        source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 设置分数
+    auto* scoreObj = scoreboard->getOrCreateScore(target, *objective);
+    if (!scoreObj) {
+        source.sendMessage("Failed to create score");
+        return 0;
+    }
+    scoreObj->setScorePoints(score);
+
+    std::ostringstream ss;
+    ss << "Set " << target << "'s score in '" << objectiveName << "' to " << score;
+    source.sendMessage(ss.str());
 
     return 1;
 }
@@ -215,14 +331,44 @@ i32 ScoreboardCommand::addScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string target = context.getArgument<std::string>("target");
-    const std::string objective = context.getArgument<std::string>("objective");
+    const std::string objectiveName = context.getArgument<std::string>("objective");
     const i32 score = context.getArgument<i32>("score");
 
-    std::ostringstream ss;
-    ss << "Added " << score << " to " << target << "'s score in '" << objective << "'";
-    source.sendMessage(ss.str());
+    // 获取记分板
+    auto* scoreboard = getScoreboard(source);
+    if (!scoreboard) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
 
-    // TODO: 实现记分板系统
+    // 获取目标
+    auto* objective = scoreboard->getObjective(objectiveName);
+    if (!objective) {
+        std::ostringstream ss;
+        ss << "Unknown objective '" << objectiveName << "'";
+        source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 检查判据是否只读
+    if (objective->getCriteria().isReadOnly()) {
+        std::ostringstream ss;
+        ss << "Cannot modify score for read-only criteria '" << objective->getCriteria().getName() << "'";
+        source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 获取分数
+    auto* scoreObj = scoreboard->getOrCreateScore(target, *objective);
+    if (!scoreObj) {
+        source.sendMessage("Failed to create score");
+        return 0;
+    }
+    scoreObj->addScore(score);
+
+    std::ostringstream ss;
+    ss << "Added " << score << " to " << target << "'s score in '" << objectiveName << "' (now " << scoreObj->getScorePoints() << ")";
+    source.sendMessage(ss.str());
 
     return 1;
 }
@@ -231,14 +377,44 @@ i32 ScoreboardCommand::removeScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string target = context.getArgument<std::string>("target");
-    const std::string objective = context.getArgument<std::string>("objective");
+    const std::string objectiveName = context.getArgument<std::string>("objective");
     const i32 score = context.getArgument<i32>("score");
 
-    std::ostringstream ss;
-    ss << "Removed " << score << " from " << target << "'s score in '" << objective << "'";
-    source.sendMessage(ss.str());
+    // 获取记分板
+    auto* scoreboard = getScoreboard(source);
+    if (!scoreboard) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
 
-    // TODO: 实现记分板系统
+    // 获取目标
+    auto* objective = scoreboard->getObjective(objectiveName);
+    if (!objective) {
+        std::ostringstream ss;
+        ss << "Unknown objective '" << objectiveName << "'";
+        source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 检查判据是否只读
+    if (objective->getCriteria().isReadOnly()) {
+        std::ostringstream ss;
+        ss << "Cannot modify score for read-only criteria '" << objective->getCriteria().getName() << "'";
+        source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 获取分数
+    auto* scoreObj = scoreboard->getOrCreateScore(target, *objective);
+    if (!scoreObj) {
+        source.sendMessage("Failed to create score");
+        return 0;
+    }
+    scoreObj->subtractScore(score);
+
+    std::ostringstream ss;
+    ss << "Subtracted " << score << " from " << target << "'s score in '" << objectiveName << "' (now " << scoreObj->getScorePoints() << ")";
+    source.sendMessage(ss.str());
 
     return 1;
 }
@@ -248,11 +424,19 @@ i32 ScoreboardCommand::resetScore(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     const std::string target = context.getArgument<std::string>("target");
 
+    // 获取记分板
+    auto* scoreboard = getScoreboard(source);
+    if (!scoreboard) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
+
+    // 重置玩家的所有分数
+    scoreboard->removeScore(target);
+
     std::ostringstream ss;
     ss << "Reset all scores for " << target;
     source.sendMessage(ss.str());
-
-    // TODO: 实现记分板系统
 
     return 1;
 }
@@ -261,11 +445,35 @@ i32 ScoreboardCommand::getScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string target = context.getArgument<std::string>("target");
-    const std::string objective = context.getArgument<std::string>("objective");
+    const std::string objectiveName = context.getArgument<std::string>("objective");
 
-    // TODO: 实现记分板系统，获取分数
+    // 获取记分板
+    auto* scoreboard = getScoreboard(source);
+    if (!scoreboard) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
+
+    // 获取目标
+    auto* objective = scoreboard->getObjective(objectiveName);
+    if (!objective) {
+        std::ostringstream ss;
+        ss << "Unknown objective '" << objectiveName << "'";
+        source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 获取分数
+    auto* scoreObj = scoreboard->getScore(target, *objective);
+    if (!scoreObj) {
+        std::ostringstream ss;
+        ss << target << " has no score in '" << objectiveName << "'";
+        source.sendMessage(ss.str());
+        return 0;
+    }
+
     std::ostringstream ss;
-    ss << target << " has 0 in '" << objective << "'";
+    ss << target << " has " << scoreObj->getScorePoints() << " in '" << objectiveName << "'";
     source.sendMessage(ss.str());
 
     return 1;

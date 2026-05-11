@@ -1,0 +1,253 @@
+#pragma once
+
+#include "../../common/scoreboard/core/Scoreboard.hpp"
+#include "../../common/scoreboard/network/ScoreboardPackets.hpp"
+#include "../../common/network/packet/Packet.hpp"
+#include "../../common/core/Types.hpp"
+#include <memory>
+#include <set>
+
+namespace mc {
+
+// 前向声明
+class ServerPlayer;
+
+namespace server {
+class MinecraftServer;
+}
+
+namespace scoreboard {
+class ScoreboardDataManager;
+}
+
+namespace network {
+class PacketSerializer;
+}
+
+namespace server {
+
+/**
+ * @brief 服务端记分板
+ *
+ * 扩展 Scoreboard 基类，添加网络同步和持久化功能。
+ * 参考 MC 1.16.5: net.minecraft.scoreboard.ServerScoreboard
+ */
+class ServerScoreboard : public mc::scoreboard::Scoreboard {
+public:
+    /**
+     * @brief 构造函数
+     *
+     * @param server Minecraft 服务器实例
+     */
+    explicit ServerScoreboard(mc::server::MinecraftServer& server);
+
+    /**
+     * @brief 析构函数
+     */
+    ~ServerScoreboard() override;
+
+    // 禁止拷贝
+    ServerScoreboard(const ServerScoreboard&) = delete;
+    ServerScoreboard& operator=(const ServerScoreboard&) = delete;
+
+    /**
+     * @brief 设置数据管理器
+     *
+     * @param dataManager 数据管理器（可选）
+     */
+    void setDataManager(mc::scoreboard::ScoreboardDataManager* dataManager) {
+        m_dataManager = dataManager;
+    }
+
+    // ========== 玩家管理 ==========
+
+    /**
+     * @brief 玩家加入时调用
+     *
+     * 向新玩家发送所有目标、分数和队伍数据。
+     *
+     * @param player 服务端玩家
+     */
+    void onPlayerJoin(mc::ServerPlayer& player);
+
+    /**
+     * @brief 玩家离开时调用
+     *
+     * 清理玩家的分数数据。
+     *
+     * @param playerId 玩家 ID
+     * @param playerName 玩家名称
+     */
+    void onPlayerLeave(PlayerId playerId, const std::string& playerName);
+
+    // ========== 网络同步 ==========
+
+    /**
+     * @brief 向所有玩家发送数据包
+     *
+     * @param type 数据包类型
+     * @param payload 数据包载荷
+     */
+    void sendToAllPlayers(mc::network::PacketType type, const std::vector<u8>& payload);
+
+    /**
+     * @brief 向指定玩家发送数据包
+     *
+     * @param playerId 玩家 ID
+     * @param type 数据包类型
+     * @param payload 数据包载荷
+     */
+    void sendToPlayer(PlayerId playerId, mc::network::PacketType type, const std::vector<u8>& payload);
+
+    /**
+     * @brief 发送目标创建包给玩家
+     *
+     * @param objective 目标
+     * @param playerId 玩家 ID
+     */
+    void sendObjectiveToPlayer(mc::scoreboard::ScoreObjective& objective, PlayerId playerId);
+
+    /**
+     * @brief 发送目标移除包给玩家
+     *
+     * @param objective 目标
+     * @param playerId 玩家 ID
+     */
+    void sendRemoveObjectiveToPlayer(mc::scoreboard::ScoreObjective& objective, PlayerId playerId);
+
+    /**
+     * @brief 发送分数更新包给玩家
+     *
+     * @param score 分数
+     * @param playerId 玩家 ID
+     */
+    void sendScoreToPlayer(mc::scoreboard::Score& score, PlayerId playerId);
+
+    /**
+     * @brief 发送分数移除包给玩家
+     *
+     * @param playerName 玩家名称
+     * @param objectiveName 目标名称（空表示移除所有）
+     * @param playerId 玩家 ID
+     */
+    void sendRemoveScoreToPlayer(const std::string& playerName,
+                                  const std::string& objectiveName,
+                                  PlayerId playerId);
+
+    /**
+     * @brief 发送显示槽位包给玩家
+     *
+     * @param slot 显示槽位
+     * @param objective 目标（nullptr 表示清除）
+     * @param playerId 玩家 ID
+     */
+    void sendDisplayObjectiveToPlayer(mc::scoreboard::DisplaySlot slot,
+                                       mc::scoreboard::ScoreObjective* objective,
+                                       PlayerId playerId);
+
+    /**
+     * @brief 发送队伍创建包给玩家
+     *
+     * @param team 队伍
+     * @param playerId 玩家 ID
+     */
+    void sendTeamToPlayer(mc::scoreboard::ScorePlayerTeam& team, PlayerId playerId);
+
+    /**
+     * @brief 发送队伍移除包给玩家
+     *
+     * @param team 队伍
+     * @param playerId 玩家 ID
+     */
+    void sendRemoveTeamToPlayer(mc::scoreboard::ScorePlayerTeam& team, PlayerId playerId);
+
+    // ========== 持久化 ==========
+
+    /**
+     * @brief 标记数据为脏
+     *
+     * 数据将在下次保存时写入磁盘。
+     */
+    void markDirty() { m_dirty = true; }
+
+    /**
+     * @brief 检查数据是否为脏
+     *
+     * @return true 如果需要保存
+     */
+    [[nodiscard]] bool isDirty() const { return m_dirty; }
+
+    /**
+     * @brief 保存数据
+     *
+     * 将数据写入持久化存储。
+     */
+    void save();
+
+    /**
+     * @brief 加载数据
+     *
+     * 从持久化存储加载数据。
+     */
+    void load();
+
+protected:
+    // ========== 回调覆写 ==========
+
+    void onObjectiveAdded(mc::scoreboard::ScoreObjective& objective) override;
+    void onObjectiveRemoved(mc::scoreboard::ScoreObjective& objective) override;
+    void onObjectiveChanged(mc::scoreboard::ScoreObjective& objective) override;
+    void onScoreChanged(mc::scoreboard::Score& score) override;
+    void onScoreRemoved(mc::scoreboard::Score& score) override;
+    void onPlayerRemoved(const std::string& playerName) override;
+    void onPlayerScoreRemoved(const std::string& playerName,
+                              mc::scoreboard::ScoreObjective& objective) override;
+    void onTeamAdded(mc::scoreboard::ScorePlayerTeam& team) override;
+    void onTeamChanged(mc::scoreboard::ScorePlayerTeam& team) override;
+    void onTeamRemoved(mc::scoreboard::ScorePlayerTeam& team) override;
+    void onDisplaySlotChanged(mc::scoreboard::DisplaySlot slot,
+                              mc::scoreboard::ScoreObjective* objective) override;
+
+private:
+    /**
+     * @brief 创建目标数据包
+     */
+    [[nodiscard]] mc::network::ScoreboardObjectivePacket createObjectivePacket(
+        mc::scoreboard::ScoreObjective& objective,
+        mc::network::ObjectiveAction action);
+
+    /**
+     * @brief 创建分数数据包
+     */
+    [[nodiscard]] mc::network::UpdateScorePacket createScorePacket(
+        mc::scoreboard::Score& score,
+        mc::network::ScoreAction action);
+
+    /**
+     * @brief 创建显示目标数据包
+     */
+    [[nodiscard]] mc::network::DisplayObjectivePacket createDisplayObjectivePacket(
+        mc::scoreboard::DisplaySlot slot,
+        mc::scoreboard::ScoreObjective* objective);
+
+    /**
+     * @brief 创建队伍数据包
+     */
+    [[nodiscard]] mc::network::TeamsPacket createTeamPacket(
+        mc::scoreboard::ScorePlayerTeam& team,
+        mc::network::TeamAction action);
+
+    mc::server::MinecraftServer& m_server;
+
+    /// 数据管理器（可选，用于持久化）
+    mc::scoreboard::ScoreboardDataManager* m_dataManager = nullptr;
+
+    /// 已同步到客户端的目标（用于玩家加入时发送）
+    std::set<mc::scoreboard::ScoreObjective*> m_addedObjectives;
+
+    /// 数据是否需要保存
+    bool m_dirty = false;
+};
+
+} // namespace server
+} // namespace mc

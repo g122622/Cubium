@@ -1,0 +1,153 @@
+#include "ScorePlayerTeam.hpp"
+#include "Scoreboard.hpp"
+#include "../../util/text/StringTextComponent.hpp"
+#include "../../util/text/TextStyle.hpp"
+#include <algorithm>
+
+namespace mc::scoreboard {
+
+ScorePlayerTeam::ScorePlayerTeam(Scoreboard& scoreboard, const std::string& name)
+    : m_scoreboard(scoreboard)
+    , m_name(name)
+    , m_displayName(std::make_unique<text::StringTextComponent>(name))
+    , m_prefix(std::make_unique<text::StringTextComponent>(""))
+    , m_suffix(std::make_unique<text::StringTextComponent>(""))
+{
+}
+
+const text::ITextComponent* ScorePlayerTeam::getDisplayName() const noexcept {
+    return m_displayName.get();
+}
+
+void ScorePlayerTeam::setDisplayName(std::unique_ptr<text::ITextComponent> displayName) {
+    m_displayName = std::move(displayName);
+    m_scoreboard.onTeamChanged(*this);
+}
+
+bool ScorePlayerTeam::addMember(const std::string& playerName) {
+    auto result = m_members.insert(playerName);
+    if (result.second) {
+        m_scoreboard.onTeamChanged(*this);
+        return true;
+    }
+    return false;
+}
+
+bool ScorePlayerTeam::removeMember(const std::string& playerName) {
+    auto it = m_members.find(playerName);
+    if (it != m_members.end()) {
+        m_members.erase(it);
+        m_scoreboard.onTeamChanged(*this);
+        return true;
+    }
+    return false;
+}
+
+bool ScorePlayerTeam::hasMember(const std::string& playerName) const {
+    return m_members.count(playerName) > 0;
+}
+
+void ScorePlayerTeam::clearMembers() {
+    if (!m_members.empty()) {
+        m_members.clear();
+        m_scoreboard.onTeamChanged(*this);
+    }
+}
+
+const text::ITextComponent* ScorePlayerTeam::getPrefix() const noexcept {
+    return m_prefix.get();
+}
+
+void ScorePlayerTeam::setPrefix(std::unique_ptr<text::ITextComponent> prefix) {
+    m_prefix = prefix ? std::move(prefix) : std::make_unique<text::StringTextComponent>("");
+    m_scoreboard.onTeamChanged(*this);
+}
+
+const text::ITextComponent* ScorePlayerTeam::getSuffix() const noexcept {
+    return m_suffix.get();
+}
+
+void ScorePlayerTeam::setSuffix(std::unique_ptr<text::ITextComponent> suffix) {
+    m_suffix = suffix ? std::move(suffix) : std::make_unique<text::StringTextComponent>("");
+    m_scoreboard.onTeamChanged(*this);
+}
+
+void ScorePlayerTeam::setColor(TextFormatting color) {
+    if (m_color != color) {
+        m_color = color;
+        m_scoreboard.onTeamChanged(*this);
+    }
+}
+
+void ScorePlayerTeam::setAllowFriendlyFire(bool allow) {
+    if (m_allowFriendlyFire != allow) {
+        m_allowFriendlyFire = allow;
+        m_scoreboard.onTeamChanged(*this);
+    }
+}
+
+void ScorePlayerTeam::setSeeFriendlyInvisibles(bool see) {
+    if (m_seeFriendlyInvisibles != see) {
+        m_seeFriendlyInvisibles = see;
+        m_scoreboard.onTeamChanged(*this);
+    }
+}
+
+void ScorePlayerTeam::setNameTagVisibility(TeamVisibility visibility) {
+    if (m_nameTagVisibility != visibility) {
+        m_nameTagVisibility = visibility;
+        m_scoreboard.onTeamChanged(*this);
+    }
+}
+
+void ScorePlayerTeam::setDeathMessageVisibility(TeamVisibility visibility) {
+    if (m_deathMessageVisibility != visibility) {
+        m_deathMessageVisibility = visibility;
+        m_scoreboard.onTeamChanged(*this);
+    }
+}
+
+void ScorePlayerTeam::setCollisionRule(TeamCollisionRule rule) {
+    if (m_collisionRule != rule) {
+        m_collisionRule = rule;
+        m_scoreboard.onTeamChanged(*this);
+    }
+}
+
+std::unique_ptr<text::ITextComponent> ScorePlayerTeam::formatName(
+    const text::ITextComponent& name) const {
+    // 创建格式化后的组件
+    auto formatted = name.shallowCopy();
+    if (!formatted) {
+        formatted = name.deepCopy();
+    }
+
+    // 应用队伍颜色
+    text::Style style = formatted->getStyle();
+    style.setColor(m_color);
+    formatted->setStyle(style);
+
+    // TODO: 应用前缀和后缀
+    // 需要创建一个新的复合组件，将前缀 + 名称 + 后缀组合
+
+    return formatted;
+}
+
+u8 ScorePlayerTeam::getFriendlyFlags() const noexcept {
+    u8 flags = 0;
+    if (m_allowFriendlyFire) {
+        flags |= 0x01;
+    }
+    if (m_seeFriendlyInvisibles) {
+        flags |= 0x02;
+    }
+    return flags;
+}
+
+void ScorePlayerTeam::setFriendlyFlags(u8 flags) {
+    m_allowFriendlyFire = (flags & 0x01) != 0;
+    m_seeFriendlyInvisibles = (flags & 0x02) != 0;
+    m_scoreboard.onTeamChanged(*this);
+}
+
+} // namespace mc::scoreboard

@@ -46,6 +46,9 @@ constexpr const char* SNAPSHOTS = "snapshots";
 /// 玩家数据
 constexpr const char* PLAYERS = "players";
 
+/// 记分板数据（目标、分数、队伍）
+constexpr const char* SCOREBOARD = "scoreboard";
+
 // ============================================================================
 // 列族名称数组
 // ============================================================================
@@ -63,7 +66,8 @@ inline const std::vector<std::string> ALL_COLUMN_FAMILIES = {
     POI_NETHER,
     POI_THE_END,
     SNAPSHOTS,
-    PLAYERS
+    PLAYERS,
+    SCOREBOARD
 };
 
 // ============================================================================

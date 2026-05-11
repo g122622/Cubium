@@ -966,6 +966,26 @@ add_library(mc_common STATIC
     # advancement/trigger/impl/ItemTriggers.cpp
     # advancement/trigger/impl/EntityTriggers.cpp
     # advancement/trigger/impl/EffectTriggers.cpp
+
+    # Scoreboard System - Core
+    scoreboard/core/Scoreboard.cpp
+    scoreboard/core/ScoreObjective.cpp
+    scoreboard/core/Score.cpp
+    scoreboard/core/ScoreCriteria.cpp
+    scoreboard/core/ScoreCriteriaRenderType.cpp
+    scoreboard/core/ScorePlayerTeam.cpp
+    # Scoreboard System - Criteria
+    scoreboard/criteria/DummyCriteria.cpp
+    scoreboard/criteria/TriggerCriteria.cpp
+    scoreboard/criteria/DeathCountCriteria.cpp
+    scoreboard/criteria/KillCountCriteria.cpp
+    scoreboard/criteria/ReadOnlyCriteria.cpp
+    scoreboard/criteria/TeamKillCriteria.cpp
+    # Scoreboard System - Network
+    scoreboard/network/ScoreboardPackets.cpp
+    # Scoreboard System - Storage
+    scoreboard/storage/ScoreboardSaveData.cpp
+    scoreboard/storage/ScoreboardDataManager.cpp
 )
 
 target_include_directories(mc_common

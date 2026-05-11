@@ -39,6 +39,8 @@ add_executable(minecraft-server
     player/ServerPlayer.cpp
     # 成就系统
     advancement/PlayerAdvancements.cpp
+    # 记分板系统
+    scoreboard/ServerScoreboard.cpp
     # 交互管理器
     interaction/BlockInteractionManager.cpp
     interaction/MiningManager.cpp

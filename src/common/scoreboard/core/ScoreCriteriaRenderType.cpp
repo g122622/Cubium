@@ -1,0 +1,82 @@
+#include "ScoreCriteriaRenderType.hpp"
+#include "../../util/text/TextStyle.hpp"
+#include <unordered_map>
+
+namespace mc::scoreboard {
+
+namespace {
+
+// 颜色名称到索引的映射
+const std::unordered_map<std::string, DisplaySlot> s_colorSlotMap = {
+    {"black", DisplaySlot::SidebarTeamBlack},
+    {"dark_blue", DisplaySlot::SidebarTeamDarkBlue},
+    {"dark_green", DisplaySlot::SidebarTeamDarkGreen},
+    {"dark_aqua", DisplaySlot::SidebarTeamDarkAqua},
+    {"dark_red", DisplaySlot::SidebarTeamDarkRed},
+    {"dark_purple", DisplaySlot::SidebarTeamDarkPurple},
+    {"gold", DisplaySlot::SidebarTeamGold},
+    {"gray", DisplaySlot::SidebarTeamGray},
+    {"dark_gray", DisplaySlot::SidebarTeamDarkGray},
+    {"blue", DisplaySlot::SidebarTeamBlue},
+    {"green", DisplaySlot::SidebarTeamGreen},
+    {"aqua", DisplaySlot::SidebarTeamAqua},
+    {"red", DisplaySlot::SidebarTeamRed},
+    {"light_purple", DisplaySlot::SidebarTeamLightPurple},
+    {"yellow", DisplaySlot::SidebarTeamYellow},
+    {"white", DisplaySlot::SidebarTeamWhite}
+};
+
+// 颜色索引到名称的映射
+const char* s_slotColorNames[16] = {
+    "black", "dark_blue", "dark_green", "dark_aqua",
+    "dark_red", "dark_purple", "gold", "gray",
+    "dark_gray", "blue", "green", "aqua",
+    "red", "light_purple", "yellow", "white"
+};
+
+} // namespace
+
+std::string displaySlotToString(DisplaySlot slot) {
+    switch (slot) {
+        case DisplaySlot::List:
+            return "list";
+        case DisplaySlot::Sidebar:
+            return "sidebar";
+        case DisplaySlot::BelowName:
+            return "belowName";
+        default: {
+            // 队伍侧边栏
+            const size_t index = static_cast<size_t>(slot) - static_cast<size_t>(DisplaySlot::SidebarTeamBlack);
+            if (index < 16) {
+                return std::string("sidebar.team.") + s_slotColorNames[index];
+            }
+            return "list";
+        }
+    }
+}
+
+std::optional<DisplaySlot> displaySlotFromString(const std::string& str) {
+    if (str == "list") {
+        return DisplaySlot::List;
+    }
+    if (str == "sidebar") {
+        return DisplaySlot::Sidebar;
+    }
+    if (str == "belowName") {
+        return DisplaySlot::BelowName;
+    }
+
+    // 检查队伍侧边栏格式: sidebar.team.{color}
+    const std::string prefix = "sidebar.team.";
+    if (str.size() > prefix.size() && str.substr(0, prefix.size()) == prefix) {
+        const std::string colorName = str.substr(prefix.size());
+        auto it = s_colorSlotMap.find(colorName);
+        if (it != s_colorSlotMap.end()) {
+            return it->second;
+        }
+    }
+
+    return std::nullopt;
+}
+
+} // namespace mc::scoreboard
