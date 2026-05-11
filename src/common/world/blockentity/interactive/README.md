@@ -90,17 +90,26 @@ interactive/
 
 ### SignEntity.hpp/cpp
 
-**职责**：告示牌方块实体，存储文本。
+**职责**：告示牌方块实体，存储文本并处理点击事件。
 
 **主要功能**：
 - 4行文本，每行最多15个字符
 - 支持彩色文本（使用§代码）
+- 支持富文本样式和点击事件
 - 可编辑（右键点击）
-- 木告示牌和苂石告示牌
+- 木告示牌和荧石告示牌
+
+**点击事件处理** (MC 1.16.5 参考: SignTileEntity.executeCommand()):
+- `RunCommand`: 服务端执行命令，权限级别为2（相当于OP）
+- `SuggestCommand`: 客户端功能，将命令填入聊天输入框
+- `OpenUrl`: 客户端功能，打开URL链接
+- `CopyToClipboard`: 客户端功能，复制文本到剪贴板
+- `OpenFile`: 出于安全原因不自动执行
 
 **关键方法**：
-- `getLine(i32 line)` - 获取指定行文本
-- `setLine(i32 line, const std::string& text)` - 设置文本
+- `getLine(i32 line)` - 获取指定行文本组件
+- `setLine(i32 line, unique_ptr<ITextComponent> text)` - 设置文本组件
+- `executeCommand(IWorld& world, Player& player)` - 执行点击事件命令
 - `isEditable()` - 检查是否可编辑
 - `setTextColor()` / `getTextColor()` - 文本颜色
 - `isGlowing()` / `setGlowing()` - 发光状态
@@ -295,6 +304,9 @@ i32 signal = lectern->getComparatorSignal();
 | 发光状态 | ✅ 完成 |
 | 序列化/反序列化 | ✅ 完成 |
 | 编辑状态管理 | ✅ 完成 |
+| 点击命令执行 | ✅ 完成 |
+| RunCommand 服务端执行 | ✅ 完成 |
+| SuggestCommand/OpenUrl/CopyToClipboard | ✅ 完成（客户端功能标记） |
 
 ### 旗帜 (BannerEntity)
 
@@ -329,7 +341,15 @@ i32 signal = lectern->getComparatorSignal();
 
 - `EnchantingTableEntityTest.cpp` - 附魔台测试
 - `PistonBlockEntityTest.cpp` - 活塞测试
-- `SignEntityTest.cpp` - 告示牌测试
+- `SignEntityTest.cpp` - 告示牌基础功能测试（文本存储、序列化、克隆）
+- `SignEntityCommandTest.cpp` - 告示牌点击命令执行测试（RunCommand、客户端功能标记）
 - `BannerEntityTest.cpp` - 旗帜测试
 - `JukeboxEntityTest.cpp` - 唱片机测试
 - `LecternEntityTest.cpp` - 讲台测试
+
+告示牌方块交互测试位于 `tests/common/world/block/blocks/SignBlockTest.cpp`：
+- AbstractSignBlock::onBlockActivated 触发 SignEntity::executeCommand
+- 无方块实体时的行为
+- 非 SignEntity 方块实体的行为
+- WoodType 属性测试
+- StandingSignBlock/WallSignBlock 状态属性测试

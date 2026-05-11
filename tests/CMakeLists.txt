@@ -103,6 +103,8 @@ add_executable(mc_tests
     common/world/blockentity/ConduitEntityTest.cpp
     # SignEntity 告示牌测试（类型注册、文本功能）
     common/world/blockentity/SignEntityTest.cpp
+    # SignEntity::executeCommand 测试（告示牌点击事件命令执行）
+    common/world/blockentity/SignEntityCommandTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp
@@ -121,6 +123,8 @@ add_executable(mc_tests
     common/world/block/blocks/functional/BellBlockTest.cpp
     common/world/block/WaterLoggableTest.cpp
     common/world/block/blocks/HopperBlockTest.cpp
+    # SignBlock 告示牌方块测试（onBlockActivated、状态属性）
+    common/world/block/blocks/SignBlockTest.cpp
     common/world/block/blocks/IceBlockTest.cpp
     common/world/block/blocks/SpreadableSnowyDirtBlockTest.cpp
     common/world/block/blocks/SoulFireBlockTest.cpp

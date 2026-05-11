@@ -516,6 +516,7 @@ Block
   - 实现 `IWaterLoggable` 接口，支持含水
   - 创建 `SignEntity` 方块实体
   - 存储 `WoodType` 木材类型（8种）
+  - `onBlockActivated()` 处理玩家右键点击，触发 `SignEntity::executeCommand()`
 
 - **StandingSignBlock** (站立告示牌):
   - 拥有 `ROTATION_0_15` 属性（16个旋转方向，每22.5度）
@@ -546,6 +547,12 @@ Block
 - 支持染色（16种染料颜色）
 - 支持发光效果（荧光墨囊）
 - 支持点击命令执行
+
+**交互逻辑** (MC 1.16.5 参考: SignBlock.onBlockActivated()):
+1. 玩家右键点击告示牌
+2. 检查方块实体是否存在且为 SignEntity 类型
+3. 调用 `SignEntity::executeCommand()` 处理点击事件
+4. 返回 `ActionResultType::Success`（成功执行）或 `ActionResultType::Pass`（无处理）
 
 **碰撞形状**:
 - 站立告示牌：细长杆状（0.25-0.75 × 0-1 × 0.25-0.75）
