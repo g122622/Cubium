@@ -6,7 +6,9 @@
 #include "../core/ConnectionManager.hpp"
 #include "../../common/network/packet/PacketSerializer.hpp"
 #include "../../common/scoreboard/storage/ScoreboardDataManager.hpp"
+#include "../../common/util/text/ITextComponent.hpp"
 #include "../../common/util/text/StringTextComponent.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace server {
@@ -143,7 +145,7 @@ void ServerScoreboard::save() {
             m_dirty = false;
         } else {
             // 记录错误但不抛异常
-            // TODO: 添加日志
+            spdlog::error("ServerScoreboard: Failed to save scoreboard: {}", result.error().message());
         }
     }
 }
@@ -158,7 +160,7 @@ void ServerScoreboard::load() {
             }
         } else {
             // 记录错误但不抛异常
-            // TODO: 添加日志
+            spdlog::error("ServerScoreboard: Failed to load scoreboard: {}", result.error().message());
         }
     }
 }
@@ -312,8 +314,8 @@ network::ScoreboardObjectivePacket ServerScoreboard::createObjectivePacket(
     if (action == network::ObjectiveAction::Add || action == network::ObjectiveAction::Update) {
         // 获取显示名称的 JSON 表示
         if (auto* displayName = objective.getDisplayName()) {
-            // TODO: 将 ITextComponent 转换为 JSON 字符串
-            packet.setDisplayName(objective.getName());  // 临时使用名称
+            // 将 ITextComponent 序列化为 JSON 字符串
+            packet.setDisplayName(displayName->toJson().dump());
         } else {
             packet.setDisplayName(objective.getName());
         }
@@ -362,20 +364,20 @@ network::TeamsPacket ServerScoreboard::createTeamPacket(
     if (action == network::TeamAction::Create || action == network::TeamAction::Update) {
         // 获取显示名称
         if (auto* displayName = team.getDisplayName()) {
-            // TODO: 将 ITextComponent 转换为 JSON 字符串
-            packet.setDisplayName(team.getName());  // 临时使用名称
+            // 将 ITextComponent 序列化为 JSON 字符串
+            packet.setDisplayName(displayName->toJson().dump());
         } else {
             packet.setDisplayName(team.getName());
         }
 
         // 获取前缀和后缀
         if (auto* prefix = team.getPrefix()) {
-            // TODO: 将 ITextComponent 转换为 JSON 字符串
-            // packet.setPrefix(prefixJson);
+            // 将 ITextComponent 序列化为 JSON 字符串
+            packet.setPrefix(prefix->toJson().dump());
         }
         if (auto* suffix = team.getSuffix()) {
-            // TODO: 将 ITextComponent 转换为 JSON 字符串
-            // packet.setSuffix(suffixJson);
+            // 将 ITextComponent 序列化为 JSON 字符串
+            packet.setSuffix(suffix->toJson().dump());
         }
 
         packet.setNameTagVisibility(scoreboard::teamVisibilityToString(team.getNameTagVisibility()));

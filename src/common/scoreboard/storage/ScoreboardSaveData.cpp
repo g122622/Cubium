@@ -1,8 +1,10 @@
 #include "ScoreboardSaveData.hpp"
 #include "../../util/nbt/Nbt.hpp"
+#include "../../util/text/ITextComponent.hpp"
 #include "../../util/text/StringTextComponent.hpp"
 #include "../core/ScoreCriteria.hpp"
 #include <sstream>
+#include <nlohmann/json.hpp>
 
 namespace mc::scoreboard {
 
@@ -340,10 +342,9 @@ ScoreboardSaveData ScoreboardSaveData::fromScoreboard(const Scoreboard& scoreboa
         objData.name = objective->getName();
         objData.criteriaName = objective->getCriteria().getName();
 
-        // 获取显示名称
+        // 获取显示名称，将 ITextComponent 序列化为 JSON 字符串
         if (auto* displayName = objective->getDisplayName()) {
-            // TODO: 将 ITextComponent 转换为 JSON
-            objData.displayName = objective->getName();
+            objData.displayName = displayName->toJson().dump();
         } else {
             objData.displayName = objective->getName();
         }
@@ -371,21 +372,19 @@ ScoreboardSaveData ScoreboardSaveData::fromScoreboard(const Scoreboard& scoreboa
         TeamData teamData;
         teamData.name = team->getName();
 
+        // 将 ITextComponent 序列化为 JSON 字符串
         if (auto* displayName = team->getDisplayName()) {
-            // TODO: 将 ITextComponent 转换为 JSON
-            teamData.displayName = team->getName();
+            teamData.displayName = displayName->toJson().dump();
         } else {
             teamData.displayName = team->getName();
         }
 
         if (auto* prefix = team->getPrefix()) {
-            // TODO: 将 ITextComponent 转换为 JSON
-            teamData.prefix = "";
+            teamData.prefix = prefix->toJson().dump();
         }
 
         if (auto* suffix = team->getSuffix()) {
-            // TODO: 将 ITextComponent 转换为 JSON
-            teamData.suffix = "";
+            teamData.suffix = suffix->toJson().dump();
         }
 
         teamData.color = text::toName(team->getColor());
@@ -429,8 +428,20 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
             }
         }
 
-        // TODO: 从 JSON 创建显示名称
-        auto displayName = std::make_unique<text::StringTextComponent>(objData.displayName);
+        // 从 JSON 字符串创建显示名称，或使用名称作为纯文本
+        std::unique_ptr<text::ITextComponent> displayName;
+        if (!objData.displayName.empty()) {
+            try {
+                nlohmann::json json = nlohmann::json::parse(objData.displayName);
+                displayName = text::ITextComponent::fromJson(json);
+            } catch (const nlohmann::json::exception&) {
+                // JSON 解析失败，使用纯文本
+                displayName = std::make_unique<text::StringTextComponent>(objData.displayName);
+            }
+        }
+        if (!displayName) {
+            displayName = std::make_unique<text::StringTextComponent>(objData.name);
+        }
 
         auto* objective = scoreboard.addObjective(objData.name, *criteria, std::move(displayName));
         if (objective) {
@@ -460,9 +471,47 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
             continue;
         }
 
-        // TODO: 从 JSON 创建显示名称、前缀、后缀
-        auto displayName = std::make_unique<text::StringTextComponent>(teamData.displayName);
-        team->setDisplayName(std::move(displayName));
+        // 从 JSON 字符串创建显示名称
+        if (!teamData.displayName.empty()) {
+            try {
+                nlohmann::json json = nlohmann::json::parse(teamData.displayName);
+                auto displayName = text::ITextComponent::fromJson(json);
+                if (displayName) {
+                    team->setDisplayName(std::move(displayName));
+                }
+            } catch (const nlohmann::json::exception&) {
+                // JSON 解析失败，使用纯文本
+                team->setDisplayName(std::make_unique<text::StringTextComponent>(teamData.displayName));
+            }
+        }
+
+        // 从 JSON 字符串创建前缀
+        if (!teamData.prefix.empty()) {
+            try {
+                nlohmann::json json = nlohmann::json::parse(teamData.prefix);
+                auto prefix = text::ITextComponent::fromJson(json);
+                if (prefix) {
+                    team->setPrefix(std::move(prefix));
+                }
+            } catch (const nlohmann::json::exception&) {
+                // JSON 解析失败，使用纯文本
+                team->setPrefix(std::make_unique<text::StringTextComponent>(teamData.prefix));
+            }
+        }
+
+        // 从 JSON 字符串创建后缀
+        if (!teamData.suffix.empty()) {
+            try {
+                nlohmann::json json = nlohmann::json::parse(teamData.suffix);
+                auto suffix = text::ITextComponent::fromJson(json);
+                if (suffix) {
+                    team->setSuffix(std::move(suffix));
+                }
+            } catch (const nlohmann::json::exception&) {
+                // JSON 解析失败，使用纯文本
+                team->setSuffix(std::make_unique<text::StringTextComponent>(teamData.suffix));
+            }
+        }
 
         auto color = text::fromName(teamData.color);
         team->setColor(color);
