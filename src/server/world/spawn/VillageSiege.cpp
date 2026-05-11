@@ -6,6 +6,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -15,6 +16,7 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -40,7 +42,13 @@ i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles) {
         return 0;
     }
 
-    // 条件2: 检查是否为夜晚（不是白天）
+    // 条件2: 检查游戏难度（非和平模式才能发生僵尸围攻）
+    // MC 1.16.5: MonsterEntity.canMonsterSpawnInLight() 中检查难度
+    if (!entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {
+        return 0;
+    }
+
+    // 条件3: 检查是否为夜晚（不是白天）
     // MC 1.16.5: !world.isDaytime()
     const i64 worldDayTime = world.dayTime();
     const bool isDaytime = (worldDayTime % game::DAY_LENGTH_TICKS) < 12000;  // 0-12000 是白天
@@ -52,7 +60,7 @@ i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles) {
         return 0;
     }
 
-    // 条件3: 检查是否为午夜时刻（天体角度 0.5）
+    // 条件4: 检查是否为午夜时刻（天体角度 0.5）
     // MC 1.16.5: celestialAngle == 0.5
     if (isMidnight(world)) {
         // 10% 概率触发今晚围攻
@@ -69,7 +77,7 @@ i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles) {
         return 0;
     }
 
-    // 条件4: 尚未设置围攻
+    // 条件5: 尚未设置围攻
     if (!m_hasSetup) {
         if (!trySetupSiege(world)) {
             return 0;
@@ -77,7 +85,7 @@ i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles) {
         m_hasSetup = true;
     }
 
-    // 条件5: 等待生成延迟
+    // 条件6: 等待生成延迟
     if (m_nextSpawnDelay > 0) {
         --m_nextSpawnDelay;
         return 0;
@@ -262,26 +270,9 @@ bool VillageSiege::canMonsterSpawnAt(IWorld& world, const BlockPos& pos) {
         return false;
     }
 
-    // 检查光照条件（怪物需要在暗处生成）
-    // MC 1.16.5: 天空光照 > random.nextInt(32) 则不能生成
-    // 方块光照 <= random.nextInt(8) 才能生成
-    // 简化实现：检查方块光照 <= 7
-    const u8 blockLight = world.getBlockLight(pos);
-    const u8 skyLight = world.getSkyLight(pos);
-
-    // 使用随机值检查（参考 MC 的 isValidLightLevel）
-    const i32 lightThreshold = m_random.nextInt(8);
-    const bool validLightLevel = (blockLight <= static_cast<u8>(lightThreshold));
-
-    // 如果天空光照太亮，也不能生成
-    const i32 skyLightThreshold = m_random.nextInt(32);
-    const bool skyLightTooBright = (skyLight > static_cast<u8>(skyLightThreshold));
-
-    if (skyLightTooBright && !validLightLevel) {
-        return false;
-    }
-
-    return true;
+    // MC 1.16.5: 使用 MonsterEntity.isValidLightLevel() 检查光照条件
+    // 这是完整的实现，包括天空光照和方块光照的随机阈值检查
+    return MonsterEntity::isValidLightLevel(world, pos, m_random);
 }
 
 bool VillageSiege::isMidnight(server::ServerWorld& world) const {
@@ -305,10 +296,28 @@ bool VillageSiege::isInValidVillage(server::ServerWorld& world, const BlockPos& 
         return false;
     }
 
-    // 检查村庄是否有足够的床位和村民
-    // MC 1.16.5 要求：至少 10 张床和 20 个村民
-    // 简化实现：只检查村庄是否存在
-    (void)village;
+    // MC 1.16.5: VillageSiege.trySetupSiege() 中使用 isVillage() 方法检查
+    // 项目的 isVillage() 等价于 VillageManager::getVillageAt() 返回非空
+    //
+    // 但 MC 原版的村庄定义要求：
+    // - 至少有床位（POI 系统 sectionsToVillage 返回距离 <= 6）
+    // - 村庄围攻会生成僵尸攻击村民，所以应该有村民存在
+    //
+    // 项目中使用 Village 类的床位和村民数量来近似判断有效村庄
+    // 参考 MC 1.16.5 中村民繁殖的阈值：至少 2 张床才能开始繁殖
+    // 村庄围攻需要有意义的村庄目标，这里要求至少 1 张床和至少 1 个村民
+
+    // 检查村庄是否有床位和村民
+    // 注意：MC 原版没有这个检查，但这是合理的补充
+    // 空村庄不应该触发僵尸围攻
+    const i32 bedCount = village->getBedCount();
+    const i32 population = village->getPopulation();
+
+    // 至少需要 1 张床和 1 个村民才算是有效村庄
+    // 这与项目的 POI 系统和村庄定义一致
+    if (bedCount <= 0 || population <= 0) {
+        return false;
+    }
 
     return true;
 }
