@@ -3,6 +3,8 @@
 #include "../../BlockRegistry.hpp"
 #include "../../BlockTags.hpp"
 #include "../../../../entity/core/Entity.hpp"
+#include "../../../../entity/core/LivingEntity.hpp"
+#include "../../../../entity/damage/DamageSource.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
@@ -186,10 +188,30 @@ void FireBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
 
 void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
     MC_UNUSED(state);
-    MC_UNUSED(world);
     MC_UNUSED(pos);
-    // TODO: 对实体造成伤害
-    // entity.hurt(DamageSource::IN_FIRE, m_fireDamage);
+
+    // 参考 MC 1.16.5 AbstractFireBlock.onEntityCollision()
+    // 1. 检查实体是否免疫火焰
+    if (entity.isImmuneToFire()) {
+        return;
+    }
+
+    // 2. 增加火焰计时器（每个碰撞 tick 增加 1）
+    entity.forceFireTicks(entity.getFireTimer() + 1);
+
+    // 3. 如果火焰计时器为 0，设置燃烧 8 秒（160 ticks）
+    // MC 1.16.5: setFire(8) 会将燃烧时间设置为 8 * 20 = 160 ticks
+    if (entity.getFireTimer() == 0) {
+        entity.setFire(8);
+    }
+
+    // 4. 造成火焰伤害
+    // 只有 LivingEntity 才能受到伤害
+    auto* livingEntity = dynamic_cast<LivingEntity*>(&entity);
+    if (livingEntity != nullptr) {
+        auto damageSource = DamageSources::inFire();
+        livingEntity->hurt(damageSource, static_cast<f32>(m_fireDamage));
+    }
 }
 
 const CollisionShape& FireBlock::getShape(const BlockState& state) const {

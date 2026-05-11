@@ -1,4 +1,5 @@
 #include "Entity.hpp"
+#include "EntityRegistry.hpp"
 #include "../utils/EntityUtils.hpp"
 #include "../entities/player/Player.hpp"
 #include "../../world/IWorld.hpp"
@@ -1408,6 +1409,18 @@ bool Entity::isInvulnerableTo(DamageSource& source) const {
         // 虚空伤害和创造模式玩家可以绕过无敌
         // 参考: DamageSource.bypassesInvulnerability()
         return !source.bypassesInvulnerability();
+    }
+    return false;
+}
+
+bool Entity::isImmuneToFire() const {
+    // 参考 MC 1.16.5 Entity.isImmuneToFire()
+    // 默认实现：查询实体类型的火焰免疫标志
+    // 子类可以重写此方法提供运行时可变的免疫状态
+    const std::string typeId = getTypeId();
+    const entity::EntityType* type = entity::EntityRegistry::instance().getType(typeId);
+    if (type != nullptr) {
+        return type->immuneToFire();
     }
     return false;
 }

@@ -1051,6 +1051,13 @@ public:
     [[nodiscard]] i32 fire() const { return m_fire; }
 
     /**
+     * @brief 获取火焰计时器（MC 1.16.5 getFireTimer）
+     *
+     * 与 fire() 功能相同，是 MC 的命名方式。
+     */
+    [[nodiscard]] i32 getFireTimer() const { return m_fire; }
+
+    /**
      * @brief 设置着火时间
      *
      * MC 1.16.5: 只增加燃烧时间，不会减少。
@@ -1063,6 +1070,29 @@ public:
             m_fire = ticks;
         }
     }
+
+    /**
+     * @brief 强制设置火焰计时器（MC 1.16.5 forceFireTicks）
+     *
+     * 直接设置火焰计时器值，不检查当前值。
+     * 用于增加/减少火焰时间，包括设置为负值（表示短暂火焰免疫期）。
+     *
+     * @param ticks 火焰计时器值
+     */
+    void forceFireTicks(i32 ticks) {
+        m_fire = ticks;
+    }
+
+    /**
+     * @brief 检查是否免疫火焰
+     *
+     * 参考 MC 1.16.5 Entity.isImmuneToFire()
+     * 默认实现查询实体类型的火焰免疫标志。
+     * 子类可重写以提供运行时可变的免疫状态。
+     *
+     * @return 如果免疫火焰返回 true
+     */
+    [[nodiscard]] virtual bool isImmuneToFire() const;
 
     // ========== 空气管理 ==========
 
