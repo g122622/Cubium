@@ -83,6 +83,14 @@ skin/
 - 纹理资源引用
 - 部件可见性
 
+### PlayerListEntry (SkinPackets)
+
+玩家列表条目，用于 Tab 列表显示：
+- UUID、名称、属性、游戏模式、延迟
+- **displayName**: JSON 格式的 ITextComponent 序列化结果
+- 支持 `setDisplayName(ITextComponent)` 设置富文本显示名
+- 支持 `getDisplayNameAsText()` 解析为 ITextComponent
+
 ## 数据流
 
 ```
@@ -110,6 +118,8 @@ skin/
 
 ## 使用示例
 
+### 基本用法
+
 ```cpp
 #include "common/skin/manager/SkinManager.hpp"
 #include "common/skin/network/PlayerSkinInfo.hpp"
@@ -134,6 +144,32 @@ if (skinInfo->isLoaded()) {
 }
 ```
 
+### 设置 Tab 列表显示名
+
+```cpp
+#include "common/skin/network/SkinPackets.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextStyle.hpp"
+
+// 创建带样式的显示名
+mc::text::StringTextComponent displayName("Admin");
+mc::text::Style style;
+style.setColor(mc::text::TextFormatting::Red);
+style.setBold(true);
+displayName.setStyle(style);
+
+// 创建玩家列表条目
+mc::skin::PlayerListEntry entry = mc::skin::PlayerListEntry::createAdd(profile, mc::GameMode::Creative, 50);
+entry.setDisplayName(displayName);  // 自动序列化为 JSON
+
+// 解析显示名
+auto text = entry.getDisplayNameAsText();
+if (text) {
+    std::cout << text->getUnformattedText() << std::endl;  // "Admin"
+    std::cout << text->getStyle().getColor() << std::endl; // Red
+}
+```
+
 ## 命名空间
 
 所有类型位于 `mc::skin` 命名空间。
@@ -143,6 +179,7 @@ if (skinInfo->isLoaded()) {
 - `common/core` - 基础类型
 - `common/resource` - ResourceLocation
 - `common/network` - 网络包序列化
+- `common/util/text` - ITextComponent 文本组件
 - `spdlog` - 日志
 - `nlohmann-json` - JSON解析
 
@@ -151,5 +188,5 @@ if (skinInfo->isLoaded()) {
 - `tests/common/skin/test_skin_types.cpp`
 - `tests/common/skin/test_game_profile.cpp`
 - `tests/common/skin/test_skin_cache.cpp`
-- `tests/common/skin/test_skin_packets.cpp`
+- `tests/common/skin/test_skin_packets.cpp` - 包含 displayName ITextComponent 序列化测试
 - `tests/common/skin/test_skin_manager.cpp`

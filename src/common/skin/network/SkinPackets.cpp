@@ -1,4 +1,6 @@
 #include "SkinPackets.hpp"
+#include "util/text/ITextComponent.hpp"
+#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::skin {
@@ -39,6 +41,37 @@ PlayerListEntry PlayerListEntry::createUpdateGameMode(const std::array<u8, 16>& 
     return entry;
 }
 
+PlayerListEntry PlayerListEntry::createUpdateDisplayName(const std::array<u8, 16>& uuid,
+                                                          const std::optional<std::string>& displayName) {
+    PlayerListEntry entry;
+    entry.uuid = uuid;
+    entry.displayName = displayName;
+    return entry;
+}
+
+// static
+std::string PlayerListEntry::serializeText(const text::ITextComponent& text) {
+    return text.toJson().dump();
+}
+
+void PlayerListEntry::setDisplayName(const text::ITextComponent& text) {
+    displayName = serializeText(text);
+}
+
+std::unique_ptr<text::ITextComponent> PlayerListEntry::getDisplayNameAsText() const {
+    if (!displayName.has_value() || displayName->empty()) {
+        return nullptr;
+    }
+
+    try {
+        nlohmann::json json = nlohmann::json::parse(*displayName);
+        return text::ITextComponent::fromJson(json);
+    } catch (const nlohmann::json::exception& e) {
+        spdlog::warn("PlayerListEntry: Failed to parse displayName JSON: {}", e.what());
+        return nullptr;
+    }
+}
+
 void PlayerListEntry::serialize(network::PacketSerializer& ser, PlayerListAction action) const {
     // UUID: 16 bytes
     for (size_t i = 0; i < 16; ++i) {
@@ -68,9 +101,8 @@ void PlayerListEntry::serialize(network::PacketSerializer& ser, PlayerListAction
             ser.writeBool(displayName.has_value());
 
             // DisplayName?: Chat (optional)
+            // 格式：JSON序列化的ITextComponent，例如 {"text":"PlayerName","color":"red"}
             if (displayName.has_value()) {
-                // TODO 简化处理：直接写入字符串作为 Chat 组件
-                // 真实格式应该是 JSON Chat 组件
                 ser.writeString(*displayName);
             }
             break;
@@ -93,6 +125,7 @@ void PlayerListEntry::serialize(network::PacketSerializer& ser, PlayerListAction
             ser.writeBool(displayName.has_value());
 
             // DisplayName?: Chat (optional)
+            // 格式：JSON序列化的ITextComponent
             if (displayName.has_value()) {
                 ser.writeString(*displayName);
             }
@@ -166,6 +199,7 @@ Result<PlayerListEntry> PlayerListEntry::deserialize(network::PacketDeserializer
 
             if (hasNameResult.value()) {
                 // DisplayName: Chat
+                // 格式：JSON序列化的ITextComponent
                 auto displayNameResult = deser.readString();
                 if (displayNameResult.failed()) {
                     return displayNameResult.error();
@@ -204,6 +238,7 @@ Result<PlayerListEntry> PlayerListEntry::deserialize(network::PacketDeserializer
 
             if (hasNameResult.value()) {
                 // DisplayName: Chat
+                // 格式：JSON序列化的ITextComponent
                 auto displayNameResult = deser.readString();
                 if (displayNameResult.failed()) {
                     return displayNameResult.error();

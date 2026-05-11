@@ -4,8 +4,10 @@
 #include "common/network/packet/Packet.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTypes.hpp"
+#include "common/util/text/ITextComponentFwd.hpp"
 #include <vector>
 #include <optional>
+#include <memory>
 
 namespace mc::skin {
 
@@ -26,14 +28,20 @@ enum class PlayerListAction : u8 {
  * @brief 玩家列表条目
  *
  * 存储单个玩家的信息，用于 PlayerListItemPacket。
+ *
+ * displayName 字段说明：
+ * - 存储 JSON 格式的 ITextComponent 序列化结果
+ * - 例如：{"text":"PlayerName","color":"red","bold":true}
+ * - 使用 setDisplayName() 方法从 ITextComponent 设置
+ * - 使用 getDisplayNameAsText() 方法解析为 ITextComponent
  */
 struct PlayerListEntry {
     std::array<u8, 16> uuid;                            // 玩家UUID
-    std::string name;                                         // 玩家名称
+    std::string name;                                   // 玩家名称
     std::vector<GameProfileProperty> properties;        // 档案属性（皮肤等）
     GameMode gameMode = GameMode::Survival;             // 游戏模式
-    i32 ping = 0;                                        // 延迟（毫秒）
-    std::optional<std::string> displayName;                   // 显示名（可选）
+    i32 ping = 0;                                       // 延迟（毫秒）
+    std::optional<std::string> displayName;             // 显示名（JSON格式的ITextComponent）
 
     PlayerListEntry() = default;
 
@@ -66,6 +74,35 @@ struct PlayerListEntry {
      * @param gameMode 新游戏模式
      */
     static PlayerListEntry createUpdateGameMode(const std::array<u8, 16>& uuid, GameMode gameMode);
+
+    /**
+     * @brief 创建更新显示名条目
+     * @param uuid 玩家UUID
+     * @param displayName 显示名（JSON格式的ITextComponent），std::nullopt表示清除显示名
+     */
+    static PlayerListEntry createUpdateDisplayName(const std::array<u8, 16>& uuid,
+                                                    const std::optional<std::string>& displayName);
+
+    /**
+     * @brief 从ITextComponent设置显示名
+     * @param text 文本组件
+     *
+     * 将文本组件序列化为JSON字符串存储到displayName字段。
+     */
+    void setDisplayName(const text::ITextComponent& text);
+
+    /**
+     * @brief 获取显示名作为ITextComponent
+     * @return 文本组件，如果displayName为空或解析失败则返回nullptr
+     */
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getDisplayNameAsText() const;
+
+    /**
+     * @brief 将ITextComponent序列化为JSON字符串
+     * @param text 文本组件
+     * @return JSON字符串
+     */
+    static std::string serializeText(const text::ITextComponent& text);
 
     // 序列化辅助方法
     void serialize(network::PacketSerializer& ser, PlayerListAction action) const;
