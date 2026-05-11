@@ -1,6 +1,7 @@
 #include "ServerPlayer.hpp"
 
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/packet/TitlePacket.hpp"
 #include "common/network/packet/SleepPacket.hpp"
 #include "common/entity/player/SleepManager.hpp"
 #include "common/entity/player/SpawnPointValidator.hpp"
@@ -69,18 +70,34 @@ void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
     // actionBar 参数用于控制消息显示位置：
     // - actionBar = true: 显示在物品栏上方的 Action Bar 区域
     // - actionBar = false: 显示在聊天区域
-    //
-    // 当前实现中，ChatMessagePacket 始终发送到聊天区域。
-    // 未来如需支持 Action Bar，需要使用不同的数据包类型（如 STitlePacket）。
-    // 暂时忽略 actionBar 参数，始终发送到聊天区域。
-    (void)actionBar;
 
     if (!hasConnection()) {
         spdlog::debug("ServerPlayer: status message not sent (player={}, no connection)", username());
         return;
     }
 
-    sendSystemMessage(message);
+    if (actionBar) {
+        // 使用 TitlePacket 的 Actionbar 类型显示在 Action Bar 区域
+        // 参考 MC 1.16.5: SChatPacket(message, ChatType.GAME_INFO, UUID)
+        // 本项目使用 TitlePacket::Actionbar 实现相同效果
+        network::TitlePacket packet = network::TitlePacket::createActionbar(message);
+        auto payloadResult = packet.serialize();
+        if (payloadResult.failed()) {
+            spdlog::warn("ServerPlayer: failed to serialize actionbar packet (player={})", username());
+            return;
+        }
+
+        const auto fullPacket = server::core::ConnectionManager::encapsulatePacket(
+            network::PacketType::Title,
+            payloadResult.value());
+
+        if (!sendFullPacket(fullPacket)) {
+            spdlog::debug("ServerPlayer: actionbar message not sent (player={}, no connection)", username());
+        }
+    } else {
+        // 发送到聊天区域
+        sendSystemMessage(message);
+    }
 }
 
 void ServerPlayer::syncExperience() {
