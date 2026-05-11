@@ -64,6 +64,25 @@ void ServerPlayer::sendSystemMessage(const std::string& message) {
     }
 }
 
+void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar) {
+    // 参考 MC 1.16.5 PlayerEntity.sendStatusMessage(ITextComponent, boolean)
+    // actionBar 参数用于控制消息显示位置：
+    // - actionBar = true: 显示在物品栏上方的 Action Bar 区域
+    // - actionBar = false: 显示在聊天区域
+    //
+    // 当前实现中，ChatMessagePacket 始终发送到聊天区域。
+    // 未来如需支持 Action Bar，需要使用不同的数据包类型（如 STitlePacket）。
+    // 暂时忽略 actionBar 参数，始终发送到聊天区域。
+    (void)actionBar;
+
+    if (!hasConnection()) {
+        spdlog::debug("ServerPlayer: status message not sent (player={}, no connection)", username());
+        return;
+    }
+
+    sendSystemMessage(message);
+}
+
 void ServerPlayer::syncExperience() {
     const auto payloadResult = network::SetExperiencePacket::fromPlayer(*this).serialize();
     if (payloadResult.failed()) {

@@ -171,6 +171,14 @@ void Player::setExperience(i32 level, f32 progress, i32 totalExperience) {
     m_experienceManager->setExperience(level, progress, totalExperience);
 }
 
+void Player::sendStatusMessage(const std::string& message, bool actionBar) {
+    // Player 基类默认实现：空操作
+    // ServerPlayer 会重写此方法以发送网络消息
+    // 客户端 Player 可能会直接显示在聊天界面
+    (void)message;
+    (void)actionBar;
+}
+
 void Player::dropExperience() {
     // 玩家死亡时掉落经验
     // 参考 MC 1.16.5: min(level * 7, 100)

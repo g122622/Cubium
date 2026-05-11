@@ -46,6 +46,23 @@ public:
     void sendSystemMessage(const std::string& message);
 
     /**
+     * @brief 发送状态消息给玩家（重写 Player 基类）。
+     *
+     * 通过网络发送消息到客户端。如果 actionBar 为 true，
+     * 消息会显示在物品栏上方的 Action Bar 区域。
+     *
+     * @param message 消息内容（翻译键或格式化文本）
+     * @param actionBar 是否显示在 Action Bar 区域
+     */
+    void sendStatusMessage(const std::string& message, bool actionBar = false) override;
+
+    /**
+     * @brief 检查玩家是否能接收消息（重写 Player 基类）。
+     * @return 如果有有效网络连接返回 true
+     */
+    [[nodiscard]] bool canReceiveMessages() const override { return hasConnection(); }
+
+    /**
      * @brief 同步经验状态到客户端。
      * @note 仅在连接可用时发送网络包。
      */

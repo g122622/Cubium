@@ -224,7 +224,8 @@ ActionResultType BedBlock::onBlockActivated(
     // 检查床是否被占用
     if (headState->get(BlockStateProperties::OCCUPIED())) {
         // 床已被占用，显示消息
-        // TODO: 发送消息给玩家 "block.minecraft.bed.occupied"
+        // 参考 MC 1.16.5 BedBlock.onBlockActivated() 行96-100
+        player.sendStatusMessage("block.minecraft.bed.occupied", true);
         return ActionResultType::Success;
     }
 
@@ -241,13 +242,15 @@ ActionResultType BedBlock::onBlockActivated(
     // 检查玩家距离床是否太远（水平 3 格，垂直 2 格）
     Vector3 playerPos(player.position().x, player.position().y, player.position().z);
     if (!entity::SleepManager::isPlayerNearBed(playerPos, bedHeadPos)) {
-        // TODO: 发送消息给玩家 "block.minecraft.bed.too_far_away"
+        // 参考 MC 1.16.5 PlayerEntity.SleepResult.TOO_FAR_AWAY
+        player.sendStatusMessage("block.minecraft.bed.too_far_away", true);
         return ActionResultType::Success;
     }
 
     // 检查床是否被阻挡
     if (entity::SleepManager::isBedObstructed(world, bedHeadPos, bedFacing)) {
-        // TODO: 发送消息给玩家 "block.minecraft.bed.obstructed"
+        // 参考 MC 1.16.5 PlayerEntity.SleepResult.OBSTRUCTED
+        player.sendStatusMessage("block.minecraft.bed.obstructed", true);
         return ActionResultType::Success;
     }
 
@@ -257,14 +260,16 @@ ActionResultType BedBlock::onBlockActivated(
     i64 currentTime = world.dayTime();
 
     if (!entity::SleepManager::canSleepAtTime(currentTime, isThundering, isRaining)) {
-        // TODO: 发送消息给玩家 "block.minecraft.bed.no_sleep"
+        // 参考 MC 1.16.5 PlayerEntity.SleepResult.NOT_POSSIBLE_NOW
+        player.sendStatusMessage("block.minecraft.bed.no_sleep", true);
         return ActionResultType::Success;
     }
 
     // 非创造模式检查周围怪物
     if (!player.abilities().creativeMode) {
         if (entity::SleepManager::isBedSurroundedByMonsters(world, bedHeadPos, player)) {
-            // TODO: 发送消息给玩家 "block.minecraft.bed.not_safe"
+            // 参考 MC 1.16.5 PlayerEntity.SleepResult.NOT_SAFE
+            player.sendStatusMessage("block.minecraft.bed.not_safe", true);
             return ActionResultType::Success;
         }
     }

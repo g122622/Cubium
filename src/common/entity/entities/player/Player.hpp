@@ -333,6 +333,32 @@ public:
      */
     virtual void setExperience(i32 level, f32 progress, i32 totalExperience);
 
+    // ========== 消息发送 ==========
+
+    /**
+     * @brief 发送状态消息给玩家
+     *
+     * 在 Player 基类中默认为空操作。
+     * ServerPlayer 重写此方法以通过网络发送消息到客户端。
+     * 客户端 Player 可以直接显示在聊天界面。
+     *
+     * 参考 MC 1.16.5 PlayerEntity.sendStatusMessage(ITextComponent, boolean)
+     *
+     * @param message 消息内容（通常是翻译键或格式化文本）
+     * @param actionBar 是否显示在 Action Bar（物品栏上方的提示区域）
+     *                  当前实现中此参数可能被忽略，消息始终发送到聊天区域
+     */
+    virtual void sendStatusMessage(const std::string& message, bool actionBar = false);
+
+    /**
+     * @brief 检查玩家是否能接收消息
+     *
+     * ServerPlayer 重写此方法，在有有效网络连接时返回 true。
+     *
+     * @return 如果玩家能接收消息返回 true
+     */
+    [[nodiscard]] virtual bool canReceiveMessages() const { return false; }
+
     /**
      * @brief 掉落经验（死亡时调用）
      *
