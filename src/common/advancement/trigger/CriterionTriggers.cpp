@@ -52,7 +52,7 @@ void CriterionTriggers::registerBuiltinTriggers() {
     registerTrigger(std::make_unique<InventoryChangedTrigger>());
     registerTrigger(std::make_unique<TickTrigger>());
 
-    // [阶段3+4：触发器完善] 注册更多触发器
+    // [TODO 阶段3+4：触发器完善] 注册更多触发器
     // registerTrigger(std::make_unique<LocationTrigger>());
     // registerTrigger(std::make_unique<PlayerKilledEntityTrigger>());
     // 等等...

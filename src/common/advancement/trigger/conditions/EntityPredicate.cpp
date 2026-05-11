@@ -10,7 +10,7 @@ bool MobEffectsPredicate::test(const Entity& entity) const {
     if (m_isAny) {
         return true;
     }
-    // [阶段3+4：触发器完善] 检查效果需要实体效果系统支持
+    // [TODO 阶段3+4：触发器完善] 检查效果需要实体效果系统支持
     return true;
 }
 
@@ -32,11 +32,11 @@ bool EntityPredicate::test(const Entity& entity) const {
 
     // 检查实体类型
     if (m_type.has_value()) {
-        // [阶段3+4：触发器完善] 需要实体类型注册表支持获取实体类型ID比较
+        // [TODO 阶段3+4：触发器完善] 需要实体类型注册表支持获取实体类型ID比较
         // if (entity.getType().getId() != m_type.value()) return false;
     }
 
-    // [阶段3+4：触发器完善] 检查其他条件（距离、位置、效果、NBT等）
+    // [TODO 阶段3+4：触发器完善] 检查其他条件（距离、位置、效果、NBT等）
     return true;
 }
 
@@ -56,7 +56,7 @@ Result<EntityPredicate> EntityPredicate::fromJson(const nlohmann::json& json) {
         type = ResourceLocation(json["type"].get<std::string>());
     }
 
-    // [阶段3+4：触发器完善] 解析其他条件（距离、位置、效果、NBT等）
+    // [TODO 阶段3+4：触发器完善] 解析其他条件（距离、位置、效果、NBT等）
 
     EntityPredicate predicate;
     predicate.m_type = std::move(type);
@@ -82,7 +82,7 @@ bool DamageSourcePredicate::test(const DamageSource& source) const {
     if (m_isAny) {
         return true;
     }
-    // [阶段3+4：触发器完善] 检查伤害源需要伤害系统支持
+    // [TODO 阶段3+4：触发器完善] 检查伤害源需要伤害系统支持
     MC_UNUSED(source);
     return true;
 }

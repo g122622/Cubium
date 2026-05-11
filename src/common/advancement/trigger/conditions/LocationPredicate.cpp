@@ -19,14 +19,14 @@ bool LocationPredicate::test(const World& world, f64 x, f64 y, f64 z) const {
 
     // 检查维度
     if (m_dimension.has_value()) {
-        // [阶段3+4：触发器完善] 需要维度系统支持获取维度ID比较
+        // [TODO 阶段3+4：触发器完善] 需要维度系统支持获取维度ID比较
         // if (world.getDimensionId() != m_dimension.value()) return false;
         MC_UNUSED(world);
     }
 
     // 检查生物群系
     if (m_biome.has_value()) {
-        // [阶段3+4：触发器完善] 需要生物群系系统支持获取生物群系
+        // [TODO 阶段3+4：触发器完善] 需要生物群系系统支持获取生物群系
         // const Biome* biome = world.getBiomeAtBlock(
         //     math::floorTo<i32>(x),
         //     math::floorTo<i32>(y),
@@ -36,7 +36,7 @@ bool LocationPredicate::test(const World& world, f64 x, f64 y, f64 z) const {
         // if (biome->getId() != m_biome.value()) return false;
     }
 
-    // [阶段3+4：触发器完善] 检查特征、流体、方块、光源等
+    // [TODO 阶段3+4：触发器完善] 检查特征、流体、方块、光源等
 
     return true;
 }

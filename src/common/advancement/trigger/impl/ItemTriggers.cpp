@@ -45,7 +45,7 @@ Result<std::shared_ptr<ConsumeItemTrigger::Instance>> ConsumeItemTrigger::fromJs
 }
 
 void ConsumeItemTrigger::trigger(ServerPlayer& player, const ItemStack& item) {
-    // [阶段2+3：事件系统集成] 由 ConsumeItemEvent 触发
+    // [TODO 阶段2+3：事件系统集成] 由 ConsumeItemEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(item);
 }
@@ -130,7 +130,7 @@ Result<std::shared_ptr<ItemDurabilityTrigger::Instance>> ItemDurabilityTrigger::
 }
 
 void ItemDurabilityTrigger::trigger(ServerPlayer& player, const ItemStack& item, i32 oldDurability) {
-    // [阶段2+3：事件系统集成] 由 ItemDurabilityEvent 触发
+    // [TODO 阶段2+3：事件系统集成] 由 ItemDurabilityEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(item);
     MC_UNUSED(oldDurability);
@@ -196,7 +196,7 @@ Result<std::shared_ptr<EnchantedItemTrigger::Instance>> EnchantedItemTrigger::fr
 }
 
 void EnchantedItemTrigger::trigger(ServerPlayer& player, const ItemStack& item, i32 levels) {
-    // [阶段2+3：事件系统集成] 由 EnchantItemEvent 触发
+    // [TODO 阶段2+3：事件系统集成] 由 EnchantItemEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(item);
     MC_UNUSED(levels);
@@ -245,7 +245,7 @@ Result<std::shared_ptr<FilledBucketTrigger::Instance>> FilledBucketTrigger::from
 }
 
 void FilledBucketTrigger::trigger(ServerPlayer& player, const ItemStack& item) {
-    // [阶段2+3：事件系统集成] 由 FilledBucketEvent 触发
+    // [TODO 阶段2+3：事件系统集成] 由 FilledBucketEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(item);
 }

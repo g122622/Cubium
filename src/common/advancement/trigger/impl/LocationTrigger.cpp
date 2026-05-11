@@ -41,7 +41,7 @@ Result<std::shared_ptr<LocationTrigger::Instance>> LocationTrigger::fromJson(con
 }
 
 void LocationTrigger::trigger(ServerPlayer& player) {
-    // [阶段2+3：事件系统集成] 获取玩家位置并检测条件
+    // [TODO 阶段2+3：事件系统集成] 获取玩家位置并检测条件
     // 需要 ServerPlayer 提供位置和世界信息，由 LocationEvent 触发
     MC_UNUSED(player);
 }

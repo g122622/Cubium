@@ -66,7 +66,7 @@ Result<std::shared_ptr<EnterBlockTrigger::Instance>> EnterBlockTrigger::fromJson
 }
 
 void EnterBlockTrigger::trigger(ServerPlayer& player, const BlockState& state) {
-    // [阶段2+3：事件系统集成] 由 EnterBlockEvent 触发
+    // [TODO 阶段2+3：事件系统集成] 由 EnterBlockEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(state);
 }
@@ -170,7 +170,7 @@ void PlacedBlockTrigger::trigger(
     const BlockPos& pos,
     const ItemStack& item
 ) {
-    // [阶段2+3：事件系统集成] 由 BlockPlaceEvent 触发
+    // [TODO 阶段2+3：事件系统集成] 由 BlockPlaceEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(state);
     MC_UNUSED(pos);
@@ -220,7 +220,7 @@ Result<std::shared_ptr<SlideDownBlockTrigger::Instance>> SlideDownBlockTrigger::
 }
 
 void SlideDownBlockTrigger::trigger(ServerPlayer& player, const BlockState& state) {
-    // [阶段2+3：事件系统集成] 由 SlideDownBlockEvent 触发
+    // [TODO 阶段2+3：事件系统集成] 由 SlideDownBlockEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(state);
 }
@@ -309,7 +309,7 @@ void BeeNestDestroyedTrigger::trigger(
     const ItemStack& tool,
     i32 numBeesInside
 ) {
-    // [阶段2+3：事件系统集成] 由 BeeNestDestroyedEvent 触发
+    // [TODO 阶段2+3：事件系统集成] 由 BeeNestDestroyedEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(state);
     MC_UNUSED(tool);
