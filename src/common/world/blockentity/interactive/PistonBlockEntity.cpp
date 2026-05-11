@@ -228,7 +228,8 @@ void PistonBlockEntity::clearPistonBlockEntity(IWorld& world) {
 
 void PistonBlockEntity::tick(IWorld& world) {
     // MC 1.16.5: 记录游戏时间用于漏斗链优化
-    // m_lastTicked = world.getGameTime();  // TODO: 需要 IWorld::getGameTime()
+    // 参考: PistonTileEntity.tick() 第 290 行
+    m_lastTicked = static_cast<i64>(world.getGameTime());
 
     m_lastProgress = m_progress;
 
