@@ -15,12 +15,8 @@ RedstoneSystem& RedstoneSystem::instance() {
 void RedstoneSystem::notifyNeighbor(IWorld& world, const BlockPos& neighborPos,
                                     const BlockState& neighborState,
                                     Block& sourceBlock, const BlockPos& sourcePos) {
-    // 注意：这里使用 const_cast 是安全的，因为 neighborChanged 是通知回调，
-    // 不会修改邻居方块本身的状态。neighborChanged 的签名需要 Block& 是因为
-    // 它需要知道是哪个方块类型触发了更新，而不是要修改邻居方块。
-    // TODO: 考虑在 IWorld 中添加 notifyNeighborChanged 方法来避免 const_cast
-    Block& neighborBlock = const_cast<Block&>(neighborState.getBlock());
-    neighborBlock.neighborChanged(world, neighborPos, sourceBlock, sourcePos, false);
+    // 使用 IWorld 的封装方法，避免直接使用 const_cast
+    world.notifyNeighborChanged(neighborPos, neighborState, sourceBlock, sourcePos, false);
 }
 
 void RedstoneSystem::updateNeighborsInDirections(IWorld& world, const BlockPos& pos,
@@ -118,6 +114,13 @@ void RedstoneSystem::updateNeighborsHorizontalAndDown(IWorld& world, const Block
 void RedstoneSystem::updateComparators(IWorld& world, const BlockPos& pos) {
     // 比较器可以从四个水平方向检测容器
     // 当容器内容变化时，需要更新周围可能存在的比较器
+
+    // 获取容器方块（触发源）
+    const BlockState* sourceState = world.getBlockState(pos);
+    if (!sourceState || sourceState->isAir()) {
+        return;
+    }
+
     for (Direction dir : Directions::horizontal()) {
         BlockPos neighborPos = pos.offset(dir);
 
@@ -129,7 +132,9 @@ void RedstoneSystem::updateComparators(IWorld& world, const BlockPos& pos) {
         const Block& neighborBlock = neighborState->getBlock();
         // 检查是否是红石元件（包括比较器）
         if (neighborBlock.canProvidePower(*neighborState)) {
-            notifyNeighbor(world, neighborPos, *neighborState, const_cast<Block&>(neighborBlock), pos);
+            // 使用 IWorld 的封装方法
+            world.notifyNeighborChanged(neighborPos, *neighborState,
+                                        const_cast<Block&>(sourceState->getBlock()), pos, false);
         }
     }
 }

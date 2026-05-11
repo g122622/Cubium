@@ -160,6 +160,24 @@ public:
     // ========== 方块更新 ==========
 
     /**
+     * @brief 通知单个邻居方块更新
+     *
+     * 通知指定位置的方块其邻居发生了变化。
+     * 这是对 Block::neighborChanged 的封装，处理 const Block& 到 Block& 的转换。
+     *
+     * @param neighborPos 邻居方块位置
+     * @param neighborState 邻居方块的当前状态
+     * @param sourceBlock 触发更新的源方块
+     * @param sourcePos 源方块位置
+     * @param isMoving 是否正在移动（活塞等）
+     */
+    void notifyNeighborChanged(const BlockPos& neighborPos,
+                                const BlockState& neighborState,
+                                Block& sourceBlock,
+                                const BlockPos& sourcePos,
+                                bool isMoving = false);
+
+    /**
      * @brief 通知相邻方块更新
      *
      * MC 1.16.5: notifyNeighborsOfStateChange
