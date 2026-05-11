@@ -11,7 +11,13 @@
 #include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/text/StringTextComponent.hpp"
 #include <nlohmann/json.hpp>
+
+// Undef Windows macros that may conflict with method names
+#ifdef parent
+#undef parent
+#endif
 
 using namespace mc;
 using namespace mc::advancement;
@@ -40,20 +46,20 @@ protected:
     // 创建一个简单的测试成就
     Advancement::Ptr createTestAdvancement(
         const std::string& id,
-        const std::string& parent = "",
+        const std::string& parentId = "",
         bool hasDisplay = true)
     {
         Advancement::Builder builder(ResourceLocation(id));
 
-        if (!parent.empty()) {
-            builder.parent(ResourceLocation(parent));
+        if (!parentId.empty()) {
+            builder.parent(ResourceLocation(parentId));
         }
 
         if (hasDisplay) {
             AdvancementDisplay display(
                 ItemStack(),  // 图标
-                std::make_unique<mc::text::TextComponent>("Test Title"),
-                std::make_unique<mc::text::TextComponent>("Test Description"),
+                std::make_unique<mc::text::StringTextComponent>("Test Title"),
+                std::make_unique<mc::text::StringTextComponent>("Test Description"),
                 AdvancementFrame::Task,
                 true,  // showToast
                 true,  // announceToChat
@@ -62,9 +68,9 @@ protected:
             builder.display(std::move(display));
         }
 
-        auto result = builder.build();
-        if (result.success()) {
-            return std::make_shared<Advancement>(std::move(result.value()));
+        auto buildResult = builder.build();
+        if (buildResult.success()) {
+            return std::make_shared<Advancement>(std::move(buildResult).value());
         }
         return nullptr;
     }
@@ -83,7 +89,7 @@ TEST_F(AdvancementTest, BasicAdvancement) {
 }
 
 TEST_F(AdvancementTest, AdvancementWithParent) {
-    auto parent = createTestAdvancement("minecraft:test/parent");
+    auto parentAdv = createTestAdvancement("minecraft:test/parent");
     auto child = createTestAdvancement("minecraft:test/child", "minecraft:test/parent");
 
     ASSERT_NE(child, nullptr);
@@ -116,12 +122,12 @@ TEST_F(AdvancementTest, AdvancementFromJson) {
     auto result = Advancement::fromJson(ResourceLocation("minecraft:test/diamond"), json);
     ASSERT_TRUE(result.success());
 
-    auto advancement = std::make_shared<Advancement>(std::move(result.value()));
-    EXPECT_EQ(advancement->getId().toString(), "minecraft:test/diamond");
-    EXPECT_TRUE(advancement->hasDisplay());
-    EXPECT_EQ(advancement->getCriteria().size(), 1);
-    EXPECT_TRUE(advancement->getParent().has_value());
-    EXPECT_EQ(advancement->getParent()->toString(), "minecraft:story/root");
+    auto advancementPtr = std::make_shared<Advancement>(std::move(result).value());
+    EXPECT_EQ(advancementPtr->getId().toString(), "minecraft:test/diamond");
+    EXPECT_TRUE(advancementPtr->hasDisplay());
+    EXPECT_EQ(advancementPtr->getCriteria().size(), 1);
+    EXPECT_TRUE(advancementPtr->getParent().has_value());
+    EXPECT_EQ(advancementPtr->getParent()->toString(), "minecraft:story/root");
 }
 
 TEST_F(AdvancementTest, AdvancementToJson) {
@@ -164,8 +170,8 @@ TEST_F(AdvancementTest, AdvancementProgressGrantRevoke) {
     auto result = builder.build();
     ASSERT_TRUE(result.success());
 
-    auto advancement = std::make_shared<Advancement>(std::move(result.value()));
-    AdvancementProgress progress(advancement);
+    auto advancementPtr = std::make_shared<Advancement>(std::move(result).value());
+    AdvancementProgress progress(advancementPtr);
 
     // 初始状态
     EXPECT_FALSE(progress.isDone());
@@ -203,17 +209,17 @@ TEST_F(AdvancementTest, AdvancementProgressRequirements) {
     auto result = builder.build();
     ASSERT_TRUE(result.success());
 
-    auto advancement = std::make_shared<Advancement>(std::move(result.value()));
-    AdvancementProgress progress(advancement);
+    auto advancementPtr = std::make_shared<Advancement>(std::move(result).value());
+    AdvancementProgress progress(advancementPtr);
 
     // 只需满足一个条件
     progress.grantCriterion("a");
     EXPECT_TRUE(progress.isDone());
 
-    // OR关系测试
-    progress.reset();
-    progress.grantCriterion("b");
-    EXPECT_TRUE(progress.isDone());
+    // OR关系测试 - 创建新的进度对象测试另一个分支
+    AdvancementProgress progress2(advancementPtr);
+    progress2.grantCriterion("b");
+    EXPECT_TRUE(progress2.isDone());
 }
 
 TEST_F(AdvancementTest, AdvancementProgressSerialization) {
@@ -225,8 +231,8 @@ TEST_F(AdvancementTest, AdvancementProgressSerialization) {
     auto result = builder.build();
     ASSERT_TRUE(result.success());
 
-    auto advancement = std::make_shared<Advancement>(std::move(result.value()));
-    AdvancementProgress progress(advancement);
+    auto advancementPtr = std::make_shared<Advancement>(std::move(result).value());
+    AdvancementProgress progress(advancementPtr);
 
     progress.grantCriterion("criterion1");
     progress.grantCriterion("criterion2");
@@ -238,9 +244,9 @@ TEST_F(AdvancementTest, AdvancementProgressSerialization) {
     EXPECT_TRUE(json.contains("criterion2"));
 
     // 反序列化
-    auto result2 = AdvancementProgress::fromJson(json, advancement);
+    auto result2 = AdvancementProgress::fromJson(json, advancementPtr);
     ASSERT_TRUE(result2.success());
-    auto progress2 = std::move(result2.value());
+    auto progress2 = std::move(result2).value();
 
     EXPECT_TRUE(progress2.isDone());
     EXPECT_TRUE(progress2.getCriterion("criterion1")->isObtained());
@@ -360,7 +366,7 @@ TEST_F(AdvancementTest, ItemPredicateBasic) {
     auto result = ItemPredicate::fromJson(json);
     ASSERT_TRUE(result.success());
 
-    auto predicate = std::move(result.value());
+    ItemPredicate predicate = std::move(result).value();
 
     // 测试匹配（需要 ItemStack 支持）
     // ItemStack diamond(ItemRegistry::get("minecraft:diamond"), 5);
