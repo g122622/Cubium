@@ -940,6 +940,31 @@ add_library(mc_common STATIC
     # Skin System - Network
     skin/network/PlayerSkinInfo.cpp
     skin/network/SkinPackets.cpp
+
+    # Advancement System - Core
+    advancement/Advancement.cpp
+    advancement/AdvancementDisplay.cpp
+    advancement/AdvancementRewards.cpp
+    advancement/AdvancementProgress.cpp
+    advancement/AdvancementList.cpp
+    advancement/AdvancementManager.cpp
+    advancement/AdvancementLoader.cpp
+    advancement/Criterion.cpp
+    advancement/trigger/CriterionTrigger.cpp
+    advancement/trigger/CriterionTriggers.cpp
+    advancement/trigger/conditions/ItemPredicate.cpp
+    advancement/trigger/conditions/EntityPredicate.cpp
+    advancement/trigger/conditions/LocationPredicate.cpp
+    advancement/trigger/conditions/BlockPredicate.cpp
+    advancement/trigger/impl/InventoryChangedTrigger.cpp
+    advancement/trigger/impl/TickTrigger.cpp
+    # Trigger implementations (TODO: fix remaining triggers)
+    # advancement/trigger/impl/LocationTrigger.cpp
+    # advancement/trigger/impl/PlayerKilledEntityTrigger.cpp
+    # advancement/trigger/impl/BlockTriggers.cpp
+    # advancement/trigger/impl/ItemTriggers.cpp
+    # advancement/trigger/impl/EntityTriggers.cpp
+    # advancement/trigger/impl/EffectTriggers.cpp
 )
 
 target_include_directories(mc_common

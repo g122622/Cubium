@@ -14,6 +14,9 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/core/Constants.hpp"
+#include "common/advancement/AdvancementManager.hpp"
+#include "common/advancement/trigger/CriterionTriggers.hpp"
+#include "../advancement/PlayerAdvancements.hpp"
 #include "../core/ConnectionManager.hpp"
 #include "../world/ServerWorld.hpp"
 #include "../dimension/ServerDimensionManager.hpp"
@@ -26,6 +29,11 @@ namespace mc {
 
 ServerPlayer::ServerPlayer(EntityId id, const std::string& name)
     : Player(id, name) {
+    initAdvancements();
+}
+
+void ServerPlayer::initAdvancements() {
+    m_advancements = std::make_shared<server::PlayerAdvancements>(static_cast<PlayerId>(id()));
 }
 
 void ServerPlayer::sendChatMessage(const std::string& message) {

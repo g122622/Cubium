@@ -1,0 +1,210 @@
+#pragma once
+
+#include "common/advancement/Advancement.hpp"
+#include "common/advancement/AdvancementProgress.hpp"
+#include "common/core/Types.hpp"
+#include <memory>
+#include <map>
+#include <set>
+#include <vector>
+#include <nlohmann/json.hpp>
+
+namespace mc {
+
+// 前向声明
+class ServerPlayer;
+
+namespace advancement {
+class AdvancementManager;
+}
+
+} // namespace mc
+
+namespace mc::server {
+
+/**
+ * @brief 玩家成就进度管理器
+ *
+ * 负责追踪玩家在所有成就上的进度，管理触发器监听，
+ * 并处理持久化和网络同步。
+ *
+ * 参考 MC 1.16.5: net.minecraft.advancements.PlayerAdvancements
+ */
+class PlayerAdvancements {
+public:
+    using Ptr = std::shared_ptr<PlayerAdvancements>;
+
+    /**
+     * @brief 构造函数
+     * @param playerId 玩家ID
+     */
+    explicit PlayerAdvancements(PlayerId playerId);
+
+    /**
+     * @brief 析构函数
+     */
+    ~PlayerAdvancements();
+
+    // ========== 进度操作 ==========
+
+    /**
+     * @brief 授予条件
+     * @param advancement 成就
+     * @param criterion 条件名称
+     * @return 是否成功授予
+     */
+    bool grantCriterion(mc::advancement::AdvancementPtr advancement, const std::string& criterion);
+
+    /**
+     * @brief 撤销条件
+     * @param advancement 成就
+     * @param criterion 条件名称
+     * @return 是否成功撤销
+     */
+    bool revokeCriterion(mc::advancement::AdvancementPtr advancement, const std::string& criterion);
+
+    /**
+     * @brief 授予所有条件
+     * @param advancement 成就
+     * @return 是否成功授予任何条件
+     */
+    bool grantAllCriteria(mc::advancement::AdvancementPtr advancement);
+
+    /**
+     * @brief 撤销所有条件
+     * @param advancement 成就
+     * @return 是否成功撤销任何条件
+     */
+    bool revokeAllCriteria(mc::advancement::AdvancementPtr advancement);
+
+    // ========== 进度查询 ==========
+
+    /**
+     * @brief 获取成就进度
+     * @param advancement 成就
+     * @return 进度（如果不存在返回nullptr）
+     */
+    mc::advancement::AdvancementProgress* getProgress(mc::advancement::AdvancementPtr advancement);
+    const mc::advancement::AdvancementProgress* getProgress(mc::advancement::AdvancementPtr advancement) const;
+
+    /**
+     * @brief 检查成就是否完成
+     * @param advancement 成就
+     * @return 是否完成
+     */
+    bool isDone(mc::advancement::AdvancementPtr advancement) const;
+
+    /**
+     * @brief 检查成就是否有进度
+     * @param advancement 成就
+     * @return 是否有进度
+     */
+    bool hasProgress(mc::advancement::AdvancementPtr advancement) const;
+
+    // ========== 可见性 ==========
+
+    /**
+     * @brief 检查成就是否可见
+     * @param advancement 成就
+     * @return 是否可见
+     */
+    bool isVisible(mc::advancement::AdvancementPtr advancement) const;
+
+    /**
+     * @brief 获取所有可见成就
+     */
+    const std::set<mc::advancement::AdvancementPtr>& getVisibleAdvancements() const;
+
+    /**
+     * @brief 获取进度变化的成就（用于网络同步）
+     */
+    const std::set<mc::advancement::AdvancementPtr>& getProgressChangedAdvancements() const;
+
+    /**
+     * @brief 清除进度变化标记
+     */
+    void clearProgressChanged();
+
+    // ========== 成就重载响应 ==========
+
+    /**
+     * @brief 当成就重新加载时调用
+     * @param manager 成就管理器
+     */
+    void onAdvancementsReloaded(mc::advancement::AdvancementManager& manager);
+
+    // ========== 持久化 ==========
+
+    /**
+     * @brief 从JSON加载
+     * @param json JSON数据
+     * @param manager 成就管理器
+     * @return 是否成功
+     */
+    bool loadFromJson(const nlohmann::json& json, mc::advancement::AdvancementManager& manager);
+
+    /**
+     * @brief 保存为JSON
+     * @return JSON数据
+     */
+    nlohmann::json toJson() const;
+
+    // ========== 玩家信息 ==========
+
+    /**
+     * @brief 获取玩家ID
+     */
+    PlayerId getPlayerId() const noexcept { return m_playerId; }
+
+    // ========== 触发器监听管理 ==========
+
+    /**
+     * @brief 注册成就的触发器监听
+     * @param advancement 成就
+     */
+    void registerListeners(mc::advancement::AdvancementPtr advancement);
+
+    /**
+     * @brief 注销成就的触发器监听
+     * @param advancement 成就
+     */
+    void unregisterListeners(mc::advancement::AdvancementPtr advancement);
+
+private:
+    PlayerId m_playerId;
+
+    /// 成就进度映射
+    std::map<mc::advancement::AdvancementPtr, mc::advancement::AdvancementProgress> m_progress;
+
+    /// 可见成就集合
+    std::set<mc::advancement::AdvancementPtr> m_visible;
+
+    /// 进度变化的成就（用于网络同步）
+    std::set<mc::advancement::AdvancementPtr> m_progressChanged;
+
+    /// 可见性变化的成就（用于网络同步）
+    std::set<mc::advancement::AdvancementPtr> m_visibilityChanged;
+
+    /// 当前选中的标签页
+    mc::advancement::AdvancementPtr m_selectedTab;
+
+    /// 是否首次同步
+    bool m_firstSync = true;
+
+    /**
+     * @brief 确保成就可见性正确
+     */
+    void ensureVisibility(mc::advancement::AdvancementPtr advancement);
+
+    /**
+     * @brief 更新所有成就的可见性
+     */
+    void updateVisibility();
+
+    /**
+     * @brief 检查成就是否应该可见
+     */
+    bool shouldShow(mc::advancement::AdvancementPtr advancement) const;
+};
+
+} // namespace mc::server

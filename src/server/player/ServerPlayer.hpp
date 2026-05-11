@@ -11,8 +11,9 @@
 namespace mc {
 
 namespace server {
-class ServerWorld;  // 前向声明，位于 mc::server 命名空间
-class IServer;       // 前向声明
+class ServerWorld;
+class IServer;
+class PlayerAdvancements;
 }
 
 /**
@@ -137,6 +138,20 @@ public:
      */
     [[nodiscard]] server::IServer* getServer() const { return m_server; }
 
+    // ========== 成就系统 ==========
+
+    /**
+     * @brief 获取玩家成就进度管理器
+     * @return 成就进度管理器指针
+     */
+    [[nodiscard]] server::PlayerAdvancements* getAdvancements() { return m_advancements.get(); }
+    [[nodiscard]] const server::PlayerAdvancements* getAdvancements() const { return m_advancements.get(); }
+
+    /**
+     * @brief 初始化成就系统
+     */
+    void initAdvancements();
+
     // ========== 连接状态 ==========
 
     /**
@@ -250,6 +265,7 @@ private:
     network::ConnectionPtr m_connection;
     server::ServerWorld* m_world = nullptr;
     server::IServer* m_server = nullptr;
+    std::shared_ptr<server::PlayerAdvancements> m_advancements;
     bool m_online = true;
 };
 

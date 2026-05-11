@@ -27,6 +27,9 @@ public:
     // 获取路径
     [[nodiscard]] const std::string& path() const noexcept { return m_path; }
 
+    // 检查是否有效
+    [[nodiscard]] bool isValid() const noexcept { return !m_namespace.empty() || !m_path.empty(); }
+
     // 转换为完整字符串 "namespace:path"
     [[nodiscard]] std::string toString() const;
 

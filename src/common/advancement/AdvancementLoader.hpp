@@ -1,0 +1,140 @@
+#pragma once
+
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "Advancement.hpp"
+#include "AdvancementManager.hpp"
+#include <string>
+#include <vector>
+#include <functional>
+#include <filesystem>
+
+namespace mc::advancement {
+
+/**
+ * @brief 成就加载器
+ *
+ * 从文件系统加载成就JSON文件，支持MC 1.16.5数据包格式。
+ * 参考 MC 1.16.5: net.minecraft.advancements.AdvancementManager
+ *
+ * 数据包目录结构：
+ * @code
+ * data/
+ * ├── minecraft/
+ * │   └── advancements/
+ * │       ├── story/
+ * │       │   ├── root.json
+ * │       │   ├── mine_stone.json
+ * │       │   └── ...
+ * │       ├── nether/
+ * │       ├── end/
+ * │       ├── adventure/
+ * │       └── husbandry/
+ * └── mod_id/
+ *     └── advancements/
+ *         └── ...
+ * @endcode
+ *
+ * 使用示例：
+ * @code
+ * AdvancementLoader loader;
+ * auto result = loader.loadFromDirectory("data/minecraft/advancements");
+ * if (result.success()) {
+ *     spdlog::info("Loaded {} advancements, {} failed",
+ *                  result.value().successCount, result.value().failedCount);
+ * }
+ * @endcode
+ */
+class AdvancementLoader {
+public:
+    /**
+     * @brief 加载结果
+     */
+    struct LoadResult {
+        size_t successCount = 0;    ///< 成功加载的成就数
+        size_t failedCount = 0;     ///< 加载失败的成就数
+        std::vector<std::string> errors; ///< 错误信息列表
+    };
+
+    /**
+     * @brief 进度回调类型
+     * @param current 当前处理的文件索引
+     * @param total 总文件数
+     * @param filename 当前文件名
+     */
+    using ProgressCallback = std::function<void(size_t current, size_t total, const std::string& filename)>;
+
+    /**
+     * @brief 从目录加载所有成就
+     * @param directoryPath 成就目录路径
+     * @param callback 进度回调（可选）
+     * @return 加载结果
+     *
+     * 遍历目录下所有.json文件并尝试解析为成就。
+     * 成就ID从文件路径推导：
+     * - "data/minecraft/advancements/story/mine_stone.json" -> "minecraft:story/mine_stone"
+     * - "data/mod_id/advancements/custom/item.json" -> "mod_id:custom/item"
+     */
+    Result<LoadResult> loadFromDirectory(const std::string& directoryPath,
+                                          ProgressCallback callback = nullptr);
+
+    /**
+     * @brief 从文件系统路径加载成就文件
+     * @param filePath 成就文件路径
+     * @return 成就ID（如果成功）
+     */
+    Result<ResourceLocation> loadFile(const std::string& filePath);
+
+    /**
+     * @brief 从JSON字符串加载成就
+     * @param id 成就ID
+     * @param jsonString JSON字符串
+     * @return 成就（如果成功）
+     */
+    Result<Advancement> loadJson(const ResourceLocation& id, const std::string& jsonString);
+
+    /**
+     * @brief 从JSON对象加载成就
+     * @param id 成就ID
+     * @param json JSON对象
+     * @return 成就（如果成功）
+     */
+    Result<Advancement> loadJson(const ResourceLocation& id, const nlohmann::json& json);
+
+    /**
+     * @brief 获取最后加载的结果
+     */
+    [[nodiscard]] const LoadResult& getLastResult() const { return m_lastResult; }
+
+    /**
+     * @brief 重置加载结果
+     */
+    void resetResult() { m_lastResult = LoadResult{}; }
+
+    /**
+     * @brief 设置是否在加载前清空管理器
+     * @param clear 是否清空
+     */
+    void setClearBeforeLoad(bool clear) { m_clearBeforeLoad = clear; }
+
+    /**
+     * @brief 从文件路径推导成就ID
+     * @param filePath 文件路径
+     * @return 成就ID
+     *
+     * 路径格式："data/minecraft/advancements/story/mine_stone.json"
+     * ID格式："minecraft:story/mine_stone"
+     */
+    [[nodiscard]] ResourceLocation pathToAdvancementId(const std::string& filePath) const;
+
+private:
+    LoadResult m_lastResult;
+    bool m_clearBeforeLoad = true;
+
+    /**
+     * @brief 递归遍历目录查找JSON文件
+     */
+    std::vector<std::filesystem::path> findJsonFiles(const std::filesystem::path& directory) const;
+};
+
+} // namespace mc::advancement

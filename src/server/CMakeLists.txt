@@ -37,6 +37,8 @@ add_executable(minecraft-server
     world/player/ServerPlayerEntityManager.cpp
     world/weather/WeatherManager.cpp
     player/ServerPlayer.cpp
+    # 成就系统
+    advancement/PlayerAdvancements.cpp
     # 交互管理器
     interaction/BlockInteractionManager.cpp
     interaction/MiningManager.cpp
