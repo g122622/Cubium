@@ -188,20 +188,18 @@ bool MonsterEntity::canMonsterSpawn(
 // ========== 寻路权重 ==========
 
 f32 MonsterEntity::getPathWeight(f32 x, f32 y, f32 z) const {
-    // MC 1.16.5 MonsterEntity.getBlockPathWeight()
-    // 返回 0.5F - 亮度
-    // 怪物偏好黑暗环境（亮度越低，权重越高）
-
+    // MC 1.16.5: MonsterEntity.getBlockPathWeight()
+    // 参考: net.minecraft.entity.monster.MonsterEntity.getBlockPathWeight()
+    // 怪物偏好黑暗环境: 返回 0.5F - 亮度
+    // 亮度越高，权重越低（越不喜欢）
     const IWorld* worldPtr = this->world();
     if (!worldPtr) {
         return 0.0f;
     }
 
-    BlockPos pos(static_cast<i32>(std::floor(x)),
-                 static_cast<i32>(std::floor(y)),
-                 static_cast<i32>(std::floor(z)));
-
-    return 0.5f - worldPtr->getBrightness(pos);
+    BlockPos pos(static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(z));
+    f32 brightness = worldPtr->getBrightness(pos);
+    return 0.5f - brightness;
 }
 
 } // namespace mc

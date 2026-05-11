@@ -172,31 +172,26 @@ bool AnimalEntity::hurt(DamageSource& source, f32 amount) {
 // ========== 寻路权重 ==========
 
 f32 AnimalEntity::getPathWeight(f32 x, f32 y, f32 z) const {
-    // MC 1.16.5 AnimalEntity.getBlockPathWeight()
-    // 如果脚下方块是草地，返回 10.0F
-    // 否则返回 亮度 - 0.5F
-
+    // MC 1.16.5: AnimalEntity.getBlockPathWeight()
+    // 参考: net.minecraft.entity.passive.AnimalEntity.getBlockPathWeight()
     const IWorld* worldPtr = this->world();
     if (!worldPtr) {
         return 0.0f;
     }
 
-    BlockPos pos(static_cast<i32>(std::floor(x)),
-                 static_cast<i32>(std::floor(y)) - 1,  // 脚下方块
-                 static_cast<i32>(std::floor(z)));
+    BlockPos pos(static_cast<i32>(x), static_cast<i32>(y) - 1, static_cast<i32>(z));
+    const BlockState* groundBlock = worldPtr->getBlockState(pos);
 
-    // 检查脚下方块是否为草地
-    const BlockState* groundState = worldPtr->getBlockState(pos);
-    if (groundState && VanillaBlocks::GRASS_BLOCK != nullptr &&
-        groundState->is(VanillaBlocks::GRASS_BLOCK)) {
+    // 检查脚下是否为草方块
+    // MC 1.16.5: worldIn.getBlockState(pos.down()).isIn(Blocks.GRASS_BLOCK)
+    if (groundBlock != nullptr && groundBlock->is(VanillaBlocks::GRASS_BLOCK)) {
         return 10.0f;
     }
 
-    // 否则基于亮度返回权重
-    BlockPos entityPos(static_cast<i32>(std::floor(x)),
-                       static_cast<i32>(std::floor(y)),
-                       static_cast<i32>(std::floor(z)));
-    return worldPtr->getBrightness(entityPos) - 0.5f;
+    // 否则返回亮度 - 0.5F
+    BlockPos abovePos(static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(z));
+    f32 brightness = worldPtr->getBrightness(abovePos);
+    return brightness - 0.5f;
 }
 
 } // namespace mc

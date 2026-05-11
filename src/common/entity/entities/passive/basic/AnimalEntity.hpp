@@ -135,19 +135,19 @@ public:
      */
     void spawnHeartParticles();
 
-    // ========== 寻路权重 ==========
+    // ========== 路径权重 ==========
 
     /**
      * @brief 获取路径权重
      *
-     * MC 1.16.5 AnimalEntity.getBlockPathWeight():
-     * - 如果脚下方块是草地，返回 10.0F
-     * - 否则返回 亮度 - 0.5F
+     * MC 1.16.5: AnimalEntity.getBlockPathWeight()
+     * - 脚下是草方块: 返回 10.0F
+     * - 否则: 返回亮度 - 0.5F
      *
      * @param x X 坐标
      * @param y Y 坐标
      * @param z Z 坐标
-     * @return 路径权重值
+     * @return 路径权重（越高越好）
      */
     [[nodiscard]] f32 getPathWeight(f32 x, f32 y, f32 z) const override;
 

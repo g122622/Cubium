@@ -216,47 +216,23 @@ f32 RandomPositionGenerator::calculatePositionScore(CreatureEntity* creature, co
     IWorld* world = creature->world();
     if (!world) return -1000.0f;
 
-    f32 score = 0.0f;
-
     i32 x = floorTo<i32>(pos.x);
     i32 y = floorTo<i32>(pos.y);
     i32 z = floorTo<i32>(pos.z);
 
-    // 基础评分
-    score += 10.0f;
+    // 使用实体特定的 getPathWeight 方法
+    // MC 1.16.5: RandomPositionGenerator 使用 creature.getBlockPathWeight() 评估位置
+    f32 score = creature->getPathWeight(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
 
-    // 距离评分：不要太近也不要太远
-    f32 distSq = creature->distanceSqTo(pos.x, pos.y, pos.z);
-    if (distSq < MIN_DISTANCE_SQ) {
-        score -= 50.0f;  // 太近
-    } else if (distSq > 400.0f) {  // 20格以上
-        score -= 10.0f;  // 太远
-    }
-
-    // 安全性评分
+    // 危险位置检查
     if (world->isLavaAt(x, y, z) || world->isLavaAt(x, y - 1, z)) {
-        score -= 100.0f;  // 岩浆危险
-    }
-    // 水中位置对大多数生物来说是可接受的
-    if (world->isWaterAt(x, y, z)) {
-        // 水中位置，略微降低评分
-        score -= 5.0f;
+        return -1000.0f;  // 岩浆位置无效
     }
 
-    // 可达性评分（简化版）
-    if (isPositionWalkable(creature, x, y, z)) {
-        score += 20.0f;
-    } else {
+    // 可达性评分
+    if (!isPositionWalkable(creature, x, y, z)) {
         score -= 50.0f;
     }
-
-    // MC 1.16.5: 使用实体的 getPathWeight 方法获取位置权重
-    // 这会根据实体类型返回不同的值：
-    // - AnimalEntity: 草地返回 10.0F，否则返回亮度 - 0.5F
-    // - MonsterEntity: 返回 0.5F - 亮度（偏好黑暗）
-    // - 其他生物: 默认返回 0.0F
-    f32 pathWeight = creature->getPathWeight(pos.x, pos.y, pos.z);
-    score += pathWeight * 10.0f;  // 放大权重影响
 
     return score;
 }

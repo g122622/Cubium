@@ -212,6 +212,21 @@ protected:
      * 参考 MC 1.16.5 MonsterEntity.func_213623_ec()
      */
     void updateIdleTimeBasedOnBrightness();
+
+    // ========== 路径权重 ==========
+
+    /**
+     * @brief 获取路径权重
+     *
+     * MC 1.16.5: MonsterEntity.getBlockPathWeight()
+     * 返回 0.5F - 亮度，怪物偏好黑暗环境
+     *
+     * @param x X 坐标
+     * @param y Y 坐标
+     * @param z Z 坐标
+     * @return 路径权重（越高越好）
+     */
+    [[nodiscard]] f32 getPathWeight(f32 x, f32 y, f32 z) const override;
 };
 
 } // namespace mc
