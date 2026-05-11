@@ -141,6 +141,7 @@ add_executable(mc_tests
     entity/FlyingEntityTests.cpp
     entity/EntitySensesTest.cpp
     entity/RidingSystemTests.cpp
+    entity/StriderEntityTest.cpp
     entity/FlingingSupportTypesTest.cpp
     entity/AttributeTests.cpp
     entity/LivingEntityTests.cpp
