@@ -869,6 +869,7 @@ i32 getStrongPower(..., Direction side) {
 - `PressurePlateTest.cpp` - 压力板测试（待添加）
 - `DaylightDetectorTest.cpp` - 日光探测器测试（待添加）
 - `NoteBlockTest.cpp` - 音符盒测试（乐器类型检测、音高计算、状态属性）
+- `PistonBlockTest.cpp` - 活塞测试（世界边界检查、构造函数、伸出状态）
 
 ## 参考文档
 
