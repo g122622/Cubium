@@ -141,7 +141,9 @@ bool PistonBlock::canPush(
     }
 
     // 检查世界边界
-    // TODO: if (!world.getWorldBorder().contains(pos)) return false;
+    if (!world.worldBorder().contains(pos)) {
+        return false;
+    }
 
     // 空气可以推动
     if (blockState.isAir()) {
