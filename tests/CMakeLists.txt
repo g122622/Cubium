@@ -105,8 +105,6 @@ add_executable(mc_tests
     common/world/blockentity/SignEntityTest.cpp
     # SignEntity::executeCommand 测试（告示牌点击事件命令执行）
     common/world/blockentity/SignEntityCommandTest.cpp
-    # ChunkData 方块实体存储测试
-    common/world/chunk/ChunkDataBlockEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp

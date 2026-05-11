@@ -22,6 +22,7 @@
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/dimension/DimensionType.hpp"
