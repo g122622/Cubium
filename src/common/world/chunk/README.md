@@ -141,13 +141,46 @@ ChunkPos pos = id.chunkPos();      // 转换为区块位置
   - 生物群系数据
   - 区块状态（加载状态、脏标记等）
   - 光照数据访问
+  - **方块实体存储**（参考 MC 1.16.5 `net.minecraft.world.chunk.Chunk.tileEntities`）
   - 序列化/反序列化
 - `ChunkDataRef` - 区块数据引用（轻量级访问）
+- `BlockPosHash` - BlockPos 哈希函数结构体，用于 unordered_map
+
+**方块实体存储 API**：
+```cpp
+// 获取方块实体
+BlockEntity* getBlockEntity(const BlockPos& pos);
+const BlockEntity* getBlockEntity(const BlockPos& pos) const;
+
+// 设置方块实体（获取所有权，返回旧实体）
+std::unique_ptr<BlockEntity> setBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity);
+
+// 移除方块实体（返回被移除的实体）
+std::unique_ptr<BlockEntity> removeBlockEntity(const BlockPos& pos);
+
+// 检查是否有方块实体
+bool hasBlockEntity(const BlockPos& pos) const;
+
+// 获取所有方块实体
+std::vector<BlockEntity*> getAllBlockEntities();
+std::vector<const BlockEntity*> getAllBlockEntities() const;
+
+// 获取方块实体数量
+size_t blockEntityCount() const;
+```
+
+**方块实体存储设计**：
+- 使用 `std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>, BlockPosHash>` 存储
+- `BlockPosHash` 使用 `BlockPos::toId()` 作为哈希键
+- 设置方块实体时自动标记区块为脏
+- 移除方块实体时自动标记区块为脏
+- 替换同一位置的方块实体时返回旧实体
 
 **关键特性**：
 - 懒创建区块段（只有设置非空气方块时才创建段）
 - 边界检查（越界访问返回安全默认值）
 - 高效的光照存储（NibbleArray，每值 4 位）
+- 方块实体与区块生命周期绑定
 
 **依赖项**：
 - `IChunk` - 区块接口
@@ -602,6 +635,7 @@ ticketManager.updatePlayerPosition(playerId, chunkX, chunkZ);
 | `tests/common/test_chunkloadticket.cpp` | 票据系统、ChunkStatus、ChunkPrimer、SingleChunkLifecycleManager |
 | `tests/common/test_chunk_generation.cpp` | 区块生成集成测试 |
 | `tests/common/test_world.cpp` | 世界和区块数据测试 |
+| `tests/common/world/chunk/ChunkDataBlockEntityTest.cpp` | ChunkData 方块实体存储测试（getBlockEntity、setBlockEntity、removeBlockEntity、hasBlockEntity、getAllBlockEntities、blockEntityCount、边界情况、脏标记） |
 | `tests/server/test_server_chunk_manager.cpp` | 服务端区块管理器测试 |
 | `tests/server/test_chunk_worker_pool.cpp` | 区块工作线程池测试 |
 

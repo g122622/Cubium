@@ -541,6 +541,16 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
             newBlock.onBlockAdded(*this, changedPos, *newState);
         }
 
+        // MC 1.16.5: 新方块有方块实体时创建
+        // 参考: net.minecraft.world.chunk.Chunk.setBlockState
+        if (!newIsAir && newState->getBlock().hasBlockEntity()) {
+            Block& newBlock = const_cast<Block&>(newState->getBlock());
+            auto blockEntity = newBlock.createBlockEntity(changedPos);
+            if (blockEntity != nullptr) {
+                setBlockEntity(changedPos, blockEntity.release());
+            }
+        }
+
         // 通知村庄管理器方块放置（如果新方块存在且不是空气）
         if (m_villageManager && !newIsAir) {
             m_villageManager->onBlockPlaced(changedPos, newState->blockId());

@@ -31,6 +31,7 @@ src/server/world/
 - 实现 `IWorld`、`ICollisionWorld`、`StarLightLightingProvider` 接口
 - 区块管理（加载、卸载、访问）
 - 实体管理（生成、移除、查询）
+- **方块实体管理**（通过区块代理，参考 MC 1.16.5 `World.getTileEntity/setTileEntity/removeTileEntity`）
 - 光照计算与同步
 - 方块写入回调链（`onBlockAdded/onBlockRemoved`、`updatePostPlacement`、`neighborChanged`）
 - 方块变化回调（`setOnBlockChanged`，用于驱动方块更新同步）
@@ -66,6 +67,59 @@ class ServerWorld : public IWorld, public ICollisionWorld, public StarLightLight
 
 // 调试世界检测
 [[nodiscard]] bool isDebugWorld() const;  // 通过检查区块生成器类型判断是否为调试世界
+```
+
+**方块实体管理**：
+
+`ServerWorld` 实现 `IWorld` 接口的方块实体管理方法，通过区块代理进行操作：
+
+```cpp
+// 获取方块实体
+BlockEntity* getBlockEntity(const BlockPos& pos) override;
+const BlockEntity* getBlockEntity(const BlockPos& pos) const override;
+
+// 设置方块实体
+void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override;
+
+// 移除方块实体
+void removeBlockEntity(const BlockPos& pos) override;
+
+// 获取可 tick 的方块实体列表
+[[nodiscard]] std::vector<BlockEntity*> getTickableBlockEntities();
+```
+
+**方块实体自动管理**：
+
+在 `setBlockState()` 中自动处理方块实体的创建和移除：
+
+```cpp
+// 当放置有方块实体的方块时（如箱子、熔炉）
+if (newState && newState->block() && newState->block()->hasBlockEntity()) {
+    auto blockEntity = newState->block()->createBlockEntity(pos);
+    if (blockEntity) {
+        setBlockEntity(pos, blockEntity);
+    }
+}
+
+// 当方块类型改变时，移除旧方块实体
+if (oldState && oldState->block() && oldState->block()->hasBlockEntity()) {
+    removeBlockEntity(pos);
+}
+```
+
+**方块实体 Tick 更新**：
+
+在 `tick()` 中更新所有需要 tick 的方块实体：
+
+```cpp
+void tickBlockEntities() {
+    auto tickables = getTickableBlockEntities();
+    for (BlockEntity* entity : tickables) {
+        if (entity && entity->needsTick()) {
+            entity->tick();
+        }
+    }
+}
 ```
 
 **爆炸系统集成**：
@@ -639,6 +693,7 @@ if (world->isDebugWorld()) {
 | `tests/server/test_chunk_worker_pool.cpp` | ChunkGenerateTask 与 ServerWorkerPool 集成测试 |
 | `tests/common/util/thread/ServerWorkerPoolTest.cpp` | ServerWorkerPool 单元测试 |
 | `tests/common/world/gen/DebugChunkGeneratorTest.cpp` | DebugChunkGenerator 功能、isDebugGenerator 虚方法 |
+| `tests/common/world/chunk/ChunkDataBlockEntityTest.cpp` | ChunkData 方块实体存储测试（getBlockEntity、setBlockEntity、removeBlockEntity、边界情况、脏标记） |
 
 ### 测试覆盖范围
 

@@ -287,6 +287,8 @@ ChunkData::ChunkData(ChunkCoord x, ChunkCoord z)
     initLightData();
 }
 
+ChunkData::~ChunkData() = default;
+
 const BlockState* ChunkData::getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const {
     if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 || z >= world::CHUNK_WIDTH) {
         return nullptr;  // 空气
