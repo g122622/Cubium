@@ -5,10 +5,17 @@
 #include "../../../sound/SoundEvents.hpp"
 #include "../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../ai/goal/goals/LookRandomlyGoal.hpp"
+#include "../../../util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc {
 namespace entity {
+
+// ========== 静态数据参数定义 ==========
+// MC 1.16.5: FIRST_HEAD_TARGET, SECOND_HEAD_TARGET, THIRD_HEAD_TARGET
+DataParameter<i32> WitherEntity::HEAD_TARGET_1 = EntityDataManager::createKey<i32>();
+DataParameter<i32> WitherEntity::HEAD_TARGET_2 = EntityDataManager::createKey<i32>();
+DataParameter<i32> WitherEntity::HEAD_TARGET_3 = EntityDataManager::createKey<i32>();
 
 std::unique_ptr<Entity> WitherEntity::create(IWorld* /*world*/) {
     return std::make_unique<WitherEntity>(LegacyEntityType::Wither, EntityId(0));
@@ -22,6 +29,7 @@ WitherEntity::WitherEntity(LegacyEntityType type, EntityId id)
     // TODO: setNoGravity(true) - 凋灵可以飞行
     // TODO: getNavigator().setCanSwim(true)
 
+    registerData();
     registerAttributes();
     registerGoals();
 }
@@ -76,13 +84,47 @@ std::string WitherEntity::getBossName() const {
 
 i32 WitherEntity::getWatchedTargetId(i32 head) const {
     // MC 1.16.5: 从数据管理器获取头部目标
-    // TODO: 使用 EntityDataManager
-    return 0;
+    // head: 0=主头, 1=左头, 2=右头
+    switch (head) {
+        case 0:
+            return m_dataManager.get<i32>(HEAD_TARGET_1);
+        case 1:
+            return m_dataManager.get<i32>(HEAD_TARGET_2);
+        case 2:
+            return m_dataManager.get<i32>(HEAD_TARGET_3);
+        default:
+            return 0;
+    }
 }
 
 void WitherEntity::updateWatchedTargetId(i32 head, i32 targetId) {
     // MC 1.16.5: 更新数据管理器中的头部目标
-    // TODO: 使用 EntityDataManager
+    // head: 0=主头, 1=左头, 2=右头
+    switch (head) {
+        case 0:
+            m_dataManager.set(HEAD_TARGET_1, targetId);
+            break;
+        case 1:
+            m_dataManager.set(HEAD_TARGET_2, targetId);
+            break;
+        case 2:
+            m_dataManager.set(HEAD_TARGET_3, targetId);
+            break;
+        default:
+            break;
+    }
+}
+
+void WitherEntity::registerData() {
+    // MC 1.16.5 WitherEntity.registerData()
+    // 调用父类注册数据参数
+    MobEntity::registerData();
+
+    // 注册三个头的追踪目标实体ID
+    // 初始值为0表示无目标
+    m_dataManager.registerParam(HEAD_TARGET_1, 0);
+    m_dataManager.registerParam(HEAD_TARGET_2, 0);
+    m_dataManager.registerParam(HEAD_TARGET_3, 0);
 }
 
 void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target) {
@@ -190,12 +232,106 @@ void WitherEntity::updateAITasks() {
 
 void WitherEntity::updateHeadTargets() {
     // MC 1.16.5: 更新三个头的目标
-    // 主头追踪攻击目标
-    // 侧头追踪其他目标
+    // 主头追踪 getAttackTarget()
+    // 侧头每20tick更新一次目标，追踪最近的非亡灵生物
 
-    // TODO: 实现完整的目标追踪逻辑
-    // 1. 主头追踪 getAttackTarget()
-    // 2. 侧头每20tick更新一次目标，追踪最近的非亡灵生物
+    // 主头：直接追踪攻击目标
+    LivingEntity* attackTarget = this->attackTarget();
+    if (attackTarget != nullptr && attackTarget->isAlive()) {
+        updateWatchedTargetId(0, static_cast<i32>(attackTarget->id()));
+    } else {
+        updateWatchedTargetId(0, 0);
+    }
+
+    // 侧头：周期性更新目标
+    IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return;
+    }
+
+    for (i32 i = 1; i < 3; ++i) {
+        // 检查更新时间
+        if (ticksExisted() < m_nextHeadUpdate[i - 1]) {
+            continue;
+        }
+
+        // 设置下次更新时间：10-20 tick后
+        math::Random rng = getRandom();
+        m_nextHeadUpdate[i - 1] = ticksExisted() + 10 + rng.nextInt(10);
+
+        // 获取当前追踪目标
+        i32 currentTargetId = getWatchedTargetId(i);
+        if (currentTargetId > 0) {
+            // 检查当前目标是否仍然有效
+            Entity* currentTarget = worldPtr->getEntity(static_cast<EntityId>(currentTargetId));
+            if (currentTarget != nullptr && currentTarget->isAlive()) {
+                LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(currentTarget);
+                if (livingTarget != nullptr) {
+                    // 检查距离和视线
+                    f32 distSq = distanceSqTo(*livingTarget);
+                    if (distSq <= 900.0f && canSee(*livingTarget)) {  // 30格距离
+                        // 目标有效，发射凋灵之首
+                        launchWitherSkullToEntity(i, livingTarget);
+                        // 设置攻击冷却：40-60 tick
+                        m_nextHeadUpdate[i - 1] = ticksExisted() + 40 + rng.nextInt(20);
+                        continue;
+                    }
+                }
+            }
+            // 目标无效，清除
+            updateWatchedTargetId(i, 0);
+        }
+
+        // 无目标，搜索新目标
+        // MC 1.16.5: 搜索范围 20x8x20，目标条件：非亡灵生物、可攻击、可见
+        AxisAlignedBB searchBox = boundingBox().expand(20.0f, 8.0f, 20.0f);
+        std::vector<Entity*> nearbyEntities = worldPtr->getEntitiesInAABB(searchBox, this);
+
+        LivingEntity* bestTarget = nullptr;
+        f32 bestDistSq = std::numeric_limits<f32>::max();
+
+        for (Entity* entity : nearbyEntities) {
+            if (entity == nullptr || entity == this) {
+                continue;
+            }
+
+            LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
+            if (living == nullptr) {
+                continue;
+            }
+
+            // 排除亡灵生物
+            if (living->getCreatureAttribute() == CreatureAttribute::Undead) {
+                continue;
+            }
+
+            // 检查可攻击性
+            if (!living->isAlive()) {
+                continue;
+            }
+
+            // 检查视线
+            if (!canSee(*living)) {
+                continue;
+            }
+
+            // 检查是否是创造模式玩家（创造模式玩家不可被攻击）
+            if (living->legacyType() == LegacyEntityType::Player) {
+                // TODO: 检查玩家的游戏模式
+                // 暂时跳过这个检查
+            }
+
+            f32 distSq = distanceSqTo(*living);
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
+                bestTarget = living;
+            }
+        }
+
+        if (bestTarget != nullptr) {
+            updateWatchedTargetId(i, static_cast<i32>(bestTarget->id()));
+        }
+    }
 }
 
 f32 WitherEntity::getHeadX(i32 head) const {
@@ -266,10 +402,9 @@ void WitherEntity::registerGoals() {
 
     // 优先级 6: 看向玩家
     m_goalSelector.addGoal(6, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f,
-        [](const LivingEntity* /*entity*/) -> bool {
+        [](const LivingEntity* entity) -> bool {
             // 只看向玩家
-            // TODO: 检查是否是玩家
-            return true;
+            return entity != nullptr && entity->legacyType() == LegacyEntityType::Player;
         }));
 
     // 优先级 7: 随机看向

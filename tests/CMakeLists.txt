@@ -73,6 +73,8 @@ add_executable(mc_tests
     common/entity/entities/monster/ZombieVillagerEntityTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp
+    # WitherEntity 数据参数和目标追踪测试
+    common/entity/entities/boss/WitherEntityTest.cpp
     # BoostHelper NBT 序列化测试
     common/entity/core/BoostHelperTest.cpp
     # 成就系统测试

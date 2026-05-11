@@ -2,7 +2,8 @@
 
 #include "../../core/MobEntity.hpp"
 #include "../../interfaces/IRangedAttackMob.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
+#include "../../core/DataParameter.hpp"
+#include "../../../resource/ResourceLocation.hpp"
 #include <memory>
 #include <vector>
 #include <optional>
@@ -85,22 +86,10 @@ public:
     [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
 
     /**
-     * @brief 凋灵不能被骑乘
-     * MC 1.16.5: canBeRidden() -> false
-     */
-    [[nodiscard]] bool canBeRidden() const override { return false; }
-
-    /**
      * @brief 是否为Boss
      * MC 1.16.5: isNonBoss() -> false
      */
     [[nodiscard]] bool isNonBoss() const override { return false; }
-
-    /**
-     * @brief 凋灵不受摔落伤害
-     * MC 1.16.5: onLivingFall() -> false
-     */
-    [[nodiscard]] bool canTakeFallDamage() const override { return false; }
 
     // ========== IRangedAttackMob 接口实现 ==========
 
@@ -174,10 +163,17 @@ public:
     void ignite();
 
 protected:
+    void registerData() override;
     void registerGoals() override;
     void registerAttributes() override;
 
 private:
+    // ========== 数据参数 ==========
+    // 头部追踪目标实体ID（MC 1.16.5: FIRST_HEAD_TARGET, SECOND_HEAD_TARGET, THIRD_HEAD_TARGET）
+    static entity::DataParameter<i32> HEAD_TARGET_1;  // 主头目标
+    static entity::DataParameter<i32> HEAD_TARGET_2;  // 左头目标
+    static entity::DataParameter<i32> HEAD_TARGET_3;  // 右头目标
+
     // 无敌时间（MC 1.16.5: invulTime）
     i32 m_invulTime = 0;
 
