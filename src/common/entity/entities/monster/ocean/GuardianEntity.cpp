@@ -1,7 +1,17 @@
 #include "GuardianEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/special/GuardianAttackGoal.hpp"
+#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
+#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../core/LivingEntity.hpp"
+#include "../../../core/EntityUtils.hpp"
+#include "../../../entities/player/Player.hpp"
 #include "../../../../sound/SoundEvents.hpp"
+#include "../../../../core/Types.hpp"
 
 namespace mc {
 
@@ -50,9 +60,85 @@ void GuardianEntity::registerGoals() {
     // 调用父类方法
     MonsterEntity::registerGoals();
 
-    // TODO: 守卫者 AI 目标
-    // - GuardianAttackGoal: 激光攻击
-    // - GuardianMoveGoal: 移动
+    // MC 1.16.5 GuardianEntity.registerGoals()
+    // 目标优先级说明:
+    // - 优先级数字越小，优先级越高
+    // - 目标选择器(targetSelector)用于选择攻击目标
+    // - 行为目标选择器(goalSelector)用于控制行为
+
+    // ========== 行为目标选择器 (goalSelector) ==========
+    // 优先级 4: 激光攻击目标
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::GuardianAttackGoal>(this));
+
+    // 优先级 5: 向限制区域移动
+    // MC 1.16.5: MoveTowardsRestrictionGoal(this, 1.0D)
+    // 守卫者有移动限制区域（海底神殿附近）
+    // TODO: 实现 MoveTowardsRestrictionGoal
+    // m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::MoveTowardsRestrictionGoal>(this, 1.0));
+
+    // 优先级 7: 随机漫步
+    // MC 1.16.5: RandomWalkingGoal(this, 1.0D, 80)
+    // 80 tick 的移动间隔
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0, 80));
+
+    // 优先级 8: 看向玩家 (8格内)
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f,
+        [](const LivingEntity* entity) -> bool {
+            if (!entity) return false;
+            return entity->legacyType() == LegacyEntityType::Player;
+        }));
+
+    // 优先级 8: 看向同类守卫者 (12格内，低频率)
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 12.0f, 0.01f,
+        [](const LivingEntity* entity) -> bool {
+            if (!entity) return false;
+            auto type = entity->legacyType();
+            return type == LegacyEntityType::Guardian || type == LegacyEntityType::ElderGuardian;
+        }));
+
+    // 优先级 9: 随机看向
+    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
+
+    // ========== 目标选择器 (targetSelector) ==========
+    // 优先级 1: 搜索最近的可攻击目标
+    // MC 1.16.5: NearestAttackableTargetGoal<>(this, LivingEntity.class, 10, true, false, new TargetPredicate(this))
+    // 参数: 10 = 每10tick检查一次, true = 需要视线, false = 不需要近战距离
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
+        this,
+        true,    // checkSight - 需要视线检查
+        10,      // chance - 每10tick检查一次
+        // 目标筛选谓词: 只攻击玩家和鱿鱼，且距离 > 3格
+        [this](const LivingEntity* candidate) -> bool {
+            if (!candidate || !candidate->isAlive()) {
+                return false;
+            }
+
+            // 类型筛选: 只攻击玩家或鱿鱼
+            auto type = candidate->legacyType();
+            bool isPlayer = (type == LegacyEntityType::Player);
+            bool isSquid = (type == LegacyEntityType::Squid);
+            if (!isPlayer && !isSquid) {
+                return false;
+            }
+
+            // 玩家特殊检查: 创造模式和观察者模式不能被攻击
+            if (isPlayer) {
+                const Player* player = dynamic_cast<const Player*>(candidate);
+                if (player != nullptr && (player->isCreative() || player->isSpectator())) {
+                    return false;
+                }
+            }
+
+            // 距离筛选: 必须距离 > 3 格
+            // 参考 MC 1.16.5 GuardianEntity.TargetPredicate.test()
+            f64 distSq = this->distanceSqTo(*candidate);
+            if (distSq <= 9.0) {  // 3.0 * 3.0 = 9.0
+                return false;
+            }
+
+            return true;
+        }
+    ));
 }
 
 void GuardianEntity::registerAttributes() {

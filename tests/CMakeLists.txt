@@ -154,6 +154,7 @@ add_executable(mc_tests
     entity/EatGrassGoalTest.cpp
     entity/CreeperSwellGoalTest.cpp
     entity/BlazeFireballAttackGoalTest.cpp
+    entity/GuardianAttackGoalTest.cpp
     entity/BrainScheduleTests.cpp
     entity/SensorTests.cpp
     entity/DamagingProjectileSupportTypesTest.cpp

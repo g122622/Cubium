@@ -2,12 +2,15 @@
 #include "../../../../entities/monster/ocean/GuardianEntity.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/Entity.hpp"
+#include "../../../../core/EntityUtils.hpp"
+#include "../../../../entities/player/Player.hpp"
+#include "../../../../attribute/Attributes.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../damage/DamageSource.hpp"
 #include "../../../../../util/assert/AssertAll.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "../../../../../core/Types.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -23,9 +26,24 @@ bool GuardianAttackGoal::shouldExecute() {
         return false;
     }
 
-    // 选择目标
-    LivingEntity* target = selectTarget();
+    // MC 1.16.5 GuardianEntity.AttackGoal.shouldExecute():
+    // 优先使用 targetSelector 设置的攻击目标
+    // LivingEntity livingentity = this.guardian.getAttackTarget();
+    // return livingentity != null && livingentity.isAlive();
+
+    LivingEntity* target = m_guardian->attackTarget();
+
+    // 如果没有攻击目标，尝试自己搜索
     if (target == nullptr) {
+        target = selectTarget();
+    }
+
+    if (target == nullptr) {
+        return false;
+    }
+
+    // 检查目标是否存活
+    if (!target->isAlive()) {
         return false;
     }
 
@@ -70,11 +88,12 @@ void GuardianAttackGoal::startExecuting() {
 
     // 广播实体状态事件 (状态21 = GuardianAttack)
     // MC 1.16.5: 在开始充能时发送状态21触发客户端声音
-    if (m_guardian->world()) {
-        m_guardian->world()->broadcastEntityStatus(
-            m_guardian->id(),
-            static_cast<u8>(network::EntityStatusPacket::Status::GuardianAttack));
-    }
+    // TODO: 实现 broadcastEntityStatus 方法
+    // if (m_guardian->world()) {
+    //     m_guardian->world()->broadcastEntityStatus(
+    //         m_guardian->id(),
+    //         static_cast<u8>(network::EntityStatusPacket::Status::GuardianAttack));
+    // }
 }
 
 void GuardianAttackGoal::resetTask() {
@@ -115,10 +134,65 @@ LivingEntity* GuardianAttackGoal::selectTarget() const {
     }
 
     // MC 1.16.5: 守卫者攻击玩家和鱿鱼
-    // 简化实现：先搜索玩家
-    // TODO: 实现搜索最近实体的逻辑
-    // 当前返回 nullptr，等待目标选择器系统完善
-    return nullptr;
+    // 参考 GuardianEntity.registerGoals() 中的 TargetPredicate
+    // 目标类型筛选: 只攻击 Player 或 Squid
+    // 距离筛选: 必须距离大于 3 格（距离平方 > 9.0）
+    //
+    // 注意：主要的目标选择逻辑应该由 targetSelector 中的 NearestAttackableTargetGoal 提供
+    // 此方法作为备用逻辑，直接搜索最近的有效目标
+
+    IWorld* world = m_guardian->world();
+
+    // 获取跟随范围（搜索范围）
+    f64 followRange = m_guardian->getAttributeValue(
+        entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
+    f32 searchRange = static_cast<f32>(followRange);
+
+    // 使用 EntityUtils 搜索最近的 LivingEntity
+    LivingEntity* nearestTarget = EntityUtils::findClosestEntity<LivingEntity>(
+        world,
+        m_guardian->position(),
+        searchRange,
+        m_guardian,  // 排除自己
+        [this](LivingEntity* candidate) {
+            // 1. 检查目标是否存活
+            if (!candidate || !candidate->isAlive()) {
+                return false;
+            }
+
+            // 2. 类型筛选: 只攻击玩家或鱿鱼
+            auto type = candidate->legacyType();
+            bool isPlayer = (type == LegacyEntityType::Player);
+            bool isSquid = (type == LegacyEntityType::Squid);
+            if (!isPlayer && !isSquid) {
+                return false;
+            }
+
+            // 3. 玩家特殊检查: 创造模式和观察者模式不能被攻击
+            if (isPlayer) {
+                Player* player = dynamic_cast<Player*>(candidate);
+                if (player != nullptr && (player->isCreative() || player->isSpectator())) {
+                    return false;
+                }
+            }
+
+            // 4. 距离筛选: 必须距离 > 3 格
+            // 参考 MC 1.16.5 GuardianEntity.TargetPredicate.test()
+            f64 distSq = m_guardian->distanceSqTo(*candidate);
+            if (distSq <= 9.0) {  // 3.0 * 3.0 = 9.0
+                return false;
+            }
+
+            // 5. 视线检查
+            if (!m_guardian->canSee(*candidate)) {
+                return false;
+            }
+
+            return true;
+        }
+    );
+
+    return nearestTarget;
 }
 
 bool GuardianAttackGoal::isTargetValid(LivingEntity* target) const {
