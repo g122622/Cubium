@@ -129,7 +129,8 @@ private:
  * 状态属性：
  * - NORTH/SOUTH/EAST/WEST/DOWN/UP: 各方向连接
  *
- * 参考: net.minecraft.block.ChorusPlantBlock
+ * 参考 MC 1.16.5: SixWayBlock, ChorusPlantBlock
+ * 形状系统：预计算 64 种组合（2^6），使用位掩码索引
  */
 class ChorusPlantBlock : public Block {
 public:
@@ -162,14 +163,34 @@ public:
         return false;
     }
 
-private:
+    /**
+     * @brief 根据连接状态计算形状索引
+     *
+     * 使用位掩码：Down=1, Up=2, North=4, South=8, West=16, East=32
+     *
+     * @param state 方块状态
+     * @return 形状索引 (0-63)
+     */
+    [[nodiscard]] static size_t getShapeIndex(const BlockState& state);
+
     /**
      * @brief 检查是否连接到指定方向
+     *
+     * 连接规则（参考 MC 1.16.5）：
+     * - 所有方向：连接到紫颂植物和紫颂花
+     * - 仅下方：额外连接到末地石
+     *
+     * @param world 方块读取器
+     * @param pos 当前方块位置
+     * @param direction 检查方向
+     * @return true 如果应该连接
      */
     [[nodiscard]] bool canConnect(IBlockReader& world, const BlockPos& pos, Direction direction) const;
 
-    CollisionShape m_centerShape;
-    CollisionShape m_armShapes[6];  // 6个方向
+private:
+    CollisionShape m_centerShape;                    ///< 中心柱形状
+    CollisionShape m_armShapes[6];                   ///< 6 个方向的臂形状
+    std::array<CollisionShape, 64> m_shapes;         ///< 预计算的 64 种组合形状
 };
 
 /**

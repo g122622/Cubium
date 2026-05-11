@@ -1,10 +1,12 @@
 #include "EndPortalBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../VanillaBlocks.hpp"
 #include "../../../../entity/core/Entity.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../core/BlockRaycastResult.hpp"
+#include <array>
 
 namespace mc {
 namespace blocks {
@@ -167,31 +169,50 @@ ChorusPlantBlock::ChorusPlantBlock(const BlockProperties& properties)
         .with(BlockStateProperties::DOWN(), false)
         .with(BlockStateProperties::UP(), false));
 
-    // 创建形状
-    m_centerShape = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 1.0f, 0.75f);
+    // 参考 MC 1.16.5 SixWayBlock.makeShapes
+    // apothem = 0.3125F，即 5/16 像素
+    // 中心柱尺寸：从方块中心向各方向偏移 apothem
+    constexpr f32 apothem = 0.3125f;
+    constexpr f32 f = 0.5f - apothem;   // 0.1875 (3 像素)
+    constexpr f32 f1 = 0.5f + apothem;  // 0.8125 (13 像素)
+
+    // 中心柱形状：(3, 3, 3) -> (13, 13, 13) 像素
+    // MC 1.16.5: Block.makeCuboidShape(f*16, f*16, f*16, f1*16, f1*16, f1*16)
+    m_centerShape = CollisionShape::box(f, f, f, f1, f1, f1);
+
+    // 计算各方向的臂形状
+    // Direction 枚举顺序：Down=0, Up=1, North=2, South=3, West=4, East=5
+    // MC 1.16.5: VoxelShapes.create(0.5 + min(-apothem, offset*0.5), ...)
     for (int i = 0; i < 6; ++i) {
-        // 各方向的连接形状
         Direction dir = static_cast<Direction>(i);
-        switch (dir) {
-            case Direction::North:
-                m_armShapes[i] = CollisionShape::box(0.25f, 0.25f, 0.0f, 0.75f, 0.75f, 0.25f);
-                break;
-            case Direction::South:
-                m_armShapes[i] = CollisionShape::box(0.25f, 0.25f, 0.75f, 0.75f, 0.75f, 1.0f);
-                break;
-            case Direction::East:
-                m_armShapes[i] = CollisionShape::box(0.75f, 0.25f, 0.25f, 1.0f, 0.75f, 0.75f);
-                break;
-            case Direction::West:
-                m_armShapes[i] = CollisionShape::box(0.0f, 0.25f, 0.25f, 0.25f, 0.75f, 0.75f);
-                break;
-            case Direction::Up:
-                m_armShapes[i] = CollisionShape::box(0.25f, 0.75f, 0.25f, 0.75f, 1.0f, 0.75f);
-                break;
-            case Direction::Down:
-                m_armShapes[i] = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 0.25f, 0.75f);
-                break;
+        f32 xOffset = static_cast<f32>(Directions::xOffset(dir));
+        f32 yOffset = static_cast<f32>(Directions::yOffset(dir));
+        f32 zOffset = static_cast<f32>(Directions::zOffset(dir));
+
+        // 臂形状边界计算
+        // 向正方向延伸到方块边缘，向负方向只延伸到中心柱边缘
+        f32 minX = 0.5f + std::min(-apothem, xOffset * 0.5f);
+        f32 minY = 0.5f + std::min(-apothem, yOffset * 0.5f);
+        f32 minZ = 0.5f + std::min(-apothem, zOffset * 0.5f);
+        f32 maxX = 0.5f + std::max(apothem, xOffset * 0.5f);
+        f32 maxY = 0.5f + std::max(apothem, yOffset * 0.5f);
+        f32 maxZ = 0.5f + std::max(apothem, zOffset * 0.5f);
+
+        m_armShapes[i] = CollisionShape::box(minX, minY, minZ, maxX, maxY, maxZ);
+    }
+
+    // 预计算所有 64 种组合形状
+    // 索引计算：Down=bit0, Up=bit1, North=bit2, South=bit3, West=bit4, East=bit5
+    for (size_t k = 0; k < 64; ++k) {
+        CollisionShape shape = m_centerShape;
+
+        for (int j = 0; j < 6; ++j) {
+            if ((k & (1ULL << j)) != 0) {
+                shape = CollisionShape::combine(shape, m_armShapes[j]);
+            }
         }
+
+        m_shapes[k] = shape;
     }
 }
 
@@ -267,9 +288,25 @@ BlockState ChorusPlantBlock::updatePostPlacement(
 }
 
 const CollisionShape& ChorusPlantBlock::getShape(const BlockState& state) const {
-    MC_UNUSED(state);
-    // TODO: 返回组合形状
-    return m_centerShape;
+    const size_t index = getShapeIndex(state);
+    MC_ASSERT_RELEASE(index < m_shapes.size());
+    return m_shapes[index];
+}
+
+// static
+size_t ChorusPlantBlock::getShapeIndex(const BlockState& state) {
+    // 位掩码索引：Down=bit0, Up=bit1, North=bit2, South=bit3, West=bit4, East=bit5
+    // 与 Direction 枚举顺序一致：Down=0, Up=1, North=2, South=3, West=4, East=5
+    size_t index = 0;
+
+    if (state.get(BlockStateProperties::DOWN()))  index |= 1ULL << 0;  // bit 0
+    if (state.get(BlockStateProperties::UP()))    index |= 1ULL << 1;  // bit 1
+    if (state.get(BlockStateProperties::NORTH())) index |= 1ULL << 2;  // bit 2
+    if (state.get(BlockStateProperties::SOUTH())) index |= 1ULL << 3;  // bit 3
+    if (state.get(BlockStateProperties::WEST()))  index |= 1ULL << 4;  // bit 4
+    if (state.get(BlockStateProperties::EAST()))  index |= 1ULL << 5;  // bit 5
+
+    return index;
 }
 
 bool ChorusPlantBlock::canConnect(IBlockReader& world, const BlockPos& pos, Direction direction) const {
@@ -280,8 +317,24 @@ bool ChorusPlantBlock::canConnect(IBlockReader& world, const BlockPos& pos, Dire
         return false;
     }
 
-    // 连接到紫颂植物或紫颂花
-    return adjState->is(this);  // TODO: 也连接到紫颂花
+    const Block& adjBlock = adjState->getBlock();
+
+    // 连接到紫颂植物
+    if (adjState->is(this)) {
+        return true;
+    }
+
+    // 连接到紫颂花
+    if (&adjBlock == VanillaBlocks::CHORUS_FLOWER) {
+        return true;
+    }
+
+    // 仅下方可连接到末地石（作为生长基底）
+    if (direction == Direction::Down && &adjBlock == VanillaBlocks::END_STONE) {
+        return true;
+    }
+
+    return false;
 }
 
 // ========== ChorusFlowerBlock ==========
