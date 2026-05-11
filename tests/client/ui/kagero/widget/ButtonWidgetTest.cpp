@@ -174,6 +174,137 @@ TEST(ButtonWidgetTest, ClickInvisibleNoTrigger) {
     EXPECT_EQ(0, clickCount);
 }
 
+// ==================== UI音效测试 ====================
+
+class UiSoundTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // 保存原始回调
+        m_originalCallback = Widget::uiSoundCallback();
+        // 清除回调
+        Widget::setUiSoundCallback(nullptr);
+    }
+
+    void TearDown() override {
+        // 恢复原始回调
+        Widget::setUiSoundCallback(m_originalCallback);
+    }
+
+    UiSoundCallback m_originalCallback;
+};
+
+TEST_F(UiSoundTest, WidgetSetAndGetSoundCallback) {
+    // 测试设置和获取回调
+    bool callbackCalled = false;
+    std::string receivedSoundId;
+
+    Widget::setUiSoundCallback([&](const std::string& soundId) {
+        callbackCalled = true;
+        receivedSoundId = soundId;
+    });
+
+    // 验证回调已设置
+    EXPECT_TRUE(Widget::uiSoundCallback());
+}
+
+TEST_F(UiSoundTest, WidgetPlayUiSoundCallsCallback) {
+    std::string lastSoundId;
+    int callCount = 0;
+
+    Widget::setUiSoundCallback([&](const std::string& soundId) {
+        lastSoundId = soundId;
+        ++callCount;
+    });
+
+    // 播放UI音效
+    Widget::playUiSound("minecraft:ui.button.click");
+
+    EXPECT_EQ(1, callCount);
+    EXPECT_EQ("minecraft:ui.button.click", lastSoundId);
+
+    // 播放另一个音效
+    Widget::playUiSound("minecraft:entity.player.swim");
+    EXPECT_EQ(2, callCount);
+    EXPECT_EQ("minecraft:entity.player.swim", lastSoundId);
+}
+
+TEST_F(UiSoundTest, WidgetPlayUiSoundNoCallbackDoesNotCrash) {
+    // 清除回调
+    Widget::setUiSoundCallback(nullptr);
+
+    // 不应该崩溃
+    EXPECT_NO_THROW(Widget::playUiSound("minecraft:ui.button.click"));
+}
+
+TEST_F(UiSoundTest, ButtonClickPlaysSound) {
+    std::string lastSoundId;
+    int soundCallCount = 0;
+    int clickCallCount = 0;
+
+    Widget::setUiSoundCallback([&](const std::string& soundId) {
+        lastSoundId = soundId;
+        ++soundCallCount;
+    });
+
+    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test",
+        [&clickCallCount](ButtonWidget&) { ++clickCallCount; });
+
+    button.setActive(true);
+    button.setVisible(true);
+
+    // 点击按钮
+    button.onClick(50, 20, 0);
+
+    // 验证点击回调和音效都被触发
+    EXPECT_EQ(1, clickCallCount);
+    EXPECT_EQ(1, soundCallCount);
+    EXPECT_EQ("minecraft:ui.button.click", lastSoundId);
+}
+
+TEST_F(UiSoundTest, ButtonClickNoSoundWhenDisabled) {
+    int soundCallCount = 0;
+
+    Widget::setUiSoundCallback([&](const std::string&) {
+        ++soundCallCount;
+    });
+
+    ButtonWidget button("btn_test", 0, 0, 100, 40, "Test");
+    button.setActive(false);
+
+    // 点击禁用的按钮
+    button.onClick(50, 20, 0);
+
+    // 禁用按钮不应该播放音效
+    EXPECT_EQ(0, soundCallCount);
+}
+
+TEST_F(UiSoundTest, CustomButtonSound) {
+    std::string lastSoundId;
+
+    Widget::setUiSoundCallback([&](const std::string& soundId) {
+        lastSoundId = soundId;
+    });
+
+    // 创建自定义按钮类，使用不同的音效
+    class CustomSoundButton : public ButtonWidget {
+    public:
+        using ButtonWidget::ButtonWidget;
+    protected:
+        void playClickSound() override {
+            playUiSound("minecraft:block.wood.hit");
+        }
+    };
+
+    CustomSoundButton button("custom_btn", 0, 0, 100, 40, "Custom");
+    button.setActive(true);
+    button.setVisible(true);
+
+    button.onClick(50, 20, 0);
+
+    // 验证使用了自定义音效
+    EXPECT_EQ("minecraft:block.wood.hit", lastSoundId);
+}
+
 // ==================== ImageButtonWidget测试 ====================
 
 TEST(ImageButtonWidgetTest, Constructor) {

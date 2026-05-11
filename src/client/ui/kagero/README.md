@@ -114,6 +114,7 @@ classDiagram
         +bool m_active
         +bool m_hovered
         +bool m_focused
+        +static UiSoundCallback s_uiSoundCallback
         +init()
         +tick(dt: f32)
         +paint(ctx: PaintContext)
@@ -127,6 +128,8 @@ classDiagram
         +onMouseLeave()
         +onFocusGained()
         +onFocusLost()
+        +static setUiSoundCallback(callback)
+        +static playUiSound(soundEventId)
     }
 
     class ContainerWidget {
@@ -141,6 +144,7 @@ classDiagram
         +onPress: callback
         +paint(ctx)
         +onClick() bool
+        +playClickSound()
     }
 
     class TextFieldWidget {
@@ -156,6 +160,21 @@ classDiagram
     Widget <|-- ButtonWidget
     Widget <|-- TextFieldWidget
     ContainerWidget ..> Widget : contains
+```
+
+**UI音效支持：**
+
+Widget 基类提供静态音效回调机制，用于播放 UI 交互音效（如按钮点击）：
+
+```cpp
+// 设置 UI 音效回调（在 ClientApplication 初始化时调用）
+Widget::setUiSoundCallback([](const std::string& soundEventId) {
+    // 播放音效，如 minecraft:ui.button.click
+    audioService->play(...);
+});
+
+// 播放 UI 音效（在 ButtonWidget::onClick 等事件中调用）
+Widget::playUiSound("minecraft:ui.button.click");
 ```
 
 **内置组件列表：**

@@ -9,6 +9,7 @@
 #include "common/world/block/blocks/ocean/BubbleColumnBlock.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 
 #include <algorithm>
@@ -43,6 +44,22 @@ Result<void> ClientApplication::initializeAudio()
     } else {
         // 添加环境音效处理器
         spdlog::info("Sound system initialized successfully");
+
+        // 设置 UI 音效回调，供 Widget::playUiSound() 使用
+        // 参考 MC 1.16.5 Widget.playDownSound(): 音量 0.25F，无衰减
+        ui::kagero::widget::Widget::setUiSoundCallback([this](const std::string& soundEventId) {
+            if (m_audioService) {
+                auto sound = std::make_unique<sound::SoundInstance>(
+                    sound::SoundInstance::createGlobal(
+                        ResourceLocation(soundEventId),
+                        sound::SoundCategory::Master,
+                        0.25f,  // MC 1.16.5 UI 按钮默认音量
+                        1.0f    // 默认音调
+                    )
+                );
+                m_audioService->play(std::move(sound));
+            }
+        });
     }
 
     return Result<void>::ok();
@@ -266,6 +283,9 @@ void ClientApplication::updateAudioPauseState()
 
 void ClientApplication::shutdownAudio()
 {
+    // 清除 UI 音效回调，避免悬空指针
+    ui::kagero::widget::Widget::setUiSoundCallback(nullptr);
+
     if (!m_audioService) {
         return;
     }

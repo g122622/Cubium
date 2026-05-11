@@ -13,6 +13,14 @@ class IWidgetContainer;
 class PaintContext;
 
 /**
+ * @brief UI音效回调类型
+ *
+ * 用于播放UI音效（如按钮点击）。
+ * 参数：音效事件ID（如 "minecraft:ui.button.click"）
+ */
+using UiSoundCallback = std::function<void(const std::string& soundEventId)>;
+
+/**
  * @brief Widget基类
  *
  * 所有UI组件的基类，提供：
@@ -20,6 +28,7 @@ class PaintContext;
  * - 事件处理（click, drag, scroll, key, char）
  * - 布局属性（position, size, anchor）
  * - 状态管理（visible, active, hovered, focused）
+ * - UI音效支持（静态回调注入）
  *
  * 参考MC 1.16.5 Widget.java实现
  *
@@ -509,6 +518,58 @@ public:
         setHovered(isMouseOver(mouseX, mouseY));
     }
 
+    // ==================== UI音效支持 ====================
+
+    /**
+     * @brief 设置UI音效回调
+     *
+     * 此回调用于播放UI音效（如按钮点击音）。
+     * 应在应用程序初始化时调用，将音频服务连接到UI组件。
+     *
+     * @param callback 音效回调函数，参数为音效事件ID（如 "minecraft:ui.button.click"）
+     *
+     * @code
+     * // 在 ClientApplication 初始化时设置
+     * Widget::setUiSoundCallback([this](const std::string& soundEventId) {
+     *     if (m_audioService) {
+     *         auto sound = std::make_unique<sound::SoundInstance>(
+     *             sound::SoundInstance::createGlobal(
+     *                 ResourceLocation(soundEventId),
+     *                 sound::SoundCategory::Master,
+     *                 0.25f,  // MC 1.16.5 默认音量
+     *                 1.0f
+     *             )
+     *         );
+     *         m_audioService->play(std::move(sound));
+     *     }
+     * });
+     * @endcode
+     */
+    static void setUiSoundCallback(UiSoundCallback callback) {
+        s_uiSoundCallback = std::move(callback);
+    }
+
+    /**
+     * @brief 获取UI音效回调
+     */
+    [[nodiscard]] static const UiSoundCallback& uiSoundCallback() {
+        return s_uiSoundCallback;
+    }
+
+    /**
+     * @brief 播放UI音效
+     *
+     * 如果设置了音效回调，则调用回调播放音效。
+     * 子类可在事件处理中调用此方法播放UI音效。
+     *
+     * @param soundEventId 音效事件ID（如 "minecraft:ui.button.click"）
+     */
+    static void playUiSound(const std::string& soundEventId) {
+        if (s_uiSoundCallback) {
+            s_uiSoundCallback(soundEventId);
+        }
+    }
+
 protected:
     /**
      * @brief 位置改变时调用
@@ -550,6 +611,9 @@ protected:
     u32 m_borderColor = Colors::fromARGB(0, 0, 0, 0);     ///< 边框色
     i32 m_cornerRadius = 0;          ///< 圆角半径
     IWidgetContainer* m_parent = nullptr;  ///< 父容器
+
+    // 静态成员：UI音效回调（inline 允许在头文件中定义）
+    inline static UiSoundCallback s_uiSoundCallback;
 };
 
 } // namespace mc::client::ui::kagero::widget

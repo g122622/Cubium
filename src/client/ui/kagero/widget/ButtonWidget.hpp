@@ -216,11 +216,11 @@ protected:
     /**
      * @brief 播放点击音效
      *
-     * 子类可重写以自定义音效
+     * 子类可重写以自定义音效。
+     * 默认播放 minecraft:ui.button.click，音量 0.25（MC 1.16.5 标准）。
      */
     virtual void playClickSound() {
-        // TODO: 播放 UI 按钮音效
-        // SoundManager::instance().play(SoundEvents::UI_BUTTON_CLICK);
+        Widget::playUiSound("minecraft:ui.button.click");
     }
 
     std::string m_text;                      ///< 按钮文本
