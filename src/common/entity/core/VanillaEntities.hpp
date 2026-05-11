@@ -730,6 +730,17 @@ private:
                 .build()
         );
 
+        // 蠹虫
+        registry.registerType(
+            EntityTypes::SILVERFISH,
+            EntityType::Builder(&SilverfishEntity::create, EntityClassification::Monster)
+                .size(0.4f, 0.3f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build()
+        );
+
         // 潜影贝
         registry.registerType(
             EntityTypes::SHULKER,

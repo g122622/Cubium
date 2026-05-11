@@ -2,12 +2,15 @@
 #include "../../../IWorld.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../entity/entities/monster/arthropod/EndermiteEntity.hpp"
+#include "../../../../entity/entities/passive/special/TurtleEntity.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../core/BlockRaycastResult.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../sound/SoundCategory.hpp"
+#include "../../../../core/Types.hpp"
 
 namespace mc {
 namespace blocks {
@@ -237,11 +240,42 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
             world.setBlockState(pos, airState, 2);
         }
 
-        // TODO: 为每个蛋生成一只小海龟
-        // for (i32 i = 0; i < eggs; ++i) {
-        //     spawnBabyTurtle(world, pos);
+        // MC 1.16.5: 为每个蛋生成一只小海龟
+        // 参考: TurtleEggBlock.randomTick
+        // for(int j = 0; j < state.get(EGGS); ++j) {
+        //     TurtleEntity turtleentity = EntityType.TURTLE.create(worldIn);
+        //     turtleentity.setGrowingAge(-24000);
+        //     turtleentity.setHome(pos);
+        //     turtleentity.setLocationAndAngles(
+        //         (double)pos.getX() + 0.3D + (double)j * 0.2D,
+        //         (double)pos.getY(),
+        //         (double)pos.getZ() + 0.3D,
+        //         0.0F, 0.0F);
+        //     worldIn.addEntity(turtleentity);
         // }
-        MC_UNUSED(eggs);
+        for (i32 i = 0; i < eggs; ++i) {
+            auto turtle = std::make_unique<TurtleEntity>(LegacyEntityType::Turtle, EntityId(0));
+            if (turtle) {
+                // MC 1.16.5: 设置为幼体（-24000 ticks = 20分钟）
+                turtle->setChild(true);
+
+                // MC 1.16.5: 设置出生位置（小海龟会记住这个位置作为"家"）
+                turtle->setHomePos(pos);
+
+                // 设置位置：多个蛋时错开位置
+                // x = pos.x + 0.3 + i * 0.2
+                // z = pos.z + 0.3
+                turtle->setPosition(
+                    static_cast<f32>(pos.x) + 0.3f + static_cast<f32>(i) * 0.2f,
+                    static_cast<f32>(pos.y),
+                    static_cast<f32>(pos.z) + 0.3f
+                );
+                turtle->setRotation(0.0f, 0.0f);
+
+                // 生成到世界
+                world.spawnEntity(std::move(turtle));
+            }
+        }
     }
 }
 
@@ -277,17 +311,46 @@ bool TurtleEggBlock::hasProperHabitat(IBlockReader& world, const BlockPos& pos) 
     return belowState != nullptr && BlockTags::SAND().contains(*belowState);
 }
 
-bool TurtleEggBlock::canTrample(IWorld& world, Entity& entity) const {
+bool TurtleEggBlock::canTrample(IWorld& /*world*/, Entity& entity) const {
     // MC 1.16.5: 只有玩家或满足 mobGriefing 的生物才能踩破蛋
     // 海龟和蝙蝠不能踩破蛋
 
-    // 检查是否为海龟
-    // TODO: 实现实体类型检查
-    // if (entity.getType() == EntityTypes::TURTLE) return false;
-    // if (entity.getType() == EntityTypes::BAT) return false;
+    // MC 1.16.5 TurtleEggBlock.canTrample():
+    // if (!(trampler instanceof TurtleEntity) && !(trampler instanceof BatEntity)) {
+    //     if (!(trampler instanceof LivingEntity)) {
+    //         return false;
+    //     } else {
+    //         return trampler instanceof PlayerEntity || net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(worldIn, trampler);
+    //     }
+    // } else {
+    //     return false;
+    // }
+
+    // 获取实体类型
+    LegacyEntityType type = entity.legacyType();
+
+    // 海龟和蝙蝠不能踩破蛋
+    if (type == LegacyEntityType::Turtle || type == LegacyEntityType::Bat) {
+        return false;
+    }
+
+    // 非生物实体不能踩破（物品、箭矢等）
+    // 检查是否为生物实体：玩家和怪物类实体可以踩破
+    // LegacyEntityType 中 Player = 1, 被动生物 10-49, 敌对生物 50-150
+    // 使用动态类型检查判断是否为 LivingEntity
+    auto* living = dynamic_cast<LivingEntity*>(&entity);
+    if (living == nullptr) {
+        return false;
+    }
+
+    // 玩家总是可以踩破
+    if (type == LegacyEntityType::Player) {
+        return true;
+    }
 
     // TODO: 检查 mobGriefing 游戏规则
-    // 暂时只允许玩家踩破
+    // return world.getGameRules().getBoolean(GameRule::MOB_GRIEFING);
+    // 暂时返回 true（其他生物可以踩破）
     return true;
 }
 
@@ -337,10 +400,24 @@ void TurtleEggBlock::removeOneEgg(IWorld& world, const BlockPos& pos, const Bloc
 
 bool TurtleEggBlock::isZombieType(Entity& entity) const {
     // MC 1.16.5: 检查实体是否为僵尸类
-    // 包括: 僵尸、尸壳、溺尸、僵尸村民、僵尸马
-    // TODO: 实现实体类型检查
-    MC_UNUSED(entity);
-    return false;
+    // 使用 instanceof ZombieEntity 检查，由于 ZombieEntity 是基类，
+    // HuskEntity、DrownedEntity 等是子类
+    // 但在当前项目中，这些是独立的实体类型，需要通过 LegacyEntityType 检查
+
+    LegacyEntityType type = entity.legacyType();
+
+    // MC 1.16.5: 只有 ZombieEntity 及其子类（Husk、Drowned）会踩破海龟蛋
+    // 注意：MC 中 ZombieVillager 也是 ZombieEntity 的子类，但当前项目中未定义
+    // Skeleton、Stray、WitherSkeleton 虽然是亡灵，但不是僵尸类，不会踩破蛋
+    switch (type) {
+        case LegacyEntityType::Zombie:
+        case LegacyEntityType::Husk:
+        case LegacyEntityType::Drowned:
+            // 僵尸及其变种会踩破海龟蛋
+            return true;
+        default:
+            return false;
+    }
 }
 
 const CollisionShape& TurtleEggBlock::getShape(const BlockState& state) const {
@@ -357,10 +434,38 @@ InfestedBlock::InfestedBlock(u32 hostBlock, const BlockProperties& properties)
 }
 
 void InfestedBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) {
-    // TODO: 生成蠹虫
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
+    // MC 1.16.5: InfestedBlock.spawnAdditionalDrops()
+    // 当被破坏时，有概率生成蠹虫
+    // 注意：实际生成条件需要检查游戏规则 doTileDrops 和精准采集附魔
+    // 这些检查在 onBlockHarvested 或 spawnAdditionalDrops 中进行
+    // 这里简化处理：直接生成蠹虫
+
     MC_UNUSED(state);
+
+    // 只在服务端生成
+    if (world.isClientSide()) {
+        return;
+    }
+
+    // MC 1.16.5: 创建蠹虫实体
+    // SilverfishEntity silverfishentity = EntityType.SILVERFISH.create(world);
+    // silverfishentity.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
+    // world.addEntity(silverfishentity);
+    // silverfishentity.spawnExplosionParticle();
+
+    auto silverfish = std::make_unique<SilverfishEntity>(LegacyEntityType::Silverfish, EntityId(0));
+    if (silverfish) {
+        // 设置位置（方块中心）
+        silverfish->setPosition(
+            static_cast<f32>(pos.x) + 0.5f,
+            static_cast<f32>(pos.y),
+            static_cast<f32>(pos.z) + 0.5f
+        );
+        silverfish->setRotation(0.0f, 0.0f);
+
+        // 生成到世界
+        world.spawnEntity(std::move(silverfish));
+    }
 }
 
 // ========== SpawnerBlock ==========
