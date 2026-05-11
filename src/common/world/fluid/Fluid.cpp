@@ -154,8 +154,10 @@ bool Fluid::canDisplace(const FluidState& state, IWorld& world,
 
 CollisionShape Fluid::getShape(const FluidState& state, IBlockReader& world,
                                 const BlockPos& pos) const {
-    // 默认实现：根据高度返回形状
-    // TODO: 实现实际的碰撞形状
+    // 基类默认返回空碰撞形状
+    // EmptyFluid 继承此行为（空流体无碰撞）
+    // FlowingFluid 重写此方法，根据流体高度返回正确的碰撞形状
+    // 参考 MC 1.16.5: Fluid.func_215664_b()
     (void)state;
     (void)world;
     (void)pos;
