@@ -221,3 +221,9 @@ flowchart TD
 - 已新增 `ChatVisibility.hpp`，对齐 MC 1.16.5 `ChatVisibility` 的三档聊天可见性以及 ID 归一化规则。
 - 已新增 `PlayerModelPart.hpp`，对齐披风、夹克、袖子、裤腿、帽子七个皮肤部件及其位掩码。
 - `Player` 现已持有聊天可见性和皮肤部件位集，并提供 `isWearing()`、`setModelPartEnabled()` 等基础接口，供后续客户端设置同步、服务端设置包和渲染层复用。
+- **已新增消息发送功能**（2026-05-12）：
+  - `Player::sendStatusMessage(message, actionBar)` - 发送状态消息给玩家（虚方法，基类默认空操作）
+  - `Player::canReceiveMessages()` - 检查玩家是否能接收消息（虚方法，基类默认返回 false）
+  - `ServerPlayer::sendStatusMessage()` - 重写为通过网络发送消息到客户端
+  - `ServerPlayer::canReceiveMessages()` - 重写为检查网络连接状态
+  - 参考 MC 1.16.5 `PlayerEntity.sendStatusMessage(ITextComponent, boolean)`

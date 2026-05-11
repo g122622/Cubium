@@ -161,6 +161,7 @@ add_executable(mc_tests
     common/entity/PlayerSwimTest.cpp
     common/entity/player/SpawnPointValidatorTest.cpp
     common/entity/player/CooldownTrackerTest.cpp
+    common/entity/player/PlayerMessageTest.cpp
     entity/ProjectileHelperTest.cpp
     entity/SkeletonSupportTypesTest.cpp
     entity/SpellcastingIllagerSupportTypesTest.cpp
@@ -194,6 +195,8 @@ add_executable(mc_tests
     server/core/KeepAliveManagerTest.cpp
     server/core/PositionTrackerTest.cpp
     server/core/WhitelistManagerTest.cpp
+    # ServerPlayer 消息发送测试
+    server/player/ServerPlayerMessageTest.cpp
     # 维度管理器测试
     server/dimension/ServerDimensionManagerTest.cpp
     server/weather/WeatherManagerTest.cpp

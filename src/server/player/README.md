@@ -323,6 +323,17 @@ void ServerPlayer::sendChatMessage(const std::string& message) {
 
 **注意**：需要通过 `setConnection()` 设置网络连接才能发送消息。
 
+**新增**（2026-05-12）：`sendStatusMessage()` 方法用于发送状态消息给玩家：
+
+```cpp
+void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar = false) override;
+```
+
+- 重写自 `Player::sendStatusMessage()` 基类虚方法
+- `actionBar` 参数：若为 true，消息显示在 Action Bar（物品栏上方提示区域）；当前实现暂忽略此参数，始终发送到聊天区域
+- 常用于方块交互反馈（如床的睡眠失败消息）
+- 调用前应检查 `canReceiveMessages()` 确保玩家有有效连接
+
 ### 3. 世界指针可能为空
 
 **问题：** `getWorld()` 可能返回 `nullptr`。
@@ -342,6 +353,7 @@ player->getWorld()->getChunk(x, z);  // 可能崩溃
 
 **已实现功能**：
 - 网络消息发送（ChatMessagePacket）
+- 状态消息发送（sendStatusMessage，用于方块交互反馈等）
 - 经验系统（添加、设置、消耗、同步）
 - 睡眠系统（尝试睡眠、唤醒、重生点）
 - 维度传送系统（下界/主世界传送门、坐标转换）
@@ -423,9 +435,30 @@ class PlayerManager {
 
 ## 测试用例
 
-当前模块**没有专门的测试用例**，因为 `ServerPlayer` 类实现不完整。
+当前模块已有专门的测试文件：
 
-相关的测试位于 `tests/server/core/PlayerManagerTest.cpp`，测试的是 `ServerPlayerData`。
+### tests/server/player/ServerPlayerMessageTest.cpp
+
+测试 `ServerPlayer` 的消息发送功能：
+
+- `CanReceiveMessagesFalseWithoutConnection` - 无连接时 `canReceiveMessages()` 返回 false
+- `CanReceiveMessagesTrueWithConnection` - 有连接时返回 true
+- `CanReceiveMessagesFalseAfterDisconnect` - 断开连接后返回 false
+- `SendStatusMessageDoesNotThrowWithConnection` - 有连接时发送消息不抛异常
+- `SendStatusMessageDoesNotThrowWithoutConnection` - 无连接时发送消息不抛异常
+- `PolymorphicCallThroughBasePointer` - 通过基类指针调用的多态性测试
+
+### tests/common/entity/player/PlayerMessageTest.cpp
+
+测试 `Player` 基类的消息发送功能：
+
+- `SendStatusMessageDoesNotThrow` - 基类默认实现不抛异常
+- `CanReceiveMessagesDefaultFalse` - 基类默认返回 false
+- `VirtualMethodCanBeOverridden` - 虚方法可被子类重写
+
+### 相关测试
+
+相关的测试还位于 `tests/server/core/PlayerManagerTest.cpp`，测试的是 `ServerPlayerData`。
 
 **未来应该添加的测试：**
 

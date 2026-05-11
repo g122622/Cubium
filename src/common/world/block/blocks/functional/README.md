@@ -167,7 +167,7 @@ Block (基类)
 
 ## 待实现功能
 
-- [ ] BedBlock: 爆炸逻辑（下界/末地）、睡眠交互
+- [x] BedBlock: 爆炸逻辑（下界/末地）、睡眠交互、睡眠失败消息发送
 - [ ] BrewingStandBlock: 方块实体、酿造配方
 - [x] ComposterBlock: 完整堆肥概率表、骨粉产出、玩家交互
 - [x] CauldronBlock: 水桶/玻璃瓶/水瓶交互、皮革盔甲清洗
@@ -181,6 +181,41 @@ Block (基类)
 - [ ] LodestoneBlock: 指南针绑定系统
 
 ## 已实现功能详解
+
+### BedBlock (床)
+
+完整的 MC 1.16.5 床方块实现：
+
+**功能**:
+- 双格结构（床头 + 床脚）
+- 16 种颜色
+- 设置重生点
+- 睡眠交互（时间检查、距离检查、障碍检查、怪物检查）
+- 下界/末地爆炸
+
+**睡眠失败消息**（2026-05-12 新增）:
+| 消息键 | 触发条件 |
+|--------|----------|
+| `block.minecraft.bed.occupied` | 床被其他玩家占用 |
+| `block.minecraft.bed.too_far_away` | 玩家距离床超过 3 格（水平）/ 2 格（垂直） |
+| `block.minecraft.bed.obstructed` | 床上方空间被阻挡 |
+| `block.minecraft.bed.no_sleep` | 非睡眠时间（白天且非雷暴） |
+| `block.minecraft.bed.not_safe` | 周围有怪物（非创造模式） |
+
+**交互流程**:
+1. 玩家右键床方块
+2. 检查维度是否允许床（下界/末地会爆炸）
+3. 检查床是否被占用
+4. 检查玩家是否在床附近
+5. 检查床是否被阻挡
+6. 检查时间是否允许睡眠
+7. 非创造模式检查周围怪物
+8. 通过所有检查后设置重生点并进入睡眠
+
+**实现参考**:
+- 参考 MC 1.16.5 `BedBlock.onBlockActivated()`
+- 消息发送使用 `Player::sendStatusMessage()` 虚方法
+- `ServerPlayer` 重写该方法通过网络发送到客户端
 
 ### ComposterBlock (堆肥桶)
 
