@@ -8,7 +8,9 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/biome/layer/LayerBiomeProvider.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
@@ -151,6 +153,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     worldConfig.viewDistance = m_settings.viewDistance.get();
     worldConfig.dimension = 0;  // 主世界
     worldConfig.seed = static_cast<u64>(std::stoll(m_settings.levelSeed.get()));
+    // 注意：isDebugWorld 现在通过检查 chunk generator 类型判断，不再需要在配置中设置
 
     m_world = std::make_unique<ServerWorld>(worldConfig);
     m_world->setOnPlaySound([this](const ResourceLocation& soundEventId,
@@ -200,14 +203,48 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                      "Failed to initialize world: " + worldInitResult.error().message());
     }
 
-    // 创建区块管理器
-    auto chunkGenerator = std::make_unique<NoiseChunkGenerator>(
-        static_cast<u64>(std::stoll(m_settings.levelSeed.get())), DimensionSettings::overworld());
-    auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(chunkGenerator));
-    chunkManager->setWorkerPool(&m_computationWorkerPool);
-    chunkManager->setViewDistance(m_settings.viewDistance.get());
-    chunkManager->initialize();
-    m_world->setChunkManager(std::move(chunkManager));
+    // 创建区块管理器（根据世界类型选择生成器）
+    {
+        u64 seed = static_cast<u64>(std::stoll(m_settings.levelSeed.get()));
+        u8 levelType = m_settings.levelType.get();
+        std::unique_ptr<IChunkGenerator> chunkGenerator;
+
+        switch (levelType) {
+            case LevelType::Flat:
+                spdlog::info("Using flat world settings");
+                chunkGenerator = std::make_unique<NoiseChunkGenerator>(seed, DimensionSettings::flat());
+                break;
+            case LevelType::LargeBiomes:
+                spdlog::info("Using large biomes world settings");
+                chunkGenerator = std::make_unique<NoiseChunkGenerator>(
+                    seed, DimensionSettings::overworld(),
+                    std::make_unique<LayerBiomeProvider>(seed, true));
+                break;
+            case LevelType::Amplified:
+                spdlog::info("Using amplified world settings");
+                {
+                    DimensionSettings amplifiedSettings = DimensionSettings::overworld();
+                    amplifiedSettings.noise = NoiseSettings::amplified();
+                    chunkGenerator = std::make_unique<NoiseChunkGenerator>(seed, std::move(amplifiedSettings));
+                }
+                break;
+            case LevelType::Debug:
+                spdlog::info("Using DebugChunkGenerator for debug world");
+                chunkGenerator = std::make_unique<DebugChunkGenerator>();
+                break;
+            case LevelType::Default:
+            default:
+                spdlog::info("Using NoiseChunkGenerator for normal world");
+                chunkGenerator = std::make_unique<NoiseChunkGenerator>(seed, DimensionSettings::overworld());
+                break;
+        }
+
+        auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(chunkGenerator));
+        chunkManager->setWorkerPool(&m_computationWorkerPool);
+        chunkManager->setViewDistance(m_settings.viewDistance.get());
+        chunkManager->initialize();
+        m_world->setChunkManager(std::move(chunkManager));
+    }
 
     // 创建光照管理器
     auto lightManager = std::make_unique<WorldLightManager>(m_world.get(), true, true);
@@ -224,6 +261,27 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     if (worldResult.failed()) {
         return Error(ErrorCode::InitializationFailed,
                      "Failed to initialize world: " + worldResult.error().message());
+    }
+
+    // 调试模式特殊初始化
+    if (m_world->isDebugWorld()) {
+        spdlog::info("Configuring debug world special settings...");
+
+        // 设置游戏模式为旁观者
+        m_config.defaultGameMode = GameMode::Spectator;
+
+        // 禁用日光周期，设置时间为正午（6000）
+        if (m_timeManager) {
+            m_timeManager->setDayTime(6000);  // 正午
+            m_timeManager->setDaylightCycleEnabled(false);
+            spdlog::info("Debug world: Time set to noon (6000), daylight cycle disabled");
+        }
+
+        // 禁用天气（晴朗）
+        if (m_world->weatherManager()) {
+            m_world->weatherManager()->setClear(999999999);  // 长时间晴天
+            spdlog::info("Debug world: Weather set to clear");
+        }
     }
 
     // 初始化交互管理器

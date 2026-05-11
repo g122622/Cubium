@@ -126,7 +126,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
     worldConfig.viewDistance = config.viewDistance;
     worldConfig.dimension = 0;  // 主世界
     worldConfig.seed = static_cast<u64>(config.seed);
-    worldConfig.isDebugWorld = (config.worldType == WorldType::Debug);
+    // 注意：isDebugWorld 现在通过检查 chunk generator 类型判断，不再需要在配置中设置
 
     m_world = std::make_unique<ServerWorld>(worldConfig);
     m_world->setOnPlaySound([this](const ResourceLocation& soundEventId,
@@ -237,7 +237,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
     }
 
     // 调试模式特殊初始化
-    if (config.worldType == WorldType::Debug) {
+    if (m_world->isDebugWorld()) {
         spdlog::info("Configuring debug world special settings...");
 
         // 设置游戏模式为旁观者

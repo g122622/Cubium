@@ -196,6 +196,7 @@ namespace LevelType {
     constexpr u8 Flat = 1;
     constexpr u8 LargeBiomes = 2;
     constexpr u8 Amplified = 3;
+    constexpr u8 Debug = 4;  ///< 调试世界类型
 }
 
 /// 游戏模式值（与 Types.hpp 中的 GameMode 枚举对应）

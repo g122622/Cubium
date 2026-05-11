@@ -19,9 +19,9 @@ ServerSettings::ServerSettings()
     , levelName("levelName", "Minecraft Reborn Server")
     , levelSeed("levelSeed", "")
     , levelType("levelType",
-                {LevelType::Default, LevelType::Flat, LevelType::LargeBiomes, LevelType::Amplified},
+                {LevelType::Default, LevelType::Flat, LevelType::LargeBiomes, LevelType::Amplified, LevelType::Debug},
                 LevelType::Default,
-                {"default", "flat", "largeBiomes", "amplified"})
+                {"default", "flat", "largeBiomes", "amplified", "debug_all_block_states"})
     , generateStructures("generateStructures", true)
     , enableCommandBlock("enableCommandBlock", false)
 

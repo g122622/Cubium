@@ -53,6 +53,12 @@ public:
     [[nodiscard]] i32 getGroundHeight() const override { return 70; }
     [[nodiscard]] i32 seaLevel() const override { return 0; }
 
+    /**
+     * @brief 调试世界生成器标识
+     * @return true（调试世界生成器）
+     */
+    [[nodiscard]] bool isDebugGenerator() const override { return true; }
+
     // === 调试模式特有方法 ===
 
     /**

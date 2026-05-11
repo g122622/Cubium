@@ -51,14 +51,17 @@ namespace server {
 // 服务端世界配置
 // ============================================================================
 
-// TODO 这个结构体是多余的。比如isDebugWorld设为true之后根本无法启用调试区块生成器。
-// 要在这里才能配置世界生成器类型 D:\MiscProjects\minecraft-reborn\src\server\application\IntegratedServer.hpp
+/**
+ * @brief 服务端世界配置结构
+ *
+ * 包含世界创建和运行所需的基本配置参数。
+ * 世界类型通过 chunkGenerator 动态判断，不在此存储。
+ */
 struct ServerWorldConfig {
-    i32 viewDistance = 10;              // 视距
-    DimensionId dimension = 0;          // 维度ID
-    u64 seed = 114514;                   // 世界种子
-    bool isDebugWorld = true;          // 是否为调试世界
-    std::string worldName = "world";    // 世界名称（用于存档目录）
+    i32 viewDistance = 10;              ///< 视距（区块数）
+    DimensionId dimension = 0;          ///< 维度ID（0=主世界，1=下界，2=末地）
+    u64 seed = 114514;                  ///< 世界种子
+    std::string worldName = "world";    ///< 世界名称（用于存档目录）
 };
 
 // ============================================================================
@@ -535,14 +538,18 @@ public:
     /**
      * @brief 检查是否为调试世界
      *
+     * 通过检查区块生成器类型来判断是否为调试世界。
      * 调试世界特性：
      * - 无法放置或破坏方块
      * - 计划刻不会执行
      * - 方块状态由调试生成器决定
      *
-     * @return 是否为调试世界
+     * 参考 MC 1.16.5: DimensionGeneratorSettings.func_236227_h_()
+     * （检查 chunkGenerator 是否为 DebugChunkGenerator 实例）
+     *
+     * @return true 如果使用调试区块生成器
      */
-    [[nodiscard]] bool isDebugWorld() const { return m_config.isDebugWorld; }
+    [[nodiscard]] bool isDebugWorld() const;
 
     // ========== 世界边界 ==========
 

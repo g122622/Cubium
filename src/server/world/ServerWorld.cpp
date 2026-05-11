@@ -9,6 +9,7 @@
 #include "server/core/TimeManager.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -232,6 +233,17 @@ void ServerWorld::setConfig(const ServerWorldConfig& config)
     }
 }
 
+bool ServerWorld::isDebugWorld() const
+{
+    // 通过检查区块生成器类型来判断是否为调试世界
+    // 参考 MC 1.16.5: DimensionGeneratorSettings.func_236227_h_()
+    if (!m_chunkManager) {
+        return false;
+    }
+    const IChunkGenerator* generator = m_chunkManager->generator();
+    return generator && generator->isDebugGenerator();
+}
+
 void ServerWorld::playSound(const ResourceLocation& soundEventId,
                             sound::SoundCategory category,
                             const Vector3& position,
@@ -388,7 +400,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::DebugWorldCheck", "x", x, "y", y, "z", z);
 
         // 调试世界禁止方块修改
-        if (m_config.isDebugWorld) {
+        if (isDebugWorld()) {
             return false;
         }
     }
@@ -736,19 +748,19 @@ void ServerWorld::tick()
     }
 
     // 调试世界不执行计划刻
-    if (!m_config.isDebugWorld && m_tickManager) {
+    if (!isDebugWorld() && m_tickManager) {
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::TickManager");
         m_tickManager->tick(currentTick);
     }
 
     // 调试世界不执行随机刻
-    if (!m_config.isDebugWorld) {
+    if (!isDebugWorld()) {
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::EnvironmentTick");
         tickEnvironment(m_randomTickSpeed);
     }
 
     // 调试世界不执行红石清理
-    if (!m_config.isDebugWorld) {
+    if (!isDebugWorld()) {
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::RedstoneTick");
         // 定期清理红石火把烧毁记录（每 200 tick）
         if (currentTick % 200 == 0) {
@@ -757,7 +769,7 @@ void ServerWorld::tick()
     }
 
     // 调试世界不执行天气 tick
-    if (!m_config.isDebugWorld && m_weatherManager) {
+    if (!isDebugWorld() && m_weatherManager) {
         m_weatherManager->tick();
     }
 
@@ -780,7 +792,7 @@ void ServerWorld::tick()
 
     // 更新村庄围攻系统（僵尸围村）
     // 调试世界不执行村庄围攻
-    if (!m_config.isDebugWorld) {
+    if (!isDebugWorld()) {
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::VillageSiege");
         m_villageSiege.tick(*this, true);  // spawnHostiles = true
     }

@@ -148,6 +148,19 @@ public:
     [[nodiscard]] virtual i32 seaLevel() const = 0;
     [[nodiscard]] virtual i32 getGroundHeight() const { return 64; }
 
+    /**
+     * @brief 检查是否为调试世界生成器
+     *
+     * 调试世界生成器（DebugChunkGenerator）会生成一个展示所有方块状态的网格世界，
+     * 在调试世界中，方块的放置和破坏被禁止，游戏机制如计划刻、随机刻等也被禁用。
+     *
+     * 参考 MC 1.16.5: DimensionGeneratorSettings.func_236227_h_()
+     * （检查 chunkGenerator 是否为 DebugChunkGenerator 实例）
+     *
+     * @return true 如果是调试世界生成器
+     */
+    [[nodiscard]] virtual bool isDebugGenerator() const { return false; }
+
     // === 生物群系提供者 ===
 
     /**
