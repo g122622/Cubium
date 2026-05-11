@@ -1,20 +1,20 @@
 # 末地方块模块 (End Blocks)
 
-末地方块模块提供末地相关方块的实现。
+末地方块模块提供末地维度相关方块的实现，包括末地传送门、紫颂植物、龙蛋等。
 
 ## 目录结构
 
 ```
 end/
-├── README.md              # 本文档
 ├── EndPortalBlock.hpp/cpp # 末地传送门、传送门框架、折跃门、紫颂植物、紫颂花、龙蛋
+└── README.md              # 本文档
 ```
 
 ## 方块类型
 
 | 类名 | 说明 | 状态属性 |
 |------|------|----------|
-| `EndPortalBlock` | 末地传送门 | 无 |
+| `EndPortalBlock` | 末地传送门方块 | 无 |
 | `EndPortalFrameBlock` | 末地传送门框架 | EYE, HORIZONTAL_FACING |
 | `EndGatewayBlock` | 末地折跃门 | 无 |
 | `ChorusPlantBlock` | 紫颂植物 | NORTH/SOUTH/EAST/WEST/DOWN/UP |
@@ -23,53 +23,110 @@ end/
 
 ## 核心机制
 
-### 末地传送门
-1. 由12个末地传送门框架组成（3x3缺角）
-2. 每个框架需要放入末影之眼
-3. 全部放入后激活传送门
-4. 进入后传送到末地
+### EndPortalBlock（末地传送门方块）
 
-### 紫颂植物生长
-1. 从紫颂花开始生长
-2. 可以向六个方向延伸
-3. 破坏后掉落紫颂果
-4. 紫颂花有6个年龄阶段
+- **状态属性**：无
+- **行为**：
+  - 实体碰撞时触发传送（主世界↔末地）
+  - 传送冷却 300 ticks（15 秒）
+  - 无碰撞箱
+- **参考**：MC 1.16.5 `net.minecraft.block.EndPortalBlock`
 
-### 龙蛋传送
-1. 点击龙蛋会传送
-2. 传送到附近随机位置
-3. 传送时有粒子效果
+### EndPortalFrameBlock（末地传送门框架）
+
+- **状态属性**：
+  - `EYE`：是否放置了末影之眼
+  - `HORIZONTAL_FACING`：框架朝向
+- **行为**：
+  - 可放置末影之眼
+  - 框架朝向决定传送门结构
+- **参考**：MC 1.16.5 `net.minecraft.block.EndPortalFrameBlock`
+
+### EndGatewayBlock（末地折跃门）
+
+- **状态属性**：无
+- **行为**：
+  - 实体碰撞时触发折跃传送
+  - 无碰撞箱
+- **TODO**：实现折跃门传送逻辑
+
+### ChorusPlantBlock（紫颂植物）
+
+- **状态属性**：6 个布尔方向属性（DOWN, UP, NORTH, SOUTH, WEST, EAST）
+- **形状系统**：
+  - 参考 MC 1.16.5 `SixWayBlock` 实现
+  - 预计算 64 种形状组合（2^6）
+  - 使用位掩码索引：Down=bit0, Up=bit1, North=bit2, South=bit3, West=bit4, East=bit5
+  - 中心柱尺寸：apothem=0.3125（5 像素）
+- **连接规则**：
+  - 所有方向：连接到紫颂植物和紫颂花
+  - 仅下方：额外连接到末地石（作为生长基底）
+- **方法**：
+  - `getShapeIndex(state)`：静态方法，根据连接状态计算形状索引
+  - `canConnect(world, pos, direction)`：检查指定方向是否应该连接
+  - `isValidPosition(state, world, pos)`：检查是否有至少一个连接
+  - `updatePostPlacement(...)`：邻居更新时更新连接状态
+- **参考**：MC 1.16.5 `net.minecraft.block.ChorusPlantBlock`
+
+### ChorusFlowerBlock（紫颂花）
+
+- **状态属性**：`AGE_0_5`（生长阶段 0-5）
+- **行为**：
+  - 随机刻时有概率生长（增加年龄）
+  - 最大年龄为 5
+- **TODO**：完善 `isValidPosition` 的方块检查
+
+### DragonEggBlock（龙蛋）
+
+- **状态属性**：无
+- **行为**：
+  - 点击时随机传送
+  - 邻居变化时可能传送
+- **TODO**：实现传送逻辑
 
 ## 使用方法
 
+### 注册末地方块
+
 ```cpp
-// 创建末地传送门
-auto endPortal = std::make_unique<EndPortalBlock>(
-    BlockProperties(Materials::PORTAL)
-        .hardness(0.0f)
-        .noCollision()
-        .lightLevel(15)
-);
+#include "world/block/blocks/end/EndPortalBlock.hpp"
+#include "world/block/VanillaBlocks.hpp"
 
-// 创建传送门框架
-auto endPortalFrame = std::make_unique<EndPortalFrameBlock>(
-    BlockProperties(Materials::ROCK)
-        .hardness(0.0f)
+// 在 VanillaBlocks::initialize() 中注册
+auto& endPortal = BlockRegistry::instance().registerBlock<EndPortalBlock>(
+    ResourceLocation("minecraft:end_portal"),
+    BlockProperties(Material::PORTAL).noCollision().hardness(-1.0f)
 );
+```
 
-// 创建紫颂植物
-auto chorusPlant = std::make_unique<ChorusPlantBlock>(
-    BlockProperties(Materials::PLANTS)
-        .hardness(0.0f)
-        .noCollision()
-);
+### 检查紫颂植物连接
 
-// 创建龙蛋
-auto dragonEgg = std::make_unique<DragonEggBlock>(
-    BlockProperties(Materials::DRAGON_EGG)
-        .hardness(0.0f)
-        .lightLevel(1)
-);
+```cpp
+#include "world/block/blocks/end/EndPortalBlock.hpp"
+
+// 检查紫颂植物是否可以连接到指定方向
+ChorusPlantBlock* plant = static_cast<ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT);
+bool canConnectDown = plant->canConnect(world, pos, Direction::Down);
+bool canConnectNorth = plant->canConnect(world, pos, Direction::North);
+
+// 获取形状索引
+size_t index = ChorusPlantBlock::getShapeIndex(state);
+const CollisionShape& shape = plant->getShape(state);
+```
+
+### 计算紫颂植物形状索引
+
+```cpp
+// 位掩码索引计算（Direction 枚举顺序：Down=0, Up=1, North=2, South=3, West=4, East=5）
+size_t index = 0;
+if (state.get(BlockStateProperties::DOWN()))  index |= 1ULL << 0;  // bit 0
+if (state.get(BlockStateProperties::UP()))    index |= 1ULL << 1;  // bit 1
+if (state.get(BlockStateProperties::NORTH())) index |= 1ULL << 2;  // bit 2
+if (state.get(BlockStateProperties::SOUTH())) index |= 1ULL << 3;  // bit 3
+if (state.get(BlockStateProperties::WEST()))  index |= 1ULL << 4;  // bit 4
+if (state.get(BlockStateProperties::EAST()))  index |= 1ULL << 5;  // bit 5
+
+// 索引范围：0-63，预计算形状数组大小：64
 ```
 
 ## 依赖项
@@ -79,4 +136,68 @@ auto dragonEgg = std::make_unique<DragonEggBlock>(
 | `world/block/Block` | 方块基类 |
 | `world/block/Material` | 材质系统 |
 | `world/IWorld` | 世界接口 |
+| `world/block/VanillaBlocks` | 方块注册 |
 | `util/property/Properties` | 方块属性 |
+| `util/Direction` | 方向枚举 |
+| `physics/collision/CollisionShape` | 碰撞形状 |
+
+## 容易踩的坑
+
+### 1. 紫颂植物形状索引顺序
+
+**问题**：形状索引的位顺序必须与 Direction 枚举顺序一致。
+
+**Direction 枚举顺序**：Down=0, Up=1, North=2, South=3, West=4, East=5
+
+```cpp
+// 正确的索引计算
+// Down = bit 0, Up = bit 1, North = bit 2, South = bit 3, West = bit 4, East = bit 5
+```
+
+### 2. 紫颂植物连接检查
+
+**问题**：`canConnect` 使用指针比较 `adjState->is(this)` 检查相邻方块是否是紫颂植物。
+
+**解决方案**：测试时必须使用 `VanillaBlocks::CHORUS_PLANT` 指针，而不是创建新的 `ChorusPlantBlock` 实例。
+
+### 3. 末地传送门传送
+
+**问题**：传送逻辑需要 `ServerDimensionManager` 处理实际的维度切换。
+
+**注意**：`EndPortalBlock::onEntityCollision` 只设置传送请求标志，实际传送由服务端处理。
+
+### 4. isValidPosition 的方块检查
+
+**问题**：`ChorusFlowerBlock::isValidPosition` 目前只检查 `isSolid()`，需要完善特定方块检查。
+
+**TODO**：检查下方方块是否是紫颂植物、紫颂花或末地石。
+
+## 测试用例
+
+测试文件：`tests/common/world/block/blocks/end/ChorusPlantBlockTest.cpp`
+
+### 测试覆盖
+
+| 测试类别 | 测试数量 |
+|---------|---------|
+| 基础属性测试 | 9 |
+| canConnect 测试 | 5 |
+| isValidPosition 测试 | 7 |
+| updatePostPlacement 测试 | 2 |
+| **总计** | **23** |
+
+### 测试要点
+
+1. **形状索引计算**：验证 64 种连接状态的索引正确
+2. **canConnect 连接规则**：验证紫颂植物、紫颂花、末地石（仅向下）的连接
+3. **isValidPosition 位置验证**：验证需要有至少一个有效连接
+4. **updatePostPlacement 状态更新**：验证邻居更新时连接状态正确更新
+
+## 参考资料
+
+- MC 1.16.5 `net.minecraft.block.EndPortalBlock`
+- MC 1.16.5 `net.minecraft.block.EndPortalFrameBlock`
+- MC 1.16.5 `net.minecraft.block.EndGatewayBlock`
+- MC 1.16.5 `net.minecraft.block.ChorusPlantBlock`（SixWayBlock 实现）
+- MC 1.16.5 `net.minecraft.block.ChorusFlowerBlock`
+- MC 1.16.5 `net.minecraft.block.DragonEggBlock`
