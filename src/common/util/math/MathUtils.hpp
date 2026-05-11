@@ -184,21 +184,19 @@ template<typename T>
 }
 
 /**
- * @brief 快速逆平方根近似
- * TODO 现在CPU有硬件指令rsqrtss，或直接使用1.0f / sqrtf(value)（现代编译器优化后已很快）。
+ * @brief 快速逆平方根
  *
- * 适用于正数输入，返回 $1 / \sqrt{x}$ 的快速近似值。
+ * 计算 $1 / \sqrt{x}$ 的值。
+ *
+ * 历史上使用著名的"卡马克快速逆平方根"算法（0x5f3759df 魔数），
+ * 但现代 CPU 有硬件指令（rsqrtss）和优化的 sqrt 实现，编译器
+ * 会自动生成高效的代码，因此直接使用 `1.0f / std::sqrt(value)` 即可。
+ *
+ * @param value 正数输入值
+ * @return $1 / \sqrt{value}$
  */
 [[nodiscard]] inline f32 fastInverseSqrt(f32 value) noexcept
 {
-    // const f32 halfValue = value * 0.5f;
-    // u32 bits = 0;
-    // std::memcpy(&bits, &value, sizeof(f32));
-    // bits = 0x5f3759dfu - (bits >> 1);
-    // std::memcpy(&value, &bits, sizeof(f32));
-    // value = value * (1.5f - halfValue * value * value);
-    // return value;
-
     return 1.0f / std::sqrt(value);
 }
 
