@@ -200,9 +200,9 @@ void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const 
     entity.forceFireTicks(entity.getFireTimer() + 1);
 
     // 3. 如果火焰计时器为 0，设置燃烧 8 秒（160 ticks）
-    // MC 1.16.5: setFire(8) 会将燃烧时间设置为 8 * 20 = 160 ticks
+    // MC 1.16.5: setFire 接收 ticks，所以 8 秒 = 8 * 20 = 160 ticks
     if (entity.getFireTimer() == 0) {
-        entity.setFire(8);
+        entity.setFire(160);
     }
 
     // 4. 造成火焰伤害

@@ -21,6 +21,41 @@ nether/
 
 ## 核心机制
 
+### 火焰碰撞伤害（MC 1.16.5 对齐）
+
+当实体与火焰方块碰撞时，`FireBlock::onEntityCollision` 执行以下逻辑：
+
+1. **火焰免疫检查**：调用 `entity.isImmuneToFire()` 检查实体是否免疫火焰
+   - 免疫实体（烈焰人、恶魂、岩浆怪、猪灵等）跳过所有火焰效果
+
+2. **火焰计时器递增**：`entity.forceFireTicks(entity.getFireTimer() + 1)`
+   - 每次碰撞 tick 都增加计时器
+
+3. **点燃实体**：当 `fireTimer == 0` 时调用 `entity.setFire(8)`
+   - 设置燃烧 8 秒（160 ticks）
+   - `setFire` 方法只在当前值较小时更新
+
+4. **造成伤害**：对 `LivingEntity` 造成 `m_fireDamage` 点火焰伤害
+   - 普通火焰：1.0 伤害
+   - 灵魂火：2.0 伤害（继承自 FireBlock，构造时传入 2）
+   - 使用 `DamageSources::inFire()` 创建伤害源
+
+```cpp
+void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
+    if (entity.isImmuneToFire()) {
+        return;
+    }
+    entity.forceFireTicks(entity.getFireTimer() + 1);
+    if (entity.getFireTimer() == 0) {
+        entity.setFire(8);
+    }
+    auto* livingEntity = dynamic_cast<LivingEntity*>(&entity);
+    if (livingEntity != nullptr) {
+        livingEntity->hurt(DamageSources::inFire(), static_cast<f32>(m_fireDamage));
+    }
+}
+```
+
 ### 火焰蔓延
 1. 火焰有年龄（AGE_0_15）
 2. 年龄越大越稳定，越不容易熄灭

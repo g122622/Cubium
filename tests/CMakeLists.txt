@@ -124,6 +124,7 @@ add_executable(mc_tests
     common/world/block/blocks/IceBlockTest.cpp
     common/world/block/blocks/SpreadableSnowyDirtBlockTest.cpp
     common/world/block/blocks/SoulFireBlockTest.cpp
+    common/world/block/blocks/FireBlockCollisionTest.cpp
     common/world/block/blocks/FallingBlockTest.cpp
     common/world/block/blocks/VegetationBlockTest.cpp
     common/world/block/blocks/SweetBerryBushBlockTest.cpp

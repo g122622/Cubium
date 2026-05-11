@@ -43,6 +43,36 @@
 - `Entity::waterHeight()` / `Entity::lavaHeight()` - 流体浸入高度（0.0-1.0）
 - `Entity::updateEnvironmentState()` - 更新流体状态，遍历碰撞箱内的方块
 
+### 火焰系统（MC 1.16.5 对齐）
+- `Entity::isOnFire()` - 检查实体是否着火（`m_fire > 0`）
+- `Entity::fire()` - 获取当前火焰计时器值（tick）
+- `Entity::getFireTimer()` - 获取火焰计时器（与 `fire()` 功能相同，MC 命名方式）
+- `Entity::setFire(i32 seconds)` - 设置燃烧时间（秒转 tick，只增不减）
+- `Entity::forceFireTicks(i32 ticks)` - 强制设置火焰计时器值（直接设置，不检查当前值）
+- `Entity::isImmuneToFire()` - 检查实体是否免疫火焰（查询 EntityType 标志）
+
+**火焰机制**：
+- `m_fire` 成员变量存储火焰计时器（tick 数）
+- 每tick在 `Entity::baseTick()` 中自动递减（在水中/岩浆中立即归零）
+- `setFire(seconds)` 将秒转换为 tick（×20），只在当前值较小时更新
+- `forceFireTicks(ticks)` 直接设置值，用于增加/减少火焰时间
+- 火焰免疫由 `EntityType::immuneToFire()` 标志决定，子类可重写 `isImmuneToFire()` 提供运行时可变状态
+
+**火焰碰撞处理**（FireBlock::onEntityCollision）：
+1. 检查 `isImmuneToFire()` - 免疫实体跳过
+2. 增加 `fireTimer` (+1) - 每次碰撞 tick
+3. 如果 `fireTimer == 0`，调用 `setFire(8)` - 点燃 8 秒
+4. 对 LivingEntity 造成 `m_fireDamage` 点火焰伤害
+
+**免疫火焰的实体**：
+- 烈焰人（Blaze）
+- 恶魂（Ghast）
+- 岩浆怪（Magma Cube）
+- 猪灵及其变种（Piglin, Zombified Piglin, Piglin Brute）
+- 疣猪兽（Hoglin）
+- 潜影贝（Shulker）
+- 末影龙、凋灵（Boss 实体）
+
 ### 攀爬追踪（MC 1.16.5 对齐）
 - `Entity::isOnLadder()` - 检测是否在攀爬方块上，并记录攀爬位置
 - `Entity::getLastClimbPos()` - 获取最后攀爬位置（用于摔落死亡消息）
