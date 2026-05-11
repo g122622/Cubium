@@ -2,18 +2,19 @@
 
 ## 概述
 
-本模块实现 Minecraft 中的农业相关方块，包括农作物、耕地、茎类作物和可可豆。
+本模块实现 Minecraft 中的农业相关方块，包括农作物、耕地、茎类作物、可可豆和瓜果类方块。
 
 ## 目录结构
 
 ```
 agricultural/
-├── BushBlock.hpp/cpp       # 灌木/植物基类
-├── CropBlock.hpp/cpp       # 农作物基类（小麦、胡萝卜、马铃薯）
-├── FarmlandBlock.hpp/cpp   # 耕地方块
-├── StemBlock.hpp/cpp       # 茎类作物（西瓜茎、南瓜茎）
-├── CocoaBlock.hpp/cpp      # 可可豆方块（丛林原木附着）
-└── README.md               # 本文档
+├── BushBlock.hpp/cpp          # 灌木/植物基类
+├── CropBlock.hpp/cpp          # 农作物基类（小麦、胡萝卜、马铃薯）
+├── FarmlandBlock.hpp/cpp      # 耕地方块
+├── StemBlock.hpp/cpp          # 茎类作物（西瓜茎、南瓜茎）
+├── CocoaBlock.hpp/cpp         # 可可豆方块（丛林原木附着）
+├── MelonPumpkinBlocks.hpp/cpp # 瓜果类方块（西瓜、南瓜、雕刻南瓜、南瓜灯）
+└── README.md                  # 本文档
 ```
 
 ## 类层次结构
@@ -25,9 +26,13 @@ Block
 │   ├── StemBlock          # 茎类作物（西瓜茎、南瓜茎）
 │   └── AttachedStemBlock  # 连接茎（西瓜连接茎、南瓜连接茎）
 ├── HorizontalBlock        # 水平方向方块基类
-│   └── CocoaBlock         # 可可豆（附着丛林原木）
+│   ├── CocoaBlock         # 可可豆（附着丛林原木）
+│   ├── CarvedPumpkinBlock # 雕刻南瓜（可生成傀儡）
+│   └── JackOLanternBlock  # 南瓜灯（可生成傀儡）
 ├── FarmlandBlock          # 耕地
-└── StemGrownBlock         # 茎类果实（西瓜、南瓜）
+└── StemGrownBlock         # 茎类果实基类
+    ├── MelonBlock         # 西瓜
+    └── PumpkinBlock       # 南瓜
 ```
 
 ## 方块状态属性
@@ -128,9 +133,31 @@ auto melonStemBlock = std::make_unique<StemBlock>(melonBlock, stemProps);
 - [x] 甜菜根作物（BeetrootBlock）
 - [x] 可可豆（CocoaBlock）
 - [x] 西瓜/南瓜果实块（MelonBlock, PumpkinBlock, CarvedPumpkinBlock, JackOLanternBlock）
+- [x] 雕刻南瓜/南瓜灯傀儡生成功能（CarvedPumpkinBlock::trySpawnGolem）
 - [ ] 甘蔗（SugarCaneBlock）
 - [ ] 仙人掌（CactusBlock）
 - [ ] 竹子（BambooBlock）
+
+## 傀儡生成
+
+`CarvedPumpkinBlock` 和 `JackOLanternBlock` 支持生成傀儡：
+
+### 雪傀儡
+- **模式**：垂直堆叠 - 从上到下为雕刻南瓜/南瓜灯、雪块、雪块
+- **触发**：放置雕刻南瓜或南瓜灯时自动检测
+- **生成位置**：南瓜位置（模式顶部）
+
+### 铁傀儡
+- **模式**：T形结构
+  ```
+     ^     <- 雕刻南瓜/南瓜灯
+    ###    <- 铁块（手臂）
+     #     <- 铁块（身体）
+  ```
+- **方向**：支持东西方向和南北方向两种朝向
+- **空气检测**：手臂两侧和顶部必须为空气
+- **触发**：放置雕刻南瓜或南瓜灯时自动检测
+- **玩家创建标记**：生成的铁傀儡会标记为玩家创建
 
 ## 参考
 
