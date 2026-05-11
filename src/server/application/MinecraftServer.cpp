@@ -264,6 +264,8 @@ void MinecraftServer::initializeCoreManagers()
         m_config);
     m_gameModeManager = std::make_unique<core::GameModeManager>(*m_playerManager, *m_connectionManager);
     m_whitelistManager = std::make_unique<core::WhitelistManager>();
+    m_bannedPlayerList = std::make_unique<core::BannedPlayerList>();
+    m_bannedIpList = std::make_unique<core::BannedIpList>();
 
     // 创建维度管理器
     m_dimensionManager = std::make_unique<ServerDimensionManager>(this);

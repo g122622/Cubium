@@ -342,6 +342,8 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/core/PacketHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/WhitelistManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/core/BannedPlayerList.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/core/BannedIpList.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
@@ -388,6 +390,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/BanIpCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/PardonCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/PardonIpCommand.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/commands/BanListCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/WhitelistCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveAllCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveOnCommand.cpp

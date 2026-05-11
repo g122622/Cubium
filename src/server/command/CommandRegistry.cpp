@@ -24,6 +24,7 @@
 #include "commands/DeOpCommand.hpp"
 #include "commands/BanCommand.hpp"
 #include "commands/BanIpCommand.hpp"
+#include "commands/BanListCommand.hpp"
 #include "commands/PardonCommand.hpp"
 #include "commands/PardonIpCommand.hpp"
 #include "commands/WhitelistCommand.hpp"
@@ -128,6 +129,7 @@ void CommandRegistry::registerDefaults() {
     BanIpCommand::registerTo(m_dispatcher);
     PardonCommand::registerTo(m_dispatcher);
     PardonIpCommand::registerTo(m_dispatcher);
+    BanListCommand::registerTo(m_dispatcher);
     WhitelistCommand::registerTo(m_dispatcher);
     SaveAllCommand::registerTo(m_dispatcher);
     SaveOnCommand::registerTo(m_dispatcher);

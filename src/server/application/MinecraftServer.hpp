@@ -12,6 +12,8 @@
 #include "server/core/PacketHandler.hpp"
 #include "server/core/GameModeManager.hpp"
 #include "server/core/WhitelistManager.hpp"
+#include "server/core/BannedPlayerList.hpp"
+#include "server/core/BannedIpList.hpp"
 #include "server/interaction/BlockInteractionManager.hpp"
 #include "server/interaction/MiningManager.hpp"
 #include "server/interaction/ContainerManager.hpp"
@@ -130,6 +132,14 @@ public:
 
     [[nodiscard]] core::WhitelistManager& whitelistManager() override { return *m_whitelistManager; }
     [[nodiscard]] const core::WhitelistManager& whitelistManager() const override { return *m_whitelistManager; }
+
+    // ========== 封禁管理器 ==========
+
+    [[nodiscard]] core::BannedPlayerList& bannedPlayerList() override { return *m_bannedPlayerList; }
+    [[nodiscard]] const core::BannedPlayerList& bannedPlayerList() const override { return *m_bannedPlayerList; }
+
+    [[nodiscard]] core::BannedIpList& bannedIpList() override { return *m_bannedIpList; }
+    [[nodiscard]] const core::BannedIpList& bannedIpList() const override { return *m_bannedIpList; }
 
     // ========== 世界管理器 ==========
 
@@ -713,6 +723,8 @@ protected:
     std::unique_ptr<core::PacketHandler> m_packetHandler;
     std::unique_ptr<core::GameModeManager> m_gameModeManager;
     std::unique_ptr<core::WhitelistManager> m_whitelistManager;
+    std::unique_ptr<core::BannedPlayerList> m_bannedPlayerList;
+    std::unique_ptr<core::BannedIpList> m_bannedIpList;
 
     // 世界（由子类创建并设置）
     std::unique_ptr<ServerWorld> m_world;

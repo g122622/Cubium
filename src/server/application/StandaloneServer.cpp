@@ -720,6 +720,28 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     spdlog::info("Player '{}' attempting to join from {}:{}",
                  username, session->address(), session->port());
 
+    // 封禁检查（在白名单检查之前执行）
+    // 1. 检查玩家名封禁
+    if (m_bannedPlayerList->isNameBanned(username)) {
+        auto banEntry = m_bannedPlayerList->getEntryByName(username);
+        std::string banReason = banEntry.has_value() ? banEntry->reason : "You are banned from this server!";
+        spdlog::info("Player '{}' rejected: name banned", username);
+        sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, banReason);
+        session->disconnect("Name banned");
+        return;
+    }
+
+    // 2. 检查 IP 封禁
+    const std::string& ipAddress = session->address();
+    if (m_bannedIpList->isBanned(ipAddress)) {
+        auto banEntry = m_bannedIpList->getEntry(ipAddress);
+        std::string banReason = banEntry.has_value() ? banEntry->reason : "Your IP is banned from this server!";
+        spdlog::info("Player '{}' rejected: IP {} banned", username, ipAddress);
+        sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, banReason);
+        session->disconnect("IP banned");
+        return;
+    }
+
     // 白名单检查（MC 1.16.5 行为：白名单启用时拒绝不在名单中的玩家）
     if (m_whitelistManager->isEnabled() && !m_whitelistManager->isNameWhitelisted(username)) {
         spdlog::info("Player '{}' rejected: not in whitelist", username);

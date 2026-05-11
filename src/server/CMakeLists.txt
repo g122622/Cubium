@@ -20,6 +20,8 @@ add_executable(minecraft-server
     core/PacketHandler.cpp
     core/GameModeManager.cpp
     core/WhitelistManager.cpp
+    core/BannedPlayerList.cpp
+    core/BannedIpList.cpp
     # 维度模块
     dimension/ServerDimension.cpp
     dimension/ServerDimensionManager.cpp
@@ -86,6 +88,7 @@ add_executable(minecraft-server
     command/commands/DeOpCommand.cpp
     command/commands/BanCommand.cpp
     command/commands/BanIpCommand.cpp
+    command/commands/BanListCommand.cpp
     command/commands/PardonCommand.cpp
     command/commands/PardonIpCommand.cpp
     command/commands/WhitelistCommand.cpp

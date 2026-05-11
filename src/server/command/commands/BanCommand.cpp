@@ -7,11 +7,66 @@
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/core/BannedPlayerList.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "common/util/TimeUtils.hpp"
+#include "common/entity/entities/player/Player.hpp"
 
 #include <sstream>
+#include <iomanip>
+#include <ctime>
 
 namespace mc {
 namespace command {
+
+namespace {
+
+/**
+ * @brief 获取当前时间的格式化字符串
+ * @return 格式化的时间字符串 (yyyy-MM-dd HH:mm:ss Z)
+ */
+std::string getCurrentTimeString() {
+    auto now = std::chrono::system_clock::now();
+    auto now_time = std::chrono::system_clock::to_time_t(now);
+
+    std::tm tm;
+#ifdef _WIN32
+    localtime_s(&tm, &now_time);
+#else
+    localtime_r(&now_time, &tm);
+#endif
+
+    std::ostringstream ss;
+    ss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S %z");
+    return ss.str();
+}
+
+/**
+ * @brief 从用户名生成临时 UUID
+ * @param name 用户名
+ * @return UUID 字符串
+ */
+std::string generateUuidFromName(const std::string& name) {
+    std::hash<std::string> hasher;
+    size_t hash = hasher(name);
+
+    std::ostringstream ss;
+    ss << std::hex;
+
+    ss << ((hash >> 0) & 0xFFFFFFFF);
+    ss << "-";
+    ss << ((hash >> 32) & 0xFFFF);
+    ss << "-";
+    ss << ((hash >> 48) & 0xFFFF);
+    ss << "-";
+    ss << ((hasher(name + "salt1") >> 0) & 0xFFFF);
+    ss << "-";
+    ss << ((hasher(name + "salt2") >> 0) & 0xFFFFFFFFFFFF);
+
+    return ss.str();
+}
+
+} // anonymous namespace
 
 void BanCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
     auto banNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("ban");
@@ -60,40 +115,88 @@ i32 BanCommand::banPlayer(CommandContext<ServerCommandSource>& context) {
         reason = context.getArgument<std::string>("reason");
     }
 
+    // 获取封禁者名称
+    std::string bannedBy = source.name().empty() ? "Server" : source.name();
+
     // 解析目标玩家
     std::vector<PlayerId> playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
-        // 尝试通过用户名查找
-        // TODO: 需要从用户名查找玩家（即使不在线）
+
+    std::string playerName;
+    std::string playerUuid;
+    PlayerId playerId = 0;
+
+    if (!playerIds.empty()) {
+        playerId = playerIds.front();
+        auto* server = source.server();
+        if (server != nullptr) {
+            auto* playerData = server->playerManager().getPlayer(playerId);
+            if (playerData != nullptr) {
+                playerName = playerData->username;
+                playerUuid = playerData->uuid;
+            }
+        }
+    }
+
+    // 如果玩家不在线，尝试从选择器获取用户名
+    if (playerName.empty() && selector.hasUsername()) {
+        playerName = selector.username();
+        // 离线玩家使用生成的 UUID
+        playerUuid = generateUuidFromName(playerName);
+    }
+
+    if (playerName.empty()) {
         source.sendError("commands.ban.failed.noPlayer");
         return 0;
     }
 
-    PlayerId targetId = playerIds.front();
-
-    // 获取玩家数据
     auto* server = source.server();
     if (server == nullptr) {
         source.sendError("commands.ban.failed.noServer");
         return 0;
     }
 
-    auto* playerData = server->playerManager().getPlayer(targetId);
-    if (playerData == nullptr) {
-        source.sendError("commands.ban.failed.playerNotFound");
+    auto& banList = server->bannedPlayerList();
+
+    // 检查是否已被封禁
+    if (banList.isNameBanned(playerName)) {
+        source.sendError("commands.ban.failed.playerAlreadyBanned");
         return 0;
     }
 
-    // TODO: 实现封禁列表系统
-    // 需要：
-    // 1. BannedPlayerList 类
-    // 2. BannedPlayerEntry 类
-    // 3. 保存到 banned-players.json
-    // 4. 断开玩家连接
+    // 创建封禁条目
+    server::core::BannedPlayerEntry entry(
+        playerUuid,
+        playerName,
+        getCurrentTimeString(),
+        bannedBy,
+        "forever",  // 永久封禁
+        reason
+    );
 
+    // 添加到封禁列表
+    if (!banList.addEntry(entry)) {
+        source.sendError("commands.ban.failed.addEntry");
+        return 0;
+    }
+
+    // 保存封禁列表
+    auto saveResult = banList.save();
+    if (saveResult.failed()) {
+        spdlog::error("Failed to save banned players list: {}", saveResult.error().message());
+    }
+
+    // 发送成功消息
     std::ostringstream ss;
-    ss << "Banned " << playerData->username << ": " << reason;
+    ss << "Banned " << playerName << ": " << reason;
     source.sendMessage(ss.str());
+
+    // 如果玩家在线，踢出玩家
+    if (playerId != 0) {
+        std::ostringstream kickReason;
+        kickReason << "You are banned from this server!\nReason: " << reason;
+        server->connectionManager().disconnectPlayer(playerId, kickReason.str());
+        spdlog::info("Player {} ({}) kicked due to ban", playerName, playerId);
+    }
 
     return 1;
 }

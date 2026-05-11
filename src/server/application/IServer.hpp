@@ -46,6 +46,8 @@ class PositionTracker;
 class PacketHandler;
 class GameModeManager;
 class WhitelistManager;
+class BannedPlayerList;
+class BannedIpList;
 }
 
 namespace interaction {
@@ -133,6 +135,22 @@ public:
      */
     [[nodiscard]] virtual core::WhitelistManager& whitelistManager() = 0;
     [[nodiscard]] virtual const core::WhitelistManager& whitelistManager() const = 0;
+
+    // ========== 封禁管理器 ==========
+
+    /**
+     * @brief 获取玩家封禁列表管理器
+     * @return 玩家封禁列表管理器引用
+     */
+    [[nodiscard]] virtual core::BannedPlayerList& bannedPlayerList() = 0;
+    [[nodiscard]] virtual const core::BannedPlayerList& bannedPlayerList() const = 0;
+
+    /**
+     * @brief 获取 IP 封禁列表管理器
+     * @return IP 封禁列表管理器引用
+     */
+    [[nodiscard]] virtual core::BannedIpList& bannedIpList() = 0;
+    [[nodiscard]] virtual const core::BannedIpList& bannedIpList() const = 0;
 
     // ========== 维度管理器 ==========
 
