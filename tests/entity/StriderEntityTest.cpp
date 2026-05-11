@@ -357,8 +357,17 @@ TEST_F(StriderEntityBasicTest, EyeHeightDependsOnAge) {
     // 成体眼睛高度 = 1.0
     EXPECT_FLOAT_EQ(strider->eyeHeight(), 1.0f);
 
-    // TODO: 测试幼体眼睛高度 = 0.5
-    // 需要设置 setChild(true)
+    // 幼体眼睛高度 = 0.5
+    // 参考 MC 1.16.5 StriderEntity.getEyeHeight()
+    StriderEntity childStrider(LegacyEntityType::Strider, EntityId(2));
+    childStrider.setChild(true);
+    EXPECT_TRUE(childStrider.isChild());
+    EXPECT_FLOAT_EQ(childStrider.eyeHeight(), 0.5f);
+
+    // 验证成体/幼体切换后眼睛高度正确更新
+    childStrider.setChild(false);
+    EXPECT_FALSE(childStrider.isChild());
+    EXPECT_FLOAT_EQ(childStrider.eyeHeight(), 1.0f);
 }
 
 TEST_F(StriderEntityBasicTest, InitialBoostState) {
