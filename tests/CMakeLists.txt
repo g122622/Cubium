@@ -73,6 +73,8 @@ add_executable(mc_tests
     common/entity/entities/monster/ZombieVillagerEntityTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp
+    # BoostHelper NBT 序列化测试
+    common/entity/core/BoostHelperTest.cpp
     # ItemDropHelper 测试
     common/entity/utils/ItemDropHelperTest.cpp
     # 经验系统测试

@@ -3,6 +3,7 @@
 #include "common/core/Types.hpp"
 #include "DataParameter.hpp"
 #include "EntityDataManager.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <memory>
 
 namespace mc {
@@ -111,20 +112,33 @@ public:
      * @brief 写入NBT
      *
      * MC 1.16.5: func_233618_a_()
-     * TODO: 待NBT系统完善后实现
+     * 只保存鞍状态，加速时间不持久化（每次加载后需要重新触发加速）。
+     * NBT格式没有布尔类型，使用Byte存储布尔值（MC标准做法）。
+     *
+     * @param tag NBT复合标签
      */
-    void writeToNBT(/* CompoundNBT& nbt */) const {
-        // nbt.putBoolean("Saddle", getSaddled());
+    void writeToNbt(nbt::tags::compound_tag& tag) const {
+        // NBT 没有布尔类型，使用 i8 (Byte) 存储
+        tag.put("Saddle", static_cast<i8>(getSaddled() ? 1 : 0));
     }
 
     /**
      * @brief 从NBT读取
      *
      * MC 1.16.5: func_233621_b_()
-     * TODO: 待NBT系统完善后实现
+     * 只读取鞍状态，加速状态在加载后重置为未加速。
+     *
+     * @param tag NBT复合标签
      */
-    void readFromNBT(/* const CompoundNBT& nbt */) const {
-        // setSaddledFromBoolean(nbt.getBoolean("Saddle"));
+    void readFromNbt(const nbt::tags::compound_tag& tag) {
+        auto it = tag.value.find("Saddle");
+        if (it != tag.value.end()) {
+            // NBT 没有布尔类型，从 Byte 读取
+            if (it->second->id() == nbt::TagId::Byte) {
+                i8 value = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value;
+                setSaddledFromBoolean(value != 0);
+            }
+        }
     }
 
     /**
@@ -179,9 +193,12 @@ public:
     /**
      * @brief 是否正在加速
      * @return 是否正在加速
+     *
+     * 加速期间：field_233611_b_ 从 0 递增到 boostTimeRaw（包含边界值）
+     * 当 field_233611_b_ > boostTimeRaw 时，加速结束
      */
     [[nodiscard]] bool isBoosting() const {
-        return saddledRaw && field_233611_b_ < boostTimeRaw;
+        return saddledRaw && field_233611_b_ <= boostTimeRaw;
     }
 
     /**
