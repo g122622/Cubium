@@ -12,6 +12,8 @@
 #include "common/scoreboard/criteria/KillCountCriteria.hpp"
 #include "common/scoreboard/criteria/ReadOnlyCriteria.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include "common/util/text/TextEvents.hpp"
 
 using namespace mc;
 using namespace mc::scoreboard;
@@ -126,6 +128,75 @@ TEST_F(ScoreboardTest, Objective_WithDisplayName) {
     auto* display = objective->getDisplayName();
     ASSERT_NE(display, nullptr);
     EXPECT_EQ(display->getUnformattedText(), "Player Kills");
+}
+
+TEST_F(ScoreboardTest, Objective_GetFormattedDisplayName) {
+    Scoreboard scoreboard;
+    auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("dummy");
+    ASSERT_NE(criteria, nullptr);
+
+    // 测试 1: 有显示名称的目标
+    {
+        auto displayName = std::make_unique<text::StringTextComponent>("Player Kills");
+        auto* objective = scoreboard.addObjective("kills", *criteria, std::move(displayName));
+        ASSERT_NE(objective, nullptr);
+
+        // 获取格式化显示名称
+        auto formatted = objective->getFormattedDisplayName();
+        ASSERT_NE(formatted, nullptr);
+
+        // 应该包含方括号
+        // getUnformattedText() 应返回 "[Player Kills]"
+        std::string text = formatted->getUnformattedText();
+        EXPECT_EQ(text, "[Player Kills]");
+
+        // 验证悬停事件存在
+        const text::Style& style = formatted->getStyle();
+        const text::HoverEvent* hoverEvent = style.getHoverEvent();
+        // 注意：悬停事件设置在内部组件上，不是外部的方括号组件
+        // 所以需要检查子组件的样式
+    }
+
+    // 测试 2: 没有显示名称的目标（使用目标名称）
+    {
+        auto* objective = scoreboard.addObjective("deaths", *criteria);
+        ASSERT_NE(objective, nullptr);
+
+        // 原始显示名称应该是目标名称
+        auto* display = objective->getDisplayName();
+        ASSERT_NE(display, nullptr);
+        EXPECT_EQ(display->getUnformattedText(), "deaths");
+
+        // 格式化显示名称应该包含方括号
+        auto formatted = objective->getFormattedDisplayName();
+        ASSERT_NE(formatted, nullptr);
+        EXPECT_EQ(formatted->getUnformattedText(), "[deaths]");
+    }
+
+    // 测试 3: 验证悬停事件显示目标名称
+    {
+        auto displayName = std::make_unique<text::StringTextComponent>("Points");
+        auto* objective = scoreboard.addObjective("points", *criteria, std::move(displayName));
+        ASSERT_NE(objective, nullptr);
+
+        auto formatted = objective->getFormattedDisplayName();
+        ASSERT_NE(formatted, nullptr);
+
+        // 检查子组件中的悬停事件
+        const auto& siblings = formatted->getSiblings();
+        ASSERT_GE(siblings.size(), 1);
+
+        // 第一个子组件应该是 "Player Kills"（带悬停事件）
+        const auto& contentComponent = siblings[0];
+        ASSERT_NE(contentComponent, nullptr);
+
+        const text::Style& contentStyle = contentComponent->getStyle();
+        const text::HoverEvent* hoverEvent = contentStyle.getHoverEvent();
+        ASSERT_NE(hoverEvent, nullptr);
+        EXPECT_EQ(hoverEvent->getAction(), text::HoverAction::ShowText);
+        // 悬停显示的是目标名称（"points"），不是显示名称（"Points"）
+        EXPECT_EQ(hoverEvent->getValue(), "points");
+    }
 }
 
 TEST_F(ScoreboardTest, Objective_Remove) {
