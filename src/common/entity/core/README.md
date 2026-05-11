@@ -26,6 +26,7 @@
 | `EntityUtils.hpp` | 模板型实体工具函数（搜索、距离） |
 | `DataParameter.hpp` | 数据参数定义 |
 | `MoverType.hpp` | 移动类型枚举 |
+| `BoostHelper.hpp` | 可骑乘实体的鞍和加速管理（猪、炽足兽等） |
 
 ## 物理系统
 
@@ -88,6 +89,129 @@
 - `Entity` 会缓存当前的 `EntitySize` 和 `AxisAlignedBB`，姿态、尺寸状态或位置变化后需要通过 `refreshDimensions()` 重新计算。
 - 运行时会改变体型的实体子类，应在尺寸变化后立即刷新碰撞箱，避免旧 AABB 继续参与物理计算。
 - `Player` 的姿态切换会先检查目标碰撞箱是否能放下，再决定是否真正站立，避免在低顶空间里错误穿模。
+
+## 鞍与加速系统（BoostHelper）
+
+可骑乘实体（如猪、炽足兽）的鞍管理和加速辅助系统。参考 MC 1.16.5 `BoostHelper`。
+
+### 核心类
+
+```cpp
+class BoostHelper {
+public:
+    // 初始化
+    void init(EntityDataManager& manager,
+              DataParameter<i32> boostTimeParam,
+              DataParameter<bool> saddledParam);
+
+    // 鞍状态
+    void setSaddledFromBoolean(bool saddled);
+    [[nodiscard]] bool getSaddled() const;
+
+    // 加速功能
+    template<typename Random>
+    bool boost(Random& rng);  // 触发加速，返回是否成功
+    bool tick();              // 每 tick 调用，返回是否仍在加速
+    [[nodiscard]] bool isBoosting() const;
+
+    // NBT 序列化
+    void writeToNbt(nbt::tags::compound_tag& tag) const;
+    void readFromNbt(const nbt::tags::compound_tag& tag);
+
+    // 公开成员（与 MC 保持一致）
+    bool saddledRaw = false;     // 原始鞍状态（加速中时为 true）
+    i32 field_233611_b_ = 0;     // 当前加速 tick
+    i32 boostTimeRaw = 0;        // 总加速时间
+};
+```
+
+### 加速机制
+
+1. **触发加速**：`boost(rng)` 方法
+   - 仅当 `saddledRaw == false` 时可触发
+   - 随机生成加速时间：`rand.nextInt(841) + 140` → [140, 980] tick
+   - 设置 `saddledRaw = true`，重置 `field_233611_b_ = 0`
+   - 同步加速时间到 `EntityDataManager`
+
+2. **Tick 更新**：`tick()` 方法
+   - 递增 `field_233611_b_`
+   - 当 `field_233611_b_ > boostTimeRaw` 时，结束加速并返回 false
+
+3. **状态判断**：`isBoosting()` 方法
+   - 返回 `saddledRaw && field_233611_b_ <= boostTimeRaw`
+   - 边界值：加速最后一刻仍返回 true
+
+### NBT 序列化
+
+**只持久化鞍状态，加速状态不保存**（MC 1.16.5 行为）：
+
+```cpp
+// 写入 NBT
+void writeToNbt(nbt::tags::compound_tag& tag) const {
+    // NBT 无布尔类型，使用 byte_tag 存储
+    tag.put("Saddle", static_cast<i8>(getSaddled() ? 1 : 0));
+}
+
+// 读取 NBT
+void readFromNbt(const nbt::tags::compound_tag& tag) {
+    auto it = tag.value.find("Saddle");
+    if (it != tag.value.end() && it->second->id() == nbt::TagId::Byte) {
+        i8 value = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value;
+        setSaddledFromBoolean(value != 0);
+    }
+    // 加速状态重置为默认值（未加速）
+}
+```
+
+### 客户端同步
+
+客户端通过 `syncFromDataManager()` 从 `EntityDataManager` 读取数据：
+
+```cpp
+void syncFromDataManager() {
+    saddledRaw = true;
+    field_233611_b_ = 0;
+    boostTimeRaw = m_manager->get(m_boostTimeParam);
+}
+```
+
+### 使用示例
+
+```cpp
+// 在 PigEntity 中使用
+class PigEntity : public AnimalEntity {
+    BoostHelper m_boostHelper;
+
+    void registerData() override {
+        auto boostTimeParam = EntityDataManager::createKey<i32>();
+        auto saddledParam = EntityDataManager::createKey<bool>();
+        m_dataManager.registerParam(boostTimeParam, 0);
+        m_dataManager.registerParam(saddledParam, false);
+        m_boostHelper.init(m_dataManager, boostTimeParam, saddledParam);
+    }
+
+    void tick() override {
+        AnimalEntity::tick();
+        if (m_boostHelper.isBoosting()) {
+            m_boostHelper.tick();
+        }
+    }
+
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) override {
+        AnimalEntity::addAdditionalSaveData(tag);
+        m_boostHelper.writeToNbt(tag);
+    }
+
+    void readAdditionalSaveData(const nbt::tags::compound_tag& tag) override {
+        AnimalEntity::readAdditionalSaveData(tag);
+        m_boostHelper.readFromNbt(tag);
+    }
+};
+```
+
+### 测试用例
+
+- [tests/common/entity/core/BoostHelperTest.cpp](../../../../tests/common/entity/core/BoostHelperTest.cpp) 验证初始化、鞍状态、加速、tick、NBT 读写、往返测试等。
 
 ## 实体生命周期
 
