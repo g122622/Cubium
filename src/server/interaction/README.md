@@ -13,7 +13,9 @@ src/server/interaction/
 ├── InventoryManager.hpp          # 物品栏管理器头文件
 ├── InventoryManager.cpp          # 物品栏管理器实现
 ├── MiningManager.hpp             # 挖掘管理器头文件
-└── MiningManager.cpp             # 挖掘管理器实现
+├── MiningManager.cpp             # 挖掘管理器实现
+├── SignCommandHelper.hpp         # 告示牌命令执行辅助类头文件
+└── SignCommandHelper.cpp         # 告示牌命令执行辅助类实现
 ```
 
 ## 文件详细介绍
@@ -256,6 +258,33 @@ struct OpenContainer {
 - 快捷栏：0-8
 - 主背包：0-35
 - 总大小：41（快捷栏9 + 主背包27 + 护甲4 + 副手1）
+
+---
+
+### SignCommandHelper.hpp / .cpp
+
+**职责**：提供服务端告示牌命令执行功能。
+
+由于 `SignEntity` 位于 `mc_common` 库中，无法直接访问服务端的命令系统，因此实际的命令执行逻辑放在此服务端辅助类中。
+
+**主要方法**：
+
+| 方法 | 说明 |
+|------|------|
+| `executeSignCommands()` | 执行告示牌所有行的命令（遍历文本组件的点击事件） |
+| `executeCommand()` | 执行单个命令（私有辅助方法） |
+
+**命令执行流程**：
+
+1. 遍历告示牌 4 行文本
+2. 检查每行文本组件及其子组件的点击事件
+3. 对于 `RunCommand` 类型的点击事件：
+   - 构建命令字符串（自动添加 `/` 前缀）
+   - 创建 `ServerCommandSource`（权限级别 2，位置为告示牌中心）
+   - 调用 `CommandRegistry::execute()` 执行命令
+   - 命令失败时发送错误消息给玩家
+
+**参考**：MC 1.16.5 `SignTileEntity.executeCommand()`
 
 ---
 
