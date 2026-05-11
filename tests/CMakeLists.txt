@@ -270,6 +270,7 @@ add_executable(mc_tests
     common/world/block/test_redstone_blocks.cpp
     common/world/block/blocks/redstone/NoteBlockTest.cpp
     common/world/block/blocks/redstone/TNTBlockTest.cpp
+    common/world/block/blocks/redstone/PistonBlockTest.cpp
     # Explosion system tests
     common/world/explosion/test_explosion.cpp
     common/world/explosion/ExplosionIntegrationTest.cpp
