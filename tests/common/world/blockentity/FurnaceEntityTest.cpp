@@ -481,6 +481,71 @@ TEST_F(FurnaceBurnTimeTest, OakButton_HasCorrectBurnTime) {
     EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
 }
 
+TEST_F(FurnaceBurnTimeTest, SpruceButton_HasCorrectBurnTime) {
+    const BlockItem* buttonItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::SPRUCE_BUTTON);
+    if (buttonItem == nullptr) {
+        GTEST_SKIP() << "SPRUCE_BUTTON not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(buttonItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+TEST_F(FurnaceBurnTimeTest, BirchButton_HasCorrectBurnTime) {
+    const BlockItem* buttonItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BIRCH_BUTTON);
+    if (buttonItem == nullptr) {
+        GTEST_SKIP() << "BIRCH_BUTTON not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(buttonItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+TEST_F(FurnaceBurnTimeTest, JungleButton_HasCorrectBurnTime) {
+    const BlockItem* buttonItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::JUNGLE_BUTTON);
+    if (buttonItem == nullptr) {
+        GTEST_SKIP() << "JUNGLE_BUTTON not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(buttonItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+TEST_F(FurnaceBurnTimeTest, AcaciaButton_HasCorrectBurnTime) {
+    const BlockItem* buttonItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::ACACIA_BUTTON);
+    if (buttonItem == nullptr) {
+        GTEST_SKIP() << "ACACIA_BUTTON not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(buttonItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+TEST_F(FurnaceBurnTimeTest, DarkOakButton_HasCorrectBurnTime) {
+    const BlockItem* buttonItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::DARK_OAK_BUTTON);
+    if (buttonItem == nullptr) {
+        GTEST_SKIP() << "DARK_OAK_BUTTON not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(buttonItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+TEST_F(FurnaceBurnTimeTest, CrimsonButton_NotBurnable) {
+    // 下界木材按钮不可燃
+    const BlockItem* buttonItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CRIMSON_BUTTON);
+    if (buttonItem == nullptr) {
+        GTEST_SKIP() << "CRIMSON_BUTTON not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(buttonItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0) << "CRIMSON_BUTTON should not be burnable";
+}
+
+TEST_F(FurnaceBurnTimeTest, WarpedButton_NotBurnable) {
+    // 下界木材按钮不可燃
+    const BlockItem* buttonItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::WARPED_BUTTON);
+    if (buttonItem == nullptr) {
+        GTEST_SKIP() << "WARPED_BUTTON not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(buttonItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0) << "WARPED_BUTTON should not be burnable";
+}
+
 // ========== 树苗测试 (100 tick) ==========
 
 TEST_F(FurnaceBurnTimeTest, OakSapling_HasCorrectBurnTime) {

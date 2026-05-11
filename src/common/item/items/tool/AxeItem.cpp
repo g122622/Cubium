@@ -190,8 +190,13 @@ std::unordered_set<const Block*> AxeItem::initializeEffectiveBlocks() {
 
     // MC 1.16.5: 木质按钮（斧可以有效挖掘）
     if (VanillaBlocks::OAK_BUTTON) blocks.insert(VanillaBlocks::OAK_BUTTON);
-    // TODO: 添加其他木质按钮（SPRUCE_BUTTON, BIRCH_BUTTON, JUNGLE_BUTTON,
-    // DARK_OAK_BUTTON, ACACIA_BUTTON, CRIMSON_BUTTON, WARPED_BUTTON）
+    if (VanillaBlocks::SPRUCE_BUTTON) blocks.insert(VanillaBlocks::SPRUCE_BUTTON);
+    if (VanillaBlocks::BIRCH_BUTTON) blocks.insert(VanillaBlocks::BIRCH_BUTTON);
+    if (VanillaBlocks::JUNGLE_BUTTON) blocks.insert(VanillaBlocks::JUNGLE_BUTTON);
+    if (VanillaBlocks::ACACIA_BUTTON) blocks.insert(VanillaBlocks::ACACIA_BUTTON);
+    if (VanillaBlocks::DARK_OAK_BUTTON) blocks.insert(VanillaBlocks::DARK_OAK_BUTTON);
+    if (VanillaBlocks::CRIMSON_BUTTON) blocks.insert(VanillaBlocks::CRIMSON_BUTTON);
+    if (VanillaBlocks::WARPED_BUTTON) blocks.insert(VanillaBlocks::WARPED_BUTTON);
 
     return blocks;
 }

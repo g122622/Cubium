@@ -218,9 +218,14 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         })) {
             return 100;
         }
-        // 木质按钮 - 目前只有橡木按钮
+        // 木质按钮（主世界木材，可燃）
         // 参考: MC 1.16.5 第 141 行: addItemTagBurnTime(map, ItemTags.WOODEN_BUTTONS, 100);
-        if (isBlockItem(item, VanillaBlocks::OAK_BUTTON)) {
+        // 注意: CRIMSON_BUTTON 和 WARPED_BUTTON 是下界木材，不可燃
+        if (isBlockInList(item, {
+            VanillaBlocks::OAK_BUTTON, VanillaBlocks::SPRUCE_BUTTON,
+            VanillaBlocks::BIRCH_BUTTON, VanillaBlocks::JUNGLE_BUTTON,
+            VanillaBlocks::ACACIA_BUTTON, VanillaBlocks::DARK_OAK_BUTTON
+        })) {
             return 100;
         }
 

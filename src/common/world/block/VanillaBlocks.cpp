@@ -353,6 +353,13 @@ Block* VanillaBlocks::OBSERVER = nullptr;
 Block* VanillaBlocks::LEVER = nullptr;
 Block* VanillaBlocks::STONE_BUTTON = nullptr;
 Block* VanillaBlocks::OAK_BUTTON = nullptr;
+Block* VanillaBlocks::SPRUCE_BUTTON = nullptr;
+Block* VanillaBlocks::BIRCH_BUTTON = nullptr;
+Block* VanillaBlocks::JUNGLE_BUTTON = nullptr;
+Block* VanillaBlocks::ACACIA_BUTTON = nullptr;
+Block* VanillaBlocks::DARK_OAK_BUTTON = nullptr;
+Block* VanillaBlocks::CRIMSON_BUTTON = nullptr;
+Block* VanillaBlocks::WARPED_BUTTON = nullptr;
 Block* VanillaBlocks::STONE_PRESSURE_PLATE = nullptr;
 Block* VanillaBlocks::OAK_PRESSURE_PLATE = nullptr;
 Block* VanillaBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE = nullptr;
@@ -2778,6 +2785,48 @@ void VanillaBlocks::registerRedstoneBlocks() {
     OAK_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
         ResourceLocation("minecraft:oak_button"),
         BlockProperties(Material::WOOD).noCollision().notSolid().flammable()
+    );
+
+    // 云杉木按钮
+    SPRUCE_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
+        ResourceLocation("minecraft:spruce_button"),
+        BlockProperties(Material::WOOD).noCollision().notSolid().flammable()
+    );
+
+    // 白桦木按钮
+    BIRCH_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
+        ResourceLocation("minecraft:birch_button"),
+        BlockProperties(Material::WOOD).noCollision().notSolid().flammable()
+    );
+
+    // 丛林木按钮
+    JUNGLE_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
+        ResourceLocation("minecraft:jungle_button"),
+        BlockProperties(Material::WOOD).noCollision().notSolid().flammable()
+    );
+
+    // 金合欢木按钮
+    ACACIA_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
+        ResourceLocation("minecraft:acacia_button"),
+        BlockProperties(Material::WOOD).noCollision().notSolid().flammable()
+    );
+
+    // 深色橡木按钮
+    DARK_OAK_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
+        ResourceLocation("minecraft:dark_oak_button"),
+        BlockProperties(Material::WOOD).noCollision().notSolid().flammable()
+    );
+
+    // 绯红按钮（下界木材，不可燃）
+    CRIMSON_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
+        ResourceLocation("minecraft:crimson_button"),
+        BlockProperties(Material::NETHER_WOOD).noCollision().notSolid()
+    );
+
+    // 诡异按钮（下界木材，不可燃）
+    WARPED_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
+        ResourceLocation("minecraft:warped_button"),
+        BlockProperties(Material::NETHER_WOOD).noCollision().notSolid()
     );
 
     // 石头压力板

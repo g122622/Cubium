@@ -102,7 +102,7 @@ redstone/
 |------|------|
 | `AbstractButtonBlock.hpp/cpp` | 按钮基类，瞬时信号源 |
 | `StoneButtonBlock.hpp/cpp` | 石头按钮，10 tick 脉冲 |
-| `WoodButtonBlock.hpp/cpp` | 木按钮，15 tick 脉冲 |
+| `WoodButtonBlock.hpp/cpp` | 木按钮，15 tick 脉冲（所有木质变体共用此类） |
 | `LeverBlock.hpp/cpp` | 拉杆，持久信号源，手动切换 |
 | `AbstractPressurePlateBlock.hpp/cpp` | 压力板基类，实体检测信号源 |
 | `StonePressurePlateBlock.hpp/cpp` | 石头压力板，仅生物触发，输出15 |

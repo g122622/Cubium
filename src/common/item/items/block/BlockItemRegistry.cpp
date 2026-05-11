@@ -493,6 +493,13 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::LEVER, "lever");
     registerSimpleBlock(VanillaBlocks::STONE_BUTTON, "stone_button");
     registerSimpleBlock(VanillaBlocks::OAK_BUTTON, "oak_button");
+    registerSimpleBlock(VanillaBlocks::SPRUCE_BUTTON, "spruce_button");
+    registerSimpleBlock(VanillaBlocks::BIRCH_BUTTON, "birch_button");
+    registerSimpleBlock(VanillaBlocks::JUNGLE_BUTTON, "jungle_button");
+    registerSimpleBlock(VanillaBlocks::ACACIA_BUTTON, "acacia_button");
+    registerSimpleBlock(VanillaBlocks::DARK_OAK_BUTTON, "dark_oak_button");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_BUTTON, "crimson_button");
+    registerSimpleBlock(VanillaBlocks::WARPED_BUTTON, "warped_button");
     registerSimpleBlock(VanillaBlocks::STONE_PRESSURE_PLATE, "stone_pressure_plate");
     registerSimpleBlock(VanillaBlocks::OAK_PRESSURE_PLATE, "oak_pressure_plate");
     registerSimpleBlock(VanillaBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE, "light_weighted_pressure_plate");

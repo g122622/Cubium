@@ -386,6 +386,13 @@ public:
     static Block* LEVER;                  // 拉杆
     static Block* STONE_BUTTON;           // 石头按钮
     static Block* OAK_BUTTON;             // 橡木按钮
+    static Block* SPRUCE_BUTTON;          // 云杉木按钮
+    static Block* BIRCH_BUTTON;           // 白桦木按钮
+    static Block* JUNGLE_BUTTON;          // 丛林木按钮
+    static Block* ACACIA_BUTTON;          // 金合欢木按钮
+    static Block* DARK_OAK_BUTTON;        // 深色橡木按钮
+    static Block* CRIMSON_BUTTON;         // 绯红按钮
+    static Block* WARPED_BUTTON;          // 诡异按钮
     static Block* STONE_PRESSURE_PLATE;   // 石头压力板
     static Block* OAK_PRESSURE_PLATE;     // 橡木压力板
     static Block* LIGHT_WEIGHTED_PRESSURE_PLATE;  // 轻质测重压力板

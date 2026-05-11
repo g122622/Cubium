@@ -560,3 +560,125 @@ TEST_F(ToolItemTest, HoeEnchantability) {
     ASSERT_NE(hoe, nullptr);
     EXPECT_EQ(hoe->getItemEnchantability(), 10);  // Diamond enchantability
 }
+
+// ============================================================================
+// Axe Effective Blocks Tests - Wood Buttons
+// ============================================================================
+
+TEST_F(ToolHarvestTest, AxeEffectiveOnOakButton) {
+    auto* axe = Items::DIAMOND_AXE;
+    ASSERT_NE(axe, nullptr);
+
+    ItemStack stack(*axe, 1);
+    auto* button = VanillaBlocks::OAK_BUTTON;
+    ASSERT_NE(button, nullptr);
+
+    const BlockState& state = button->defaultState();
+    f32 speed = axe->getDestroySpeed(stack, state);
+    EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on OAK_BUTTON";
+}
+
+TEST_F(ToolHarvestTest, AxeEffectiveOnSpruceButton) {
+    auto* axe = Items::DIAMOND_AXE;
+    ASSERT_NE(axe, nullptr);
+
+    ItemStack stack(*axe, 1);
+    auto* button = VanillaBlocks::SPRUCE_BUTTON;
+    if (button == nullptr) {
+        GTEST_SKIP() << "SPRUCE_BUTTON not registered yet";
+    }
+
+    const BlockState& state = button->defaultState();
+    f32 speed = axe->getDestroySpeed(stack, state);
+    EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on SPRUCE_BUTTON";
+}
+
+TEST_F(ToolHarvestTest, AxeEffectiveOnBirchButton) {
+    auto* axe = Items::DIAMOND_AXE;
+    ASSERT_NE(axe, nullptr);
+
+    ItemStack stack(*axe, 1);
+    auto* button = VanillaBlocks::BIRCH_BUTTON;
+    if (button == nullptr) {
+        GTEST_SKIP() << "BIRCH_BUTTON not registered yet";
+    }
+
+    const BlockState& state = button->defaultState();
+    f32 speed = axe->getDestroySpeed(stack, state);
+    EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on BIRCH_BUTTON";
+}
+
+TEST_F(ToolHarvestTest, AxeEffectiveOnJungleButton) {
+    auto* axe = Items::DIAMOND_AXE;
+    ASSERT_NE(axe, nullptr);
+
+    ItemStack stack(*axe, 1);
+    auto* button = VanillaBlocks::JUNGLE_BUTTON;
+    if (button == nullptr) {
+        GTEST_SKIP() << "JUNGLE_BUTTON not registered yet";
+    }
+
+    const BlockState& state = button->defaultState();
+    f32 speed = axe->getDestroySpeed(stack, state);
+    EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on JUNGLE_BUTTON";
+}
+
+TEST_F(ToolHarvestTest, AxeEffectiveOnAcaciaButton) {
+    auto* axe = Items::DIAMOND_AXE;
+    ASSERT_NE(axe, nullptr);
+
+    ItemStack stack(*axe, 1);
+    auto* button = VanillaBlocks::ACACIA_BUTTON;
+    if (button == nullptr) {
+        GTEST_SKIP() << "ACACIA_BUTTON not registered yet";
+    }
+
+    const BlockState& state = button->defaultState();
+    f32 speed = axe->getDestroySpeed(stack, state);
+    EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on ACACIA_BUTTON";
+}
+
+TEST_F(ToolHarvestTest, AxeEffectiveOnDarkOakButton) {
+    auto* axe = Items::DIAMOND_AXE;
+    ASSERT_NE(axe, nullptr);
+
+    ItemStack stack(*axe, 1);
+    auto* button = VanillaBlocks::DARK_OAK_BUTTON;
+    if (button == nullptr) {
+        GTEST_SKIP() << "DARK_OAK_BUTTON not registered yet";
+    }
+
+    const BlockState& state = button->defaultState();
+    f32 speed = axe->getDestroySpeed(stack, state);
+    EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on DARK_OAK_BUTTON";
+}
+
+TEST_F(ToolHarvestTest, AxeEffectiveOnCrimsonButton) {
+    auto* axe = Items::DIAMOND_AXE;
+    ASSERT_NE(axe, nullptr);
+
+    ItemStack stack(*axe, 1);
+    auto* button = VanillaBlocks::CRIMSON_BUTTON;
+    if (button == nullptr) {
+        GTEST_SKIP() << "CRIMSON_BUTTON not registered yet";
+    }
+
+    const BlockState& state = button->defaultState();
+    f32 speed = axe->getDestroySpeed(stack, state);
+    EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on CRIMSON_BUTTON";
+}
+
+TEST_F(ToolHarvestTest, AxeEffectiveOnWarpedButton) {
+    auto* axe = Items::DIAMOND_AXE;
+    ASSERT_NE(axe, nullptr);
+
+    ItemStack stack(*axe, 1);
+    auto* button = VanillaBlocks::WARPED_BUTTON;
+    if (button == nullptr) {
+        GTEST_SKIP() << "WARPED_BUTTON not registered yet";
+    }
+
+    const BlockState& state = button->defaultState();
+    f32 speed = axe->getDestroySpeed(stack, state);
+    EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on WARPED_BUTTON";
+}
