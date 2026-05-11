@@ -43,6 +43,7 @@ chunk/
 | `spawnInitialMobs()` | 生成初始生物（被动动物） |
 | `getBiome()` | 获取指定位置的生物群系 |
 | `getHeight()` | 获取生成高度 |
+| `isDebugGenerator()` | 检查是否为调试世界生成器（默认返回 `false`） |
 
 #### `WorldGenRegion` 类
 
@@ -617,8 +618,14 @@ public:
     // === IChunkGenerator 接口 ===
     void generateNoise(WorldGenRegion& region, ChunkPrimer& chunk) override;
     // ... 其他方法为空操作
+
+    // === 调试世界检测 ===
+    [[nodiscard]] bool isDebugGenerator() const override { return true; }
 };
 ```
+
+**重要**：`isDebugGenerator()` 方法用于 `ServerWorld::isDebugWorld()` 检测当前世界是否为调试世界。
+参考 MC 1.16.5 `DimensionGeneratorSettings.func_236227_h_()` 的设计模式。
 
 ### 方块网格生成算法
 
@@ -720,6 +727,17 @@ if (config.worldType == WorldType::Debug) {
 | BiomeAlwaysPlains | 验证生物群系始终为平原 |
 | GetHeight | 验证高度返回60或70 |
 | GridSizeConsistency | 验证网格尺寸一致性 |
+| IsDebugGenerator_ReturnsTrue | 验证 isDebugGenerator() 返回 true |
+| IsDebugGenerator_VirtualDispatch | 验证通过基类指针调用的虚函数分派 |
+
+### isDebugGenerator() 测试（NoiseChunkGenerator）
+
+| 测试名称 | 描述 |
+|----------|------|
+| IsDebugGenerator_ReturnsFalse | 验证 NoiseChunkGenerator::isDebugGenerator() 返回 false |
+| IsDebugGenerator_VirtualDispatch | 验证通过基类指针调用的虚函数分派 |
+| IsDebugGenerator_FlatSettings | 验证 flat 设置也返回 false |
+| IsDebugGenerator_AmplifiedSettings | 验证 amplified 设置也返回 false |
 
 ### 参考
 

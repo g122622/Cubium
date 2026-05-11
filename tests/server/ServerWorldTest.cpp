@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 #include "server/world/ServerWorld.hpp"
+#include "server/world/ServerChunkManager.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <thread>
@@ -60,7 +62,7 @@ protected:
         ServerWorldConfig config;
         config.viewDistance = 10;
         config.dimension = 0;
-        config.isDebugWorld = false;
+        // 注意：isDebugWorld 字段已移除，改用 isDebugWorld() 方法通过检测区块生成器类型判断
         world = std::make_unique<ServerWorld>(config);
     }
 
@@ -393,4 +395,46 @@ TEST_F(ServerWorldTest, PlaySound_InvokesCallback) {
     EXPECT_FLOAT_EQ(position->z, 3.0f);
     EXPECT_FLOAT_EQ(*volume, 0.75f);
     EXPECT_FLOAT_EQ(*pitch, 1.25f);
+}
+
+// ============================================================================
+// isDebugWorld 测试
+// ============================================================================
+
+TEST_F(ServerWorldTest, IsDebugWorld_ReturnsFalse_WithoutChunkManager) {
+    // 无区块管理器时返回 false
+    EXPECT_FALSE(world->isDebugWorld());
+}
+
+TEST_F(ServerWorldTest, IsDebugWorld_ReturnsFalse_WithNoiseChunkGenerator) {
+    ServerWorldConfig config;
+    config.viewDistance = 10;
+    config.dimension = 0;
+    config.seed = 12345;
+
+    ServerWorld testWorld(config);
+    auto result = testWorld.initialize();
+    ASSERT_TRUE(result.success());
+
+    // 默认使用 NoiseChunkGenerator，不是调试世界
+    EXPECT_FALSE(testWorld.isDebugWorld());
+}
+
+TEST_F(ServerWorldTest, IsDebugWorld_ReturnsTrue_WithDebugChunkGenerator) {
+    ServerWorldConfig config;
+    config.viewDistance = 10;
+    config.dimension = 0;
+    config.seed = 12345;
+
+    ServerWorld testWorld(config);
+    auto result = testWorld.initialize();
+    ASSERT_TRUE(result.success());
+
+    // 创建 DebugChunkGenerator
+    auto debugGenerator = std::make_unique<DebugChunkGenerator>();
+    auto chunkManager = std::make_unique<ServerChunkManager>(testWorld, std::move(debugGenerator));
+    testWorld.setChunkManager(std::move(chunkManager));
+
+    // 使用 DebugChunkGenerator 时应返回 true
+    EXPECT_TRUE(testWorld.isDebugWorld());
 }

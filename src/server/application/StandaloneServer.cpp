@@ -10,7 +10,6 @@
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/world/biome/layer/LayerBiomeProvider.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/chunk/ChunkPos.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
@@ -216,9 +215,10 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                 break;
             case LevelType::LargeBiomes:
                 spdlog::info("Using large biomes world settings");
-                chunkGenerator = std::make_unique<NoiseChunkGenerator>(
-                    seed, DimensionSettings::overworld(),
-                    std::make_unique<LayerBiomeProvider>(seed, true));
+                // TODO: LayerBiomeProvider 尚未实现，暂时使用默认世界设置
+                // 未来需要：std::make_unique<NoiseChunkGenerator>(seed, DimensionSettings::overworld(),
+                //                                               std::make_unique<LayerBiomeProvider>(seed, true));
+                chunkGenerator = std::make_unique<NoiseChunkGenerator>(seed, DimensionSettings::overworld());
                 break;
             case LevelType::Amplified:
                 spdlog::info("Using amplified world settings");

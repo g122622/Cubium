@@ -28,7 +28,7 @@ protected:
         config.viewDistance = 8;
         config.dimension = 0;
         config.seed = 114514;
-        config.isDebugWorld = false;
+        // 注意：isDebugWorld 字段已移除，改用 isDebugWorld() 方法通过检测区块生成器类型判断
 
         m_world = std::make_unique<server::ServerWorld>(config);
         auto worldInit = m_world->initialize();

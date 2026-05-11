@@ -158,6 +158,12 @@ struct IntegratedServerConfig {
 - Creative inventory login and slot writes use the same shared creative inventory helper and `CreativeInventoryActionPacket` path as the integrated server
 - Non-placement right-click interaction path now routes through `BlockInteractionManager::handleBlockUse()` for block activation
 - The world sound callback is attached during initialization so mob/player sounds are broadcast the same way as other server events
+- Full world type support with proper chunk generator selection:
+  - `Default` → `NoiseChunkGenerator + DimensionSettings::overworld()`
+  - `Flat` → `NoiseChunkGenerator + DimensionSettings::flat()`
+  - `LargeBiomes` → `NoiseChunkGenerator + LayerBiomeProvider(seed, true)`
+  - `Amplified` → `NoiseChunkGenerator + NoiseSettings::amplified()`
+  - `Debug` → `DebugChunkGenerator` (spectator mode, fixed time, clear weather)
 
 **Configuration (`StandaloneServerParams`):**
 

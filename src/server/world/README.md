@@ -63,6 +63,9 @@ class ServerWorld : public IWorld, public ICollisionWorld, public StarLightLight
     ItemPickupManager m_itemPickupManager;                    // 物品拾取管理器
     const loot::LootTableManager* m_lootTableManager;         // 掉落表管理器（用于爆炸掉落等）
 };
+
+// 调试世界检测
+[[nodiscard]] bool isDebugWorld() const;  // 通过检查区块生成器类型判断是否为调试世界
 ```
 
 **爆炸系统集成**：
@@ -601,6 +604,24 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 **问题**：替换 `ServerChunkManager` 后，如果未同步 `viewDistance`，新管理器会使用默认值 10，导致首帧加载区块数量异常。
 
 **解决方案**：`ServerWorld::setChunkManager()` 现在会自动同步 `ServerWorldConfig.viewDistance`，无需在调用方重复设置。
+
+### 9. 调试世界判断方式变更
+
+**问题**：旧代码通过 `ServerWorldConfig.isDebugWorld` 字段判断是否为调试世界，但该字段默认值为 `true`，导致所有世界被错误地视为调试世界。
+
+**解决方案**：现在通过 `IChunkGenerator::isDebugGenerator()` 虚方法检测区块生成器类型来判断：
+- `ServerWorld::isDebugWorld()` 检查 `m_chunkManager->generator()->isDebugGenerator()`
+- `DebugChunkGenerator::isDebugGenerator()` 返回 `true`
+- 其他生成器（`NoiseChunkGenerator` 等）使用基类默认实现返回 `false`
+
+```cpp
+// 不要使用配置字段（已移除）
+// if (config.isDebugWorld) { ... }
+
+// 正确：使用 isDebugWorld() 方法
+if (world->isDebugWorld()) {
+    // 禁止方块放置、跳过天气更新等
+}
 ```
 
 ---
@@ -608,15 +629,16 @@ chunkManager.setChunkLoadedCallback([this, &lightSyncManager](ChunkCoord x, Chun
 ## 测试用例
 
 | 测试文件 | 测试内容 |
-|---------|---------|
+||---------|---------|
 | `tests/server/world/EntityTrackerTest.cpp` | 实体追踪、玩家追踪、并发安全、距离计算 |
 | `tests/server/world/ItemPickupManagerTest.cpp` | 拾取常量、物品合并、拾取延迟、物品过期、背包添加 |
 | `tests/server/world/spawn/NaturalSpawnerTest.cpp` | 密度追踪、密度管理、生成限制、生成常量、MobSpawnInfo 工厂 |
 | `tests/server/BlockUpdateSyncManagerTest.cpp` | 方块更新 pending 去重、追踪玩家过滤、tick flush |
 | `tests/server/ServerWorldBlockUpdateCallbackTest.cpp` | ServerWorld 方块变化回调触发 |
-| `tests/server/ServerWorldTest.cpp` | 服务端世界声音回调转发 |
+| `tests/server/ServerWorldTest.cpp` | 服务端世界声音回调转发、isDebugWorld 检测 |
 | `tests/server/test_chunk_worker_pool.cpp` | ChunkGenerateTask 与 ServerWorkerPool 集成测试 |
 | `tests/common/util/thread/ServerWorkerPoolTest.cpp` | ServerWorkerPool 单元测试 |
+| `tests/common/world/gen/DebugChunkGeneratorTest.cpp` | DebugChunkGenerator 功能、isDebugGenerator 虚方法 |
 
 ### 测试覆盖范围
 

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/WorldConfig.hpp"
@@ -214,6 +215,50 @@ TEST(DebugWorldConfigTest, WorldConfigDebugCheck) {
 
     config.worldType = WorldType::Default;
     EXPECT_FALSE(config.isDebugWorld());
+}
+
+// ============================================================================
+// isDebugGenerator() 测试
+// ============================================================================
+
+TEST_F(DebugChunkGeneratorTest, IsDebugGenerator_ReturnsTrue) {
+    DebugChunkGenerator generator;
+    EXPECT_TRUE(generator.isDebugGenerator());
+}
+
+TEST_F(DebugChunkGeneratorTest, IsDebugGenerator_VirtualDispatch) {
+    // 通过基类指针调用，验证虚函数分派
+    DebugChunkGenerator debugGen;
+    IChunkGenerator* basePtr = &debugGen;
+    EXPECT_TRUE(basePtr->isDebugGenerator());
+}
+
+// ============================================================================
+// NoiseChunkGenerator::isDebugGenerator() 测试
+// ============================================================================
+
+TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_ReturnsFalse) {
+    NoiseChunkGenerator generator(12345ULL, DimensionSettings::overworld());
+    EXPECT_FALSE(generator.isDebugGenerator());
+}
+
+TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_VirtualDispatch) {
+    // 通过基类指针调用，验证虚函数分派
+    NoiseChunkGenerator noiseGen(12345ULL, DimensionSettings::overworld());
+    IChunkGenerator* basePtr = &noiseGen;
+    EXPECT_FALSE(basePtr->isDebugGenerator());
+}
+
+TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_FlatSettings) {
+    // 使用 flat 设置也应该返回 false
+    NoiseChunkGenerator generator(12345ULL, DimensionSettings::flat());
+    EXPECT_FALSE(generator.isDebugGenerator());
+}
+
+TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_AmplifiedSettings) {
+    // 使用 amplified 设置也应该返回 false
+    NoiseChunkGenerator generator(12345ULL, DimensionSettings::amplified());
+    EXPECT_FALSE(generator.isDebugGenerator());
 }
 
 } // namespace
