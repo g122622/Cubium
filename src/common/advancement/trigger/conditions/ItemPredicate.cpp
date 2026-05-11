@@ -1,4 +1,5 @@
 #include "ItemPredicate.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
@@ -31,8 +32,13 @@ bool ItemPredicate::test(const ItemStack& stack) const {
 
     // 检查物品ID
     if (m_item.has_value()) {
-        // [TODO 阶段3+4：触发器完善] 需要物品注册表支持获取物品ID进行比较
-        // if (stack.getItem().getId() != m_item.value()) return false;
+        const Item* item = stack.getItem();
+        if (item == nullptr) {
+            return false;
+        }
+        if (item->itemLocation() != m_item.value()) {
+            return false;
+        }
     }
 
     // 检查数量

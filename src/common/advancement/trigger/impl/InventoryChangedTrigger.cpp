@@ -1,4 +1,5 @@
 #include "InventoryChangedTrigger.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace mc::advancement {
@@ -17,42 +18,79 @@ InventoryChangedTriggerInstance::InventoryChangedTriggerInstance(
     , m_items(std::move(items)) {
 }
 
-bool InventoryChangedTriggerInstance::test(ServerPlayer& player, const PlayerInventory& inventory) const {
-    // 检查槽位数量
+bool InventoryChangedTriggerInstance::testWithInventory(
+    i32 totalSlots,
+    const std::function<const ItemStack&(i32)>& getSlot
+) const {
+    // 计算槽位数量
     i32 occupied = 0;
     i32 full = 0;
     i32 empty = 0;
 
-    // [TODO 阶段2+3：事件系统集成] 计算槽位数量
-    // 需要 PlayerInventory 接口支持 getSize() 和 getSlot()
-    // for (i32 i = 0; i < inventory.getSize(); ++i) {
-    //     const auto& slot = inventory.getSlot(i);
-    //     if (slot.isEmpty()) {
-    //         ++empty;
-    //     } else {
-    //         ++occupied;
-    //         if (slot.getCount() >= slot.getMaxStackSize()) {
-    //             ++full;
-    //         }
-    //     }
-    // }
+    // 遍历所有槽位
+    for (i32 i = 0; i < totalSlots; ++i) {
+        const ItemStack& slot = getSlot(i);
+        if (slot.isEmpty()) {
+            ++empty;
+        } else {
+            ++occupied;
+            if (slot.getCount() >= slot.getMaxStackSize()) {
+                ++full;
+            }
+        }
+    }
 
-    MC_UNUSED(player);
-    MC_UNUSED(inventory);
-
-    if (!m_slotsOccupied.test(occupied)) return false;
-    if (!m_slotsFull.test(full)) return false;
-    if (!m_slotsEmpty.test(empty)) return false;
+    // 检查槽位范围条件
+    if (!m_slotsOccupied.test(occupied)) {
+        return false;
+    }
+    if (!m_slotsFull.test(full)) {
+        return false;
+    }
+    if (!m_slotsEmpty.test(empty)) {
+        return false;
+    }
 
     // 检查物品谓词
+    // 参考 MC 1.16.5: InventoryChangeTrigger.Instance.test()
+    // 如果只有一个物品谓词，则检查变更的物品堆
+    // 如果有多个物品谓词，则遍历整个物品栏，所有谓词都必须匹配
     if (!m_items.empty()) {
-        for (const auto& predicate : m_items) {
-            bool found = false;
-            // [TODO 阶段2+3：事件系统集成] 遍历物品栏查找匹配的物品
-            // 需要 PlayerInventory 接口支持 getSize() 和 getSlot()
-            MC_UNUSED(predicate);
-            if (!found) {
-                return false;
+        const i32 itemCount = static_cast<i32>(m_items.size());
+
+        if (itemCount == 1) {
+            // 单个物品谓词：需要物品栏中至少有一个匹配的物品
+            const ItemPredicate& predicate = m_items[0];
+            for (i32 i = 0; i < totalSlots; ++i) {
+                if (predicate.test(getSlot(i))) {
+                    return true;
+                }
+            }
+            return false;
+        } else {
+            // 多个物品谓词：所有谓词都必须匹配
+            // 创建一个谓词匹配标记列表
+            std::vector<bool> matched(itemCount, false);
+
+            for (i32 i = 0; i < totalSlots; ++i) {
+                const ItemStack& slot = getSlot(i);
+                if (slot.isEmpty()) {
+                    continue;
+                }
+
+                // 检查每个未匹配的谓词
+                for (i32 j = 0; j < itemCount; ++j) {
+                    if (!matched[j] && m_items[j].test(slot)) {
+                        matched[j] = true;
+                    }
+                }
+            }
+
+            // 检查所有谓词是否都已匹配
+            for (bool m : matched) {
+                if (!m) {
+                    return false;
+                }
             }
         }
     }
@@ -131,12 +169,22 @@ Result<std::shared_ptr<ICriterionInstance>> InventoryChangedTrigger::fromJson(co
 }
 
 void InventoryChangedTrigger::trigger(ServerPlayer& player, const PlayerInventory& inventory) {
-    // 物品栏变化触发器
-    // 实际触发逻辑需要在服务端模块中实现，
+    // 注意：此实现需要 TriggerInstantiation.hpp 中的模板方法
+    // 该文件在 server 模块中，需要包含服务器头文件
     // 服务端事件系统会在物品栏变化时调用此方法
-    // 这里会检查所有已注册的监听器，如果条件匹配则授予进度
+    // 参考 MC 1.16.5: InventoryChangeTrigger.triggerListeners()
     MC_UNUSED(player);
     MC_UNUSED(inventory);
+    // TODO: 需要在服务端模块中提供完整实现
+    // 完整实现应该：
+    // for (const auto& listener : getListeners(*player.getAdvancements())) {
+    //     if (listener.getInstance().testWithInventory(
+    //         PlayerInventory::TOTAL_SIZE,
+    //         [&inventory](i32 slot) -> const ItemStack& { return inventory.getItem(slot); }
+    //     )) {
+    //         listener.grantCriterion(*player.getAdvancements());
+    //     }
+    // }
 }
 
 std::shared_ptr<InventoryChangedTriggerInstance> InventoryChangedTrigger::hasItems(std::vector<ItemPredicate> items) {

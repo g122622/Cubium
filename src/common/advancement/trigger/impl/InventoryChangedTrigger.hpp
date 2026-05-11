@@ -3,14 +3,19 @@
 #include "../CriterionTrigger.hpp"
 #include "../conditions/ItemPredicate.hpp"
 #include <vector>
+#include <functional>
+#include <memory>
+
+// Forward declarations
+namespace mc {
+class ItemStack;
+class ServerPlayer;
+class PlayerInventory;
+}
 
 namespace mc::advancement {
 
-// Forward declarations
-class ServerPlayer;
-class PlayerInventory;
-
-// Forward declare the Instance
+// Forward declare the Instance first
 class InventoryChangedTriggerInstance;
 
 /**
@@ -43,7 +48,7 @@ public:
      * @param player 玩家
      * @param inventory 物品栏
      */
-    void trigger(ServerPlayer& player, const PlayerInventory& inventory);
+    void trigger(mc::ServerPlayer& player, const mc::PlayerInventory& inventory);
 
     // 静态工厂方法
     static std::shared_ptr<InventoryChangedTriggerInstance> hasItems(std::vector<ItemPredicate> items);
@@ -77,12 +82,19 @@ public:
     );
 
     /**
-     * @brief 检查条件是否满足
-     * @param player 玩家
-     * @param inventory 物品栏
+     * @brief 使用槽位访问器检查条件是否满足
+     *
+     * 此方法提供与具体物品栏实现解耦的检测接口，
+     * 允许在不依赖 PlayerInventory 完整定义的情况下进行检测。
+     *
+     * @param totalSlots 总槽位数
+     * @param getSlot 获取指定槽位物品的函数
      * @return 是否满足
      */
-    [[nodiscard]] bool test(ServerPlayer& player, const PlayerInventory& inventory) const;
+    [[nodiscard]] bool testWithInventory(
+        i32 totalSlots,
+        const std::function<const mc::ItemStack&(i32)>& getSlot
+    ) const;
 
     /**
      * @brief 从JSON解析
@@ -93,6 +105,13 @@ public:
      * @brief 序列化条件为JSON
      */
     [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+    // ========== Getters ==========
+
+    [[nodiscard]] const IntBounds& getSlotsOccupied() const noexcept { return m_slotsOccupied; }
+    [[nodiscard]] const IntBounds& getSlotsFull() const noexcept { return m_slotsFull; }
+    [[nodiscard]] const IntBounds& getSlotsEmpty() const noexcept { return m_slotsEmpty; }
+    [[nodiscard]] const std::vector<ItemPredicate>& getItems() const noexcept { return m_items; }
 
 private:
     IntBounds m_slotsOccupied;

@@ -438,4 +438,132 @@ TEST_F(AdvancementTest, FullWorkflow) {
     manager.clear();
 }
 
+// ========== InventoryChangedTriggerInstance 测试 ==========
+
+TEST_F(AdvancementTest, InventoryChangedTriggerInstance_SlotCounting) {
+    // 创建槽位条件测试
+    nlohmann::json conditions = R"({
+        "slots": {
+            "occupied": {"min": 1, "max": 5},
+            "full": {"min": 0, "max": 2},
+            "empty": {"min": 10, "max": 20}
+        }
+    })"_json;
+
+    auto* trigger = CriterionTriggers::instance().getTrigger(
+        ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
+    ASSERT_NE(trigger, nullptr);
+
+    auto result = trigger->fromJson(conditions);
+    ASSERT_TRUE(result.success());
+
+    auto instance = std::dynamic_pointer_cast<InventoryChangedTriggerInstance>(result.value());
+    ASSERT_NE(instance, nullptr);
+
+    // 验证条件解析正确
+    EXPECT_FALSE(instance->getSlotsOccupied().isUnbounded());
+    EXPECT_FALSE(instance->getSlotsFull().isUnbounded());
+    EXPECT_FALSE(instance->getSlotsEmpty().isUnbounded());
+    EXPECT_TRUE(instance->getItems().empty());
+}
+
+TEST_F(AdvancementTest, InventoryChangedTriggerInstance_ItemPredicateParsing) {
+    // 创建物品条件测试
+    nlohmann::json conditions = R"({
+        "items": [
+            {"item": "minecraft:diamond"},
+            {"item": "minecraft:iron_ingot", "count": 10}
+        ]
+    })"_json;
+
+    auto* trigger = CriterionTriggers::instance().getTrigger(
+        ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
+    ASSERT_NE(trigger, nullptr);
+
+    auto result = trigger->fromJson(conditions);
+    ASSERT_TRUE(result.success());
+
+    auto instance = std::dynamic_pointer_cast<InventoryChangedTriggerInstance>(result.value());
+    ASSERT_NE(instance, nullptr);
+
+    // 验证物品谓词解析正确
+    const auto& items = instance->getItems();
+    EXPECT_EQ(items.size(), 2);
+}
+
+TEST_F(AdvancementTest, InventoryChangedTriggerInstance_Serialization) {
+    // 测试序列化和反序列化
+    nlohmann::json conditions = R"({
+        "slots": {
+            "occupied": {"min": 5},
+            "empty": {"max": 10}
+        },
+        "items": [{"item": "minecraft:gold_ingot"}]
+    })"_json;
+
+    auto* trigger = CriterionTriggers::instance().getTrigger(
+        ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
+    ASSERT_NE(trigger, nullptr);
+
+    auto result = trigger->fromJson(conditions);
+    ASSERT_TRUE(result.success());
+
+    auto instance = std::dynamic_pointer_cast<InventoryChangedTriggerInstance>(result.value());
+    ASSERT_NE(instance, nullptr);
+
+    // 序列化
+    nlohmann::json json = instance->conditionsToJson();
+    EXPECT_TRUE(json.contains("slots"));
+    EXPECT_TRUE(json.contains("items"));
+}
+
+TEST_F(AdvancementTest, InventoryChangedTrigger_HasItemsFactory) {
+    // 使用 JSON 解析来创建 ItemPredicate
+    nlohmann::json diamondJson = R"({"item": "minecraft:diamond"})"_json;
+    auto result1 = ItemPredicate::fromJson(diamondJson);
+    ASSERT_TRUE(result1.success());
+    ItemPredicate diamondPred = std::move(result1).value();
+
+    auto instance = InventoryChangedTrigger::hasItem(diamondPred);
+    ASSERT_NE(instance, nullptr);
+    EXPECT_EQ(instance->getItems().size(), 1);
+
+    // 创建多个物品谓词
+    nlohmann::json ironJson = R"({"item": "minecraft:iron_ingot", "count": 5})"_json;
+    auto result2 = ItemPredicate::fromJson(ironJson);
+    ASSERT_TRUE(result2.success());
+    ItemPredicate ironPred = std::move(result2).value();
+
+    std::vector<ItemPredicate> items;
+    items.push_back(diamondPred);
+    items.push_back(ironPred);
+
+    auto instance2 = InventoryChangedTrigger::hasItems(std::move(items));
+    ASSERT_NE(instance2, nullptr);
+    EXPECT_EQ(instance2->getItems().size(), 2);
+}
+
+TEST_F(AdvancementTest, InventoryChangedTriggerInstance_AnyMatch) {
+    // 空条件应该匹配任何情况
+    nlohmann::json conditions = {};
+
+    auto* trigger = CriterionTriggers::instance().getTrigger(
+        ResourceLocation(InventoryChangedTrigger::TRIGGER_ID));
+    ASSERT_NE(trigger, nullptr);
+
+    auto result = trigger->fromJson(conditions);
+    ASSERT_TRUE(result.success());
+
+    auto instance = std::dynamic_pointer_cast<InventoryChangedTriggerInstance>(result.value());
+    ASSERT_NE(instance, nullptr);
+
+    // 创建模拟物品栏（空）
+    std::vector<ItemStack> emptyInventory(41);  // 41 slots
+
+    // 应该匹配任何情况
+    EXPECT_TRUE(instance->testWithInventory(41, [&emptyInventory](i32 slot) -> const ItemStack& {
+        return emptyInventory[static_cast<std::size_t>(slot)];
+    }));
+}
+
 // main 函数由 gtest_main 库提供
