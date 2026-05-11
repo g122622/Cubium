@@ -65,10 +65,28 @@ blocks/
 │   ├── TNTBlock.hpp/cpp
 │   ├── TargetBlock.hpp/cpp
 │   └── RedstoneLampBlock.hpp/cpp
+├── end/                     # 末地方块子目录
+│   ├── README.md            # 末地方块文档
+│   └── EndPortalBlock.hpp/cpp # 末地传送门、传送门框架、折跃门、紫颂植物、紫颂花、龙蛋
+├── building/                # 建筑方块子目录（楼梯、台阶、墙、栅栏等）
+│   └── README.md
+├── agricultural/            # 农业方块子目录（农作物、农田等）
+├── coral/                   # 珊瑚方块子目录
+├── decorative/              # 装饰方块子目录
+├── functional/              # 功能方块子目录
+├── ice/                     # 冰方块子目录
+├── mob/                     # 生物相关方块子目录
+├── nether/                  # 下界方块子目录
+├── ocean/                   # 海洋方块子目录
+├── special/                 # 特殊方块子目录
+├── vegetation/              # 植被方块子目录
 └── README.md                # 本文档
 ```
 
-**注意**：红石方块详情请参阅 [redstone/README.md](redstone/README.md)
+**注意**：
+- 红石方块详情请参阅 [redstone/README.md](redstone/README.md)
+- 末地方块详情请参阅 [end/README.md](end/README.md)
+- 建筑方块详情请参阅 [building/README.md](building/README.md)
 
 ## 类继承关系
 
