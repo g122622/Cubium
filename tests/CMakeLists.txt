@@ -419,6 +419,8 @@ add_executable(mc_tests
     server/scoreboard/ScoreCriteriaTest.cpp
     server/scoreboard/TeamTest.cpp
     server/scoreboard/ScoreboardPersistenceTest.cpp
+    # 统计系统测试
+    server/stats/StatisticsTest.cpp
 )
 
 # 娣诲姞鏈嶅姟绔簮鏂囦欢
@@ -463,6 +465,11 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/network/ScoreboardPackets.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
+        # 统计系统
+        ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/stats/StatRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/TcpServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/TcpSession.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/TcpConnection.cpp

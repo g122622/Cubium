@@ -41,6 +41,11 @@ add_executable(minecraft-server
     advancement/PlayerAdvancements.cpp
     # 记分板系统
     scoreboard/ServerScoreboard.cpp
+    # 统计系统
+    stats/StatType.cpp
+    stats/Stat.cpp
+    stats/StatRegistry.cpp
+    stats/StatisticsManager.cpp
     # 交互管理器
     interaction/BlockInteractionManager.cpp
     interaction/MiningManager.cpp
