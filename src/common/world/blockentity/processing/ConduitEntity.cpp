@@ -231,11 +231,16 @@ void ConduitEntity::attackMobs(IWorld& world) {
         return;
     }
 
-    // 尝试从UUID恢复目标（UUID当前为String类型）
-    // TODO: 实现通过UUID查找实体
-    // if (m_target == nullptr && m_targetUuid.has_value()) {
-    //     m_target = world.getEntityByUUID(*m_targetUuid);
-    // }
+    // 尝试从UUID恢复目标
+    // MC 1.16.5: 在攻击范围内搜索匹配UUID的LivingEntity
+    // 参考: ConduitTileEntity.findExistingTarget() - 使用 getEntitiesWithinAABB 而非全局UUID查找
+    if (m_target == nullptr && m_targetUuid.has_value()) {
+        m_target = findExistingTarget(world);
+        if (m_target != nullptr) {
+            // 找到目标后清除UUID，避免后续重复查找
+            m_targetUuid = std::nullopt;
+        }
+    }
 
     // 选择新目标
     if (m_target == nullptr) {
@@ -441,6 +446,39 @@ void ConduitEntity::spawnParticles(IWorld& world) {
             velocity
         );
     }
+}
+
+LivingEntity* ConduitEntity::findExistingTarget(IWorld& world) {
+    // MC 1.16.5: ConduitTileEntity.findExistingTarget()
+    // 在攻击范围内搜索匹配UUID的LivingEntity
+    // 不使用全局UUID查找，因为潮涌核心只能攻击范围内的目标
+
+    if (!m_targetUuid.has_value()) {
+        return nullptr;
+    }
+
+    const Vector3 center = m_pos.center();
+
+    const std::vector<Entity*> entities = world.getEntitiesInRange(
+        center,
+        ATTACK_RANGE,
+        nullptr
+    );
+
+    for (Entity* entity : entities) {
+        // 检查是否为 LivingEntity
+        auto* living = dynamic_cast<LivingEntity*>(entity);
+        if (living == nullptr) {
+            continue;
+        }
+
+        // 检查 UUID 是否匹配
+        if (living->uuid() == m_targetUuid.value()) {
+            return living;
+        }
+    }
+
+    return nullptr;
 }
 
 bool ConduitEntity::load(const nlohmann::json& data) {

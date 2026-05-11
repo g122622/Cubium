@@ -160,6 +160,18 @@ private:
      */
     void spawnParticles(IWorld& world);
 
+    /**
+     * @brief 通过UUID在攻击范围内查找目标实体
+     *
+     * 参考 MC 1.16.5 ConduitTileEntity.findExistingTarget():
+     * 在效果范围内搜索匹配UUID的LivingEntity。
+     * 不使用全局UUID查找，因为潮涌核心只能攻击范围内的目标。
+     *
+     * @param world 世界引用
+     * @return 找到的目标实体，如果未找到返回nullptr
+     */
+    [[nodiscard]] LivingEntity* findExistingTarget(IWorld& world);
+
     // ========== 状态数据 ==========
 
     bool m_active = false;              ///< 是否激活
