@@ -6,6 +6,8 @@
 #include "../../core/Types.hpp"
 #include <memory>
 #include <random>
+#include <functional>
+#include <optional>
 
 namespace mc {
 
@@ -129,6 +131,34 @@ public:
     }
 
     [[nodiscard]] u64 seed() const { return m_seed; }
+
+    // ========== 生物群系搜索 ==========
+
+    /**
+     * @brief 在指定范围内搜索生物群系
+     *
+     * 参考 MC 1.16.5 BiomeProvider.func_230321_a_
+     * 从中心点向外螺旋搜索，直到找到匹配的生物群系。
+     *
+     * @param centerX 中心 X 坐标（世界坐标）
+     * @param centerY 中心 Y 坐标（世界坐标）
+     * @param centerZ 中心 Z 坐标（世界坐标）
+     * @param radius 搜索半径（方块）
+     * @param step 搜索步长（方块，默认为 64，即 16 个噪声采样点）
+     * @param predicate 生物群系匹配条件
+     * @param random 随机数生成器（用于在多个匹配中随机选择）
+     * @param stopOnFirst 找到第一个匹配即返回（不随机选择）
+     * @return 找到的位置，如果未找到返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<BlockPos> findBiome(
+        i32 centerX,
+        i32 centerY,
+        i32 centerZ,
+        i32 radius,
+        i32 step,
+        const std::function<bool(BiomeId)>& predicate,
+        math::Random& random,
+        bool stopOnFirst = false) const;
 
 protected:
     u64 m_seed;

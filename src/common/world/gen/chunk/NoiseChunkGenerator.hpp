@@ -78,6 +78,11 @@ public:
     [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const override;
     [[nodiscard]] i32 getGroundHeight() const override { return 64; }
 
+    // === 生物群系提供者 ===
+
+    [[nodiscard]] BiomeProvider* getBiomeProvider() override { return m_biomeProvider.get(); }
+    [[nodiscard]] const BiomeProvider* getBiomeProvider() const override { return m_biomeProvider.get(); }
+
     // === 噪声参数 ===
 
     [[nodiscard]] const NoiseSettings& noiseSettings() const { return m_settings.noise; }

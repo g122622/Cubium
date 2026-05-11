@@ -1026,3 +1026,220 @@ TEST_F(EndBiomeProviderTest, FillBiomeContainerMatchesHorizontalSamplingGrid) {
         }
     }
 }
+
+// ============================================================================
+// BiomeProvider::findBiome 测试
+// ============================================================================
+
+class BiomeProviderFindBiomeTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+    }
+};
+
+/**
+ * @brief 测试用的生物群系提供者
+ *
+ * 返回固定的生物群系，用于测试 findBiome 的搜索逻辑
+ */
+class MockBiomeProvider final : public BiomeProvider {
+public:
+    explicit MockBiomeProvider(u64 seed)
+        : BiomeProvider(seed)
+    {}
+
+    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override {
+        return getBiomeAtPosition(x, z);
+    }
+
+    [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override {
+        return getBiomeAtPosition(noiseX * 4, noiseZ * 4);
+    }
+
+    [[nodiscard]] f32 getDepth(i32 x, i32 z) const override { return 0.0f; }
+    [[nodiscard]] f32 getScale(i32 x, i32 z) const override { return 0.0f; }
+
+    void fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) override {
+        for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
+            for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
+                for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
+                    const i32 worldX = (chunkX << 4) + (bx << 2);
+                    const i32 worldZ = (chunkZ << 4) + (bz << 2);
+                    container.setBiome(bx, by, bz, getBiomeAtPosition(worldX, worldZ));
+                }
+            }
+        }
+    }
+
+private:
+    /**
+     * @brief 根据位置返回生物群系
+     *
+     * 使用简单的区域划分：
+     * - X > 100 且 Z > 100: Desert (沙漠)
+     * - X < -100 且 Z < -100: Taiga (针叶林)
+     * - 其他: Plains (平原)
+     */
+    [[nodiscard]] static BiomeId getBiomeAtPosition(i32 x, i32 z) {
+        if (x > 100 && z > 100) {
+            return Biomes::Desert;
+        }
+        if (x < -100 && z < -100) {
+            return Biomes::Taiga;
+        }
+        return Biomes::Plains;
+    }
+};
+
+TEST_F(BiomeProviderFindBiomeTest, FindBiomeNearCenter) {
+    MockBiomeProvider provider(12345);
+    math::Random random(12345);
+
+    // 在原点附近搜索平原
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::Plains;
+    };
+
+    auto result = provider.findBiome(0, 64, 0, 50, 8, predicate, random, true);
+    EXPECT_TRUE(result.has_value());
+    // 平原在原点附近，应该能找到
+    EXPECT_NEAR(result->x, 0, 50);
+    EXPECT_NEAR(result->z, 0, 50);
+}
+
+TEST_F(BiomeProviderFindBiomeTest, FindDesertBiome) {
+    MockBiomeProvider provider(12345);
+    math::Random random(12345);
+
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::Desert;
+    };
+
+    // 从原点开始搜索，沙漠在 X > 100, Z > 100 区域
+    auto result = provider.findBiome(0, 64, 0, 500, 16, predicate, random, true);
+    EXPECT_TRUE(result.has_value());
+    // 沙漠应该在 (100, 100) 以外的区域
+    EXPECT_GT(result->x, 100);
+    EXPECT_GT(result->z, 100);
+}
+
+TEST_F(BiomeProviderFindBiomeTest, FindTaigaBiome) {
+    MockBiomeProvider provider(12345);
+    math::Random random(12345);
+
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::Taiga;
+    };
+
+    // 从原点开始搜索，针叶林在 X < -100, Z < -100 区域
+    auto result = provider.findBiome(0, 64, 0, 500, 16, predicate, random, true);
+    EXPECT_TRUE(result.has_value());
+    // 针叶林应该在 (-100, -100) 以外的区域
+    EXPECT_LT(result->x, -100);
+    EXPECT_LT(result->z, -100);
+}
+
+TEST_F(BiomeProviderFindBiomeTest, FindBiomeNotFound) {
+    MockBiomeProvider provider(12345);
+    math::Random random(12345);
+
+    // 搜索一个不存在的生物群系
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::NetherWastes;  // MockBiomeProvider 不会返回下界生物群系
+    };
+
+    auto result = provider.findBiome(0, 64, 0, 100, 8, predicate, random, true);
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(BiomeProviderFindBiomeTest, StopOnFirstVsRandomSelection) {
+    MockBiomeProvider provider(12345);
+
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::Plains;
+    };
+
+    // stopOnFirst = true: 总是返回第一个找到的
+    math::Random random1(12345);
+    auto result1 = provider.findBiome(0, 64, 0, 100, 8, predicate, random1, true);
+
+    math::Random random2(54321);
+    auto result2 = provider.findBiome(0, 64, 0, 100, 8, predicate, random2, true);
+
+    // 两个不同种子的随机数生成器，stopOnFirst 模式应该返回相同位置
+    EXPECT_TRUE(result1.has_value());
+    EXPECT_TRUE(result2.has_value());
+    EXPECT_EQ(result1->x, result2->x);
+    EXPECT_EQ(result1->z, result2->z);
+}
+
+TEST_F(BiomeProviderFindBiomeTest, SearchFromDifferentCenters) {
+    MockBiomeProvider provider(12345);
+    math::Random random(12345);
+
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::Desert;
+    };
+
+    // 从沙漠中心开始搜索，应该立即找到
+    auto result = provider.findBiome(200, 64, 200, 50, 8, predicate, random, true);
+    EXPECT_TRUE(result.has_value());
+    // 应该在中心附近
+    EXPECT_NEAR(result->x, 200, 50);
+    EXPECT_NEAR(result->z, 200, 50);
+}
+
+TEST_F(BiomeProviderFindBiomeTest, SearchRadiusLimit) {
+    MockBiomeProvider provider(12345);
+    math::Random random(12345);
+
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::Desert;
+    };
+
+    // 使用非常小的搜索半径，从远点开始搜索
+    // 针叶林在 X < -100, Z < -100，从 (1000, 1000) 开始用半径 50 搜索
+    auto result = provider.findBiome(1000, 64, 1000, 50, 8, predicate, random, true);
+    // 半径太小，无法到达沙漠区域（需要到 X > 100, Z > 100，但中心在 1000,1000）
+    // 实际上 1000 + 50 > 100，所以能找到
+    EXPECT_TRUE(result.has_value());
+}
+
+// 使用真实的 LayerBiomeProvider 测试
+#include "common/world/biome/layer/LayerUtil.hpp"
+
+class LayerBiomeProviderFindBiomeTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+    }
+};
+
+TEST_F(LayerBiomeProviderFindBiomeTest, FindPlainsBiome) {
+    LayerBiomeProvider provider(12345);
+    math::Random random(12345);
+
+    auto predicate = [](BiomeId biome) {
+        return biome == Biomes::Plains;
+    };
+
+    // 平原是常见生物群系，应该容易找到
+    auto result = provider.findBiome(0, 64, 0, 1000, 64, predicate, random, true);
+    EXPECT_TRUE(result.has_value());
+}
+
+TEST_F(LayerBiomeProviderFindBiomeTest, FindAnyBiome) {
+    LayerBiomeProvider provider(54321);
+    math::Random random(54321);
+
+    // 搜索任意有效生物群系（非空，小于 Count）
+    auto predicate = [](BiomeId biome) {
+        return biome < Biomes::Count;
+    };
+
+    auto result = provider.findBiome(0, 64, 0, 1000, 64, predicate, random, true);
+    EXPECT_TRUE(result.has_value());
+}

@@ -4,8 +4,15 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/ServerChunkManager.hpp"
 #include "common/world/biome/Biomes.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/biome/BiomeProvider.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <sstream>
+#include <chrono>
 
 namespace mc {
 namespace command {
@@ -56,6 +63,26 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
+    // 获取 ServerWorld
+    auto* world = source.world();
+    if (world == nullptr) {
+        source.sendError("World not available");
+        return 0;
+    }
+
+    // 获取区块管理器和生成器
+    auto* chunkManager = world->chunkManager();
+    if (chunkManager == nullptr) {
+        source.sendError("Chunk manager not available");
+        return 0;
+    }
+
+    auto* generator = chunkManager->generator();
+    if (generator == nullptr) {
+        source.sendError("Chunk generator not available");
+        return 0;
+    }
+
     BlockPos searchCenter(
         static_cast<BlockCoord>(playerPos.x),
         static_cast<BlockCoord>(playerPos.y),
@@ -63,17 +90,56 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
     );
 
     std::ostringstream ss;
-    ss << "Searching for biome near ("
+    ss << "Searching for biome '" << biomeName << "' near ("
        << searchCenter.x << ", " << searchCenter.z << ")...";
     source.sendMessage(ss.str());
 
-    // TODO: 实现真正的生物群系搜索
-    // 需要访问世界的 BiomeProvider，向外螺旋搜索直到找到目标生物群系
+    // 创建生物群系匹配谓词
+    auto predicate = [targetBiome = biomeId.value()](BiomeId biome) {
+        return biome == targetBiome;
+    };
 
-    source.sendError("Biome location search is not yet fully implemented.");
-    source.sendMessage("Biome ID: " + std::to_string(static_cast<i32>(biomeId.value())));
+    // 创建随机数生成器
+    math::Random random(static_cast<u64>(std::chrono::system_clock::now().time_since_epoch().count()));
 
-    return 1;
+    // 搜索生物群系
+    // 参考 MC 1.16.5: 搜索半径 6400 格，步长 8（对应 2 个噪声单元）
+    constexpr i32 SEARCH_RADIUS = 6400;
+    constexpr i32 SEARCH_STEP = 8;
+
+    BiomeProvider* biomeProvider = generator->getBiomeProvider();
+    if (biomeProvider == nullptr) {
+        source.sendError("Biome provider not available");
+        return 0;
+    }
+
+    auto result = biomeProvider->findBiome(
+        searchCenter.x,
+        searchCenter.y,
+        searchCenter.z,
+        SEARCH_RADIUS,
+        SEARCH_STEP,
+        predicate,
+        random,
+        true  // stopOnFirst - 找到第一个即返回
+    );
+
+    if (result.has_value()) {
+        i32 dx = result->x - searchCenter.x;
+        i32 dz = result->z - searchCenter.z;
+        i32 distance = static_cast<i32>(std::sqrt(static_cast<f64>(dx * dx + dz * dz)));
+
+        std::ostringstream resultSs;
+        resultSs << "Found " << biomeName << " at (" << result->x << ", " << result->z << ") "
+                 << "(" << distance << " blocks away)";
+        source.sendMessage(resultSs.str());
+        return 1;
+    } else {
+        std::ostringstream errorSs;
+        errorSs << "Could not find biome '" << biomeName << "' within " << SEARCH_RADIUS << " blocks";
+        source.sendError(errorSs.str());
+        return 0;
+    }
 }
 
 std::optional<BiomeId> LocateBiomeCommand::parseBiomeId(const std::string& name) noexcept

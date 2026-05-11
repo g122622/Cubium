@@ -18,6 +18,7 @@ namespace mc {
 // 前向声明
 class WorldGenRegion;
 class WorldGenSpawner;
+class BiomeProvider;
 
 /**
  * @brief 生成的实体数据（前向声明）
@@ -146,6 +147,15 @@ public:
     [[nodiscard]] virtual const DimensionSettings& settings() const = 0;
     [[nodiscard]] virtual i32 seaLevel() const = 0;
     [[nodiscard]] virtual i32 getGroundHeight() const { return 64; }
+
+    // === 生物群系提供者 ===
+
+    /**
+     * @brief 获取生物群系提供者
+     * @return 生物群系提供者指针
+     */
+    [[nodiscard]] virtual BiomeProvider* getBiomeProvider() { return nullptr; }
+    [[nodiscard]] virtual const BiomeProvider* getBiomeProvider() const { return nullptr; }
 };
 
 /**
