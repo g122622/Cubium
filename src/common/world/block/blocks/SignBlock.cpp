@@ -4,10 +4,13 @@
 #include "../../IWorld.hpp"
 #include "../../blockentity/core/BlockEntityRegistry.hpp"
 #include "../../blockentity/BlockEntityType.hpp"
+#include "../../blockentity/interactive/SignEntity.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/assert/AssertAll.hpp"
+#include "../../../entity/entities/player/Player.hpp"
+#include "../../../core/Types.hpp"
 #include <cmath>
 
 namespace mc {
@@ -41,6 +44,31 @@ BlockState AbstractSignBlock::updatePostPlacement(
 
 std::unique_ptr<BlockEntity> AbstractSignBlock::createBlockEntity(const BlockPos& pos) {
     return blockentity::BlockEntityRegistry::instance().create(BlockEntityType::Sign, pos);
+}
+
+ActionResultType AbstractSignBlock::onBlockActivated(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit) {
+
+    MC_UNUSED(state);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    // MC 1.16.5: 参考 SignBlock.onBlockActivated()
+    // 当玩家右键点击告示牌时，执行告示牌上的命令
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity && blockEntity->getType() == BlockEntityType::Sign) {
+        auto* signEntity = static_cast<blockentity::SignEntity*>(blockEntity);
+        // 执行告示牌上的命令
+        signEntity->executeCommand(world, player);
+        return ActionResultType::Success;
+    }
+
+    return ActionResultType::Pass;
 }
 
 const fluid::FluidState* AbstractSignBlock::getFluidState(const BlockState& state) const {

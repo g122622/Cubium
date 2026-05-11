@@ -155,6 +155,15 @@ public:
      */
     [[nodiscard]] server::IServer* getServer() const { return m_server; }
 
+    // ========== 类型转换 ==========
+
+    /**
+     * @brief 转换为 ServerPlayer 指针（重写 Player 基类）
+     * @return 返回 this 指针
+     */
+    [[nodiscard]] ServerPlayer* asServerPlayer() override { return this; }
+    [[nodiscard]] const ServerPlayer* asServerPlayer() const override { return this; }
+
     // ========== 成就系统 ==========
 
     /**

@@ -359,6 +359,19 @@ public:
      */
     [[nodiscard]] virtual bool canReceiveMessages() const { return false; }
 
+    // ========== 类型转换 ==========
+
+    /**
+     * @brief 转换为 ServerPlayer 指针
+     *
+     * 只有 ServerPlayer 会返回有效的指针，其他实现返回 nullptr。
+     * 用于需要访问 ServerPlayer 特有功能（如命令执行、服务器引用）的场景。
+     *
+     * @return ServerPlayer 指针，如果不是 ServerPlayer 返回 nullptr
+     */
+    [[nodiscard]] virtual class ServerPlayer* asServerPlayer() { return nullptr; }
+    [[nodiscard]] virtual const ServerPlayer* asServerPlayer() const { return nullptr; }
+
     /**
      * @brief 掉落经验（死亡时调用）
      *

@@ -5,6 +5,9 @@
 #include "../Material.hpp"
 #include "../../../util/property/Properties.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
+#include "../../../item/core/ActionResult.hpp"
+#include "../../../core/BlockRaycastResult.hpp"
+#include "../../../core/Types.hpp"
 
 namespace mc {
 
@@ -13,6 +16,7 @@ class IBlockReader;
 class BlockItemUseContext;
 class BlockPos;
 class BlockEntity;
+class Player;
 
 namespace blocks {
 
@@ -69,6 +73,32 @@ public:
     [[nodiscard]] bool hasBlockEntity() const override { return true; }
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 处理玩家右键点击告示牌
+     *
+     * MC 1.16.5: 当玩家右键点击告示牌时，如果文本中包含
+     * 点击事件（如 run_command），则执行该命令。
+     *
+     * 参考: SignBlock.onBlockActivated()
+     *
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @param player 玩家
+     * @param hand 手
+     * @param hit 射线检测结果
+     * @return 交互结果类型
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
     // ========== 渲染属性 ==========
 

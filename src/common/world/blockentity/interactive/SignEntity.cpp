@@ -1,9 +1,14 @@
 #include "world/blockentity/interactive/SignEntity.hpp"
 #include "world/IWorld.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "server/player/ServerPlayer.hpp"
+#include "server/application/IServer.hpp"
+#include "server/command/ServerCommandSource.hpp"
+#include "server/command/CommandRegistry.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/text/StringTextComponent.hpp"
 #include "util/text/TextParser.hpp"
+#include "util/math/Vector2.hpp"
 #include <regex>
 
 namespace mc {
@@ -224,6 +229,9 @@ bool SignEntity::executeCommand(IWorld& world, Player& player) {
     // 遍历所有行文本，检查并执行点击事件
     bool executedAny = false;
 
+    // 尝试转换为 ServerPlayer 以执行命令
+    ServerPlayer* serverPlayer = player.asServerPlayer();
+
     for (const auto& line : m_lines) {
         if (!line) {
             continue;
@@ -237,29 +245,77 @@ bool SignEntity::executeCommand(IWorld& world, Player& player) {
             // 执行点击事件
             switch (clickEvent->getAction()) {
                 case text::ClickAction::RunCommand: {
-                    // TODO: 当命令系统集成后，使用 CommandDispatcher 执行
-                    // player.getServer().getCommandManager().execute(player.createCommandSource(), clickEvent->getValue());
+                    // MC 1.16.5: 服务端执行命令
+                    // 参考 SignTileEntity.executeCommand():
+                    // playerIn.getServer().getCommandManager().handleCommand(
+                    //     this.getCommandSource((ServerPlayerEntity)playerIn), clickevent.getValue());
+
+                    if (serverPlayer != nullptr && serverPlayer->getServer() != nullptr) {
+                        // 获取命令字符串
+                        std::string command = clickEvent->getValue();
+
+                        // 如果命令不以 '/' 开头，自动添加
+                        if (!command.empty() && command[0] != '/') {
+                            command = "/" + command;
+                        }
+
+                        // 创建命令源
+                        // MC 1.16.5: 告示牌命令源的权限级别为 2，位置为告示牌位置
+                        mc::command::ServerCommandSource source(
+                            serverPlayer->getServer(),
+                            serverPlayer,
+                            serverPlayer->getWorld(),
+                            Vector3d(
+                                static_cast<f64>(m_pos.x) + 0.5,
+                                static_cast<f64>(m_pos.y) + 0.5,
+                                static_cast<f64>(m_pos.z) + 0.5
+                            ),
+                            Vector2f(0.0f, 0.0f),
+                            2,  // 权限级别 2（相当于 OP 级别）
+                            serverPlayer->playerId(),
+                            serverPlayer->username()
+                        );
+
+                        // 执行命令
+                        auto result = serverPlayer->getServer()->commandRegistry().execute(command, source);
+
+                        if (result.success()) {
+                            executedAny = true;
+                        } else {
+                            // 命令执行失败，发送错误消息给玩家
+                            serverPlayer->sendSystemMessage("§c" + result.error().message());
+                        }
+                    }
+                    break;
+                }
+                case text::ClickAction::SuggestCommand: {
+                    // MC 1.16.5: 客户端功能 - 将命令填入聊天输入框
+                    // 参考 Screen.handleComponentClicked() 中的 SUGGEST_COMMAND 处理
+                    // this.insertText(clickevent.getValue(), true);
+                    // 当前为服务端实现，仅记录日志，实际功能需要在客户端实现
                     MC_UNUSED(player);
                     executedAny = true;
                     break;
                 }
-                case text::ClickAction::SuggestCommand: {
-                    // TODO: 将命令填入玩家输入框
-                    executedAny = true;
-                    break;
-                }
                 case text::ClickAction::OpenUrl: {
-                    // TODO: 打开 URL
+                    // MC 1.16.5: 客户端功能 - 打开 URL
+                    // 参考 Screen.handleComponentClicked() 中的 OPEN_URL 处理
+                    // 当前为服务端实现，仅记录日志，实际功能需要在客户端实现
+                    MC_UNUSED(player);
                     executedAny = true;
                     break;
                 }
                 case text::ClickAction::CopyToClipboard: {
-                    // TODO: 复制到剪贴板
+                    // MC 1.16.5: 客户端功能 - 复制到剪贴板
+                    // 参考 Screen.handleComponentClicked() 中的 COPY_TO_CLIPBOARD 处理
+                    // this.minecraft.keyboardListener.setClipboardString(clickevent.getValue());
+                    // 当前为服务端实现，仅记录日志，实际功能需要在客户端实现
+                    MC_UNUSED(player);
                     executedAny = true;
                     break;
                 }
                 case text::ClickAction::OpenFile:
-                    // 安全原因，不自动执行
+                    // MC 1.16.5: 出于安全原因，不自动执行 OpenFile
                     break;
             }
         }
@@ -271,8 +327,31 @@ bool SignEntity::executeCommand(IWorld& world, Player& player) {
                 const text::ClickEvent* siblingClick = siblingStyle.getClickEvent();
                 if (siblingClick && siblingClick->isValid() &&
                     siblingClick->getAction() == text::ClickAction::RunCommand) {
-                    // TODO: 执行命令
-                    executedAny = true;
+                    // 执行子组件中的命令
+                    if (serverPlayer != nullptr && serverPlayer->getServer() != nullptr) {
+                        std::string command = siblingClick->getValue();
+                        if (!command.empty() && command[0] != '/') {
+                            command = "/" + command;
+                        }
+
+                        mc::command::ServerCommandSource source(
+                            serverPlayer->getServer(),
+                            serverPlayer,
+                            serverPlayer->getWorld(),
+                            Vector3d(
+                                static_cast<f64>(m_pos.x) + 0.5,
+                                static_cast<f64>(m_pos.y) + 0.5,
+                                static_cast<f64>(m_pos.z) + 0.5
+                            ),
+                            Vector2f(0.0f, 0.0f),
+                            2,
+                            serverPlayer->playerId(),
+                            serverPlayer->username()
+                        );
+
+                        serverPlayer->getServer()->commandRegistry().execute(command, source);
+                        executedAny = true;
+                    }
                 }
             }
         }
