@@ -144,29 +144,57 @@ public:
 - **免疫**: 火焰、溺水、凋零
 
 ```cpp
-class WitherEntity : public BossEntity, public IRangedAttackMob {
+class WitherEntity : public MobEntity, public IRangedAttackMob {
 public:
-    enum class Phase : u8 {
-        Invulnerable,  // 无敌阶段（生成中）
-        Charging,      // 充能阶段
-        Attacking      // 攻击阶段
-    };
+    // 阶段判断
+    bool isInvulnerablePhase() const;  // 是否处于无敌阶段
+    bool isCharged() const;            // 是否充能（生命值低于一半）
 
-    // 阶段
-    Phase phase() const;
-    bool isInvulnerablePhase() const;
-    bool isCharging() const;
+    // 无敌时间管理
+    i32 getInvulTime() const;
+    void setInvulTime(i32 time);
+    void ignite();  // 开始生成序列（设置220 tick无敌时间）
 
-    // 攻击
-    void shootWitherSkull(LivingEntity* target, bool isBlue = false);
+    // 三头目标追踪（MC 1.16.5 数据参数同步）
+    i32 getWatchedTargetId(i32 head) const;      // 获取头部目标实体ID（0=主头, 1=左头, 2=右头）
+    void updateWatchedTargetId(i32 head, i32 targetId);  // 更新头部目标
+
+    // 远程攻击
+    void launchWitherSkullToEntity(i32 head, LivingEntity* target);
     void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
+    bool canRangedAttack() const override;  // 无敌阶段不能攻击
 
-    // 三个头的独立目标
-    LivingEntity* getHeadTarget() const;
-    LivingEntity* getLeftHeadTarget() const;
-    LivingEntity* getRightHeadTarget() const;
+    // 头部位置计算
+    f32 getHeadX(i32 head) const;
+    f32 getHeadY(i32 head) const;
+    f32 getHeadZ(i32 head) const;
+
+    // 生物属性
+    CreatureAttribute getCreatureAttribute() const override;  // Undead
+    bool isNonBoss() const override;  // false
 };
 ```
+
+#### 三头目标追踪系统
+
+凋灵的三个头独立追踪目标，通过 `EntityDataManager` 实现客户端-服务端数据同步：
+
+| 头部 | 索引 | 行为 |
+|------|------|------|
+| 主头 | 0 | 追踪 `attackTarget`（AI 选择的主目标） |
+| 左头 | 1 | 每 10-20 tick 搜索最近的非亡灵生物 |
+| 右头 | 2 | 每 10-20 tick 搜索最近的非亡灵生物 |
+
+**数据参数**:
+- `HEAD_TARGET_1`: 主头目标实体ID
+- `HEAD_TARGET_2`: 左头目标实体ID
+- `HEAD_TARGET_3`: 右头目标实体ID
+
+**追踪逻辑** (`updateHeadTargets()`):
+1. 主头直接追踪 `attackTarget`
+2. 侧头周期性搜索范围内非亡灵生物
+3. 找到目标后发射凋灵之首
+4. 目标无效时清除追踪
 
 #### 凋灵阶段
 
