@@ -116,21 +116,35 @@ void ScorePlayerTeam::setCollisionRule(TeamCollisionRule rule) {
 
 std::unique_ptr<text::ITextComponent> ScorePlayerTeam::formatName(
     const text::ITextComponent& name) const {
-    // 创建格式化后的组件
-    auto formatted = name.shallowCopy();
-    if (!formatted) {
-        formatted = name.deepCopy();
+    // MC 1.16.5: 参考 ScorePlayerTeam.func_230427_d_()
+    // 创建空根组件，依次追加 prefix + name + suffix
+    // 然后将队伍颜色应用到整个组件
+
+    // 创建空根组件
+    auto result = std::make_unique<text::StringTextComponent>("");
+
+    // 追加前缀（深拷贝）
+    if (m_prefix) {
+        result->append(m_prefix->deepCopy());
     }
 
-    // 应用队伍颜色
-    text::Style style = formatted->getStyle();
-    style.setColor(m_color);
-    formatted->setStyle(style);
+    // 追加名称（深拷贝，保留原有样式）
+    result->append(name.deepCopy());
 
-    // TODO: 应用前缀和后缀
-    // 需要创建一个新的复合组件，将前缀 + 名称 + 后缀组合
+    // 追加后缀（深拷贝）
+    if (m_suffix) {
+        result->append(m_suffix->deepCopy());
+    }
 
-    return formatted;
+    // 如果颜色不是 Reset，将颜色应用到根组件
+    // 子组件会通过样式继承机制继承此颜色
+    if (m_color != TextFormatting::Reset) {
+        text::Style style = result->getStyle();
+        style.setColor(m_color);
+        result->setStyle(style);
+    }
+
+    return result;
 }
 
 u8 ScorePlayerTeam::getFriendlyFlags() const noexcept {

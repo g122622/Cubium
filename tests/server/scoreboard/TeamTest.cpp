@@ -349,6 +349,132 @@ TEST_F(TeamTest, FormatName) {
     // 验证颜色已应用
     const auto& style = formatted->getStyle();
     EXPECT_EQ(style.getColor(), TextFormatting::Red);
+
+    // 验证文本内容（无前缀后缀时只有名称）
+    EXPECT_EQ(formatted->getUnformattedText(), "Steve");
+}
+
+TEST_F(TeamTest, FormatNameWithPrefixAndSuffix) {
+    Scoreboard scoreboard;
+    auto* team = scoreboard.createTeam("admin");
+    ASSERT_NE(team, nullptr);
+
+    // 设置队伍颜色（金色）
+    team->setColor(TextFormatting::Gold);
+
+    // 设置前缀 [ADMIN]（绿色粗体）
+    auto prefix = std::make_unique<StringTextComponent>("[ADMIN] ");
+    Style prefixStyle;
+    prefixStyle.setColor(TextFormatting::Green);
+    prefixStyle.setBold(true);
+    prefix->setStyle(prefixStyle);
+    team->setPrefix(std::move(prefix));
+
+    // 设置后缀 ★
+    auto suffix = std::make_unique<StringTextComponent>(" ★");
+    Style suffixStyle;
+    suffixStyle.setColor(TextFormatting::Yellow);
+    suffix->setStyle(suffixStyle);
+    team->setSuffix(std::move(suffix));
+
+    // 格式化名称
+    StringTextComponent playerName("Steve");
+    auto formatted = team->formatName(playerName);
+    ASSERT_NE(formatted, nullptr);
+
+    // 验证文本内容：前缀 + 名称 + 后缀
+    EXPECT_EQ(formatted->getUnformattedText(), "[ADMIN] Steve ★");
+
+    // 验证队伍颜色应用到根组件（金色）
+    const auto& rootStyle = formatted->getStyle();
+    EXPECT_EQ(rootStyle.getColor(), TextFormatting::Gold);
+
+    // 验证有两个子组件（前缀、名称、后缀）
+    const auto& siblings = formatted->getSiblings();
+    EXPECT_EQ(siblings.size(), 3);  // prefix + name + suffix
+
+    // 验证前缀的样式（绿色粗体）
+    const auto& prefixComponent = siblings[0];
+    EXPECT_EQ(prefixComponent->getUnformattedText(), "[ADMIN] ");
+    EXPECT_EQ(prefixComponent->getStyle().getColor(), TextFormatting::Green);
+    EXPECT_TRUE(prefixComponent->getStyle().isBold());
+
+    // 验证后缀的样式（黄色）
+    const auto& suffixComponent = siblings[2];
+    EXPECT_EQ(suffixComponent->getUnformattedText(), " ★");
+    EXPECT_EQ(suffixComponent->getStyle().getColor(), TextFormatting::Yellow);
+}
+
+TEST_F(TeamTest, FormatNameWithOnlyPrefix) {
+    Scoreboard scoreboard;
+    auto* team = scoreboard.createTeam("vip");
+    ASSERT_NE(team, nullptr);
+
+    // 设置队伍颜色
+    team->setColor(TextFormatting::Aqua);
+
+    // 只设置前缀
+    auto prefix = std::make_unique<StringTextComponent>("[VIP] ");
+    team->setPrefix(std::move(prefix));
+
+    // 格式化名称
+    StringTextComponent playerName("Alex");
+    auto formatted = team->formatName(playerName);
+    ASSERT_NE(formatted, nullptr);
+
+    // 验证文本内容
+    EXPECT_EQ(formatted->getUnformattedText(), "[VIP] Alex");
+
+    // 验证队伍颜色
+    EXPECT_EQ(formatted->getStyle().getColor(), TextFormatting::Aqua);
+}
+
+TEST_F(TeamTest, FormatNameWithOnlySuffix) {
+    Scoreboard scoreboard;
+    auto* team = scoreboard.createTeam("mod");
+    ASSERT_NE(team, nullptr);
+
+    // 设置队伍颜色
+    team->setColor(TextFormatting::LightPurple);
+
+    // 只设置后缀
+    auto suffix = std::make_unique<StringTextComponent>(" [MOD]");
+    team->setSuffix(std::move(suffix));
+
+    // 格式化名称
+    StringTextComponent playerName("Bob");
+    auto formatted = team->formatName(playerName);
+    ASSERT_NE(formatted, nullptr);
+
+    // 验证文本内容
+    EXPECT_EQ(formatted->getUnformattedText(), "Bob [MOD]");
+
+    // 验证队伍颜色
+    EXPECT_EQ(formatted->getStyle().getColor(), TextFormatting::LightPurple);
+}
+
+TEST_F(TeamTest, FormatNameWithResetColor) {
+    Scoreboard scoreboard;
+    auto* team = scoreboard.createTeam("default");
+    ASSERT_NE(team, nullptr);
+
+    // 设置颜色为 Reset（不应应用到组件）
+    team->setColor(TextFormatting::Reset);
+
+    // 设置前缀和后缀
+    team->setPrefix(std::make_unique<StringTextComponent>("[D] "));
+    team->setSuffix(std::make_unique<StringTextComponent>(" [D]"));
+
+    // 格式化名称
+    StringTextComponent playerName("Player");
+    auto formatted = team->formatName(playerName);
+    ASSERT_NE(formatted, nullptr);
+
+    // 验证文本内容
+    EXPECT_EQ(formatted->getUnformattedText(), "[D] Player [D]");
+
+    // 验证颜色未应用（Reset 不设置颜色）
+    EXPECT_FALSE(formatted->getStyle().getColor().has_value());
 }
 
 // ========== 队伍移除测试 ==========
