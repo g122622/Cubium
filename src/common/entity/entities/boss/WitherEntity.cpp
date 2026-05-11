@@ -1,10 +1,9 @@
 #include "WitherEntity.hpp"
 #include "../../../world/IWorld.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../damage/DamageSource.hpp"
+#include "../../attribute/Attributes.hpp"
+#include "../../damage/DamageSource.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../ai/goal/goals/LookRandomlyGoal.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include <cmath>
 
@@ -341,10 +340,10 @@ f32 WitherEntity::getHeadX(i32 head) const {
         return static_cast<f32>(x());
     } else if (head == 1) {
         // 左头
-        return static_cast<f32>(x() + 0.5 * std::cos(yRot() * math::DEG_TO_RAD));
+        return static_cast<f32>(x() + 0.5 * std::cos(yaw() * math::DEG_TO_RAD));
     } else {
         // 右头
-        return static_cast<f32>(x() - 0.5 * std::cos(yRot() * math::DEG_TO_RAD));
+        return static_cast<f32>(x() - 0.5 * std::cos(yaw() * math::DEG_TO_RAD));
     }
 }
 
@@ -360,10 +359,10 @@ f32 WitherEntity::getHeadZ(i32 head) const {
         return static_cast<f32>(z());
     } else if (head == 1) {
         // 左头
-        return static_cast<f32>(z() + 0.5 * std::sin(yRot() * math::DEG_TO_RAD));
+        return static_cast<f32>(z() + 0.5 * std::sin(yaw() * math::DEG_TO_RAD));
     } else {
         // 右头
-        return static_cast<f32>(z() - 0.5 * std::sin(yRot() * math::DEG_TO_RAD));
+        return static_cast<f32>(z() - 0.5 * std::sin(yaw() * math::DEG_TO_RAD));
     }
 }
 

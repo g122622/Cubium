@@ -49,7 +49,7 @@ protected:
         const std::string& parentId = "",
         bool hasDisplay = true)
     {
-        Advancement::Builder builder(ResourceLocation(id));
+        Advancement::Builder builder{ResourceLocation(id)};
 
         if (!parentId.empty()) {
             builder.parent(ResourceLocation(parentId));
@@ -438,7 +438,4 @@ TEST_F(AdvancementTest, FullWorkflow) {
     manager.clear();
 }
 
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+// main 函数由 gtest_main 库提供

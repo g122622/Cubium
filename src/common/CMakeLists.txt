@@ -192,7 +192,7 @@ add_library(mc_common STATIC
     entity/entities/misc/MiscEntities.cpp
     # Entity - Boss (incomplete - needs MerchantOffers, etc.)
     # entity/entities/boss/EnderDragonEntity.cpp
-    # entity/entities/boss/WitherEntity.cpp
+    entity/entities/boss/WitherEntity.cpp
     # Entity - Villager
     entity/entities/villager/AbstractVillagerEntity.cpp
     entity/entities/villager/VillagerEntity.cpp
