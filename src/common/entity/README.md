@@ -1115,6 +1115,7 @@ if (m_world != nullptr && !isSpectator() && !m_abilities.invulnerable) {
 | `AutoJumpTest.cpp` | 自动跳跃检测 |
 | `PlayerMovementTest.cpp` | 玩家移动物理、受伤和死亡声音事件 |
 | `PlayerPoseCollisionTest.cpp` | 玩家姿态切换与碰撞箱可容纳性 |
+| `PlayerMessageTest.cpp` | Player 基类消息发送功能（sendStatusMessage 默认空操作） |
 | `EntitySpawnPlacementRegistryTest.cpp` | 实体生成放置规则 |
 | `CraftingInventoryTest.cpp` | 合成背包功能 |
 | `AnimalModelTests.cpp` | 动物渲染模型 |

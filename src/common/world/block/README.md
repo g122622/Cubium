@@ -881,6 +881,12 @@ constexpr u8 Pickaxe = 1;  // 必须与 ToolType::Pickaxe 值相同
    - `NetherWartBlocksTest.WarpedWartBlockProperties`：诡异疣块属性验证
    - `NetherWartBlocksTest.BothWartBlocksHaveSameProperties`：两种疣块属性一致性测试
 
+10. **BedBlock 睡眠测试**（tests/common/entity/player/SleepManagerTest.cpp）
+   - `SleepManagerTimeTest`：睡眠时间检测（晴天夜间、白天、雷暴、降雨）
+   - `SleepManagerNearBedTest`：玩家距离床检测（水平 3 格、垂直 2 格范围）
+   - `SleepResultMessageTest`：睡眠结果消息翻译键验证
+   - `SleepSuccessTest`：睡眠成功判断
+
 ## 参考资料
 
 - Minecraft 1.16.5 源码：`net.minecraft.block.Block`
