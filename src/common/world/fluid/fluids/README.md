@@ -399,18 +399,20 @@ i32 blockLevel = 8 - fluidLevel;  // 流体level=4 -> 方块level=4
 i32 blockLevel = isFalling ? 8 : 0;
 ```
 
-#### 4. 岩浆与水的维度差异（TODO）
+#### 4. 岩浆与水的维度差异
 
 ```cpp
-// 当前实现返回固定值
-i32 LavaFluid::getTickDelay() const {
-    // TODO: 根据维度返回不同值
-    // 主世界: 30 tick
-    // 下界: 10 tick
-    return 30;
+// LavaFluid 根据维度返回不同的 tick 延迟
+i32 LavaFluid::getTickDelay(IWorld& world) const {
+    return world.isUltraWarm() ? 10 : 30;  // 下界: 10 tick, 主世界: 30 tick
 }
 
-// 使用时需要注意维度差异
+// WaterFluid 固定返回 5 tick
+i32 WaterFluid::getTickDelay() const {
+    return 5;
+}
+
+// 使用时需要注意维度差异，流体系统会自动处理
 ```
 
 #### 5. getFlowing()/getStill() 缓存
