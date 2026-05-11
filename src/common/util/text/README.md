@@ -76,6 +76,42 @@ std::string plain = text->getUnformattedText();  // "Hello World!"
 std::string formatted = text->getFormattedText(); // "§c§lHello World!"
 ```
 
+### 复合文本组件
+
+通过 `append()` 方法组合多个文本组件，子组件会继承父组件样式：
+
+```cpp
+// 创建根组件（队伍颜色应用到根组件）
+auto root = std::make_unique<mc::text::StringTextComponent>("");
+mc::text::Style rootStyle;
+rootStyle.setColor(mc::text::TextFormatting::Gold);  // 队伍颜色
+root->setStyle(rootStyle);
+
+// 追加前缀（可有自己的样式）
+auto prefix = std::make_unique<mc::text::StringTextComponent>("[VIP] ");
+mc::text::Style prefixStyle;
+prefixStyle.setColor(mc::text::TextFormatting::Green);
+prefixStyle.setBold(true);
+prefix->setStyle(prefixStyle);
+root->append(std::move(prefix));
+
+// 追加名称
+root->append(std::make_unique<mc::text::StringTextComponent>("Steve"));
+
+// 追加后缀
+root->append(std::make_unique<mc::text::StringTextComponent>(" ★"));
+
+// 结果: "[VIP] Steve ★"
+// - 根组件为金色，子组件继承
+// - 前缀覆盖为绿色粗体
+// - 名称和后缀继承金色
+```
+
+**使用场景**：
+- `ScorePlayerTeam::formatName()` - 队伍名称格式化
+- 聊天消息组合 - 多段不同样式文本
+- 物品描述 - 多行富文本
+
 ### TextParser
 
 解析 § 代码格式文本：

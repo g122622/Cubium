@@ -106,6 +106,31 @@ enum class DisplaySlot : u8 {
 
 ## 队伍属性
 
+### 队伍名称格式化
+
+`ScorePlayerTeam::formatName()` 方法用于格式化队员名称，将前缀、名称、后缀组合并应用队伍颜色：
+
+```cpp
+// 设置队伍颜色和前缀后缀
+team->setColor(TextFormatting::Gold);
+team->setPrefix(std::make_unique<StringTextComponent>("[ADMIN] "));
+team->setSuffix(std::make_unique<StringTextComponent>(" ★"));
+
+// 格式化名称
+StringTextComponent playerName("Steve");
+auto formatted = team->formatName(playerName);
+
+// 结果: "[ADMIN] Steve ★"（金色）
+// 前缀、名称、后缀作为子组件追加到空根组件
+// 队伍颜色应用到根组件，子组件通过样式继承
+```
+
+**实现要点**：
+- 创建空 `StringTextComponent` 作为根组件
+- 依次追加前缀、名称、后缀的深拷贝
+- 队伍颜色应用到根组件（`Reset` 颜色不应用）
+- 子组件保留各自样式，可覆盖继承的颜色
+
 ### 可见性
 
 - `Always` - 总是显示
