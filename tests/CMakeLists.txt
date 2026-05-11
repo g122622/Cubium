@@ -195,6 +195,8 @@ add_executable(mc_tests
     server/core/KeepAliveManagerTest.cpp
     server/core/PositionTrackerTest.cpp
     server/core/WhitelistManagerTest.cpp
+    server/core/BannedPlayerListTest.cpp
+    server/core/BannedIpListTest.cpp
     # ServerPlayer 消息发送测试
     server/player/ServerPlayerMessageTest.cpp
     # 维度管理器测试

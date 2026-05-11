@@ -16,6 +16,8 @@ src/server/core/
 ├── PositionTracker.hpp/cpp   # 位置追踪器
 ├── GameModeManager.hpp/cpp   # 游戏模式管理器
 ├── WhitelistManager.hpp/cpp  # 白名单管理器
+├── BannedPlayerList.hpp/cpp  # 玩家封禁列表管理器
+├── BannedIpList.hpp/cpp      # IP 封禁列表管理器
 └── PacketHandler.hpp/cpp     # 统一数据包处理器
 ```
 
@@ -361,6 +363,173 @@ if (whitelist.isEnabled() && !whitelist.isNameWhitelisted("Player2")) {
 
 ---
 
+### BannedPlayerList.hpp/cpp
+
+玩家封禁列表管理器，负责服务器玩家封禁的管理。
+
+**职责：**
+- 添加/移除玩家封禁
+- 从文件加载/保存封禁列表
+- 检查玩家是否被封禁
+- 自动清理过期封禁
+
+**数据结构：**
+```cpp
+struct BannedPlayerEntry {
+    std::string uuid;      // 玩家 UUID
+    std::string name;      // 玩家名称
+    std::string created;   // 封禁创建时间
+    std::string source;    // 封禁执行者名称
+    std::string expires;   // 过期时间（"forever" 表示永久封禁）
+    std::string reason;    // 封禁原因
+};
+```
+
+**存储格式（JSON 数组）：**
+```json
+[
+  {
+    "uuid": "xxx-xxx-xxx",
+    "name": "Player1",
+    "created": "2024-01-15 10:30:00 +0800",
+    "source": "ServerAdmin",
+    "expires": "forever",
+    "reason": "Griefing"
+  }
+]
+```
+
+**主要方法：**
+| 方法 | 描述 |
+|------|------|
+| `addEntry(entry)` | 添加玩家封禁条目 |
+| `removeEntry(uuid)` | 通过 UUID 移除封禁 |
+| `removeEntryByName(name)` | 通过名称移除封禁（大小写不敏感） |
+| `isBanned(uuid)` | 检查玩家是否被封禁（UUID） |
+| `isNameBanned(name)` | 检查玩家名称是否被封禁（大小写不敏感） |
+| `getEntry(uuid)` | 获取封禁条目 |
+| `getEntryByName(name)` | 通过名称获取封禁条目 |
+| `getAllEntries()` | 获取所有封禁条目 |
+| `getAllBannedNames()` | 获取所有封禁玩家名称 |
+| `size()` | 获取封禁玩家数量 |
+| `clear()` | 清空封禁列表 |
+| `load(path)` | 从文件加载封禁列表 |
+| `save(path)` | 保存封禁列表到文件 |
+| `reload()` | 重新加载封禁列表 |
+
+**使用示例：**
+```cpp
+BannedPlayerList banList;
+banList.load("banned-players.json");
+
+// 封禁玩家
+BannedPlayerEntry entry(
+    "uuid-123",                     // UUID
+    "Griefer",                      // 名称
+    "2024-01-15 10:00:00 +0800",   // 创建时间
+    "ServerAdmin",                  // 执行者
+    "forever",                      // 过期时间
+    "Griefing"                      // 原因
+);
+banList.addEntry(entry);
+banList.save();
+
+// 检查玩家是否被封禁
+if (banList.isBanned(uuid)) {
+    auto entry = banList.getEntry(uuid);
+    // 显示封禁原因：entry->reason
+}
+
+// 通过名称检查（大小写不敏感）
+if (banList.isNameBanned("GRIEFER")) {  // 匹配成功
+    // 玩家被封禁
+}
+```
+
+**线程安全：**
+- 所有公共方法都是线程安全的
+- 使用 `std::mutex` 保护内部数据结构
+
+---
+
+### BannedIpList.hpp/cpp
+
+IP 封禁列表管理器，负责服务器 IP 封禁的管理。
+
+**职责：**
+- 添加/移除 IP 封禁
+- 从文件加载/保存封禁列表
+- 检查 IP 是否被封禁
+- 自动清理过期封禁
+
+**数据结构：**
+```cpp
+struct BannedIpEntry {
+    std::string ip;        // IP 地址
+    std::string created;   // 封禁创建时间
+    std::string source;    // 封禁执行者名称
+    std::string expires;   // 过期时间（"forever" 表示永久封禁）
+    std::string reason;    // 封禁原因
+};
+```
+
+**存储格式（JSON 数组）：**
+```json
+[
+  {
+    "ip": "192.168.1.100",
+    "created": "2024-01-15 12:00:00 +0800",
+    "source": "ServerAdmin",
+    "expires": "forever",
+    "reason": "DDoS attack"
+  }
+]
+```
+
+**主要方法：**
+| 方法 | 描述 |
+|------|------|
+| `addEntry(entry)` | 添加 IP 封禁条目 |
+| `removeEntry(ip)` | 移除 IP 封禁 |
+| `isBanned(ip)` | 检查 IP 是否被封禁 |
+| `getEntry(ip)` | 获取封禁条目 |
+| `getAllEntries()` | 获取所有封禁条目 |
+| `getAllBannedIps()` | 获取所有封禁 IP 地址 |
+| `size()` | 获取封禁 IP 数量 |
+| `clear()` | 清空封禁列表 |
+| `load(path)` | 从文件加载封禁列表 |
+| `save(path)` | 保存封禁列表到文件 |
+| `reload()` | 重新加载封禁列表 |
+
+**使用示例：**
+```cpp
+BannedIpList ipBanList;
+ipBanList.load("banned-ips.json");
+
+// 封禁 IP
+BannedIpEntry entry(
+    "192.168.1.100",                // IP 地址
+    "2024-01-15 12:00:00 +0800",   // 创建时间
+    "ServerAdmin",                  // 执行者
+    "forever",                      // 过期时间
+    "DDoS attack"                   // 原因
+);
+ipBanList.addEntry(entry);
+ipBanList.save();
+
+// 检查 IP 是否被封禁
+if (ipBanList.isBanned("192.168.1.100")) {
+    auto entry = ipBanList.getEntry("192.168.1.100");
+    // 显示封禁原因：entry->reason
+}
+```
+
+**线程安全：**
+- 所有公共方法都是线程安全的
+- 使用 `std::mutex` 保护内部数据结构
+
+---
+
 ### PacketHandler.hpp/cpp
 
 统一数据包处理器，协调各管理器处理入站数据包。
@@ -678,6 +847,9 @@ if (playerId == 0) {
 | `KeepAliveManagerTest.cpp` | 心跳发送/响应、超时检测、ping 计算 |
 | `TeleportManagerTest.cpp` | 传送请求/确认、ID 验证、多次传送 |
 | `PositionTrackerTest.cpp` | 位置更新、区块计算、视距管理 |
+| `WhitelistManagerTest.cpp` | 白名单启用/禁用、条目管理、文件加载/保存 |
+| `BannedPlayerListTest.cpp` | 玩家封禁条目管理、文件加载/保存、过期检查 |
+| `BannedIpListTest.cpp` | IP 封禁条目管理、文件加载/保存、过期检查 |
 
 ### 运行测试
 

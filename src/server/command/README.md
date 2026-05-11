@@ -45,6 +45,16 @@ src/server/command/
     ├── TimeCommand.cpp
     ├── WeatherCommand.hpp     # /weather 命令
     └── WeatherCommand.cpp
+    ├── BanCommand.hpp         # /ban 命令
+    ├── BanCommand.cpp
+    ├── BanIpCommand.hpp       # /ban-ip 命令
+    ├── BanIpCommand.cpp
+    ├── PardonCommand.hpp      # /pardon 命令
+    ├── PardonCommand.cpp
+    ├── PardonIpCommand.hpp    # /pardon-ip 命令
+    ├── PardonIpCommand.cpp
+    ├── BanListCommand.hpp     # /banlist 命令
+    └── BanListCommand.cpp
 ```
 
 ## 文件详解
@@ -602,6 +612,123 @@ public:
 - 错误反馈：无物品、附魔不兼容、附魔不存在、等级过高
 
 **权限等级：** 2
+
+#### BanCommand - /ban 命令
+
+封禁玩家。
+
+**用法：**
+
+- `/ban <target> [reason]` - 封禁指定玩家
+- `/ban <target> [reason] [time]` - 封禁指定玩家一段时间
+
+**参数说明：**
+
+- `<target>` - 目标玩家名称
+- `[reason]` - 封禁原因（可选）
+- `[time]` - 封禁时长（可选，如 `1d`、`7d`、`30d` 等）
+
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- 通过 `IServer::bannedPlayerList()` 访问封禁列表管理器
+- 支持在线玩家封禁（自动踢出）
+- 支持离线玩家封禁（按名称封禁）
+- 封禁信息持久化到 `banned-players.json`
+- 自动记录封禁时间、执行者等信息
+
+**权限等级：** 3
+
+#### BanIpCommand - /ban-ip 命令
+
+封禁 IP 地址。
+
+**用法：**
+
+- `/ban-ip <target> [reason]` - 封禁指定 IP 地址
+- `/ban-ip <player> [reason]` - 封禁指定在线玩家的 IP
+
+**参数说明：**
+
+- `<target>` - IP 地址或在线玩家名称
+- `[reason]` - 封禁原因（可选）
+
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- 支持 IP 地址格式验证
+- 支持通过玩家名称获取 IP 地址
+- 封禁信息持久化到 `banned-ips.json`
+- 自动记录封禁时间、执行者等信息
+
+**权限等级：** 3
+
+#### PardonCommand - /pardon 命令
+
+解除玩家封禁。
+
+**用法：**
+
+- `/pardon <target>` - 解除指定玩家的封禁
+- `/unban <target>` - `/pardon` 的别名
+
+**参数说明：**
+
+- `<target>` - 目标玩家名称
+
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- 通过 `IServer::bannedPlayerList()` 访问封禁列表管理器
+- 名称匹配不区分大小写（MC 1.16.5 行为）
+- 自动保存封禁列表
+
+**权限等级：** 3
+
+#### PardonIpCommand - /pardon-ip 命令
+
+解除 IP 封禁。
+
+**用法：**
+
+- `/pardon-ip <ip>` - 解除指定 IP 的封禁
+- `/unban-ip <ip>` - `/pardon-ip` 的别名
+
+**参数说明：**
+
+- `<ip>` - IP 地址
+
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- 通过 `IServer::bannedIpList()` 访问 IP 封禁列表管理器
+- 自动保存封禁列表
+
+**权限等级：** 3
+
+#### BanListCommand - /banlist 命令
+
+显示封禁列表。
+
+**用法：**
+
+- `/banlist` - 显示所有封禁（玩家和 IP）
+- `/banlist players` - 仅显示玩家封禁
+- `/banlist ips` - 仅显示 IP 封禁
+
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- 通过 `IServer::bannedPlayerList()` 和 `IServer::bannedIpList()` 获取封禁列表
+- 按名称/IP 排序后显示
+- 返回封禁数量作为命令结果
+
+**权限等级：** 3
 
 ### P3 命令（高级功能）
 
