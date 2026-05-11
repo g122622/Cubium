@@ -4,6 +4,7 @@
 #undef BYTE_SIZE
 
 #include "ChunkData.hpp"
+#include "../blockentity/BlockEntity.hpp"
 #include "../block/BlockRegistry.hpp"
 #include "../biome/Biome.hpp"
 #include "../fluid/Fluid.hpp"
@@ -853,6 +854,142 @@ void ChunkData::setBlockNibbles(SWMRNibbleArray* const* nibbles) {
     }
 
     m_nibblePtrsInitialized = false;
+}
+
+// ============================================================================
+// 方块实体管理实现
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 将方块位置转换为唯一的64位键
+ * @param pos 方块位置
+ * @return 64位键
+ */
+i64 posToKey(const BlockPos& pos) {
+    // 使用 21 位存储 x 和 z，22 位存储 y（支持 -64 到 319 的范围）
+    // 总共 64 位: x(21) | y(22) | z(21)
+    u32 x = static_cast<u32>(pos.x) & 0x1FFFFF;  // 21 位
+    u32 y = static_cast<u32>(pos.y) & 0x3FFFFF;  // 22 位
+    u32 z = static_cast<u32>(pos.z) & 0x1FFFFF;  // 21 位
+    return (static_cast<i64>(x) << 43) | (static_cast<i64>(y) << 21) | static_cast<i64>(z);
+}
+
+/**
+ * @brief 检查位置是否在当前区块内
+ * @param chunkX 区块 X 坐标
+ * @param chunkZ 区块 Z 坐标
+ * @param pos 方块位置
+ * @return 如果位置在区块内返回 true
+ */
+bool isPosInChunk(ChunkCoord chunkX, ChunkCoord chunkZ, const BlockPos& pos) {
+    ChunkCoord posChunkX = pos.x >> 4;
+    ChunkCoord posChunkZ = pos.z >> 4;
+    return posChunkX == chunkX && posChunkZ == chunkZ;
+}
+
+} // namespace
+
+BlockEntity* ChunkData::getBlockEntity(const BlockPos& pos) {
+    if (!isPosInChunk(m_x, m_z, pos)) {
+        return nullptr;
+    }
+
+    auto it = m_blockEntities.find(posToKey(pos));
+    if (it == m_blockEntities.end()) {
+        return nullptr;
+    }
+    return it->second.get();
+}
+
+const BlockEntity* ChunkData::getBlockEntity(const BlockPos& pos) const {
+    if (!isPosInChunk(m_x, m_z, pos)) {
+        return nullptr;
+    }
+
+    auto it = m_blockEntities.find(posToKey(pos));
+    if (it == m_blockEntities.end()) {
+        return nullptr;
+    }
+    return it->second.get();
+}
+
+std::unique_ptr<BlockEntity> ChunkData::setBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity) {
+    // 如果实体为空，直接返回空
+    if (!entity) {
+        return nullptr;
+    }
+
+    // 检查位置是否在当前区块内
+    if (!isPosInChunk(m_x, m_z, pos)) {
+        // 位置不在区块内，返回传入的实体
+        return entity;
+    }
+
+    i64 key = posToKey(pos);
+
+    // 查找是否有已存在的实体
+    auto it = m_blockEntities.find(key);
+    if (it != m_blockEntities.end()) {
+        // 替换现有实体
+        auto oldEntity = std::move(it->second);
+        it->second = std::move(entity);
+        m_dirty = true;
+        return oldEntity;
+    }
+
+    // 添加新实体
+    m_blockEntities[key] = std::move(entity);
+    m_dirty = true;
+    return nullptr;
+}
+
+std::unique_ptr<BlockEntity> ChunkData::removeBlockEntity(const BlockPos& pos) {
+    if (!isPosInChunk(m_x, m_z, pos)) {
+        return nullptr;
+    }
+
+    i64 key = posToKey(pos);
+    auto it = m_blockEntities.find(key);
+    if (it == m_blockEntities.end()) {
+        return nullptr;
+    }
+
+    auto entity = std::move(it->second);
+    m_blockEntities.erase(it);
+    m_dirty = true;
+    return entity;
+}
+
+bool ChunkData::hasBlockEntity(const BlockPos& pos) const {
+    if (!isPosInChunk(m_x, m_z, pos)) {
+        return false;
+    }
+
+    return m_blockEntities.find(posToKey(pos)) != m_blockEntities.end();
+}
+
+std::vector<BlockEntity*> ChunkData::getAllBlockEntities() {
+    std::vector<BlockEntity*> entities;
+    entities.reserve(m_blockEntities.size());
+    for (auto& pair : m_blockEntities) {
+        entities.push_back(pair.second.get());
+    }
+    return entities;
+}
+
+std::vector<const BlockEntity*> ChunkData::getAllBlockEntities() const {
+    std::vector<const BlockEntity*> entities;
+    entities.reserve(m_blockEntities.size());
+    for (const auto& pair : m_blockEntities) {
+        entities.push_back(pair.second.get());
+    }
+    return entities;
+}
+
+size_t ChunkData::blockEntityCount() const {
+    return m_blockEntities.size();
 }
 
 } // namespace mc

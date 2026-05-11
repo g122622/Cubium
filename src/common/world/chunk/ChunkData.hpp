@@ -3,6 +3,8 @@
 #include "../../core/Types.hpp"
 #include "../../core/Result.hpp"
 #include "../block/Block.hpp"
+#include "../block/BlockPos.hpp"
+#include "../blockentity/BlockEntity.hpp"
 
 // 在macOS系统头文件中，BYTE_SIZE被定义为宏，会与NibbleArray的静态常数冲突
 // 使用pragma push_macro/pop_macro来暂时屏蔽系统宏
@@ -295,6 +297,67 @@ public:
     [[nodiscard]] std::array<SWMRNibbleArray, LIGHT_SECTIONS>& blockNibbles() { return m_blockNibbles; }
     [[nodiscard]] const std::array<SWMRNibbleArray, LIGHT_SECTIONS>& blockNibbles() const { return m_blockNibbles; }
 
+    // ========================================================================
+    // 方块实体管理
+    // ========================================================================
+
+    /**
+     * @brief 获取指定位置的方块实体
+     * @param pos 方块位置
+     * @return 方块实体指针，如果不存在返回 nullptr
+     */
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos);
+
+    /**
+     * @brief 获取指定位置的方块实体（const 版本）
+     * @param pos 方块位置
+     * @return 方块实体指针，如果不存在返回 nullptr
+     */
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const;
+
+    /**
+     * @brief 设置指定位置的方块实体
+     * @param pos 方块位置
+     * @param entity 方块实体（转移所有权）
+     * @return 之前在该位置的方块实体，如果没有则返回 nullptr
+     *
+     * 如果位置不在当前区块内，返回传入的 entity。
+     * 如果该位置已有方块实体，则替换并返回旧的方块实体。
+     */
+    std::unique_ptr<BlockEntity> setBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity);
+
+    /**
+     * @brief 移除指定位置的方块实体
+     * @param pos 方块位置
+     * @return 被移除的方块实体，如果不存在则返回 nullptr
+     */
+    std::unique_ptr<BlockEntity> removeBlockEntity(const BlockPos& pos);
+
+    /**
+     * @brief 检查指定位置是否有方块实体
+     * @param pos 方块位置
+     * @return 如果有方块实体返回 true
+     */
+    [[nodiscard]] bool hasBlockEntity(const BlockPos& pos) const;
+
+    /**
+     * @brief 获取所有方块实体
+     * @return 方块实体指针列表
+     */
+    [[nodiscard]] std::vector<BlockEntity*> getAllBlockEntities();
+
+    /**
+     * @brief 获取所有方块实体（const 版本）
+     * @return 方块实体指针列表
+     */
+    [[nodiscard]] std::vector<const BlockEntity*> getAllBlockEntities() const;
+
+    /**
+     * @brief 获取方块实体数量
+     * @return 当前区块内的方块实体数量
+     */
+    [[nodiscard]] size_t blockEntityCount() const;
+
 private:
     ChunkCoord m_x = 0;
     ChunkCoord m_z = 0;
@@ -343,6 +406,13 @@ private:
     mutable std::array<SWMRNibbleArray*, LIGHT_SECTIONS> m_skyNibblePtrs{};
     mutable std::array<SWMRNibbleArray*, LIGHT_SECTIONS> m_blockNibblePtrs{};
     mutable bool m_nibblePtrsInitialized = false;
+
+    // ========================================================================
+    // 方块实体存储
+    // ========================================================================
+
+    // 使用位置哈希存储方块实体
+    std::unordered_map<i64, std::unique_ptr<BlockEntity>> m_blockEntities;
 
     /**
      * @brief 初始化 Nibble 指针数组
