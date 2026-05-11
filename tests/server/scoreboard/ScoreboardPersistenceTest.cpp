@@ -9,8 +9,10 @@
 #include "common/scoreboard/storage/ScoreboardSaveData.hpp"
 #include "common/scoreboard/criteria/DummyCriteria.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include <nlohmann/json.hpp>
 
 using namespace mc;
 using namespace mc::scoreboard;
@@ -517,6 +519,257 @@ TEST_F(ScoreboardPersistenceTest, FullWorkflow) {
     auto* restoredBlue = restored.getTeam("blue");
     ASSERT_NE(restoredBlue, nullptr);
     EXPECT_EQ(restoredBlue->getMembers().size(), 5);  // Player1, 3, 5, 7, 9
+}
+
+// ========== ITextComponent JSON 序列化测试 ==========
+
+TEST_F(ScoreboardPersistenceTest, Objective_DisplayName_JsonSerialization) {
+    // 创建带有富文本显示名称的目标
+    Scoreboard scoreboard;
+    auto* dummy = ScoreCriteriaRegistry::instance().getCriteria("dummy");
+
+    auto displayName = std::make_unique<text::StringTextComponent>("Kills");
+    text::Style style;
+    style.setColor(text::TextFormatting::Red);
+    style.setBold(true);
+    displayName->setStyle(style);
+
+    auto* objective = scoreboard.addObjective("kills", *dummy, std::move(displayName));
+    ASSERT_NE(objective, nullptr);
+
+    // 序列化
+    ScoreboardSaveData saveData = ScoreboardSaveData::fromScoreboard(scoreboard);
+
+    // 验证 displayName 是 JSON 格式
+    ASSERT_EQ(saveData.objectives().size(), 1);
+    const auto& objData = saveData.objectives()[0];
+
+    // 解析 JSON 验证内容
+    nlohmann::json json = nlohmann::json::parse(objData.displayName);
+    EXPECT_EQ(json["text"], "Kills");
+    EXPECT_EQ(json["color"], "red");
+    EXPECT_TRUE(json["bold"].get<bool>());
+}
+
+TEST_F(ScoreboardPersistenceTest, Objective_DisplayName_JsonDeserialization) {
+    // 创建带有 JSON 显示名称的 NBT 数据
+    nlohmann::json displayNameJson;
+    displayNameJson["text"] = "Deaths";
+    displayNameJson["color"] = "blue";
+    displayNameJson["italic"] = true;
+
+    nbt::tags::compound_tag tag;
+    tag.put("Name", std::string("deaths"));
+    tag.put("CriteriaName", std::string("deathCount"));
+    tag.put("DisplayName", displayNameJson.dump());
+    tag.put("RenderType", std::string("integer"));
+
+    // 反序列化
+    auto result = ScoreboardSaveData::ObjectiveData::fromNbt(tag);
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value().displayName, displayNameJson.dump());
+}
+
+TEST_F(ScoreboardPersistenceTest, Team_DisplayName_JsonSerialization) {
+    // 创建带有富文本显示名称的队伍
+    Scoreboard scoreboard;
+
+    auto displayName = std::make_unique<text::StringTextComponent>("Red Team");
+    text::Style style;
+    style.setColor(text::TextFormatting::DarkRed);
+    displayName->setStyle(style);
+
+    auto* team = scoreboard.createTeam("red");
+    ASSERT_NE(team, nullptr);
+    team->setDisplayName(std::move(displayName));
+
+    // 序列化
+    ScoreboardSaveData saveData = ScoreboardSaveData::fromScoreboard(scoreboard);
+
+    // 验证 displayName 是 JSON 格式
+    ASSERT_EQ(saveData.teams().size(), 1);
+    const auto& teamData = saveData.teams()[0];
+
+    nlohmann::json json = nlohmann::json::parse(teamData.displayName);
+    EXPECT_EQ(json["text"], "Red Team");
+    EXPECT_EQ(json["color"], "dark_red");
+}
+
+TEST_F(ScoreboardPersistenceTest, Team_PrefixSuffix_JsonSerialization) {
+    // 创建带有前缀和后缀的队伍
+    Scoreboard scoreboard;
+
+    auto prefix = std::make_unique<text::StringTextComponent>("[RED]");
+    text::Style prefixStyle;
+    prefixStyle.setColor(text::TextFormatting::Red);
+    prefix->setStyle(prefixStyle);
+
+    auto suffix = std::make_unique<text::StringTextComponent>("!");
+    text::Style suffixStyle;
+    suffixStyle.setColor(text::TextFormatting::Yellow);
+    suffix->setStyle(suffixStyle);
+
+    auto* team = scoreboard.createTeam("red");
+    ASSERT_NE(team, nullptr);
+    team->setPrefix(std::move(prefix));
+    team->setSuffix(std::move(suffix));
+
+    // 序列化
+    ScoreboardSaveData saveData = ScoreboardSaveData::fromScoreboard(scoreboard);
+
+    // 验证 prefix 和 suffix 是 JSON 格式
+    ASSERT_EQ(saveData.teams().size(), 1);
+    const auto& teamData = saveData.teams()[0];
+
+    nlohmann::json prefixJson = nlohmann::json::parse(teamData.prefix);
+    EXPECT_EQ(prefixJson["text"], "[RED]");
+    EXPECT_EQ(prefixJson["color"], "red");
+
+    nlohmann::json suffixJson = nlohmann::json::parse(teamData.suffix);
+    EXPECT_EQ(suffixJson["text"], "!");
+    EXPECT_EQ(suffixJson["color"], "yellow");
+}
+
+TEST_F(ScoreboardPersistenceTest, Team_PrefixSuffix_JsonDeserialization) {
+    // 创建带有 JSON 前缀后缀的 NBT 数据
+    nlohmann::json prefixJson;
+    prefixJson["text"] = "[BLUE]";
+    prefixJson["color"] = "blue";
+
+    nlohmann::json suffixJson;
+    suffixJson["text"] = "*";
+    suffixJson["color"] = "aqua";
+
+    nbt::tags::compound_tag tag;
+    tag.put("TeamName", std::string("blue"));
+    tag.put("DisplayName", std::string("Blue Team"));
+    tag.put("Prefix", prefixJson.dump());
+    tag.put("Suffix", suffixJson.dump());
+    tag.put("TeamColor", std::string("blue"));
+    tag.put("NameTagVisibility", std::string("always"));
+    tag.put("DeathMessageVisibility", std::string("always"));
+    tag.put("CollisionRule", std::string("always"));
+
+    auto friendlyFireTag = std::make_unique<nbt::tags::byte_tag>();
+    friendlyFireTag->value = 1;
+    tag.value.emplace("AllowFriendlyFire", std::move(friendlyFireTag));
+
+    auto seeInvisTag = std::make_unique<nbt::tags::byte_tag>();
+    seeInvisTag->value = 1;
+    tag.value.emplace("SeeFriendlyInvisibles", std::move(seeInvisTag));
+
+    // 反序列化
+    auto result = ScoreboardSaveData::TeamData::fromNbt(tag);
+    ASSERT_TRUE(result.success());
+
+    const auto& teamData = result.value();
+    EXPECT_EQ(teamData.prefix, prefixJson.dump());
+    EXPECT_EQ(teamData.suffix, suffixJson.dump());
+}
+
+TEST_F(ScoreboardPersistenceTest, ITextComponent_RoundTrip) {
+    // 测试完整的 ITextComponent 序列化/反序列化往返
+    Scoreboard original;
+    auto* dummy = ScoreCriteriaRegistry::instance().getCriteria("dummy");
+
+    // 创建带样式的显示名称
+    auto displayName = std::make_unique<text::StringTextComponent>("Points");
+    text::Style style;
+    style.setColor(text::TextFormatting::Gold);
+    style.setBold(true);
+    style.setUnderlined(true);
+    displayName->setStyle(style);
+
+    auto* objective = original.addObjective("points", *dummy, std::move(displayName));
+    objective->setRenderType(RenderType::Hearts);
+
+    // 创建带前缀后缀的队伍
+    auto teamDisplayName = std::make_unique<text::StringTextComponent>("Gold Team");
+    text::Style teamStyle;
+    teamStyle.setColor(text::TextFormatting::Gold);
+    teamDisplayName->setStyle(teamStyle);
+
+    auto prefix = std::make_unique<text::StringTextComponent>("[GOLD] ");
+    text::Style prefixStyle;
+    prefixStyle.setColor(text::TextFormatting::Yellow);
+    prefix->setStyle(prefixStyle);
+
+    auto suffix = std::make_unique<text::StringTextComponent>(" ⭐");
+    text::Style suffixStyle;
+    suffixStyle.setColor(text::TextFormatting::Gold);
+    suffix->setStyle(suffixStyle);
+
+    auto* team = original.createTeam("gold");
+    team->setDisplayName(std::move(teamDisplayName));
+    team->setPrefix(std::move(prefix));
+    team->setSuffix(std::move(suffix));
+
+    // 序列化
+    ScoreboardSaveData saveData = ScoreboardSaveData::fromScoreboard(original);
+    auto bytesResult = saveData.serialize();
+    ASSERT_TRUE(bytesResult.success());
+
+    // 反序列化
+    auto loadResult = ScoreboardSaveData::deserialize(bytesResult.value());
+    ASSERT_TRUE(loadResult.success());
+
+    Scoreboard restored;
+    auto applyResult = loadResult.value().applyToScoreboard(restored);
+    EXPECT_TRUE(applyResult.success());
+
+    // 验证目标显示名称
+    auto* restoredObjective = restored.getObjective("points");
+    ASSERT_NE(restoredObjective, nullptr);
+    auto* restoredDisplayName = restoredObjective->getDisplayName();
+    ASSERT_NE(restoredDisplayName, nullptr);
+    EXPECT_EQ(restoredDisplayName->getUnformattedText(), "Points");
+    EXPECT_EQ(restoredDisplayName->getStyle().getColor(), text::TextFormatting::Gold);
+    EXPECT_TRUE(restoredDisplayName->getStyle().isBold());
+    EXPECT_TRUE(restoredDisplayName->getStyle().isUnderlined());
+
+    // 验证队伍显示名称、前缀、后缀
+    auto* restoredTeam = restored.getTeam("gold");
+    ASSERT_NE(restoredTeam, nullptr);
+
+    auto* restoredTeamDisplayName = restoredTeam->getDisplayName();
+    ASSERT_NE(restoredTeamDisplayName, nullptr);
+    EXPECT_EQ(restoredTeamDisplayName->getUnformattedText(), "Gold Team");
+    EXPECT_EQ(restoredTeamDisplayName->getStyle().getColor(), text::TextFormatting::Gold);
+
+    auto* restoredPrefix = restoredTeam->getPrefix();
+    ASSERT_NE(restoredPrefix, nullptr);
+    EXPECT_EQ(restoredPrefix->getUnformattedText(), "[GOLD] ");
+    EXPECT_EQ(restoredPrefix->getStyle().getColor(), text::TextFormatting::Yellow);
+
+    auto* restoredSuffix = restoredTeam->getSuffix();
+    ASSERT_NE(restoredSuffix, nullptr);
+    EXPECT_EQ(restoredSuffix->getUnformattedText(), " ⭐");
+    EXPECT_EQ(restoredSuffix->getStyle().getColor(), text::TextFormatting::Gold);
+}
+
+TEST_F(ScoreboardPersistenceTest, InvalidJson_FallbackToPlainText) {
+    // 测试无效 JSON 回退到纯文本
+    // 当 displayName 不是有效 JSON 时，应该将其作为纯文本使用
+    ScoreboardSaveData::ObjectiveData obj;
+    obj.name = "test";
+    obj.criteriaName = "dummy";
+    obj.displayName = "Plain Text Display";  // 非 JSON，纯文本
+    obj.renderType = "integer";
+
+    ScoreboardSaveData saveData;
+    saveData.addObjective(std::move(obj));
+
+    // 反序列化到记分板
+    Scoreboard scoreboard;
+    auto applyResult = saveData.applyToScoreboard(scoreboard);
+    EXPECT_TRUE(applyResult.success());
+
+    auto* objective = scoreboard.getObjective("test");
+    ASSERT_NE(objective, nullptr);
+    auto* displayName = objective->getDisplayName();
+    ASSERT_NE(displayName, nullptr);
+    // 无效 JSON 应该回退到纯文本
+    EXPECT_EQ(displayName->getUnformattedText(), "Plain Text Display");
 }
 
 // main 函数由 gtest_main 库提供

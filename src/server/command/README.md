@@ -259,6 +259,33 @@ public:
 
 **权限等级：** 0（所有玩家可用）
 
+#### TellRawCommand - /tellraw 命令
+
+发送原始 JSON 消息给玩家。
+
+**用法：**
+
+- `/tellraw <target> <json message>` - 发送 JSON 格式的富文本消息
+
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- 使用 `nlohmann::json` 解析 JSON 消息内容
+- 通过 `ChatMessagePacket` 发送 JSON 格式消息给目标玩家
+- 支持完整的 ITextComponent JSON 格式（颜色、样式、翻译键等）
+- JSON 解析失败时返回错误信息
+- 只允许指定单个玩家（不支持多玩家选择器如 @a）
+
+**JSON 格式示例：**
+
+```json
+/tellraw Steve {"text":"Hello","color":"red","bold":true}
+/tellraw @p {"translate":"chat.type.announcement","with":[{"text":"Server"},{"text":"Welcome!"}]}
+```
+
+**权限等级：** 2
+
 #### SaveOnCommand / SaveOffCommand - /save-on 与 /save-off 命令
 
 切换服务器自动保存开关。
@@ -1039,6 +1066,7 @@ MyCommand::registerTo(m_dispatcher);
 - `CloneCommandTest.cpp` - /clone 命令测试（命令注册、权限检查、过滤模式、执行模式）
 - `GiveCommandTest.cpp` - /give 命令测试
 - `MessageCommandTest.cpp` - /msg 命令测试（命令注册、权限检查、别名）
+- `TellRawCommandTest.cpp` - /tellraw 命令测试（命令注册、JSON 解析、消息发送）
 - `ExperienceCommandTest.cpp` - /experience 命令测试（add/set/query 语法、xp 别名）
 - `AttributeCommandTest.cpp` - /attribute 命令测试（get/set 语法、属性名解析）
 - `EnchantCommandTest.cpp` - /enchant 命令测试（命令注册、权限检查、附魔解析、附魔兼容性、等级边界）

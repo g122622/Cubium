@@ -203,6 +203,7 @@ add_executable(mc_tests
     server/command/GiveCommandTest.cpp
     server/command/PlayerResolverTest.cpp
     server/command/MessageCommandTest.cpp
+    server/command/TellRawCommandTest.cpp
     server/command/ExperienceCommandTest.cpp
     server/command/AttributeCommandTest.cpp
     server/command/EnchantCommandTest.cpp
