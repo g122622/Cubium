@@ -4,6 +4,7 @@
 #include "../../../interfaces/IRideable.hpp"
 #include "../../../core/BoostHelper.hpp"
 #include "../../../../core/Types.hpp"
+#include <cmath>
 #include <memory>
 
 namespace mc {
@@ -175,17 +176,26 @@ public:
     /**
      * @brief 获取乘客骑乘偏移
      * MC 1.16.5: StriderEntity.getMountedYOffset()
-     * 动态计算：(float)this.getSize().getHeight() * 0.6F * this.getStriderHeightMultiplier()
-     * 还有一个基于 limbSwing 的额外偏移：sin(limbSwing * 0.5F) * 0.1F
      *
-     * TODO: 需要在 Entity 基类添加 limbSwing/walkDistance 字段后实现动态偏移
+     * 参考: net.minecraft.entity.passive.StriderEntity.getMountedYOffset()
+     * float f = Math.min(0.25F, this.limbSwingAmount);
+     * float f1 = this.limbSwing;
+     * return (double)this.getHeight() - 0.19D + (double)(0.12F * MathHelper.cos(f1 * 1.5F) * 2.0F * f);
+     *
+     * 这个方法产生一个基于步态动画的上下波动效果，模拟炽足兽行走时的起伏。
      */
     [[nodiscard]] f64 getMountedYOffset() const override {
-        // MC 1.16.5: 基础偏移 = height * 0.6 * heightMultiplier
-        // 炽足兽的高度乘数在熔岩上为 1.0，在陆地上为 0.5
-        f32 heightMultiplier = isOnLavaSurface() ? 1.0f : 0.5f;
-        return static_cast<f64>(height() * 0.6f * heightMultiplier);
-        // TODO: 添加 limbSwing 动画偏移: + sin(limbSwing * 0.5F) * 0.1F
+        // MC 1.16.5: 计算步态动画参数
+        // f = min(0.25, limbSwingAmount) - 限制最大波动幅度
+        // f1 = limbSwing - 步态周期计数器
+        f32 limbSwingAmountClamped = std::min(0.25f, limbSwingAmount());
+        f32 limbSwingValue = limbSwing();
+
+        // MC 1.16.5: 基础高度偏移 = height - 0.19
+        // 加上动态波动 = 0.12 * cos(limbSwing * 1.5) * 2.0 * limbSwingAmountClamped
+        // 这产生一个基于步态的上下波动效果
+        return static_cast<f64>(height()) - 0.19 +
+               static_cast<f64>(0.12f * std::cos(limbSwingValue * 1.5f) * 2.0f * limbSwingAmountClamped);
     }
 
     // ========== 生命周期 ==========
