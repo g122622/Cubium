@@ -37,6 +37,7 @@ enum class Type : u8 {
 | `isFullBlock()` | 检查是否为完整方块 |
 | `intersects(entityBox, blockX, blockY, blockZ)` | 检测与实体碰撞箱是否相交 |
 | `getWorldBoxes(blockX, blockY, blockZ)` | 获取世界坐标碰撞箱列表 |
+| `getFaceShape(direction)` | 获取形状在指定方向的面投影（用于光照遮挡检测） |
 
 #### 关键特性
 
@@ -44,6 +45,7 @@ enum class Type : u8 {
 2. **多碰撞箱支持**：通过 `addBox()` 支持复杂形状（如楼梯、栅栏）
 3. **性能优化**：`FullBlock` 类型有专用优化路径
 4. **世界坐标转换**：`getWorldBoxes()` 自动转换为世界坐标
+5. **面投影支持**：`getFaceShape()` 用于光照遮挡检测
 
 #### 使用示例
 
@@ -445,3 +447,78 @@ TEST(CollisionShapeTest, MultiBoxShape) {
 2. **VoxelShape 完整实现**：支持镂空形状和布尔运算
 3. **旋转/镜像支持**：根据方块朝向自动变换碰撞形状
 4. **碰撞层分离**：区分碰撞箱、视野箱、选取箱
+
+---
+
+## 面投影（Face Shape）详细说明
+
+### 概述
+
+`getFaceShape(Direction)` 方法返回碰撞形状在指定方向上的投影，用于光照系统判断光线是否能穿过相邻方块之间的边界。
+
+### 算法原理
+
+参考 MC 1.16.5 `VoxelShapes.getFaceShape()`：
+
+1. **空形状**：返回空形状
+2. **完整方块**：返回完整方块（每个面都是完整覆盖）
+3. **非完整方块**：
+   - 检查形状是否延伸到指定面的边界
+   - 如果是，返回该面上所有碰撞箱的投影
+   - 否则返回空形状
+
+### 方向与边界检查
+
+| 方向 | 轴 | 边界条件 | 说明 |
+|------|------|----------|------|
+| Down (0) | Y | min(Y) ≈ 0.0 | 底面 |
+| Up (1) | Y | max(Y) ≈ 1.0 | 顶面 |
+| North (2) | Z | min(Z) ≈ 0.0 | 北面 |
+| South (3) | Z | max(Z) ≈ 1.0 | 南面 |
+| West (4) | X | min(X) ≈ 0.0 | 西面 |
+| East (5) | X | max(X) ≈ 1.0 | 东面 |
+
+### 使用示例
+
+```cpp
+// 下半砖的面投影
+auto slab = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+
+// 底面：延伸到边界，返回投影
+auto bottomFace = slab.getFaceShape(Direction::Down);
+// bottomFace 是一个完整面 (0,0,0)->(1,0,1) 的投影
+
+// 顶面：不延伸到边界（maxY = 0.5），返回空
+auto topFace = slab.getFaceShape(Direction::Up);
+// topFace.isEmpty() == true
+
+// 侧面：都延伸到边界，返回完整面
+auto northFace = slab.getFaceShape(Direction::North);
+// northFace 覆盖整个北面
+```
+
+### 在光照系统中的应用
+
+```cpp
+// Block::getFaceOcclusionShape 使用示例
+CollisionShape Block::getFaceOcclusionShape(const BlockState& state, Direction direction) const {
+    const CollisionShape& occlusion = getOcclusionShape(state);
+    if (occlusion.isFullBlock()) {
+        return CollisionShape::fullBlock();
+    }
+    return occlusion.getFaceShape(direction);
+}
+
+// 光照引擎中的使用
+bool isLightBlocked(const BlockState* from, const BlockState* to, Direction dir) {
+    CollisionShape fromFace = from->getFaceOcclusionShape(dir);
+    CollisionShape toFace = to->getFaceOcclusionShape(Directions::opposite(dir));
+    
+    // 检查两个面投影是否完全遮挡
+    return fromFace.isFullBlock() && toFace.isFullBlock();
+}
+```
+
+### 精度考虑
+
+边界检查使用 `EPSILON = 1.0e-4f` 容差，与 MC 1.16.5 的 `1.0E-7D` 相似但适应单精度浮点。

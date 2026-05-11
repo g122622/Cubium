@@ -279,6 +279,8 @@ add_executable(mc_tests
     physics/PhysicsEngineTests.cpp
     # DiscreteVoxelShape 测试
     physics/DiscreteVoxelShapeTest.cpp
+    # CollisionShape 测试
+    physics/CollisionShapeTest.cpp
     # ServerWorld 纰版挒妫€娴嬫祴璇?    server/ServerWorldCollisionTests.cpp
     # 瀹炰綋杩借釜鍣ㄦ祴璇?    server/world/EntityTrackerTest.cpp
     # EntityTracker UUID 测试

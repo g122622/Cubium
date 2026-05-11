@@ -19,6 +19,11 @@ namespace mc {
  * - 空形状表示没有碰撞（如空气、水、岩浆）
  * - 完整方块是最常见的形状，有优化路径
  * - 简单盒支持自定义碰撞箱（如台阶、楼梯等）
+ *
+ * 面形状投影：
+ * - getFaceShape(Direction) 返回形状在指定方向上的投影
+ * - 用于光照遮挡检测，判断光线是否能穿过相邻方块之间的边界
+ * - 参考 MC 1.16.5 VoxelShapes.getFaceShape
  */
 class CollisionShape {
 public:
@@ -177,6 +182,105 @@ public:
             }
         }
         return false;
+    }
+
+    /**
+     * @brief 获取形状在指定方向上的面形状
+     *
+     * 这是光照系统的核心函数，用于判断光线是否能穿过相邻方块之间的边界。
+     * 返回一个表示该面上投影区域的新碰撞形状。
+     *
+     * 算法参考 MC 1.16.5 VoxelShapes.getFaceShape：
+     * 1. 空形状返回空
+     * 2. 完整方块返回完整方块
+     * 3. 检查形状是否延伸到指定面的边界
+     * 4. 如果是，返回投影面形状；否则返回空
+     *
+     * @param direction 方向（Down=0, Up=1, North=2, South=3, West=4, East=5）
+     * @return 该方向上的面投影形状
+     */
+    [[nodiscard]] CollisionShape getFaceShape(Direction direction) const noexcept {
+        // 空形状和完整方块快速路径
+        if (isEmpty()) {
+            return empty();
+        }
+        if (isFullBlock()) {
+            return fullBlock();
+        }
+
+        const Axis axis = Directions::getAxis(direction);
+        const AxisDirection axisDir = Directions::getAxisDirection(direction);
+
+        // 收集所有接触指定面的碰撞箱
+        CollisionShape result;
+        result.m_type = Type::Empty;
+        result.m_boxes.reserve(m_boxes.size());
+
+        // 精度常量，适应 f32 精度（MC 1.16.5 使用 1.0E-7D 双精度）
+        // f32 有约 7 位有效数字，所以使用稍大的容差
+        constexpr f32 EPSILON = 1.0e-5f;
+
+        for (const auto& box : m_boxes) {
+            // 检查碰撞箱是否延伸到指定面
+            bool touchesFace = false;
+            if (axisDir == AxisDirection::Positive) {
+                // 正方向：检查 max[axis] ≈ 1.0
+                f32 maxCoord = 0.0f;
+                switch (axis) {
+                    case Axis::X: maxCoord = box.maxX; break;
+                    case Axis::Y: maxCoord = box.maxY; break;
+                    case Axis::Z: maxCoord = box.maxZ; break;
+                }
+                touchesFace = std::abs(maxCoord - 1.0f) < EPSILON;
+            } else {
+                // 负方向：检查 min[axis] ≈ 0.0
+                f32 minCoord = 0.0f;
+                switch (axis) {
+                    case Axis::X: minCoord = box.minX; break;
+                    case Axis::Y: minCoord = box.minY; break;
+                    case Axis::Z: minCoord = box.minZ; break;
+                }
+                touchesFace = std::abs(minCoord) < EPSILON;
+            }
+
+            if (touchesFace) {
+                // 创建投影箱：将切片轴的范围扩展到 [0, 1]
+                // 这表示该碰撞箱在该面上的投影覆盖了整个深度
+                AxisAlignedBB projBox = box;
+                switch (axis) {
+                    case Axis::X:
+                        projBox.minX = 0.0f;
+                        projBox.maxX = 1.0f;
+                        break;
+                    case Axis::Y:
+                        projBox.minY = 0.0f;
+                        projBox.maxY = 1.0f;
+                        break;
+                    case Axis::Z:
+                        projBox.minZ = 0.0f;
+                        projBox.maxZ = 1.0f;
+                        break;
+                }
+                result.m_boxes.push_back(projBox);
+            }
+        }
+
+        // 更新结果类型
+        if (result.m_boxes.empty()) {
+            return empty();
+        }
+        if (result.m_boxes.size() == 1) {
+            const auto& singleBox = result.m_boxes[0];
+            if (singleBox.minX == 0.0f && singleBox.minY == 0.0f && singleBox.minZ == 0.0f &&
+                singleBox.maxX == 1.0f && singleBox.maxY == 1.0f && singleBox.maxZ == 1.0f) {
+                return fullBlock();
+            }
+            result.m_type = Type::SimpleBox;
+        } else {
+            result.m_type = Type::SimpleBox;
+        }
+
+        return result;
     }
 
 private:

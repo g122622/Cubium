@@ -300,14 +300,15 @@ const CollisionShape& Block::getOcclusionShape(const BlockState& state) const {
 
 CollisionShape Block::getFaceOcclusionShape(const BlockState& state, Direction direction) const {
     // 默认实现：如果遮挡形状是完整方块，返回完整方块
-    // 否则返回遮挡形状在指定方向的切片
+    // 否则返回遮挡形状在指定方向的面投影
+    // 参考 MC 1.16.5 AbstractBlock.AbstractBlockState.getFaceOcclusionShape
     const CollisionShape& occlusion = getOcclusionShape(state);
     if (occlusion.isFullBlock()) {
         return CollisionShape::fullBlock();
     }
-    // 对于非完整方块，返回遮挡形状
-    // TODO: 实现 CollisionShape 的面切片方法
-    return occlusion;
+    // 对于非完整方块，返回遮挡形状在指定方向的面投影
+    // 这用于光照系统判断光线是否能穿过相邻方块之间的边界
+    return occlusion.getFaceShape(direction);
 }
 
 bool Block::useShapeForLightOcclusion(const BlockState& state) const {
