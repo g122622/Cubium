@@ -414,6 +414,11 @@ add_executable(mc_tests
     common/world/village/raid/RaidHeroTrackingTest.cpp
     # 世界边界测试
     common/world/border/WorldBorderTest.cpp
+    # 记分板系统测试
+    server/scoreboard/ScoreboardTest.cpp
+    server/scoreboard/ScoreCriteriaTest.cpp
+    server/scoreboard/TeamTest.cpp
+    server/scoreboard/ScoreboardPersistenceTest.cpp
 )
 
 # 娣诲姞鏈嶅姟绔簮鏂囦欢
@@ -442,6 +447,22 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
+        # 记分板系统
+        ${CMAKE_SOURCE_DIR}/src/server/scoreboard/ServerScoreboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/Scoreboard.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreObjective.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/Score.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreCriteria.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreCriteriaRenderType.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScorePlayerTeam.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/DummyCriteria.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TriggerCriteria.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/DeathCountCriteria.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/KillCountCriteria.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/ReadOnlyCriteria.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/network/ScoreboardPackets.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/TcpServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/TcpSession.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/TcpConnection.cpp

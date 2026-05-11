@@ -331,7 +331,11 @@ ScorePlayerTeam* Scoreboard::createTeam(const std::string& name) {
 void Scoreboard::removeTeam(ScorePlayerTeam& team) {
     const std::string& name = team.getName();
 
-    // 清空队伍成员
+    // 清空队伍成员（从 m_teamMemberships 中移除）
+    const auto& members = team.getMembers();
+    for (const auto& member : members) {
+        m_teamMemberships.erase(member);
+    }
     team.clearMembers();
 
     // 从队伍映射中移除
