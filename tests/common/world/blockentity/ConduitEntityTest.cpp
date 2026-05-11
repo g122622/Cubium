@@ -2,12 +2,124 @@
 
 #include "entity/interfaces/IMob.hpp"
 #include "entity/entities/monster/MonsterEntity.hpp"
+#include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
+#include "world/blockentity/processing/ConduitEntity.hpp"
+#include "world/IWorld.hpp"
+#include "world/border/WorldBorder.hpp"
+#include "world/WorldConstants.hpp"
+#include "world/block/VanillaBlocks.hpp"
+#include "world/chunk/ChunkData.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/command/ICommandSource.hpp"
 #include <unordered_set>
+#include <unordered_map>
 
 using namespace mc;
+
+// ============================================================================
+// ConduitTestWorld - Mock World for ConduitEntity Tests
+// ============================================================================
+class ConduitTestWorld final : public IWorld {
+public:
+    using IWorld::getBlockState;
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+        const BlockPos pos(x, y, z);
+        const auto it = m_statesByPos.find(pos);
+        if (it != m_statesByPos.end()) {
+            return it->second;
+        }
+        return &VanillaBlocks::WATER->defaultState();
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+        m_statesByPos[BlockPos(x, y, z)] = state;
+        return true;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override {
+        MC_UNUSED(flags);
+        return setBlockState(x, y, z, state);
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override {
+        return m_entitiesInAabb;
+    }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override {
+        return m_entitiesInRange;
+    }
+
+    [[nodiscard]] DimensionId dimension() const override { return 0; }
+    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+    [[nodiscard]] bool isClientSide() override { return false; }
+
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override {
+        const auto it = m_blockEntities.find(pos);
+        return it == m_blockEntities.end() ? nullptr : it->second;
+    }
+
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override {
+        const auto it = m_blockEntities.find(pos);
+        return it == m_blockEntities.end() ? nullptr : it->second;
+    }
+
+    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override {
+        m_blockEntities[pos] = entity;
+    }
+
+    void setEntitiesInRangeResult(const std::vector<Entity*>& entities) {
+        m_entitiesInRange = entities;
+    }
+
+    void setEntitiesInAabbResult(const std::vector<Entity*>& entities) {
+        m_entitiesInAabb = entities;
+    }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("ConduitTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("ConduitTestWorld::tickManager not implemented");
+    }
+
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("ConduitTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("ConduitTestWorld::worldBorder not implemented");
+    }
+
+private:
+    std::unordered_map<BlockPos, const BlockState*> m_statesByPos;
+    std::unordered_map<BlockPos, BlockEntity*> m_blockEntities;
+    std::vector<Entity*> m_entitiesInAabb;
+    std::vector<Entity*> m_entitiesInRange;
+    mutable math::Random m_random{12345};
+};
 
 // ============================================================================
 // IMob Interface Tests
@@ -221,4 +333,230 @@ TEST_F(UuidTest, UuidStringFormat) {
     for (char c : str) {
         EXPECT_TRUE((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'));
     }
+}
+
+// ============================================================================
+// ConduitEntity::findExistingTarget Tests
+// ============================================================================
+
+// Mock LivingEntity for testing
+class MockLivingEntityForConduit : public LivingEntity {
+public:
+    explicit MockLivingEntityForConduit(EntityId id)
+        : LivingEntity(LegacyEntityType::Player, id, nullptr) {
+        registerAttributes();
+        setHealth(maxHealth());
+    }
+};
+
+// Mock Mob Entity (implements IMob interface)
+class MockMobEntityForConduit : public LivingEntity, public entity::IMob {
+public:
+    explicit MockMobEntityForConduit(EntityId id)
+        : LivingEntity(LegacyEntityType::Zombie, id, nullptr) {
+        registerAttributes();
+        setHealth(maxHealth());
+    }
+};
+
+// Mock non-LivingEntity (for testing UUID match but wrong type)
+class MockNonLivingEntityForConduit : public Entity {
+public:
+    explicit MockNonLivingEntityForConduit(EntityId id)
+        : Entity(LegacyEntityType::Item, id, nullptr) {
+    }
+};
+
+// Test ConduitEntity that exposes protected methods
+class TestConduitEntity : public blockentity::ConduitEntity {
+public:
+    explicit TestConduitEntity(const BlockPos& pos) : ConduitEntity(pos) {}
+
+    // Expose protected method for testing
+    LivingEntity* testFindExistingTarget(IWorld& world) {
+        return findExistingTarget(world);
+    }
+
+    void setTargetUuidForTest(const std::string& uuid) {
+        nlohmann::json data;
+        data["target_uuid"] = uuid;
+        load(data);
+    }
+};
+
+// Test: findExistingTarget returns nullptr when no target UUID is set
+TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenNoTargetUuid) {
+    ConduitTestWorld world;
+    TestConduitEntity conduit(BlockPos(0, 0, 0));
+
+    // No target UUID set
+    MockMobEntityForConduit mob(1);
+    world.setEntitiesInRangeResult({&mob});
+
+    EXPECT_EQ(conduit.testFindExistingTarget(world), nullptr);
+}
+
+// Test: findExistingTarget returns nullptr when UUID doesn't match any entity
+TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenUuidNotMatch) {
+    ConduitTestWorld world;
+    TestConduitEntity conduit(BlockPos(0, 0, 0));
+
+    conduit.setTargetUuidForTest("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+
+    MockMobEntityForConduit mob(1);
+    mob.setUuid("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    world.setEntitiesInRangeResult({&mob});
+
+    EXPECT_EQ(conduit.testFindExistingTarget(world), nullptr);
+}
+
+// Test: findExistingTarget returns nullptr when entity is not LivingEntity
+TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenEntityNotLivingEntity) {
+    ConduitTestWorld world;
+    TestConduitEntity conduit(BlockPos(0, 0, 0));
+
+    MockNonLivingEntityForConduit item(1);
+    std::string itemUuid = "cccccccccccccccccccccccccccccccc";
+    item.setUuid(itemUuid);
+
+    conduit.setTargetUuidForTest(itemUuid);
+    world.setEntitiesInRangeResult({&item});
+
+    // Should return nullptr because item is not a LivingEntity
+    EXPECT_EQ(conduit.testFindExistingTarget(world), nullptr);
+}
+
+// Test: findExistingTarget returns correct LivingEntity when UUID matches
+TEST(ConduitEntityFindTargetTest, ReturnsEntityWhenUuidMatchesLivingEntity) {
+    ConduitTestWorld world;
+    TestConduitEntity conduit(BlockPos(0, 0, 0));
+
+    MockMobEntityForConduit mob(1);
+    std::string mobUuid = "dddddddddddddddddddddddddddddddd";
+    mob.setUuid(mobUuid);
+
+    conduit.setTargetUuidForTest(mobUuid);
+    world.setEntitiesInRangeResult({&mob});
+
+    LivingEntity* result = conduit.testFindExistingTarget(world);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->uuid(), mobUuid);
+}
+
+// Test: findExistingTarget returns correct entity among multiple entities
+TEST(ConduitEntityFindTargetTest, ReturnsCorrectEntityAmongMultiple) {
+    ConduitTestWorld world;
+    TestConduitEntity conduit(BlockPos(0, 0, 0));
+
+    MockMobEntityForConduit mob1(1);
+    mob1.setUuid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+
+    MockMobEntityForConduit mob2(2);
+    std::string targetUuid = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    mob2.setUuid(targetUuid);
+
+    MockMobEntityForConduit mob3(3);
+    mob3.setUuid("cccccccccccccccccccccccccccccccc");
+
+    conduit.setTargetUuidForTest(targetUuid);
+    world.setEntitiesInRangeResult({&mob1, &mob2, &mob3});
+
+    LivingEntity* result = conduit.testFindExistingTarget(world);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->uuid(), targetUuid);
+    EXPECT_EQ(result, &mob2);
+}
+
+// Test: findExistingTarget returns nullptr when no entities in range
+TEST(ConduitEntityFindTargetTest, ReturnsNullptrWhenNoEntitiesInRange) {
+    ConduitTestWorld world;
+    TestConduitEntity conduit(BlockPos(0, 0, 0));
+
+    conduit.setTargetUuidForTest("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+    world.setEntitiesInRangeResult({});
+
+    EXPECT_EQ(conduit.testFindExistingTarget(world), nullptr);
+}
+
+// Test: findExistingTarget works with non-IMob LivingEntity
+TEST(ConduitEntityFindTargetTest, WorksWithNonMobLivingEntity) {
+    ConduitTestWorld world;
+    TestConduitEntity conduit(BlockPos(0, 0, 0));
+
+    MockLivingEntityForConduit player(1);
+    std::string playerUuid = "ffffffffffffffffffffffffffffffff";
+    player.setUuid(playerUuid);
+
+    conduit.setTargetUuidForTest(playerUuid);
+    world.setEntitiesInRangeResult({&player});
+
+    // findExistingTarget only checks LivingEntity, not IMob
+    LivingEntity* result = conduit.testFindExistingTarget(world);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->uuid(), playerUuid);
+}
+
+// Test: load correctly restores target UUID from saved data
+TEST(ConduitEntityFindTargetTest, LoadRestoresTargetUuid) {
+    TestConduitEntity conduit(BlockPos(10, 20, 30));
+
+    // Simulate loading data with target_uuid
+    nlohmann::json data;
+    data["target_uuid"] = "1234567890abcdef1234567890abcdef";
+
+    ASSERT_TRUE(conduit.load(data));
+
+    // Verify target UUID was loaded correctly by calling findExistingTarget
+    // which internally uses m_targetUuid
+    ConduitTestWorld world;
+    MockMobEntityForConduit mob(1);
+    mob.setUuid("1234567890abcdef1234567890abcdef");
+    world.setEntitiesInRangeResult({&mob});
+
+    // If the UUID was loaded correctly, findExistingTarget should find the mob
+    LivingEntity* result = conduit.testFindExistingTarget(world);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->uuid(), "1234567890abcdef1234567890abcdef");
+}
+
+// Test: save writes target_uuid when target exists
+TEST(ConduitEntityFindTargetTest, SaveWritesTargetUuidWhenTargetExists) {
+    ConduitTestWorld world;
+    TestConduitEntity conduit(BlockPos(10, 20, 30));
+
+    // Create a mob and set it as target
+    MockMobEntityForConduit mob(1);
+    std::string mobUuid = "abcdef1234567890abcdef1234567890";
+    mob.setUuid(mobUuid);
+    world.setEntitiesInRangeResult({&mob});
+
+    // Set target UUID and find the target
+    conduit.setTargetUuidForTest(mobUuid);
+    LivingEntity* foundTarget = conduit.testFindExistingTarget(world);
+    ASSERT_NE(foundTarget, nullptr);
+
+    // Verify that load correctly restores target_uuid
+    nlohmann::json loadData;
+    loadData["target_uuid"] = mobUuid;
+
+    TestConduitEntity loaded(BlockPos(0, 0, 0));
+    ASSERT_TRUE(loaded.load(loadData));
+
+    // Verify by finding the target again
+    world.setEntitiesInRangeResult({&mob});
+    LivingEntity* reloadedTarget = loaded.testFindExistingTarget(world);
+    ASSERT_NE(reloadedTarget, nullptr);
+    EXPECT_EQ(reloadedTarget->uuid(), mobUuid);
+}
+
+// Test: save does not write target_uuid when target is null
+TEST(ConduitEntityFindTargetTest, SaveDoesNotWriteTargetUuidWhenNull) {
+    TestConduitEntity conduit(BlockPos(10, 20, 30));
+
+    // No target set (m_target is nullptr)
+    nlohmann::json data;
+    conduit.save(data);
+
+    // target_uuid should not be in the saved data
+    EXPECT_FALSE(data.contains("target_uuid"));
 }

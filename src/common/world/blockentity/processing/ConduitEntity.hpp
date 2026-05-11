@@ -160,6 +160,7 @@ private:
      */
     void spawnParticles(IWorld& world);
 
+protected:
     /**
      * @brief 通过UUID在攻击范围内查找目标实体
      *
