@@ -206,8 +206,32 @@ Entity
 ### ocean/ - 海洋怪物
 | 实体 | 说明 | 特殊行为 | 实现状态 |
 |------|------|----------|---------|
-| GuardianEntity | 守卫者 | 尖刺攻击、激光攻击、水中检测 | ✅ isInWater() 已实现 |
+| GuardianEntity | 守卫者 | 激光攻击、目标选择(玩家+鱿鱼)、尖刺动画 | ✅ 完整实现：GuardianAttackGoal、NearestAttackableTargetGoal |
 | ElderGuardianEntity | 远古守卫者 | 挖掘疲劳Boss、50格范围效果 | ✅ 挖掘疲劳效果已实现 |
+
+#### 守卫者 (GuardianEntity) 详细实现
+
+**目标选择配置** (MC 1.16.5):
+- 使用 `NearestAttackableTargetGoal<LivingEntity>` 搜索攻击目标
+- 自定义谓词筛选: 只攻击 Player 和 Squid
+- 距离筛选: 目标必须距离 > 3 格
+- 视线检查: 需要 `canSee()` 通过
+
+**行为目标优先级**:
+| 优先级 | Goal | 说明 |
+|--------|------|------|
+| 4 | GuardianAttackGoal | 激光攻击 (充能60tick + 冷却20tick) |
+| 7 | RandomWalkingGoal | 随机漫步 (间隔80tick) |
+| 8 | LookAtGoal | 看向玩家(8格) / 看向同类守卫者(12格,1%) |
+| 9 | LookRandomlyGoal | 随机看向 |
+
+**激光攻击流程**:
+1. `shouldExecute()` - 检查 attackTarget() 或 selectTarget()
+2. `startExecuting()` - 初始化充能状态
+3. `tick()` - 充能 60 tick 后发射激光
+4. `performLaserAttack()` - 造成 4.0 魔法伤害
+
+**参考**: `src/common/entity/entities/monster/ocean/README.md`
 
 ### illager/ - 灾厄村民
 | 实体 | 说明 | 特殊行为 |

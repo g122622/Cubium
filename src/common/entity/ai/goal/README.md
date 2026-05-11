@@ -849,6 +849,25 @@ if (distSq < MAX_DISTANCE_SQ) { }
 | `CreeperSwellGoalBasicTest.EnumSet_Intersects` | EnumSet 交集测试 |
 | `CreeperSwellGoalBasicTest.EnumSet_ForEach` | EnumSet 遍历测试 |
 
+### GuardianAttackGoalTest.cpp
+
+| 测试名称 | 说明 |
+|----------|------|
+| `GuardianAttackGoalTest.AttackDistances_AreCorrect` | 攻击距离常量验证 (15格范围, 60tick充能, 20tick冷却) |
+| `GuardianAttackGoalTest.TargetSelectionDistance_IsCorrect` | 目标选择距离验证 (>3格) |
+| `GuardianAttackGoalTest.TargetTypes_PlayerAndSquidOnly` | 目标类型筛选 (只攻击玩家和鱿鱼) |
+| `GuardianAttackGoalTest.GoalFlags_MoveAndLook` | GoalFlag 配置验证 (Move+Look) |
+| `GuardianAttackGoalTest.DistanceCheck_GreaterThanThree` | 距离检查逻辑验证 |
+| `GuardianAttackGoalTest.AttackRange_WithinFifteen` | 攻击范围验证 (15格) |
+| `GuardianAttackGoalTest.Timing_SequenceCorrect` | 攻击时序验证 (充能60tick+冷却20tick) |
+| `GuardianAttackGoalTest.EntityUtils_FindClosestEntity_Predicate` | EntityUtils 目标搜索谓词验证 |
+| `GuardianAttackGoalTest.TargetSelector_ConfigurationCorrect` | 目标选择器配置验证 (checkInterval=10, checkSight=true) |
+| `GuardianAttackGoalTest.ElderGuardian_DamageBonus` | 远古守卫者伤害加成验证 |
+| `GuardianAttackGoalTest.GoalSelector_PrioritiesCorrect` | 行为目标优先级验证 |
+| `GuardianAttackGoalTest.EnumSet_BasicOperations` | EnumSet 基本操作测试 |
+| `GuardianAttackGoalTest.EnumSet_InitializerList` | EnumSet 初始化列表测试 |
+| `GuardianAttackGoalTest.AllGoalFlags_ReturnsAllFlags` | allGoalFlags 函数测试 |
+
 ### RandomWalkingGoalTest.cpp
 
 | 测试名称 | 说明 |
