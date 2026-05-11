@@ -250,12 +250,13 @@ f32 RandomPositionGenerator::calculatePositionScore(CreatureEntity* creature, co
         score -= 50.0f;
     }
 
-    // 方块类型评分
-    const BlockState* groundBlock = world->getBlockState(x, y - 1, z);
-    if (groundBlock) {
-        // 某些方块类型会影响评分
-        // TODO: 根据方块类型调整评分
-    }
+    // MC 1.16.5: 使用实体的 getPathWeight 方法获取位置权重
+    // 这会根据实体类型返回不同的值：
+    // - AnimalEntity: 草地返回 10.0F，否则返回亮度 - 0.5F
+    // - MonsterEntity: 返回 0.5F - 亮度（偏好黑暗）
+    // - 其他生物: 默认返回 0.0F
+    f32 pathWeight = creature->getPathWeight(pos.x, pos.y, pos.z);
+    score += pathWeight * 10.0f;  // 放大权重影响
 
     return score;
 }

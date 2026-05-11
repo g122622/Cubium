@@ -2,6 +2,7 @@
 #include "../ai/controller/MovementController.hpp"
 #include "../ai/pathfinding/PathNavigator.hpp"
 #include "../../core/Constants.hpp"
+#include "../../world/block/BlockPos.hpp"
 
 namespace mc {
 
@@ -31,7 +32,12 @@ bool CreatureEntity::tryMoveTo(f64 x, f64 y, f64 z, f64 speed) {
 f32 CreatureEntity::getPathWeight(f32 /*x*/, f32 /*y*/, f32 /*z*/) const {
     // 默认实现：返回0表示中性权重
     // 子类应该重写此方法来提供更准确的权重
+    // 参考 MC 1.16.5 CreatureEntity.getBlockPathWeight()
     return 0.0f;
+}
+
+f32 CreatureEntity::getPathWeight(const BlockPos& pos) const {
+    return getPathWeight(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
 }
 
 bool CreatureEntity::canSpawnAt(f32 /*x*/, f32 y, f32 /*z*/) const {

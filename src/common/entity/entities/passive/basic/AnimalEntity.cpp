@@ -12,6 +12,8 @@
 #include "../../../core/EntityDataManager.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/BlockPos.hpp"
+#include "../../../../world/block/VanillaBlocks.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 
@@ -165,6 +167,36 @@ bool AnimalEntity::hurt(DamageSource& source, f32 amount) {
     resetInLove();
 
     return AgeableEntity::hurt(source, amount);
+}
+
+// ========== 寻路权重 ==========
+
+f32 AnimalEntity::getPathWeight(f32 x, f32 y, f32 z) const {
+    // MC 1.16.5 AnimalEntity.getBlockPathWeight()
+    // 如果脚下方块是草地，返回 10.0F
+    // 否则返回 亮度 - 0.5F
+
+    const IWorld* worldPtr = this->world();
+    if (!worldPtr) {
+        return 0.0f;
+    }
+
+    BlockPos pos(static_cast<i32>(std::floor(x)),
+                 static_cast<i32>(std::floor(y)) - 1,  // 脚下方块
+                 static_cast<i32>(std::floor(z)));
+
+    // 检查脚下方块是否为草地
+    const BlockState* groundState = worldPtr->getBlockState(pos);
+    if (groundState && VanillaBlocks::GRASS_BLOCK != nullptr &&
+        groundState->is(VanillaBlocks::GRASS_BLOCK)) {
+        return 10.0f;
+    }
+
+    // 否则基于亮度返回权重
+    BlockPos entityPos(static_cast<i32>(std::floor(x)),
+                       static_cast<i32>(std::floor(y)),
+                       static_cast<i32>(std::floor(z)));
+    return worldPtr->getBrightness(entityPos) - 0.5f;
 }
 
 } // namespace mc

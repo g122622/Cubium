@@ -56,9 +56,29 @@ public:
     // ========== 寻路权重 ==========
 
     /**
-     * @brief 获取路径权重（用于生成条件）
+     * @brief 获取路径权重（用于随机位置生成）
+     *
+     * 返回值决定实体偏好移动到该位置的程度：
+     * - 正值越高：越偏好该位置
+     * - 负值：避开该位置
+     * - 0：中性
+     *
+     * 参考 MC 1.16.5 CreatureEntity.getBlockPathWeight()
+     *
+     * @param x X 坐标
+     * @param y Y 坐标
+     * @param z Z 坐标
+     * @return 路径权重值
      */
     [[nodiscard]] virtual f32 getPathWeight(f32 x, f32 y, f32 z) const;
+
+    /**
+     * @brief 获取路径权重（BlockPos 版本）
+     *
+     * @param pos 方块位置
+     * @return 路径权重值
+     */
+    [[nodiscard]] f32 getPathWeight(const BlockPos& pos) const;
 
     /**
      * @brief 检查是否可以生成在该位置
