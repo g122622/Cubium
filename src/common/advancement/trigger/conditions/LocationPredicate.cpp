@@ -7,7 +7,7 @@
 
 namespace mc::advancement {
 
-bool LocationPredicate::test(const World& world, f64 x, f64 y, f64 z) const {
+bool LocationPredicate::test(const IWorld& world, f64 x, f64 y, f64 z) const {
     if (m_isAny) {
         return true;
     }
@@ -41,7 +41,7 @@ bool LocationPredicate::test(const World& world, f64 x, f64 y, f64 z) const {
     return true;
 }
 
-bool LocationPredicate::test(const World& world, const BlockPos& pos) const {
+bool LocationPredicate::test(const IWorld& world, const BlockPos& pos) const {
     return test(world,
         static_cast<f64>(pos.x) + 0.5,
         static_cast<f64>(pos.y) + 0.5,

@@ -957,9 +957,9 @@ add_library(mc_common STATIC
     advancement/trigger/conditions/EntityPredicate.cpp
     advancement/trigger/conditions/LocationPredicate.cpp
     advancement/trigger/conditions/BlockPredicate.cpp
-    advancement/trigger/impl/InventoryChangedTrigger.cpp
+    # Trigger implementations - have template issues, need TriggerInstantiation.hpp
+    # advancement/trigger/impl/InventoryChangedTrigger.cpp
     advancement/trigger/impl/TickTrigger.cpp
-    # Trigger implementations (TODO: fix remaining triggers)
     # advancement/trigger/impl/LocationTrigger.cpp
     # advancement/trigger/impl/PlayerKilledEntityTrigger.cpp
     # advancement/trigger/impl/BlockTriggers.cpp

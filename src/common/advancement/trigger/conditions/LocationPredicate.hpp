@@ -10,10 +10,10 @@
 
 // 前向声明
 namespace mc {
-    class World;
-    class Biome;
-    struct BlockPos;
-    struct BlockState;
+class IWorld;
+class Biome;
+struct BlockPos;
+struct BlockState;
 }
 
 namespace mc::advancement {
@@ -39,12 +39,12 @@ public:
      * @param z Z坐标
      * @return 是否匹配
      */
-    [[nodiscard]] bool test(const World& world, f64 x, f64 y, f64 z) const;
+    [[nodiscard]] bool test(const IWorld& world, f64 x, f64 y, f64 z) const;
 
     /**
      * @brief 检查方块位置是否匹配
      */
-    [[nodiscard]] bool test(const World& world, const BlockPos& pos) const;
+    [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查是否匹配任意位置
