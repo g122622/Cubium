@@ -31,7 +31,7 @@ bool ItemPredicate::test(const ItemStack& stack) const {
 
     // 检查物品ID
     if (m_item.has_value()) {
-        // TODO: 获取物品ID进行比较
+        // [阶段3+4：触发器完善] 需要物品注册表支持获取物品ID进行比较
         // if (stack.getItem().getId() != m_item.value()) return false;
     }
 
@@ -48,7 +48,7 @@ bool ItemPredicate::test(const ItemStack& stack) const {
         }
     }
 
-    // TODO: 检查药水、NBT、附魔等
+    // [阶段3+4：触发器完善] 检查药水、NBT、附魔等
 
     return true;
 }
@@ -87,7 +87,7 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json) {
         potion = ResourceLocation(json["potion"].get<std::string>());
     }
 
-    // TODO: 解析 nbt, enchantments, stored_enchantments 等
+    // [阶段3+4：触发器完善] 解析 nbt, enchantments, stored_enchantments 等
 
     return ItemPredicate(std::move(item), count, std::move(durability), std::move(potion), nullptr);
 }

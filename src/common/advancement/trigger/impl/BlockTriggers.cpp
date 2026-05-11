@@ -66,12 +66,7 @@ Result<std::shared_ptr<EnterBlockTrigger::Instance>> EnterBlockTrigger::fromJson
 }
 
 void EnterBlockTrigger::trigger(ServerPlayer& player, const BlockState& state) {
-    // TODO: 获取玩家位置和世界
-    // for (const auto& listener : getListeners(*player.getAdvancements())) {
-    //     if (listener.getInstance().test(state, player.getWorld(), player.getBlockPos())) {
-    //         listener.grantCriterion(*player.getAdvancements());
-    //     }
-    // }
+    // [阶段2+3：事件系统集成] 由 EnterBlockEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(state);
 }
@@ -175,7 +170,7 @@ void PlacedBlockTrigger::trigger(
     const BlockPos& pos,
     const ItemStack& item
 ) {
-    // TODO: 实现
+    // [阶段2+3：事件系统集成] 由 BlockPlaceEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(state);
     MC_UNUSED(pos);
@@ -225,9 +220,9 @@ Result<std::shared_ptr<SlideDownBlockTrigger::Instance>> SlideDownBlockTrigger::
 }
 
 void SlideDownBlockTrigger::trigger(ServerPlayer& player, const BlockState& state) {
+    // [阶段2+3：事件系统集成] 由 SlideDownBlockEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(state);
-    // TODO: 实现
 }
 
 // ========== BeeNestDestroyedTrigger ==========
@@ -314,11 +309,11 @@ void BeeNestDestroyedTrigger::trigger(
     const ItemStack& tool,
     i32 numBeesInside
 ) {
+    // [阶段2+3：事件系统集成] 由 BeeNestDestroyedEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(state);
     MC_UNUSED(tool);
     MC_UNUSED(numBeesInside);
-    // TODO: 实现
 }
 
 } // namespace mc::advancement

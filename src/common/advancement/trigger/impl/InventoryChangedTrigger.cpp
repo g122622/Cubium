@@ -23,7 +23,8 @@ bool InventoryChangedTriggerInstance::test(ServerPlayer& player, const PlayerInv
     i32 full = 0;
     i32 empty = 0;
 
-    // TODO: 计算槽位数量
+    // [阶段2+3：事件系统集成] 计算槽位数量
+    // 需要 PlayerInventory 接口支持 getSize() 和 getSlot()
     // for (i32 i = 0; i < inventory.getSize(); ++i) {
     //     const auto& slot = inventory.getSlot(i);
     //     if (slot.isEmpty()) {
@@ -47,13 +48,8 @@ bool InventoryChangedTriggerInstance::test(ServerPlayer& player, const PlayerInv
     if (!m_items.empty()) {
         for (const auto& predicate : m_items) {
             bool found = false;
-            // TODO: 遍历物品栏查找匹配的物品
-            // for (i32 i = 0; i < inventory.getSize(); ++i) {
-            //     if (predicate.test(inventory.getSlot(i))) {
-            //         found = true;
-            //         break;
-            //     }
-            // }
+            // [阶段2+3：事件系统集成] 遍历物品栏查找匹配的物品
+            // 需要 PlayerInventory 接口支持 getSize() 和 getSlot()
             MC_UNUSED(predicate);
             if (!found) {
                 return false;

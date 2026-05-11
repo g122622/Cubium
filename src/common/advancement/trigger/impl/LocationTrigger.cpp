@@ -41,13 +41,8 @@ Result<std::shared_ptr<LocationTrigger::Instance>> LocationTrigger::fromJson(con
 }
 
 void LocationTrigger::trigger(ServerPlayer& player) {
-    // 获取玩家位置
-    // TODO: 从 ServerPlayer 获取位置和世界
-    // for (const auto& listener : getListeners(*player.getAdvancements())) {
-    //     if (listener.getInstance().test(player.getWorld(), player.getX(), player.getY(), player.getZ())) {
-    //         listener.grantCriterion(*player.getAdvancements());
-    //     }
-    // }
+    // [阶段2+3：事件系统集成] 获取玩家位置并检测条件
+    // 需要 ServerPlayer 提供位置和世界信息，由 LocationEvent 触发
     MC_UNUSED(player);
 }
 

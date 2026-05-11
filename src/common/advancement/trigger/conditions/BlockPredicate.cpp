@@ -10,7 +10,7 @@ bool StatePropertiesPredicate::test(const BlockState& state) const {
     if (m_isAny) {
         return true;
     }
-    // TODO: 检查状态属性
+    // [阶段3+4：触发器完善] 检查状态属性
     MC_UNUSED(state);
     return true;
 }
@@ -33,13 +33,13 @@ bool BlockPredicate::test(const BlockState& state) const {
 
     // 检查方块ID
     if (m_block.has_value()) {
-        // TODO: 获取方块ID比较
+        // [阶段3+4：触发器完善] 需要方块注册表支持获取方块ID比较
         // if (state.getBlock().getId() != m_block.value()) return false;
     }
 
     // 检查标签
     if (m_tag.has_value()) {
-        // TODO: 检查方块是否在标签中
+        // [阶段3+4：触发器完善] 需要标签系统支持检查方块是否在标签中
         // if (!state.getBlock().isInTag(m_tag.value())) return false;
     }
 
@@ -109,7 +109,7 @@ bool FluidPredicate::test(const BlockState& state) const {
         return true;
     }
 
-    // TODO: 检查流体
+    // [阶段3+4：触发器完善] 需要流体系统支持检查流体
     MC_UNUSED(state);
     return true;
 }

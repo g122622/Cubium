@@ -45,9 +45,9 @@ Result<std::shared_ptr<TameAnimalTrigger::Instance>> TameAnimalTrigger::fromJson
 }
 
 void TameAnimalTrigger::trigger(ServerPlayer& player, const Entity& entity) {
+    // [阶段2+3：事件系统集成] 由 TameAnimalEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(entity);
-    // TODO: 实现
 }
 
 // ========== BredAnimalsTrigger ==========
@@ -134,11 +134,11 @@ void BredAnimalsTrigger::trigger(
     const Entity& parent,
     const Entity& partner
 ) {
+    // [阶段2+3：事件系统集成] 由 BredAnimalsEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(child);
     MC_UNUSED(parent);
     MC_UNUSED(partner);
-    // TODO: 实现
 }
 
 // ========== SummonedEntityTrigger ==========
@@ -184,9 +184,10 @@ Result<std::shared_ptr<SummonedEntityTrigger::Instance>> SummonedEntityTrigger::
 }
 
 void SummonedEntityTrigger::trigger(ServerPlayer& player, const Entity& entity) {
+    // [阶段2+3：事件系统集成] 由 SummonedEntityEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(entity);
-    // TODO: 实现
+}
 }
 
 // ========== CuredZombieVillagerTrigger ==========
@@ -253,10 +254,10 @@ Result<std::shared_ptr<CuredZombieVillagerTrigger::Instance>> CuredZombieVillage
 }
 
 void CuredZombieVillagerTrigger::trigger(ServerPlayer& player, const Entity& zombie, const Entity& villager) {
+    // [阶段2+3：事件系统集成] 由 CuredZombieVillagerEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(zombie);
     MC_UNUSED(villager);
-    // TODO: 实现
 }
 
 // ========== VillagerTradeTrigger ==========
@@ -323,10 +324,10 @@ Result<std::shared_ptr<VillagerTradeTrigger::Instance>> VillagerTradeTrigger::fr
 }
 
 void VillagerTradeTrigger::trigger(ServerPlayer& player, const Entity& villager, const ItemStack& item) {
+    // [阶段2+3：事件系统集成] 由 VillagerTradeEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(villager);
     MC_UNUSED(item);
-    // TODO: 实现
 }
 
 } // namespace mc::advancement

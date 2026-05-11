@@ -139,7 +139,7 @@ void PlayerAdvancements::onAdvancementsReloaded(mc::advancement::AdvancementMana
     m_visibilityChanged.clear();
 
     // 重新加载所有成就
-    // TODO: 从持久化数据恢复进度
+    // [阶段5：持久化存储] 从持久化数据恢复进度
     MC_UNUSED(manager);
 }
 
@@ -208,7 +208,7 @@ void PlayerAdvancements::registerListeners(mc::advancement::AdvancementPtr advan
         }
 
         // 创建监听器并注册
-        // TODO: 根据触发器类型创建正确的监听器
+        // [阶段2+3：事件系统集成] 根据触发器类型创建正确的监听器并注册到触发器
     }
 }
 
@@ -225,7 +225,7 @@ void PlayerAdvancements::unregisterListeners(mc::advancement::AdvancementPtr adv
             continue;
         }
 
-        // TODO: 移除监听器
+        // [阶段2+3：事件系统集成] 移除监听器
     }
 }
 

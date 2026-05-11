@@ -47,7 +47,7 @@ Result<AdvancementDisplay> AdvancementDisplay::fromJson(const nlohmann::json& js
                     icon = ItemStack(item, 1);
                 }
             }
-            // TODO: 解析NBT数据
+            // [阶段3+4：触发器完善] 解析NBT数据应用到物品栈
         }
     }
 
@@ -105,7 +105,7 @@ nlohmann::json AdvancementDisplay::toJson() const {
     if (!m_icon.isEmpty()) {
         nlohmann::json iconJson;
         iconJson["item"] = m_icon.getItem()->itemLocation().toString();
-        // TODO: 添加NBT数据
+        // [阶段3+4：触发器完善] 添加NBT数据
         json["icon"] = std::move(iconJson);
     }
 

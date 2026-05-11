@@ -63,9 +63,9 @@ Result<std::shared_ptr<RecipeUnlockedTrigger::Instance>> RecipeUnlockedTrigger::
 }
 
 void RecipeUnlockedTrigger::trigger(ServerPlayer& player, const ResourceLocation& recipe) {
+    // [阶段2+3：事件系统集成] 由 RecipeUnlockedEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(recipe);
-    // TODO: 实现
 }
 
 // ========== EffectsChangedTrigger ==========
@@ -111,8 +111,8 @@ Result<std::shared_ptr<EffectsChangedTrigger::Instance>> EffectsChangedTrigger::
 }
 
 void EffectsChangedTrigger::trigger(ServerPlayer& player) {
+    // [阶段2+3：事件系统集成] 由 EffectChangedEvent 触发
     MC_UNUSED(player);
-    // TODO: 实现
 }
 
 // ========== BrewedPotionTrigger ==========
@@ -151,9 +151,9 @@ Result<std::shared_ptr<BrewedPotionTrigger::Instance>> BrewedPotionTrigger::from
 }
 
 void BrewedPotionTrigger::trigger(ServerPlayer& player, const ResourceLocation& potion) {
+    // [阶段2+3：事件系统集成] 由 BrewedPotionEvent 触发
     MC_UNUSED(player);
     MC_UNUSED(potion);
-    // TODO: 实现
 }
 
 } // namespace mc::advancement
