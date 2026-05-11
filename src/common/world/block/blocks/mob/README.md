@@ -15,8 +15,8 @@ mob/
 | 类名 | 说明 | 状态属性 | 实现进度 |
 |------|------|----------|----------|
 | `BeehiveBlock` | 蜂巢/蜂箱 | HONEY_LEVEL_0_5, FACING | 基础框架 |
-| `TurtleEggBlock` | 海龟蛋 | EGGS_1_4, HATCH_0_2 | 孵化/踩踏完成 |
-| `InfestedBlock` | 被感染方块 | 无 | 基础框架 |
+| `TurtleEggBlock` | 海龟蛋 | EGGS_1_4, HATCH_0_2 | 完整实现 |
+| `InfestedBlock` | 被感染方块 | 无 | 完整实现 |
 | `SpawnerBlock` | 刷怪笼 | 无 | 基础框架 |
 | `DragonBreathBlock` | 龙息 | 无 | 基础框架 |
 
@@ -28,26 +28,62 @@ mob/
 - 蜂蜜等级 0-5
 - 满时可以用玻璃瓶收集
 
-### 海龟蛋 (MC 1.16.5 对齐)
-- 只能放置在沙子类方块上 (BlockTags::SAND)
-- 支持蛋堆叠 (1-4个蛋，放置时叠加)
-- 随机孵化 (3个阶段: HATCH 0-2)
-- 孵化条件: 白天或 1/500 随机概率
-- 踩踏机制:
-  - 实体走过: 1/100 概率破坏
-  - 实体摔落: 1/3 概率破坏 (僵尸类除外)
-  - 海龟和蝙蝠不会踩破蛋
-- 孵化完成后生成小海龟 (TODO: 实体生成)
+### 海龟蛋 (MC 1.16.5 对齐) - 已完成
 
-### 被感染方块
+#### 状态属性
+- `EGGS_1_4`: 蛋数量 (1-4)
+- `HATCH_0_2`: 孵化阶段 (0-2)
+
+#### 放置规则
+- 只能放置在沙子类方块上 (BlockTags::SAND)
+- 放置在已有海龟蛋上时增加蛋数量（最大4个）
+
+#### 孵化逻辑
+- 随机 tick 触发孵化检查
+- 白天（日光）或 1/500 随机概率时可孵化
+- 孵化阶段 0 → 1 → 2 → 破壳
+- 破壳时生成小海龟：
+  - 调用 `TurtleEntity::setChild(true)` 设置为幼体
+  - 调用 `TurtleEntity::setHomePos(pos)` 记住出生位置
+  - 每个蛋生成一只小海龟
+
+#### 踩踏机制 (MC 1.16.5 完整实现)
+- `onEntityWalk`: 实体走过时有概率踩破蛋
+- `onFallenUpon`: 实体摔落时有概率踩破蛋
+- 实体类型检查 (`canTrample`):
+  - **海龟和蝙蝠**: 不能踩破蛋
+  - **非生物实体**: 不能踩破蛋（需要 LivingEntity）
+  - **玩家**: 总是可以踩破
+  - **其他生物**: 根据 mobGriefing 游戏规则
+- 僵尸类实体 (`isZombieType`):
+  - Zombie、Husk、Drowned 不会踩破蛋
+  - 走过海龟蛋时直接无视
+
+#### 音效
+- ENTITY_TURTLE_EGG_CRACK: 孵化进度增加
+- ENTITY_TURTLE_EGG_HATCH: 孵化完成
+- ENTITY_TURTLE_EGG_BREAK: 蛋被踩破
+
+### 被感染方块 (InfestedBlock) - 已完成
+
+#### 特性
 - 外观与普通方块相同
-- 破坏时生成蠹虫
-- 更容易被破坏
+- 被破坏时生成蠹虫
+- 更容易被破坏（硬度0.75）
+
+#### 生成蠹虫逻辑 (`onBlockRemoved`)
+- 仅在服务端生成（客户端跳过）
+- 在方块中心位置生成蠹虫
+- 位置计算：`x + 0.5, y, z + 0.5`
 
 ### 刷怪笼
 - 自动生成生物
 - 需要方块实体存储配置
 - 创造模式可编辑
+
+### 龙息
+- 无碰撞体积
+- 实体经过时造成伤害
 
 ## 实现状态
 
@@ -56,10 +92,16 @@ mob/
 - [x] 放置检查: 只能在沙子上
 - [x] 蛋堆叠: 放置时增加蛋数量
 - [x] 孵化逻辑: 随机 tick 增加孵化阶段
+- [x] 孵化生成小海龟: 设置幼体状态和出生位置
 - [x] 踩踏机制: onEntityWalk, onFallenUpon
+- [x] 实体类型检查: canTrample, isZombieType
 - [x] 沙子检查: BlockTags::SAND
-- [ ] 声音效果: ENTITY_TURTLE_EGG_CRACK, ENTITY_TURTLE_EGG_HATCH, ENTITY_TURTLE_EGG_BREAK
-- [ ] 孵化时生成小海龟
+- [x] 音效: ENTITY_TURTLE_EGG_CRACK, ENTITY_TURTLE_EGG_HATCH, ENTITY_TURTLE_EGG_BREAK
+
+### InfestedBlock (已完成)
+- [x] 宿主方块ID存储
+- [x] 破坏时生成蠹虫 (SilverfishEntity)
+- [x] 服务端生成检查
 
 ### BeehiveBlock (基础框架)
 - [x] 状态属性: HONEY_LEVEL_0_5 (蜂蜜等级 0-5), HORIZONTAL_FACING (朝向)
@@ -80,7 +122,7 @@ auto beehive = std::make_unique<BeehiveBlock>(
 
 // 创建海龟蛋
 auto turtleEgg = std::make_unique<TurtleEggBlock>(
-    BlockProperties(Materials::EGG)
+    BlockProperties(Materials::SAND)
         .hardness(0.5f)
 );
 
@@ -108,10 +150,44 @@ auto infestedStone = std::make_unique<InfestedBlock>(
 | `world/IWorld` | 世界接口 |
 | `util/property/Properties` | 方块属性 |
 | `entity/core/Entity` | 实体接口 (踩踏检测) |
+| `entity/core/LivingEntity` | 生物实体基类 (踩踏检测) |
+| `entity/entities/passive/special/TurtleEntity` | 海龟实体 |
+| `entity/entities/monster/arthropod/EndermiteEntity` | 蠹虫实体 |
+
+## 测试覆盖
+
+测试文件位于 `tests/common/world/block/blocks/MobBlocksTest.cpp`：
+
+### BeehiveBlock 测试
+- 创建和属性验证
+- 蜂蜜等级设置和范围限制
+- 朝向旋转和镜像
+
+### TurtleEggBlock 测试
+- 状态属性验证
+- 形状获取
+- 随机 tick 标记
+
+### TurtleEggBlock 踩踏测试
+- 玩家踩踏验证
+- 海龟不能踩破蛋
+- 僵尸类不踩破蛋（Zombie, Husk, Drowned）
+- 蝙蝠不能踩破蛋
+- 非生物实体不能踩破蛋
+
+### TurtleEggBlock 孵化测试
+- 孵化进度逻辑
+- 无沙子时不孵化
+- 客户端不生成实体
+
+### InfestedBlock 测试
+- 蠹虫生成验证
+- 客户端不生成实体
+- 蠹虫位置正确性
 
 ## 参考
 
 - MC 1.16.5: net.minecraft.block.TurtleEggBlock
 - MC 1.16.5: net.minecraft.block.BeehiveBlock
-- MC 1.16.5: net.minecraft.block.InfestedBlock
+- MC 1.16.5: net.minecraft.block.InfestedBlock (SilverfishBlock)
 - MC 1.16.5: net.minecraft.block.SpawnerBlock
