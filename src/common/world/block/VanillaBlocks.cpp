@@ -148,6 +148,7 @@ Block* VanillaBlocks::NETHER_GOLD_ORE = nullptr;
 Block* VanillaBlocks::ANCIENT_DEBRIS = nullptr;
 
 // 矿物方块
+Block* VanillaBlocks::COAL_BLOCK = nullptr;
 Block* VanillaBlocks::GOLD_BLOCK = nullptr;
 Block* VanillaBlocks::IRON_BLOCK = nullptr;
 Block* VanillaBlocks::LAPIS_BLOCK = nullptr;
@@ -1130,6 +1131,13 @@ void VanillaBlocks::registerSandstones() {
 // ============================================================================
 void VanillaBlocks::registerMineralBlocks() {
     auto& registry = BlockRegistry::instance();
+
+    // 煤炭块
+    // 参考 MC 1.16.5: new Block(Properties.create(Material.IRON).setRequiresTool().hardnessAndResistance(5.0F, 6.0F))
+    COAL_BLOCK = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:coal_block"),
+        BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f)
+    );
 
     // 金块
     // 参考: new Block(Properties.create(Material.IRON).setRequiresTool().hardnessAndResistance(3.0F, 6.0F))

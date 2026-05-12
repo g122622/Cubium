@@ -88,6 +88,7 @@ public:
     // ========================================================================
     // 矿物方块
     // ========================================================================
+    static Block* COAL_BLOCK;           // 煤炭块
     static Block* GOLD_BLOCK;
     static Block* IRON_BLOCK;
     static Block* LAPIS_BLOCK;

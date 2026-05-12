@@ -161,6 +161,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::REDSTONE_ORE, "redstone_ore");
 
     // 矿物方块
+    registerSimpleBlock(VanillaBlocks::COAL_BLOCK, "coal_block");
     registerSimpleBlock(VanillaBlocks::GOLD_BLOCK, "gold_block");
     registerSimpleBlock(VanillaBlocks::IRON_BLOCK, "iron_block");
     registerSimpleBlock(VanillaBlocks::DIAMOND_BLOCK, "diamond_block");

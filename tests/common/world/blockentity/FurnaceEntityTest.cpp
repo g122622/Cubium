@@ -310,6 +310,15 @@ TEST_F(FurnaceBurnTimeTest, Charcoal_HasCorrectBurnTime) {
     EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(charcoal), 1600);
 }
 
+TEST_F(FurnaceBurnTimeTest, CoalBlock_HasCorrectBurnTime) {
+    // 煤炭块燃烧时间：16000 tick（800秒），可烧炼 80 个物品
+    // 参考 MC 1.16.5 AbstractFurnaceTileEntity.getBurnTimes()
+    const BlockItem* coalBlockItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::COAL_BLOCK);
+    ASSERT_NE(coalBlockItem, nullptr) << "COAL_BLOCK should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(coalBlockItem), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 16000);
+}
+
 // ========== 木头类测试 (300 tick) ==========
 
 TEST_F(FurnaceBurnTimeTest, OakLog_HasCorrectBurnTime) {

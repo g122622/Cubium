@@ -102,8 +102,11 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         if (item == Items::COAL || item == Items::CHARCOAL) {
             return 1600;
         }
-        // 煤炭块: 16000 tick (800 秒) - 待方块注册
+        // 煤炭块: 16000 tick (800 秒)
         // 参考: MC 1.16.5 第 98 行: addItemBurnTime(map, Blocks.COAL_BLOCK, 16000);
+        if (isBlockItem(item, VanillaBlocks::COAL_BLOCK)) {
+            return 16000;
+        }
 
         // ========== 木头类 (300 tick = 15 秒) ==========
         // 原木 - 所有 6 种木材类型（使用 Items 静态指针直接比较）
@@ -353,7 +356,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
 
         // ========== TODO 待实现的物品 ==========
         // 木船 (BOAT): 1200 tick (60 秒) - 待物品注册
-        // 煤炭块 (COAL_BLOCK): 16000 tick (800 秒) - 待方块注册
         // 旗帜 (BANNER): 300 tick - 待方块注册
         // 告示牌 (SIGN): 200 tick - 待物品注册
 
