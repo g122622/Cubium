@@ -120,8 +120,8 @@ m_advancementEventHandler.initialize();
 
 | 事件 | 触发器 | 状态 |
 |------|--------|------|
-| `InventoryChangedEvent` | `InventoryChangedTrigger` | 已完成 |
-| `PlayerKillEntityEvent` | `PlayerKilledEntityTrigger` | 预留 |
+| `InventoryChangedEvent` | `InventoryChangedTrigger` | ✅ 已完成 |
+| `PlayerKillEntityEvent` | `PlayerKilledEntityTrigger` | ✅ 已完成 |
 | `PlayerLoginEvent` | 玩家成就初始化 | 预留 |
 
 ### 事件流程

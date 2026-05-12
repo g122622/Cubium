@@ -110,15 +110,53 @@ bool matches = instance.testWithInventory(
 
 ### 实体触发器
 
-| 触发器 | ID | 说明 |
-|--------|-----|------|
-| `PlayerKilledEntityTrigger` | `minecraft:player_killed_entity` | 玩家击杀实体 |
-| `EntityKilledPlayerTrigger` | `minecraft:entity_killed_player` | 实体击杀玩家 |
-| `TameAnimalTrigger` | `minecraft:tame_animal` | 驯服动物 |
-| `BredAnimalsTrigger` | `minecraft:bred_animals` | 繁殖动物 |
-| `SummonedEntityTrigger` | `minecraft:summoned_entity` | 召唤实体 |
-| `CuredZombieVillagerTrigger` | `minecraft:cured_zombie_villager` | 治愈僵尸村民 |
-| `VillagerTradeTrigger` | `minecraft:villager_trade` | 村民交易 |
+| 触发器 | ID | 说明 | 状态 |
+|--------|-----|------|------|
+| `PlayerKilledEntityTrigger` | `minecraft:player_killed_entity` | 玩家击杀实体 | ✅ 完整实现，已注册 |
+| `EntityKilledPlayerTrigger` | `minecraft:entity_killed_player` | 实体击杀玩家 | ✅ 完整实现，已注册 |
+| `TameAnimalTrigger` | `minecraft:tame_animal` | 驯服动物 | ✅ 完整实现 |
+| `BredAnimalsTrigger` | `minecraft:bred_animals` | 繁殖动物 | ⏳ 条件检测完成，待事件集成 |
+| `SummonedEntityTrigger` | `minecraft:summoned_entity` | 召唤实体 | ⏳ 条件检测完成，待事件集成 |
+| `CuredZombieVillagerTrigger` | `minecraft:cured_zombie_villager` | 治愈僵尸村民 | ⏳ 条件检测完成，待事件集成 |
+| `VillagerTradeTrigger` | `minecraft:villager_trade` | 村民交易 | ⏳ 条件检测完成，待事件集成 |
+
+#### PlayerKilledEntityTrigger 详细说明
+
+`PlayerKilledEntityTrigger` 用于检测玩家击杀实体的事件，支持以下条件：
+
+- `entity`: 实体谓词，匹配被击杀的实体类型
+- `killing_blow`: 伤害源谓词，匹配击杀方式
+
+```cpp
+// 触发检测（服务端）
+void onPlayerKillEntity(const PlayerKillEntityEvent& e) {
+    auto* trigger = CriterionTriggers::instance().getTrigger<PlayerKilledEntityTrigger>();
+    if (trigger && e.victim && e.cause) {
+        trigger->AbstractCriterionTrigger<PlayerKilledEntityTriggerInstance>::trigger(
+            *player.getAdvancements(),
+            [&e](const PlayerKilledEntityTriggerInstance& instance) {
+                return instance.test(*e.victim, *e.cause);
+            }
+        );
+    }
+}
+```
+
+**使用示例** (JSON 成就条件):
+```json
+{
+    "criteria": {
+        "killed_zombie": {
+            "trigger": "minecraft:player_killed_entity",
+            "conditions": {
+                "entity": {
+                    "type": "minecraft:zombie"
+                }
+            }
+        }
+    }
+}
+```
 
 #### TameAnimalTrigger 详细说明
 

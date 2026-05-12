@@ -81,6 +81,8 @@ add_executable(mc_tests
     common/entity/core/BoostHelperTest.cpp
     # 成就系统测试
     advancement/AdvancementTest.cpp
+    # PlayerKilledEntityTrigger 触发器测试
+    advancement/PlayerKilledEntityTriggerTest.cpp
     # AdvancementEventHandler 测试（getServerPlayer 架构验证）
     server/advancement/AdvancementEventHandlerTest.cpp
     # ItemDropHelper 测试
