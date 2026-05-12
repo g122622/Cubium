@@ -1,10 +1,13 @@
 #pragma once
 
 #include "../CriterionTrigger.hpp"
-#include "conditions/LocationPredicate.hpp"
+#include "../conditions/LocationPredicate.hpp"
 #include <memory>
 
 namespace mc::advancement {
+
+// 前向声明 Instance 类
+class LocationTriggerInstance;
 
 /**
  * @brief 位置触发器
@@ -13,53 +16,12 @@ namespace mc::advancement {
  * 也用于 slept_in_bed, hero_of_the_village, voluntary_exile 等。
  * 参考 MC 1.16.5: net.minecraft.advancements.criterion.LocationTrigger
  */
-class LocationTrigger : public AbstractCriterionTrigger<LocationTrigger> {
+class LocationTrigger : public AbstractCriterionTrigger<LocationTriggerInstance> {
 public:
     /**
      * @brief 触发器ID
      */
     static constexpr const char* TRIGGER_ID = "minecraft:location";
-
-    /**
-     * @brief 触发器实例
-     */
-    class Instance : public CriterionInstance<Instance> {
-    public:
-        Instance() = default;
-
-        /**
-         * @brief 构造实例
-         * @param location 位置谓词
-         */
-        explicit Instance(LocationPredicate location);
-
-        /**
-         * @brief 检查条件是否满足
-         * @param world 世界
-         * @param x X坐标
-         * @param y Y坐标
-         * @param z Z坐标
-         * @return 是否满足
-         */
-        [[nodiscard]] bool test(const class World& world, f64 x, f64 y, f64 z) const;
-
-        /**
-         * @brief 从JSON解析
-         */
-        Result<void> fromJson(const nlohmann::json& json);
-
-        /**
-         * @brief 序列化条件为JSON
-         */
-        [[nodiscard]] nlohmann::json conditionsToJson() const;
-
-        // ========== Getters ==========
-
-        [[nodiscard]] const LocationPredicate& getLocation() const noexcept { return m_location; }
-
-    private:
-        LocationPredicate m_location;
-    };
 
     /**
      * @brief 获取触发器ID
@@ -71,7 +33,7 @@ public:
     /**
      * @brief 从JSON反序列化实例
      */
-    [[nodiscard]] Result<std::shared_ptr<Instance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<LocationTriggerInstance>> fromJson(const nlohmann::json& json);
 
     /**
      * @brief 触发检测
@@ -84,17 +46,60 @@ public:
     /**
      * @brief 在指定位置
      */
-    static std::shared_ptr<Instance> atLocation(const LocationPredicate& location);
+    static std::shared_ptr<LocationTriggerInstance> atLocation(const LocationPredicate& location);
 
     /**
      * @brief 在指定生物群系
      */
-    static std::shared_ptr<Instance> inBiome(const ResourceLocation& biome);
+    static std::shared_ptr<LocationTriggerInstance> inBiome(const ResourceLocation& biome);
 
     /**
      * @brief 在指定维度
      */
-    static std::shared_ptr<Instance> inDimension(const ResourceLocation& dimension);
+    static std::shared_ptr<LocationTriggerInstance> inDimension(const ResourceLocation& dimension);
+};
+
+/**
+ * @brief 位置触发器实例
+ */
+class LocationTriggerInstance : public CriterionInstance<LocationTriggerInstance> {
+public:
+    static constexpr const char* TRIGGER_ID = "minecraft:location";
+
+    LocationTriggerInstance() = default;
+
+    /**
+     * @brief 构造实例
+     * @param location 位置谓词
+     */
+    explicit LocationTriggerInstance(LocationPredicate location);
+
+    /**
+     * @brief 检查条件是否满足
+     * @param world 世界
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @return 是否满足
+     */
+    [[nodiscard]] bool test(const class World& world, f64 x, f64 y, f64 z) const;
+
+    /**
+     * @brief 从JSON解析
+     */
+    Result<void> fromJson(const nlohmann::json& json);
+
+    /**
+     * @brief 序列化条件为JSON
+     */
+    [[nodiscard]] nlohmann::json conditionsToJson() const;
+
+    // ========== Getters ==========
+
+    [[nodiscard]] const LocationPredicate& getLocation() const noexcept { return m_location; }
+
+private:
+    LocationPredicate m_location;
 };
 
 /**

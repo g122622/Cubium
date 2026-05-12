@@ -960,12 +960,12 @@ add_library(mc_common STATIC
     # Trigger implementations
     advancement/trigger/impl/InventoryChangedTrigger.cpp
     advancement/trigger/impl/TickTrigger.cpp
+    advancement/trigger/impl/EffectTriggers.cpp
     # advancement/trigger/impl/LocationTrigger.cpp
     # advancement/trigger/impl/PlayerKilledEntityTrigger.cpp
     # advancement/trigger/impl/BlockTriggers.cpp
     # advancement/trigger/impl/ItemTriggers.cpp
     # advancement/trigger/impl/EntityTriggers.cpp
-    # advancement/trigger/impl/EffectTriggers.cpp
 
     # Scoreboard System - Core
     scoreboard/core/Scoreboard.cpp

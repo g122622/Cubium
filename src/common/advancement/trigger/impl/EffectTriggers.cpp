@@ -1,44 +1,24 @@
 #include "EffectTriggers.hpp"
-#include "server/advancement/TriggerInstantiation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace mc::advancement {
 
-// ========== TickTrigger ==========
-
-Result<void> TickTrigger::Instance::fromJson(const nlohmann::json& json) {
-    MC_UNUSED(json);
-    return {};
-}
-
-nlohmann::json TickTrigger::Instance::conditionsToJson() const {
-    return nullptr;
-}
-
-Result<std::shared_ptr<TickTrigger::Instance>> TickTrigger::fromJson(const nlohmann::json& json) {
-    MC_UNUSED(json);
-    return std::make_shared<Instance>();
-}
-
-void TickTrigger::trigger(ServerPlayer& player) {
-    for (const auto& listener : getListeners(*player.getAdvancements())) {
-        if (listener.getInstance().test()) {
-            listener.grantCriterion(*player.getAdvancements());
-        }
-    }
-}
-
 // ========== RecipeUnlockedTrigger ==========
 
-RecipeUnlockedTrigger::Instance::Instance(ResourceLocation recipe)
+RecipeUnlockedTriggerInstance::RecipeUnlockedTriggerInstance(ResourceLocation recipe)
     : m_recipe(std::move(recipe)) {
 }
 
-bool RecipeUnlockedTrigger::Instance::test(const ResourceLocation& recipe) const {
+bool RecipeUnlockedTriggerInstance::test(const ResourceLocation& recipe) const {
+    // 如果没有指定配方ID（path为空），则匹配任何配方（any() 行为）
+    // 默认构造的 ResourceLocation 有 namespace="minecraft", path=""
+    if (m_recipe.path().empty()) {
+        return true;
+    }
     return m_recipe == recipe;
 }
 
-Result<void> RecipeUnlockedTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> RecipeUnlockedTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -50,12 +30,12 @@ Result<void> RecipeUnlockedTrigger::Instance::fromJson(const nlohmann::json& jso
     return {};
 }
 
-nlohmann::json RecipeUnlockedTrigger::Instance::conditionsToJson() const {
+nlohmann::json RecipeUnlockedTriggerInstance::conditionsToJson() const {
     return {{"recipe", m_recipe.toString()}};
 }
 
-Result<std::shared_ptr<RecipeUnlockedTrigger::Instance>> RecipeUnlockedTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+Result<std::shared_ptr<ICriterionInstance>> RecipeUnlockedTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<RecipeUnlockedTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
@@ -63,74 +43,45 @@ Result<std::shared_ptr<RecipeUnlockedTrigger::Instance>> RecipeUnlockedTrigger::
     return instance;
 }
 
-void RecipeUnlockedTrigger::trigger(ServerPlayer& player, const ResourceLocation& recipe) {
-    // 参考 MC 1.16.5 RecipeUnlockedTrigger.trigger()
-    // 遍历玩家的所有监听器，检查配方 ID 是否匹配
-    for (const auto& listener : getListeners(*player.getAdvancements())) {
-        if (listener.getInstance().test(recipe)) {
-            listener.grantCriterion(*player.getAdvancements());
-        }
-    }
-}
+// Note: RecipeUnlockedTrigger::trigger() is implemented in server layer via include of TriggerInstantiation.hpp
 
 // ========== EffectsChangedTrigger ==========
 
-EffectsChangedTrigger::Instance::Instance(MobEffectsPredicate effects)
-    : m_effects(std::move(effects)) {
+bool EffectsChangedTriggerInstance::test(const Entity& entity) const {
+    MC_UNUSED(entity);
+    // [TODO] 需要 MobEffectsPredicate 实现
+    return true;
 }
 
-bool EffectsChangedTrigger::Instance::test(const Entity& entity) const {
-    return m_effects.test(entity);
-}
-
-Result<void> EffectsChangedTrigger::Instance::fromJson(const nlohmann::json& json) {
-    if (json.is_null()) {
-        return {};
-    }
-
-    if (json.contains("effects")) {
-        auto result = MobEffectsPredicate::fromJson(json["effects"]);
-        if (result.failed()) {
-            return result.error();
-        }
-        m_effects = result.value();
-    }
-
+Result<void> EffectsChangedTriggerInstance::fromJson(const nlohmann::json& json) {
+    MC_UNUSED(json);
+    // [TODO] 需要 MobEffectsPredicate 实现
     return {};
 }
 
-nlohmann::json EffectsChangedTrigger::Instance::conditionsToJson() const {
-    if (!m_effects.isAny()) {
-        return {{"effects", m_effects.toJson()}};
-    }
+nlohmann::json EffectsChangedTriggerInstance::conditionsToJson() const {
+    // [TODO] 需要 MobEffectsPredicate 实现
     return nullptr;
 }
 
-Result<std::shared_ptr<EffectsChangedTrigger::Instance>> EffectsChangedTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
-    auto result = instance->fromJson(json);
-    if (result.failed()) {
-        return result.error();
-    }
-    return instance;
+Result<std::shared_ptr<ICriterionInstance>> EffectsChangedTrigger::fromJson(const nlohmann::json& json) {
+    MC_UNUSED(json);
+    return std::make_shared<EffectsChangedTriggerInstance>();
 }
 
-void EffectsChangedTrigger::trigger(ServerPlayer& player) {
-    // [TODO 阶段2+3：事件系统集成] 由 EffectChangedEvent 触发
-    MC_UNUSED(player);
-}
+// Note: EffectsChangedTrigger::trigger() is implemented via TriggerInstantiation.hpp in server layer
 
 // ========== BrewedPotionTrigger ==========
 
-BrewedPotionTrigger::Instance::Instance(ResourceLocation potion)
+BrewedPotionTriggerInstance::BrewedPotionTriggerInstance(ResourceLocation potion)
     : m_potion(std::move(potion)) {
 }
 
-bool BrewedPotionTrigger::Instance::test(const ResourceLocation& potion) const {
+bool BrewedPotionTriggerInstance::test(const ResourceLocation& potion) const {
     return m_potion == potion;
 }
 
-Result<void> BrewedPotionTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> BrewedPotionTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -142,12 +93,12 @@ Result<void> BrewedPotionTrigger::Instance::fromJson(const nlohmann::json& json)
     return {};
 }
 
-nlohmann::json BrewedPotionTrigger::Instance::conditionsToJson() const {
+nlohmann::json BrewedPotionTriggerInstance::conditionsToJson() const {
     return {{"potion", m_potion.toString()}};
 }
 
-Result<std::shared_ptr<BrewedPotionTrigger::Instance>> BrewedPotionTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+Result<std::shared_ptr<ICriterionInstance>> BrewedPotionTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<BrewedPotionTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
@@ -155,10 +106,6 @@ Result<std::shared_ptr<BrewedPotionTrigger::Instance>> BrewedPotionTrigger::from
     return instance;
 }
 
-void BrewedPotionTrigger::trigger(ServerPlayer& player, const ResourceLocation& potion) {
-    // [TODO 阶段2+3：事件系统集成] 由 BrewedPotionEvent 触发
-    MC_UNUSED(player);
-    MC_UNUSED(potion);
-}
+// Note: BrewedPotionTrigger::trigger() is implemented via TriggerInstantiation.hpp in server layer
 
 } // namespace mc::advancement

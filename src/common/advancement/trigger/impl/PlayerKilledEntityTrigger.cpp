@@ -2,14 +2,14 @@
 
 namespace mc::advancement {
 
-// ========== PlayerKilledEntityTrigger::Instance ==========
+// ========== PlayerKilledEntityTriggerInstance ==========
 
-PlayerKilledEntityTrigger::Instance::Instance(EntityPredicate entity, DamageSourcePredicate killingBlow)
+PlayerKilledEntityTriggerInstance::PlayerKilledEntityTriggerInstance(EntityPredicate entity, DamageSourcePredicate killingBlow)
     : m_entity(std::move(entity))
     , m_killingBlow(std::move(killingBlow)) {
 }
 
-bool PlayerKilledEntityTrigger::Instance::test(
+bool PlayerKilledEntityTriggerInstance::test(
     ServerPlayer& player,
     const Entity& entity,
     const DamageSource& source
@@ -27,7 +27,7 @@ bool PlayerKilledEntityTrigger::Instance::test(
     return true;
 }
 
-Result<void> PlayerKilledEntityTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> PlayerKilledEntityTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -51,7 +51,7 @@ Result<void> PlayerKilledEntityTrigger::Instance::fromJson(const nlohmann::json&
     return {};
 }
 
-nlohmann::json PlayerKilledEntityTrigger::Instance::conditionsToJson() const {
+nlohmann::json PlayerKilledEntityTriggerInstance::conditionsToJson() const {
     nlohmann::json json;
 
     if (!m_entity.isAny()) {
@@ -66,8 +66,8 @@ nlohmann::json PlayerKilledEntityTrigger::Instance::conditionsToJson() const {
 
 // ========== PlayerKilledEntityTrigger ==========
 
-Result<std::shared_ptr<PlayerKilledEntityTrigger::Instance>> PlayerKilledEntityTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+Result<std::shared_ptr<PlayerKilledEntityTriggerInstance>> PlayerKilledEntityTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<PlayerKilledEntityTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
@@ -87,26 +87,26 @@ void PlayerKilledEntityTrigger::trigger(
     }
 }
 
-std::shared_ptr<PlayerKilledEntityTrigger::Instance> PlayerKilledEntityTrigger::entityKilled() {
-    return std::make_shared<Instance>();
+std::shared_ptr<PlayerKilledEntityTriggerInstance> PlayerKilledEntityTrigger::entityKilled() {
+    return std::make_shared<PlayerKilledEntityTriggerInstance>();
 }
 
-std::shared_ptr<PlayerKilledEntityTrigger::Instance> PlayerKilledEntityTrigger::entityKilled(const EntityPredicate& entity) {
-    return std::make_shared<Instance>(entity, DamageSourcePredicate{});
+std::shared_ptr<PlayerKilledEntityTriggerInstance> PlayerKilledEntityTrigger::entityKilled(const EntityPredicate& entity) {
+    return std::make_shared<PlayerKilledEntityTriggerInstance>(entity, DamageSourcePredicate{});
 }
 
-std::shared_ptr<PlayerKilledEntityTrigger::Instance> PlayerKilledEntityTrigger::killedByEntity(const EntityPredicate& killer) {
-    return std::make_shared<Instance>(killer, DamageSourcePredicate{});
+std::shared_ptr<PlayerKilledEntityTriggerInstance> PlayerKilledEntityTrigger::killedByEntity(const EntityPredicate& killer) {
+    return std::make_shared<PlayerKilledEntityTriggerInstance>(killer, DamageSourcePredicate{});
 }
 
-// ========== EntityKilledPlayerTrigger::Instance ==========
+// ========== EntityKilledPlayerTriggerInstance ==========
 
-EntityKilledPlayerTrigger::Instance::Instance(EntityPredicate entity, DamageSourcePredicate killingBlow)
+EntityKilledPlayerTriggerInstance::EntityKilledPlayerTriggerInstance(EntityPredicate entity, DamageSourcePredicate killingBlow)
     : m_entity(std::move(entity))
     , m_killingBlow(std::move(killingBlow)) {
 }
 
-bool EntityKilledPlayerTrigger::Instance::test(
+bool EntityKilledPlayerTriggerInstance::test(
     ServerPlayer& player,
     const Entity& entity,
     const DamageSource& source
@@ -121,7 +121,7 @@ bool EntityKilledPlayerTrigger::Instance::test(
     return true;
 }
 
-Result<void> EntityKilledPlayerTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> EntityKilledPlayerTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -145,7 +145,7 @@ Result<void> EntityKilledPlayerTrigger::Instance::fromJson(const nlohmann::json&
     return {};
 }
 
-nlohmann::json EntityKilledPlayerTrigger::Instance::conditionsToJson() const {
+nlohmann::json EntityKilledPlayerTriggerInstance::conditionsToJson() const {
     nlohmann::json json;
 
     if (!m_entity.isAny()) {
@@ -160,8 +160,8 @@ nlohmann::json EntityKilledPlayerTrigger::Instance::conditionsToJson() const {
 
 // ========== EntityKilledPlayerTrigger ==========
 
-Result<std::shared_ptr<EntityKilledPlayerTrigger::Instance>> EntityKilledPlayerTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+Result<std::shared_ptr<EntityKilledPlayerTriggerInstance>> EntityKilledPlayerTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<EntityKilledPlayerTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();

@@ -225,11 +225,10 @@ public:
         m_listeners.erase(&advancements);
     }
 
-protected:
     /**
      * @brief 触发检测
      *
-     * 子类调用此方法来触发条件检测。
+     * 遍历玩家的所有监听器，对满足条件的监听器授予进度。
      *
      * @tparam PredicateT 谓词类型
      * @param advancements 玩家成就进度

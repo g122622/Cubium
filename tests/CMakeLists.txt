@@ -206,6 +206,8 @@ add_executable(mc_tests
     server/core/BannedIpListTest.cpp
     # ServerPlayer 消息发送测试
     server/player/ServerPlayerMessageTest.cpp
+    # 合成统计和成就触发测试
+    server/player/CraftingStatisticsTest.cpp
     # 维度管理器测试
     server/dimension/ServerDimensionManagerTest.cpp
     server/weather/WeatherManagerTest.cpp
@@ -805,6 +807,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/BlockPredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/TickTrigger.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/InventoryChangedTrigger.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/EffectTriggers.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
         # 澶╀綋璁＄畻

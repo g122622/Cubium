@@ -19,7 +19,9 @@
 #include "common/core/Constants.hpp"
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
+#include "common/advancement/trigger/impl/EffectTriggers.hpp"
 #include "../advancement/PlayerAdvancements.hpp"
+#include "../advancement/TriggerInstantiation.hpp"
 #include "../core/ConnectionManager.hpp"
 #include "../world/ServerWorld.hpp"
 #include "../dimension/ServerDimensionManager.hpp"
@@ -180,7 +182,11 @@ void ServerPlayer::unlockRecipe(const ResourceLocation& recipeId) {
     if (m_advancements != nullptr) {
         auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::RecipeUnlockedTrigger>();
         if (trigger != nullptr) {
-            trigger->trigger(*this, recipeId);
+            // 使用 AbstractCriterionTrigger::trigger() 模板方法
+            // 通过 TriggerInstantiation.hpp 中定义的实现
+            trigger->trigger(*m_advancements, [&recipeId](const advancement::RecipeUnlockedTriggerInstance& instance) {
+                return instance.test(recipeId);
+            });
         }
     }
 

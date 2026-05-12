@@ -60,6 +60,11 @@ private:
 | `determineRespawnDimension()` | 确定重生维度 |
 | `onPortalTriggered()` | 传送门触发回调（重写自 Entity） |
 | `changeDimension(targetDim)` | 传送到另一个维度 |
+| `awardCraftedStat(itemId, count)` | 增加物品合成统计 |
+| `onItemCrafted(stack, amount)` | 物品合成完成回调 |
+| `unlockRecipe(recipeId)` | 解锁配方并触发成就 |
+| `getStats()` | 获取统计管理器 |
+| `getAdvancements()` | 获取成就进度管理器 |
 
 ---
 
@@ -357,11 +362,35 @@ player->getWorld()->getChunk(x, z);  // 可能崩溃
 - 经验系统（添加、设置、消耗、同步）
 - 睡眠系统（尝试睡眠、唤醒、重生点）
 - 维度传送系统（下界/主世界传送门、坐标转换）
+- 统计系统（合成统计追踪）
+- 成就触发（配方解锁触发器）
+
+**统计系统详情**（2026-05-12）：
+
+`ServerPlayer` 实现了以下统计相关方法：
+- `awardCraftedStat(itemId, count)` - 增加物品合成统计
+- `onItemCrafted(stack, amount)` - 物品合成完成回调，更新统计
+- `getStats()` - 获取统计管理器引用
+
+统计通过 `StatisticsManager` 管理，支持：
+- 按类型和ID存储统计值（如 `minecraft.crafted:minecraft:diamond_sword`）
+- NBT序列化/反序列化
+- 增量更新和值设置
+- 溢出保护
+
+**成就触发系统详情**（2026-05-12）：
+
+`ServerPlayer` 实现了配方解锁触发器：
+- `unlockRecipe(recipeId)` - 解锁配方并触发成就检查
+
+触发器通过 `CriterionTriggers` 注册表管理：
+- `RecipeUnlockedTrigger` - 玩家解锁配方时触发
+- `EffectsChangedTrigger` - 玩家效果变化时触发（框架已实现）
+- `BrewedPotionTrigger` - 玩家酿造药水时触发（框架已实现）
 
 **待完善功能**：
 - 实体追踪（追踪附近实体）
 - 背包同步（物品变更通知）
-- 统计数据（统计计数器）
 
 **建议：**
 - 参考 MC Java 1.16.5 的 `ServerPlayerEntity` 类
@@ -447,6 +476,53 @@ class PlayerManager {
 - `SendStatusMessageDoesNotThrowWithConnection` - 有连接时发送消息不抛异常
 - `SendStatusMessageDoesNotThrowWithoutConnection` - 无连接时发送消息不抛异常
 - `PolymorphicCallThroughBasePointer` - 通过基类指针调用的多态性测试
+
+### tests/server/player/CraftingStatisticsTest.cpp
+
+测试 `ServerPlayer` 的统计和成就触发功能（2026-05-12）：
+
+**Player 基类虚方法测试**：
+- `PlayerBaseClass_DefaultAwardCraftedStat_DoesNotThrow` - 默认实现不抛异常
+- `PlayerBaseClass_DefaultOnItemCrafted_DoesNotThrow` - 默认实现不抛异常
+- `PlayerBaseClass_DefaultUnlockRecipe_DoesNotThrow` - 默认实现不抛异常
+
+**ServerPlayer 统计测试**：
+- `ServerPlayer_AwardCraftedStat_UpdatesStatistics` - 更新统计
+- `ServerPlayer_AwardCraftedStat_MultipleTimes_Accumulates` - 多次调用累积
+- `ServerPlayer_OnItemCrafted_UpdatesStatistics` - 合成完成更新统计
+- `ServerPlayer_OnItemCrafted_EmptyStack_NoStatisticsUpdate` - 空物品堆不更新
+- `ServerPlayer_OnItemCrafted_NullItem_NoStatisticsUpdate` - 空物品不更新
+- `ServerPlayer_OnItemCrafted_DifferentItems_TrackedSeparately` - 不同物品分开追踪
+
+**RecipeUnlockedTrigger 测试**：
+- `RecipeUnlockedTrigger_IsRegistered` - 触发器已注册
+- `RecipeUnlockedTrigger_CreateInstanceWithRecipe` - 创建带配方ID的条件实例
+- `RecipeUnlockedTrigger_CreateAnyInstance` - 创建匹配任何配方的实例
+- `RecipeUnlockedTrigger_Serialization` - 序列化测试
+- `RecipeUnlockedTrigger_FromJson` - JSON 反序列化测试
+
+**ResultSlot 统计触发测试**：
+- `ResultSlot_OnCrafting_UpdatesPlayerStatistics` - 合成时更新统计
+- `ResultSlot_OnCrafting_MultipleTimes_Accumulates` - 多次合成累积
+- `ResultSlot_OnCrafting_NoPlayer_NoStatisticsUpdate` - 无玩家时不更新
+
+**FurnaceResultSlot 统计触发测试**：
+- `FurnaceResultSlot_OnTake_UpdatesPlayerStatistics` - 取出时更新统计
+- `FurnaceResultSlot_OnTake_MultipleTimes_Accumulates` - 多次取出累积
+- `FurnaceResultSlot_OnTake_NoPlayer_NoStatisticsUpdate` - 无玩家时不更新
+
+**多态性测试**：
+- `PolymorphicCall_ThroughPlayerBasePointer` - 通过基类指针调用
+- `PolymorphicCall_AwardCraftedStat` - 多态调用统计方法
+
+**集成测试**：
+- `Integration_FullCraftingWorkflow` - 完整合成流程
+- `Integration_FullSmeltingWorkflow` - 完整熔炼流程
+
+**边界情况测试**：
+- `AwardCraftedStat_ZeroAmount_NoEffect` - 零数量不创建条目
+- `AwardCraftedStat_LargeAmount` - 大数量支持
+- `OnItemCrafted_StackLargerThanCraftedCount` - 物品堆数量大于合成数量
 
 ### tests/common/entity/player/PlayerMessageTest.cpp
 

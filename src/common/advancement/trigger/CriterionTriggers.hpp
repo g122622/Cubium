@@ -56,7 +56,7 @@ public:
      */
     template<typename T>
     [[nodiscard]] T* getTrigger() {
-        return static_cast<T*>(getTrigger(T::TRIGGER_ID));
+        return static_cast<T*>(getTrigger(ResourceLocation(T::TRIGGER_ID)));
     }
 
     /**

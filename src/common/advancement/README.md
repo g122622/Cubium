@@ -114,6 +114,38 @@ CriterionTriggers::instance().registerTrigger(std::make_unique<MyTrigger>());
 |--------|-----|------|
 | ImpossibleTrigger | `minecraft:impossible` | 完整实现 |
 | InventoryChangedTrigger | `minecraft:inventory_changed` | 框架完成，TODO: 实际检测逻辑 |
+| TickTrigger | `minecraft:tick` | 完整实现 |
+| RecipeUnlockedTrigger | `minecraft:recipe_unlocked` | 完整实现（2026-05-12） |
+| EffectsChangedTrigger | `minecraft:effects_changed` | 框架完成，TODO: MobEffectsPredicate |
+| BrewedPotionTrigger | `minecraft:brewed_potion` | 框架完成，TODO: 酿造系统集成 |
+
+### RecipeUnlockedTrigger
+
+配方解锁触发器，当玩家解锁配方时触发。
+
+**条件参数**：
+- `recipe` - 配方ID（可选，不指定则匹配任何配方）
+
+**使用示例**：
+```json
+{
+  "trigger": "minecraft:recipe_unlocked",
+  "conditions": {
+    "recipe": "minecraft:diamond_sword"
+  }
+}
+```
+
+**实现细节**：
+- 通过 `ServerPlayer::unlockRecipe()` 方法触发
+- 支持匹配特定配方或任何配方（`m_recipe.path().empty()` 时）
+- 已在 `CriterionTriggers::registerBuiltinTriggers()` 中注册
+
+**测试覆盖**：
+- 条件实例创建和匹配测试
+- JSON 反序列化测试
+- 序列化测试
+- "any" 配方匹配测试
 
 ## 条件谓词
 

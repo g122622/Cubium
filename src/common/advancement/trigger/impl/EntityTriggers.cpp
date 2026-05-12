@@ -2,17 +2,17 @@
 
 namespace mc::advancement {
 
-// ========== TameAnimalTrigger ==========
+// ========== TameAnimalTriggerInstance ==========
 
-TameAnimalTrigger::Instance::Instance(EntityPredicate entity)
+TameAnimalTriggerInstance::TameAnimalTriggerInstance(EntityPredicate entity)
     : m_entity(std::move(entity)) {
 }
 
-bool TameAnimalTrigger::Instance::test(const Entity& entity) const {
+bool TameAnimalTriggerInstance::test(const Entity& entity) const {
     return m_entity.test(entity);
 }
 
-Result<void> TameAnimalTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> TameAnimalTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -28,15 +28,17 @@ Result<void> TameAnimalTrigger::Instance::fromJson(const nlohmann::json& json) {
     return {};
 }
 
-nlohmann::json TameAnimalTrigger::Instance::conditionsToJson() const {
+nlohmann::json TameAnimalTriggerInstance::conditionsToJson() const {
     if (!m_entity.isAny()) {
         return {{"entity", m_entity.toJson()}};
     }
     return nullptr;
 }
 
-Result<std::shared_ptr<TameAnimalTrigger::Instance>> TameAnimalTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+// ========== TameAnimalTrigger ==========
+
+Result<std::shared_ptr<TameAnimalTriggerInstance>> TameAnimalTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<TameAnimalTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
@@ -50,15 +52,15 @@ void TameAnimalTrigger::trigger(ServerPlayer& player, const Entity& entity) {
     MC_UNUSED(entity);
 }
 
-// ========== BredAnimalsTrigger ==========
+// ========== BredAnimalsTriggerInstance ==========
 
-BredAnimalsTrigger::Instance::Instance(EntityPredicate child, EntityPredicate parent, EntityPredicate partner)
+BredAnimalsTriggerInstance::BredAnimalsTriggerInstance(EntityPredicate child, EntityPredicate parent, EntityPredicate partner)
     : m_child(std::move(child))
     , m_parent(std::move(parent))
     , m_partner(std::move(partner)) {
 }
 
-bool BredAnimalsTrigger::Instance::test(const Entity& child, const Entity& parent, const Entity& partner) const {
+bool BredAnimalsTriggerInstance::test(const Entity& child, const Entity& parent, const Entity& partner) const {
     if (!m_child.test(child)) {
         return false;
     }
@@ -71,7 +73,7 @@ bool BredAnimalsTrigger::Instance::test(const Entity& child, const Entity& paren
     return true;
 }
 
-Result<void> BredAnimalsTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> BredAnimalsTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -103,7 +105,7 @@ Result<void> BredAnimalsTrigger::Instance::fromJson(const nlohmann::json& json) 
     return {};
 }
 
-nlohmann::json BredAnimalsTrigger::Instance::conditionsToJson() const {
+nlohmann::json BredAnimalsTriggerInstance::conditionsToJson() const {
     nlohmann::json json;
 
     if (!m_child.isAny()) {
@@ -119,8 +121,10 @@ nlohmann::json BredAnimalsTrigger::Instance::conditionsToJson() const {
     return json;
 }
 
-Result<std::shared_ptr<BredAnimalsTrigger::Instance>> BredAnimalsTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+// ========== BredAnimalsTrigger ==========
+
+Result<std::shared_ptr<BredAnimalsTriggerInstance>> BredAnimalsTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<BredAnimalsTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
@@ -141,17 +145,17 @@ void BredAnimalsTrigger::trigger(
     MC_UNUSED(partner);
 }
 
-// ========== SummonedEntityTrigger ==========
+// ========== SummonedEntityTriggerInstance ==========
 
-SummonedEntityTrigger::Instance::Instance(EntityPredicate entity)
+SummonedEntityTriggerInstance::SummonedEntityTriggerInstance(EntityPredicate entity)
     : m_entity(std::move(entity)) {
 }
 
-bool SummonedEntityTrigger::Instance::test(const Entity& entity) const {
+bool SummonedEntityTriggerInstance::test(const Entity& entity) const {
     return m_entity.test(entity);
 }
 
-Result<void> SummonedEntityTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> SummonedEntityTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -167,15 +171,17 @@ Result<void> SummonedEntityTrigger::Instance::fromJson(const nlohmann::json& jso
     return {};
 }
 
-nlohmann::json SummonedEntityTrigger::Instance::conditionsToJson() const {
+nlohmann::json SummonedEntityTriggerInstance::conditionsToJson() const {
     if (!m_entity.isAny()) {
         return {{"entity", m_entity.toJson()}};
     }
     return nullptr;
 }
 
-Result<std::shared_ptr<SummonedEntityTrigger::Instance>> SummonedEntityTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+// ========== SummonedEntityTrigger ==========
+
+Result<std::shared_ptr<SummonedEntityTriggerInstance>> SummonedEntityTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<SummonedEntityTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
@@ -188,16 +194,15 @@ void SummonedEntityTrigger::trigger(ServerPlayer& player, const Entity& entity) 
     MC_UNUSED(player);
     MC_UNUSED(entity);
 }
-}
 
-// ========== CuredZombieVillagerTrigger ==========
+// ========== CuredZombieVillagerTriggerInstance ==========
 
-CuredZombieVillagerTrigger::Instance::Instance(EntityPredicate zombie, EntityPredicate villager)
+CuredZombieVillagerTriggerInstance::CuredZombieVillagerTriggerInstance(EntityPredicate zombie, EntityPredicate villager)
     : m_zombie(std::move(zombie))
     , m_villager(std::move(villager)) {
 }
 
-bool CuredZombieVillagerTrigger::Instance::test(const Entity& zombie, const Entity& villager) const {
+bool CuredZombieVillagerTriggerInstance::test(const Entity& zombie, const Entity& villager) const {
     if (!m_zombie.test(zombie)) {
         return false;
     }
@@ -207,7 +212,7 @@ bool CuredZombieVillagerTrigger::Instance::test(const Entity& zombie, const Enti
     return true;
 }
 
-Result<void> CuredZombieVillagerTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> CuredZombieVillagerTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -231,7 +236,7 @@ Result<void> CuredZombieVillagerTrigger::Instance::fromJson(const nlohmann::json
     return {};
 }
 
-nlohmann::json CuredZombieVillagerTrigger::Instance::conditionsToJson() const {
+nlohmann::json CuredZombieVillagerTriggerInstance::conditionsToJson() const {
     nlohmann::json json;
 
     if (!m_zombie.isAny()) {
@@ -244,8 +249,10 @@ nlohmann::json CuredZombieVillagerTrigger::Instance::conditionsToJson() const {
     return json;
 }
 
-Result<std::shared_ptr<CuredZombieVillagerTrigger::Instance>> CuredZombieVillagerTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+// ========== CuredZombieVillagerTrigger ==========
+
+Result<std::shared_ptr<CuredZombieVillagerTriggerInstance>> CuredZombieVillagerTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<CuredZombieVillagerTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
@@ -260,14 +267,14 @@ void CuredZombieVillagerTrigger::trigger(ServerPlayer& player, const Entity& zom
     MC_UNUSED(villager);
 }
 
-// ========== VillagerTradeTrigger ==========
+// ========== VillagerTradeTriggerInstance ==========
 
-VillagerTradeTrigger::Instance::Instance(EntityPredicate villager, ItemPredicate item)
+VillagerTradeTriggerInstance::VillagerTradeTriggerInstance(EntityPredicate villager, ItemPredicate item)
     : m_villager(std::move(villager))
     , m_item(std::move(item)) {
 }
 
-bool VillagerTradeTrigger::Instance::test(const Entity& villager, const ItemStack& item) const {
+bool VillagerTradeTriggerInstance::test(const Entity& villager, const ItemStack& item) const {
     if (!m_villager.test(villager)) {
         return false;
     }
@@ -277,7 +284,7 @@ bool VillagerTradeTrigger::Instance::test(const Entity& villager, const ItemStac
     return true;
 }
 
-Result<void> VillagerTradeTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> VillagerTradeTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -301,7 +308,7 @@ Result<void> VillagerTradeTrigger::Instance::fromJson(const nlohmann::json& json
     return {};
 }
 
-nlohmann::json VillagerTradeTrigger::Instance::conditionsToJson() const {
+nlohmann::json VillagerTradeTriggerInstance::conditionsToJson() const {
     nlohmann::json json;
 
     if (!m_villager.isAny()) {
@@ -314,8 +321,10 @@ nlohmann::json VillagerTradeTrigger::Instance::conditionsToJson() const {
     return json;
 }
 
-Result<std::shared_ptr<VillagerTradeTrigger::Instance>> VillagerTradeTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+// ========== VillagerTradeTrigger ==========
+
+Result<std::shared_ptr<VillagerTradeTriggerInstance>> VillagerTradeTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<VillagerTradeTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();

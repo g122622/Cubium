@@ -2,17 +2,17 @@
 
 namespace mc::advancement {
 
-// ========== ConsumeItemTrigger ==========
+// ========== ConsumeItemTriggerInstance ==========
 
-ConsumeItemTrigger::Instance::Instance(ItemPredicate item)
+ConsumeItemTriggerInstance::ConsumeItemTriggerInstance(ItemPredicate item)
     : m_item(std::move(item)) {
 }
 
-bool ConsumeItemTrigger::Instance::test(const ItemStack& item) const {
+bool ConsumeItemTriggerInstance::test(const ItemStack& item) const {
     return m_item.test(item);
 }
 
-Result<void> ConsumeItemTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> ConsumeItemTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -28,15 +28,17 @@ Result<void> ConsumeItemTrigger::Instance::fromJson(const nlohmann::json& json) 
     return {};
 }
 
-nlohmann::json ConsumeItemTrigger::Instance::conditionsToJson() const {
+nlohmann::json ConsumeItemTriggerInstance::conditionsToJson() const {
     if (!m_item.isAny()) {
         return {{"item", m_item.toJson()}};
     }
     return nullptr;
 }
 
-Result<std::shared_ptr<ConsumeItemTrigger::Instance>> ConsumeItemTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+// ========== ConsumeItemTrigger ==========
+
+Result<std::shared_ptr<ConsumeItemTriggerInstance>> ConsumeItemTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<ConsumeItemTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
@@ -50,19 +52,19 @@ void ConsumeItemTrigger::trigger(ServerPlayer& player, const ItemStack& item) {
     MC_UNUSED(item);
 }
 
-std::shared_ptr<ConsumeItemTrigger::Instance> ConsumeItemTrigger::item(const ItemPredicate& item) {
-    return std::make_shared<Instance>(item);
+std::shared_ptr<ConsumeItemTriggerInstance> ConsumeItemTrigger::item(const ItemPredicate& item) {
+    return std::make_shared<ConsumeItemTriggerInstance>(item);
 }
 
-// ========== ItemDurabilityTrigger ==========
+// ========== ItemDurabilityTriggerInstance ==========
 
-ItemDurabilityTrigger::Instance::Instance(ItemPredicate item, IntBounds durability, IntBounds delta)
+ItemDurabilityTriggerInstance::ItemDurabilityTriggerInstance(ItemPredicate item, IntBounds durability, IntBounds delta)
     : m_item(std::move(item))
     , m_durability(std::move(durability))
     , m_delta(std::move(delta)) {
 }
 
-bool ItemDurabilityTrigger::Instance::test(const ItemStack& item, i32 oldDurability) const {
+bool ItemDurabilityTriggerInstance::test(const ItemStack& item, i32 oldDurability) const {
     if (!m_item.test(item)) {
         return false;
     }
@@ -80,7 +82,7 @@ bool ItemDurabilityTrigger::Instance::test(const ItemStack& item, i32 oldDurabil
     return true;
 }
 
-Result<void> ItemDurabilityTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> ItemDurabilityTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -104,7 +106,7 @@ Result<void> ItemDurabilityTrigger::Instance::fromJson(const nlohmann::json& jso
     return {};
 }
 
-nlohmann::json ItemDurabilityTrigger::Instance::conditionsToJson() const {
+nlohmann::json ItemDurabilityTriggerInstance::conditionsToJson() const {
     nlohmann::json json;
 
     if (!m_item.isAny()) {
@@ -120,8 +122,10 @@ nlohmann::json ItemDurabilityTrigger::Instance::conditionsToJson() const {
     return json;
 }
 
-Result<std::shared_ptr<ItemDurabilityTrigger::Instance>> ItemDurabilityTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+// ========== ItemDurabilityTrigger ==========
+
+Result<std::shared_ptr<ItemDurabilityTriggerInstance>> ItemDurabilityTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<ItemDurabilityTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
@@ -136,14 +140,14 @@ void ItemDurabilityTrigger::trigger(ServerPlayer& player, const ItemStack& item,
     MC_UNUSED(oldDurability);
 }
 
-// ========== EnchantedItemTrigger ==========
+// ========== EnchantedItemTriggerInstance ==========
 
-EnchantedItemTrigger::Instance::Instance(ItemPredicate item, IntBounds levels)
+EnchantedItemTriggerInstance::EnchantedItemTriggerInstance(ItemPredicate item, IntBounds levels)
     : m_item(std::move(item))
     , m_levels(std::move(levels)) {
 }
 
-bool EnchantedItemTrigger::Instance::test(const ItemStack& item, i32 levels) const {
+bool EnchantedItemTriggerInstance::test(const ItemStack& item, i32 levels) const {
     if (!m_item.test(item)) {
         return false;
     }
@@ -153,7 +157,7 @@ bool EnchantedItemTrigger::Instance::test(const ItemStack& item, i32 levels) con
     return true;
 }
 
-Result<void> EnchantedItemTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> EnchantedItemTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -173,7 +177,7 @@ Result<void> EnchantedItemTrigger::Instance::fromJson(const nlohmann::json& json
     return {};
 }
 
-nlohmann::json EnchantedItemTrigger::Instance::conditionsToJson() const {
+nlohmann::json EnchantedItemTriggerInstance::conditionsToJson() const {
     nlohmann::json json;
 
     if (!m_item.isAny()) {
@@ -186,8 +190,10 @@ nlohmann::json EnchantedItemTrigger::Instance::conditionsToJson() const {
     return json;
 }
 
-Result<std::shared_ptr<EnchantedItemTrigger::Instance>> EnchantedItemTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+// ========== EnchantedItemTrigger ==========
+
+Result<std::shared_ptr<EnchantedItemTriggerInstance>> EnchantedItemTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<EnchantedItemTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
@@ -202,17 +208,17 @@ void EnchantedItemTrigger::trigger(ServerPlayer& player, const ItemStack& item, 
     MC_UNUSED(levels);
 }
 
-// ========== FilledBucketTrigger ==========
+// ========== FilledBucketTriggerInstance ==========
 
-FilledBucketTrigger::Instance::Instance(ItemPredicate item)
+FilledBucketTriggerInstance::FilledBucketTriggerInstance(ItemPredicate item)
     : m_item(std::move(item)) {
 }
 
-bool FilledBucketTrigger::Instance::test(const ItemStack& item) const {
+bool FilledBucketTriggerInstance::test(const ItemStack& item) const {
     return m_item.test(item);
 }
 
-Result<void> FilledBucketTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> FilledBucketTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -228,15 +234,17 @@ Result<void> FilledBucketTrigger::Instance::fromJson(const nlohmann::json& json)
     return {};
 }
 
-nlohmann::json FilledBucketTrigger::Instance::conditionsToJson() const {
+nlohmann::json FilledBucketTriggerInstance::conditionsToJson() const {
     if (!m_item.isAny()) {
         return {{"item", m_item.toJson()}};
     }
     return nullptr;
 }
 
-Result<std::shared_ptr<FilledBucketTrigger::Instance>> FilledBucketTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+// ========== FilledBucketTrigger ==========
+
+Result<std::shared_ptr<FilledBucketTriggerInstance>> FilledBucketTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<FilledBucketTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();

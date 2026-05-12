@@ -159,7 +159,7 @@ inventory/
   - `mayPlace()`: 始终返回 false，不能放入物品
   - `remove()`: 重写以支持经验值累积追踪
   - `onTake()`: 触发熔炼成就和经验奖励
-  - `onCrafting()`: 从熔炉实体提取累积经验并发放给玩家
+  - `onCrafting()`: 从熔炉实体提取累积经验并发放给玩家，同时触发合成统计
   - 构造函数参数：玩家指针、背包指针、槽位索引、显示坐标、熔炉实体指针
   - `setFurnaceEntity()` / `getFurnaceEntity()`: 动态设置/获取熔炉实体
   - **MC 1.16.5 经验发放机制**:
@@ -167,6 +167,14 @@ inventory/
     - 玩家从输出槽取出物品时，`FurnaceResultSlot` 自动发放累积经验
     - 支持两种取出方式：普通点击取出（通过 `remove()` 追踪数量）和 Shift+快速移动（通过 `onTake()` 自动设置数量）
     - 经验值向下取整后发放（使用 `std::floor`）
+  - **MC 1.16.5 统计触发**:
+    - 调用 `player->onItemCrafted()` 更新物品合成统计
+    - 统计追踪到 `StatisticsManager`
+    - **统计系统集成**（2026-05-12）：
+      - `ResultSlot::onCrafting(stack, amount)` 调用 `player->onItemCrafted(stack, amount)`
+      - `FurnaceResultSlot::onTake()` 调用 `player->onItemCrafted(stack, count)`
+      - `Player::onItemCrafted()` 虚方法默认空实现，`ServerPlayer` 重写实现统计更新
+      - 统计通过 `StatisticsManager::increment(StatType::Crafted, itemId, amount)` 更新
 
 **依赖项**:
 - `IInventory.hpp` - 背包接口

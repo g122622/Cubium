@@ -142,6 +142,11 @@ void StatisticsManager::setValue(StatType type, const ResourceLocation& id, Valu
 }
 
 void StatisticsManager::increment(StatType type, const ResourceLocation& id, ValueType delta) {
+    // 如果增量为0，不创建统计条目
+    if (delta == 0) {
+        return;
+    }
+
     ResourceLocation fullId = buildStatLocation(type, id);
     ValueType current = getValue(fullId);
 

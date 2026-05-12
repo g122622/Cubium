@@ -2,17 +2,17 @@
 
 namespace mc::advancement {
 
-// ========== Instance ==========
+// ========== LocationTriggerInstance ==========
 
-LocationTrigger::Instance::Instance(LocationPredicate location)
+LocationTriggerInstance::LocationTriggerInstance(LocationPredicate location)
     : m_location(std::move(location)) {
 }
 
-bool LocationTrigger::Instance::test(const World& world, f64 x, f64 y, f64 z) const {
+bool LocationTriggerInstance::test(const World& world, f64 x, f64 y, f64 z) const {
     return m_location.test(world, x, y, z);
 }
 
-Result<void> LocationTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> LocationTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -25,14 +25,14 @@ Result<void> LocationTrigger::Instance::fromJson(const nlohmann::json& json) {
     return {};
 }
 
-nlohmann::json LocationTrigger::Instance::conditionsToJson() const {
+nlohmann::json LocationTriggerInstance::conditionsToJson() const {
     return m_location.toJson();
 }
 
-// ========== Trigger ==========
+// ========== LocationTrigger ==========
 
-Result<std::shared_ptr<LocationTrigger::Instance>> LocationTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+Result<std::shared_ptr<LocationTriggerInstance>> LocationTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<LocationTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
@@ -46,20 +46,20 @@ void LocationTrigger::trigger(ServerPlayer& player) {
     MC_UNUSED(player);
 }
 
-std::shared_ptr<LocationTrigger::Instance> LocationTrigger::atLocation(const LocationPredicate& location) {
-    return std::make_shared<Instance>(location);
+std::shared_ptr<LocationTriggerInstance> LocationTrigger::atLocation(const LocationPredicate& location) {
+    return std::make_shared<LocationTriggerInstance>(location);
 }
 
-std::shared_ptr<LocationTrigger::Instance> LocationTrigger::inBiome(const ResourceLocation& biome) {
+std::shared_ptr<LocationTriggerInstance> LocationTrigger::inBiome(const ResourceLocation& biome) {
     LocationPredicate pred;
     pred = LocationPredicate::fromJson(nlohmann::json{{"biome", biome.toString()}}).value();
-    return std::make_shared<Instance>(pred);
+    return std::make_shared<LocationTriggerInstance>(pred);
 }
 
-std::shared_ptr<LocationTrigger::Instance> LocationTrigger::inDimension(const ResourceLocation& dimension) {
+std::shared_ptr<LocationTriggerInstance> LocationTrigger::inDimension(const ResourceLocation& dimension) {
     LocationPredicate pred;
     pred = LocationPredicate::fromJson(nlohmann::json{{"dimension", dimension.toString()}}).value();
-    return std::make_shared<Instance>(pred);
+    return std::make_shared<LocationTriggerInstance>(pred);
 }
 
 } // namespace mc::advancement

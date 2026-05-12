@@ -78,15 +78,30 @@ eventBus.onItemCrafted([&](const ItemCraftedEvent& e) {
 
 ### 与 ServerPlayer 集成
 
-每个 ServerPlayer 应持有 StatisticsManager 实例：
+每个 ServerPlayer 持有 StatisticsManager 实例（已实现）：
 
 ```cpp
-class ServerPlayer {
-    stats::StatisticsManager m_statistics;
+class ServerPlayer : public Player {
+    stats::StatisticsManager m_stats;
 public:
-    stats::StatisticsManager& statistics() { return m_statistics; }
+    // 增加物品合成统计
+    void awardCraftedStat(const ResourceLocation& itemId, i32 count);
+
+    // 物品合成完成回调（由 ResultSlot/FurnaceResultSlot 调用）
+    void onItemCrafted(const ItemStack& stack, i32 amount) override;
+
+    // 获取统计管理器
+    const stats::StatisticsManager& getStats() const;
 };
 ```
+
+**集成状态（2026-05-12）**：
+- ✅ `ServerPlayer::awardCraftedStat()` - 增加物品合成统计
+- ✅ `ServerPlayer::onItemCrafted()` - 物品合成完成回调
+- ✅ `ResultSlot::onCrafting()` - 触发合成统计
+- ✅ `FurnaceResultSlot::onTake()` - 触发熔炼统计和经验发放
+- ✅ `StatisticsManager::increment()` - 零增量不创建条目
+- ✅ NBT 序列化/反序列化
 
 ### 与记分板判据集成
 

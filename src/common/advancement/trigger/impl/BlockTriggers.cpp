@@ -2,14 +2,14 @@
 
 namespace mc::advancement {
 
-// ========== EnterBlockTrigger ==========
+// ========== EnterBlockTriggerInstance ==========
 
-EnterBlockTrigger::Instance::Instance(BlockPredicate block, LocationPredicate location)
+EnterBlockTriggerInstance::EnterBlockTriggerInstance(BlockPredicate block, LocationPredicate location)
     : m_block(std::move(block))
     , m_location(std::move(location)) {
 }
 
-bool EnterBlockTrigger::Instance::test(const BlockState& state, const World& world, const BlockPos& pos) const {
+bool EnterBlockTriggerInstance::test(const BlockState& state, const World& world, const BlockPos& pos) const {
     if (!m_block.test(state)) {
         return false;
     }
@@ -19,7 +19,7 @@ bool EnterBlockTrigger::Instance::test(const BlockState& state, const World& wor
     return true;
 }
 
-Result<void> EnterBlockTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> EnterBlockTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -43,7 +43,7 @@ Result<void> EnterBlockTrigger::Instance::fromJson(const nlohmann::json& json) {
     return {};
 }
 
-nlohmann::json EnterBlockTrigger::Instance::conditionsToJson() const {
+nlohmann::json EnterBlockTriggerInstance::conditionsToJson() const {
     nlohmann::json json;
 
     if (!m_block.isAny()) {
@@ -56,8 +56,10 @@ nlohmann::json EnterBlockTrigger::Instance::conditionsToJson() const {
     return json;
 }
 
-Result<std::shared_ptr<EnterBlockTrigger::Instance>> EnterBlockTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+// ========== EnterBlockTrigger ==========
+
+Result<std::shared_ptr<EnterBlockTriggerInstance>> EnterBlockTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<EnterBlockTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
@@ -71,15 +73,15 @@ void EnterBlockTrigger::trigger(ServerPlayer& player, const BlockState& state) {
     MC_UNUSED(state);
 }
 
-std::shared_ptr<EnterBlockTrigger::Instance> EnterBlockTrigger::block(const ResourceLocation& blockId) {
+std::shared_ptr<EnterBlockTriggerInstance> EnterBlockTrigger::block(const ResourceLocation& blockId) {
     BlockPredicate pred;
     pred = BlockPredicate::fromJson(nlohmann::json{{"block", blockId.toString()}}).value();
-    return std::make_shared<Instance>(pred, LocationPredicate{});
+    return std::make_shared<EnterBlockTriggerInstance>(pred, LocationPredicate{});
 }
 
-// ========== PlacedBlockTrigger ==========
+// ========== PlacedBlockTriggerInstance ==========
 
-PlacedBlockTrigger::Instance::Instance(
+PlacedBlockTriggerInstance::PlacedBlockTriggerInstance(
     BlockPredicate block,
     LocationPredicate location,
     ItemPredicate item
@@ -89,7 +91,7 @@ PlacedBlockTrigger::Instance::Instance(
     , m_item(std::move(item)) {
 }
 
-bool PlacedBlockTrigger::Instance::test(
+bool PlacedBlockTriggerInstance::test(
     const BlockState& state,
     const World& world,
     const BlockPos& pos,
@@ -107,7 +109,7 @@ bool PlacedBlockTrigger::Instance::test(
     return true;
 }
 
-Result<void> PlacedBlockTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> PlacedBlockTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -139,7 +141,7 @@ Result<void> PlacedBlockTrigger::Instance::fromJson(const nlohmann::json& json) 
     return {};
 }
 
-nlohmann::json PlacedBlockTrigger::Instance::conditionsToJson() const {
+nlohmann::json PlacedBlockTriggerInstance::conditionsToJson() const {
     nlohmann::json json;
 
     if (!m_block.isAny()) {
@@ -155,8 +157,10 @@ nlohmann::json PlacedBlockTrigger::Instance::conditionsToJson() const {
     return json;
 }
 
-Result<std::shared_ptr<PlacedBlockTrigger::Instance>> PlacedBlockTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+// ========== PlacedBlockTrigger ==========
+
+Result<std::shared_ptr<PlacedBlockTriggerInstance>> PlacedBlockTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<PlacedBlockTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
@@ -177,17 +181,17 @@ void PlacedBlockTrigger::trigger(
     MC_UNUSED(item);
 }
 
-// ========== SlideDownBlockTrigger ==========
+// ========== SlideDownBlockTriggerInstance ==========
 
-SlideDownBlockTrigger::Instance::Instance(BlockPredicate block)
+SlideDownBlockTriggerInstance::SlideDownBlockTriggerInstance(BlockPredicate block)
     : m_block(std::move(block)) {
 }
 
-bool SlideDownBlockTrigger::Instance::test(const BlockState& state) const {
+bool SlideDownBlockTriggerInstance::test(const BlockState& state) const {
     return m_block.test(state);
 }
 
-Result<void> SlideDownBlockTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> SlideDownBlockTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -203,15 +207,17 @@ Result<void> SlideDownBlockTrigger::Instance::fromJson(const nlohmann::json& jso
     return {};
 }
 
-nlohmann::json SlideDownBlockTrigger::Instance::conditionsToJson() const {
+nlohmann::json SlideDownBlockTriggerInstance::conditionsToJson() const {
     if (!m_block.isAny()) {
         return {{"block", m_block.toJson()}};
     }
     return nullptr;
 }
 
-Result<std::shared_ptr<SlideDownBlockTrigger::Instance>> SlideDownBlockTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+// ========== SlideDownBlockTrigger ==========
+
+Result<std::shared_ptr<SlideDownBlockTriggerInstance>> SlideDownBlockTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<SlideDownBlockTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
@@ -225,15 +231,15 @@ void SlideDownBlockTrigger::trigger(ServerPlayer& player, const BlockState& stat
     MC_UNUSED(state);
 }
 
-// ========== BeeNestDestroyedTrigger ==========
+// ========== BeeNestDestroyedTriggerInstance ==========
 
-BeeNestDestroyedTrigger::Instance::Instance(BlockPredicate block, ItemPredicate item, IntBounds numBees)
+BeeNestDestroyedTriggerInstance::BeeNestDestroyedTriggerInstance(BlockPredicate block, ItemPredicate item, IntBounds numBees)
     : m_block(std::move(block))
     , m_item(std::move(item))
     , m_numBees(std::move(numBees)) {
 }
 
-bool BeeNestDestroyedTrigger::Instance::test(
+bool BeeNestDestroyedTriggerInstance::test(
     const BlockState& state,
     const ItemStack& tool,
     i32 numBeesInside
@@ -250,7 +256,7 @@ bool BeeNestDestroyedTrigger::Instance::test(
     return true;
 }
 
-Result<void> BeeNestDestroyedTrigger::Instance::fromJson(const nlohmann::json& json) {
+Result<void> BeeNestDestroyedTriggerInstance::fromJson(const nlohmann::json& json) {
     if (json.is_null()) {
         return {};
     }
@@ -278,7 +284,7 @@ Result<void> BeeNestDestroyedTrigger::Instance::fromJson(const nlohmann::json& j
     return {};
 }
 
-nlohmann::json BeeNestDestroyedTrigger::Instance::conditionsToJson() const {
+nlohmann::json BeeNestDestroyedTriggerInstance::conditionsToJson() const {
     nlohmann::json json;
 
     if (!m_block.isAny()) {
@@ -294,8 +300,10 @@ nlohmann::json BeeNestDestroyedTrigger::Instance::conditionsToJson() const {
     return json;
 }
 
-Result<std::shared_ptr<BeeNestDestroyedTrigger::Instance>> BeeNestDestroyedTrigger::fromJson(const nlohmann::json& json) {
-    auto instance = std::make_shared<Instance>();
+// ========== BeeNestDestroyedTrigger ==========
+
+Result<std::shared_ptr<BeeNestDestroyedTriggerInstance>> BeeNestDestroyedTrigger::fromJson(const nlohmann::json& json) {
+    auto instance = std::make_shared<BeeNestDestroyedTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
         return result.error();
