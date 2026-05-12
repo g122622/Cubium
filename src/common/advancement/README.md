@@ -113,39 +113,7 @@ CriterionTriggers::instance().registerTrigger(std::make_unique<MyTrigger>());
 | 触发器 | ID | 状态 |
 |--------|-----|------|
 | ImpossibleTrigger | `minecraft:impossible` | 完整实现 |
-| InventoryChangedTrigger | `minecraft:inventory_changed` | 框架完成，TODO: 实际检测逻辑 |
-| TickTrigger | `minecraft:tick` | 完整实现 |
-| RecipeUnlockedTrigger | `minecraft:recipe_unlocked` | 完整实现（2026-05-12） |
-| EffectsChangedTrigger | `minecraft:effects_changed` | 框架完成，TODO: MobEffectsPredicate |
-| BrewedPotionTrigger | `minecraft:brewed_potion` | 框架完成，TODO: 酿造系统集成 |
-
-### RecipeUnlockedTrigger
-
-配方解锁触发器，当玩家解锁配方时触发。
-
-**条件参数**：
-- `recipe` - 配方ID（可选，不指定则匹配任何配方）
-
-**使用示例**：
-```json
-{
-  "trigger": "minecraft:recipe_unlocked",
-  "conditions": {
-    "recipe": "minecraft:diamond_sword"
-  }
-}
-```
-
-**实现细节**：
-- 通过 `ServerPlayer::unlockRecipe()` 方法触发
-- 支持匹配特定配方或任何配方（`m_recipe.path().empty()` 时）
-- 已在 `CriterionTriggers::registerBuiltinTriggers()` 中注册
-
-**测试覆盖**：
-- 条件实例创建和匹配测试
-- JSON 反序列化测试
-- 序列化测试
-- "any" 配方匹配测试
+| InventoryChangedTrigger | `minecraft:inventory_changed` | 完整实现（含服务端集成） |
 
 ## 条件谓词
 
@@ -251,7 +219,15 @@ if (progress.isDone()) {
 1. **更多触发器** - LocationTrigger, PlayerKilledEntityTrigger 等
 2. **网络同步** - AdvancementInfoPacket, SeenAdvancementsPacket
 3. **客户端 UI** - AdvancementsScreen, AdvancementToast
-4. **事件集成** - 与服务端事件系统集成
+
+## 服务端集成
+
+服务端成就系统位于 `src/server/advancement/`，包含：
+- **PlayerAdvancements** - 玩家成就进度管理
+- **TriggerInstantiation** - 触发器实例化工具
+- **AdvancementEventHandler** - 事件处理器，订阅服务端事件触发成就
+
+详见 `src/server/advancement/README.md`。
 
 ## 设计参考
 

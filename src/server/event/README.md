@@ -35,7 +35,8 @@
 
 ```
 server/event/
-├── ServerEventBus.hpp           # 事件总线
+├── ServerEventBus.hpp           # 事件总线（头文件，模板实现）
+├── ServerEventBus.cpp           # 事件总线（单例实例）
 ├── README.md                    # 本文件
 │
 └── events/                      # 事件定义
@@ -212,10 +213,21 @@ ServerEventBus::instance().removeFilter(filterId);
   - 发布 `PlayerLoginEvent`
   - 发布 `PlayerLogoutEvent`
   - 发布 `PlayerRespawnEvent`
+  - **已集成**: 发布 `InventoryChangedEvent`（通过 `inventoryChangeCallback`）
 
 ### 物品栏
 - `src/common/entity/inventory/PlayerInventory.cpp`
-  - 发布 `InventoryChangedEvent`
+  - **已集成**: 通过 `inventoryChangeCallback` 回调机制通知物品栏变化
+
+### 成就系统
+- `src/server/advancement/AdvancementEventHandler.hpp`
+  - **已集成**: 订阅 `InventoryChangedEvent` 并触发 `InventoryChangedTrigger`
+  - 订阅 `PlayerKillEntityEvent`（预留）
+  - 订阅 `PlayerLoginEvent`（预留）
+
+### 服务端主循环
+- `src/server/application/MinecraftServer.cpp`
+  - **已集成**: 初始化和关闭 `AdvancementEventHandler`
 
 ## 设计原则
 
