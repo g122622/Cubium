@@ -22,11 +22,67 @@
 | `EntityPose.hpp` | 实体姿态枚举 |
 | `EntitySize.hpp` | 实体尺寸定义 |
 | `EntityClassification.hpp` | 实体分类 |
-| `EntitySpawnPlacementRegistry.hpp` | 生成位置规则 |
+| `EntitySpawnPlacementRegistry.hpp` | 生成位置规则、SpawnReason 枚举 |
 | `EntityUtils.hpp` | 模板型实体工具函数（搜索、距离） |
 | `DataParameter.hpp` | 数据参数定义 |
 | `MoverType.hpp` | 移动类型枚举 |
 | `BoostHelper.hpp` | 可骑乘实体的鞍和加速管理（猪、炽足兽等） |
+
+## SpawnReason 枚举（MC 1.16.5）
+
+定义实体生成的各种原因，用于决定生成规则和实体初始化行为。
+
+### 枚举值
+
+定义在 `mc::world::spawn` 命名空间：
+
+| 枚举值 | 说明 |
+|--------|------|
+| `Natural` | 自然生成（常规的自然刷新） |
+| `ChunkGeneration` | 区块生成时放置实体 |
+| `Spawner` | 刷怪笼生成 |
+| `Structure` | 结构生成（如村民、掠夺者） |
+| `Breeding` | 繁殖生成 |
+| `MobSummons` | 被其他生物召唤（如恼鬼、铁傀儡） |
+| `Jockey` | 骑乘生成（如小僵尸骑鸡） |
+| `Event` | 游戏事件触发（如袭击、僵尸围城） |
+| `Conversion` | 转化生成（如僵尸村民变村民） |
+| `Reinforcement` | 僵尸增援 |
+| `Trigger` | 特定条件触发（如骷髅陷阱马） |
+| `Bucket` | 从水桶释放 |
+| `SpawnEgg` | 刷怪蛋生成 |
+| `Command` | /summon 命令生成 |
+| `Dispenser` | 发射器使用刷怪蛋或水桶 |
+| `Patrol` | 掠夺者巡逻队生成 |
+
+### 辅助函数
+
+```cpp
+// 获取生成原因的名称字符串
+const char* getSpawnReasonName(SpawnReason reason);
+// 返回: "natural", "chunk_generation", "spawner" 等
+
+// 根据名称字符串获取生成原因
+SpawnReason getSpawnReasonByName(const std::string& name);
+// 无效名称返回 SpawnReason::Natural
+```
+
+### 使用示例
+
+```cpp
+// 在实体创建时设置生成原因
+SpawnedEntityData data("minecraft:pig", x, y, z, SpawnReason::ChunkGeneration);
+
+// 从字符串解析（用于 NBT 反序列化）
+SpawnReason reason = getSpawnReasonByName("spawn_egg");
+
+// 序列化到字符串（用于 NBT 序列化）
+const char* name = getSpawnReasonName(SpawnReason::Breeding);
+```
+
+### 参考
+
+MC 1.16.5 `net.minecraft.entity.SpawnReason`
 
 ## 物理系统
 
