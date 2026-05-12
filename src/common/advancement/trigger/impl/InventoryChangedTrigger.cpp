@@ -2,6 +2,10 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
+// 注意：trigger() 方法的完整实现需要服务端模块的支持
+// 服务端代码应包含 server/advancement/TriggerInstantiation.hpp
+// 并使用 triggerWithPredicate() 方法或直接调用基类的 trigger() 模板方法
+
 namespace mc::advancement {
 
 // ========== InventoryChangedTriggerInstance ==========
@@ -169,29 +173,21 @@ Result<std::shared_ptr<ICriterionInstance>> InventoryChangedTrigger::fromJson(co
 }
 
 void InventoryChangedTrigger::trigger(ServerPlayer& player, const PlayerInventory& inventory) {
-    // 参考 MC 1.16.5: InventoryChangeTrigger.triggerListeners()
+    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // 服务端代码应使用以下方式之一触发检测：
     //
-    // 此方法需要在服务端模块中通过包含 TriggerInstantiation.hpp 来启用完整实现。
-    // 模板方法 trigger() 需要访问 PlayerAdvancements 的完整定义。
-    //
-    // 服务端集成示例（在服务端事件处理代码中）：
+    // 方法1：使用 triggerWithPredicate()
     // #include "server/advancement/TriggerInstantiation.hpp"
     // auto* trigger = CriterionTriggers::instance().getTrigger<InventoryChangedTrigger>();
-    // if (trigger && trigger->hasListeners(*player.getAdvancements())) {
-    //     for (const auto& listener : trigger->getListeners(*player.getAdvancements())) {
-    //         if (listener.getInstance().testWithInventory(
-    //             PlayerInventory::TOTAL_SIZE,
-    //             [&inventory](i32 slot) -> const ItemStack& { return inventory.getItem(slot); }
-    //         )) {
-    //             listener.grantCriterion(*player.getAdvancements());
-    //         }
-    //     }
-    // }
-    //
-    // 或者使用模板方法（在包含 TriggerInstantiation.hpp 后）：
-    // trigger->trigger(*player.getAdvancements(), [&](const auto& instance) {
+    // trigger->triggerWithPredicate(*player.getAdvancements(), [&](const auto& instance) {
     //     return instance.testWithInventory(PlayerInventory::TOTAL_SIZE, getter);
     // });
+    //
+    // 方法2：使用 AdvancementEventHandler（推荐）
+    // #include "server/advancement/AdvancementEventHandler.hpp"
+    // AdvancementEventHandler::instance().onInventoryChanged(event);
+    //
+    // 参考：server/advancement/AdvancementEventHandler.hpp
     MC_UNUSED(player);
     MC_UNUSED(inventory);
 }

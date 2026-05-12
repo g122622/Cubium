@@ -13,6 +13,10 @@ class ServerPlayer;
 class PlayerInventory;
 }
 
+namespace mc::server {
+class PlayerAdvancements;
+}
+
 namespace mc::advancement {
 
 // Forward declare the Instance first
@@ -44,11 +48,25 @@ public:
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     /**
-     * @brief 触发检测
+     * @brief 触发检测（使用 ServerPlayer）
      * @param player 玩家
      * @param inventory 物品栏
      */
     void trigger(mc::ServerPlayer& player, const mc::PlayerInventory& inventory);
+
+    /**
+     * @brief 使用谓词触发检测
+     *
+     * 此方法允许服务端代码直接使用谓词触发检测。
+     * 谓词接收 InventoryChangedTriggerInstance 实例，返回 true 表示条件满足。
+     *
+     * @param advancements 玩家成就进度
+     * @param predicate 检测谓词
+     */
+    template<typename PredicateT>
+    void triggerWithPredicate(::mc::server::PlayerAdvancements& advancements, PredicateT&& predicate) {
+        AbstractCriterionTrigger<InventoryChangedTriggerInstance>::trigger(advancements, std::forward<PredicateT>(predicate));
+    }
 
     // 静态工厂方法
     static std::shared_ptr<InventoryChangedTriggerInstance> hasItems(std::vector<ItemPredicate> items);
