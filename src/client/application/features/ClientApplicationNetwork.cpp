@@ -716,7 +716,7 @@ void ClientApplication::setupNetworkCallbacks()
                     // 在实体头顶位置生成爱心粒子
                     glm::vec3 heartPos = entityPos + glm::vec3(0.0f, 0.5f, 0.0f);
                     m_world.particleManager()->addPendingParticle(
-                        ParticleTypeId::Heart,
+                        client::renderer::trident::particle::ParticleTypeId::Heart,
                         heartPos,
                         glm::vec3(0.0f, 0.0f, 0.0f),
                         &m_world
@@ -736,7 +736,7 @@ void ClientApplication::setupNetworkCallbacks()
                 if (m_world.particleManager() != nullptr) {
                     glm::vec3 heartPos = entityPos + glm::vec3(0.0f, 0.5f, 0.0f);
                     m_world.particleManager()->addPendingParticle(
-                        ParticleTypeId::Heart,
+                        client::renderer::trident::particle::ParticleTypeId::Heart,
                         heartPos,
                         glm::vec3(0.0f, 0.0f, 0.0f),
                         &m_world
