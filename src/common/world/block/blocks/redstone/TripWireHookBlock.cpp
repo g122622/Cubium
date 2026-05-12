@@ -193,7 +193,7 @@ bool TripWireHookBlock::calculateState(IWorld& world, const BlockPos& pos, Direc
     bool shouldBreak = false;
 
     if (foundChain) {
-        // MC Java: 沿朝向检查所有绊线，直到另一端的钩
+        // MC 1.16.5: 沿朝向检查所有绊线，直到另一端的钩
         Direction checkDir = facing;
         BlockPos checkPos = pos.offset(checkDir);
 
@@ -217,14 +217,22 @@ bool TripWireHookBlock::calculateState(IWorld& world, const BlockPos& pos, Direc
             }
 
             // 检查是否是绊线
-            // 使用 TripWireBlock 的静态检查方法
-            if (state->getBlock().canProvidePower(*state)) {
-                // 可能是绊线，检查是否被触发
-                // MC Java: 检查 POWERED 属性
+            if (state->is(VanillaBlocks::TRIPWIRE)) {
+                // MC 1.16.5: 检查绊线是否被触发
+                // 只有未被拆除(DISARMED=false)且被触发(POWERED=true)的绊线才触发信号
+                bool isDisarmed = false;
+                bool isPowered = false;
+
+                if (state->hasProperty(BlockStateProperties::DISARMED())) {
+                    isDisarmed = state->get(BlockStateProperties::DISARMED());
+                }
                 if (state->hasProperty(BlockStateProperties::POWERED())) {
-                    if (state->get(BlockStateProperties::POWERED())) {
-                        isTripwirePowered = true;
-                    }
+                    isPowered = state->get(BlockStateProperties::POWERED());
+                }
+
+                // 未被拆除且被触发的绊线会触发信号
+                if (!isDisarmed && isPowered) {
+                    isTripwirePowered = true;
                 }
             } else {
                 // 不是绊线，链断开
@@ -240,7 +248,7 @@ bool TripWireHookBlock::calculateState(IWorld& world, const BlockPos& pos, Direc
     bool wasPowered = isPowered(currentState);
     bool wasConnected = isConnected(currentState);
 
-    // MC Java: 只有链完整时才可能触发
+    // MC 1.16.5: 只有链完整时才可能触发
     bool shouldPower = foundChain && isTripwirePowered && !shouldBreak;
 
     if (shouldPower != wasPowered || foundChain != wasConnected) {
@@ -283,12 +291,13 @@ bool TripWireHookBlock::checkForTripwire(IWorld& world, const BlockPos& pos,
             return false;
         }
 
-        // 检查是否是绊线（需要获取 TripWireBlock 实例）
-        // TODO: 当 VanillaBlocks 中有 TripWireBlock 注册时使用
-        // if (!state->is(VanillaBlocks::TRIPWIRE)) {
-        //     return false;
-        // }
-        // 暂时跳过绊线检查，等待 VanillaBlocks 注册
+        // 检查是否是绊线
+        if (state->is(VanillaBlocks::TRIPWIRE)) {
+            // 继续扫描，绊线链有效
+        } else {
+            // 不是绊线也不是绊线钩，链断开
+            return false;
+        }
     }
 
     return false;

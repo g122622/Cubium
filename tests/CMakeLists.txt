@@ -286,6 +286,7 @@ add_executable(mc_tests
     common/world/block/blocks/redstone/NoteBlockTest.cpp
     common/world/block/blocks/redstone/TNTBlockTest.cpp
     common/world/block/blocks/redstone/PistonBlockTest.cpp
+    common/world/block/blocks/redstone/TripWireTest.cpp
     # Explosion system tests
     common/world/explosion/test_explosion.cpp
     common/world/explosion/ExplosionIntegrationTest.cpp
