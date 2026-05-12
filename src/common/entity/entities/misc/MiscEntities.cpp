@@ -179,54 +179,6 @@ void TNTEntity::explode() {
     remove();
 }
 
-// ==================== ConduitEntity ====================
-
-ConduitEntity::ConduitEntity()
-    : Entity(LegacyEntityType::Unknown, EntityId(0))
-{
-}
-
-void ConduitEntity::tick() {
-    Entity::tick();
-
-    if (!m_active) return;
-
-    m_effectCooldown--;
-    if (m_effectCooldown <= 0) {
-        applyEffects();
-        m_effectCooldown = EFFECT_INTERVAL;
-    }
-
-    if (m_target) {
-        m_attackCooldown--;
-        if (m_attackCooldown <= 0) {
-            attackTarget();
-            m_attackCooldown = ATTACK_INTERVAL;
-        }
-    }
-}
-
-void ConduitEntity::setTarget(LivingEntity* target) {
-    m_target = target;
-}
-
-void ConduitEntity::applyEffects() {
-    // TODO: 给附近玩家潮涌能量效果
-}
-
-void ConduitEntity::attackTarget() {
-    if (!m_target || !m_target->isAlive()) {
-        m_target = nullptr;
-        return;
-    }
-
-    f32 dist = static_cast<f32>(distanceTo(*m_target));
-    if (dist > ATTACK_RADIUS) {
-        m_target = nullptr;
-        return;
-    }
-}
-
 // ==================== WardenWarningEffect ====================
 
 void WardenWarningEffect::tick() {

@@ -17,8 +17,9 @@ misc/
 | FallingBlockEntity | 下落方块 | 沙子、砾石下落，可造成伤害 |
 | TNTEntity | TNT实体 | 倒计时爆炸 |
 | EyeOfEnderEntity | 末影之眼 | 飞向要塞 |
-| ConduitEntity | 潮涌核心 | 水下效果、攻击敌人 |
 | EvokerFangsEntity | 唤魔者尖牙 | 地刺攻击 |
+
+**注意**：潮涌核心 (Conduit) 不是实体，而是方块实体，实现位于 `src/common/world/blockentity/processing/ConduitEntity.hpp/cpp`。
 
 ## 下落方块
 
@@ -93,19 +94,6 @@ TNTEntity 已在 `VanillaEntities::doRegisterAll()` 中注册，实体类型为 
 - 有几率碎裂掉落
 - 最大飞行时间80tick
 
-## 潮涌核心
-
-### 效果
-
-- 效果半径：42格
-- 给予潮涌能量效果
-- 攻击附近敌对生物（半径8格）
-
-### 攻击
-
-- 伤害值：4点
-- 攻击间隔：40tick
-
 ## 唤魔者尖牙
 
 ### 行为
@@ -131,6 +119,10 @@ TNTEntity 已在 `VanillaEntities::doRegisterAll()` 中注册，实体类型为 
 | FallingBlockEntity | ⚠️ 框架完成，TODO需填充 |
 | TNTEntity | ✅ 完成 - 点燃、爆炸、物理、实体注册 |
 | EyeOfEnderEntity | ⚠️ 框架完成，TODO需填充 |
-| ConduitEntity | ⚠️ 框架完成，TODO需填充 |
+| ConduitEntity | ✅ 已移除 - 功能已在 `blockentity/processing/ConduitEntity` 中完整实现 |
 | EvokerFangsEntity | ⚠️ 框架完成，TODO需填充 |
 | WardenWarningEffect | ⚠️ 框架完成，TODO需填充 |
+
+**注意**：潮涌核心的功能不在本文件中，完整实现位于：
+- 方块实体：`src/common/world/blockentity/processing/ConduitEntity.hpp/cpp`
+- 方块：`src/common/world/block/blocks/ocean/ConduitBlock.hpp/cpp`

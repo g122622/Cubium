@@ -141,52 +141,7 @@ private:
 };
 
 /**
- * @brief 潮涌核心实体
- *
- * 潮涌核心激活后产生的效果实体。
- *
- * 参考 MC 1.16.5 ConduitEntity
- */
-class ConduitEntity : public Entity {
-public:
-    ConduitEntity();
-    ~ConduitEntity() override = default;
-
-    void tick() override;
-
-    [[nodiscard]] f32 width() const override { return 2.0f; }
-    [[nodiscard]] f32 height() const override { return 2.0f; }
-    [[nodiscard]] bool isPushable() const { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const { return false; }
-
-    /**
-     * @brief 设置激活状态
-     */
-    void setActive(bool active) { m_active = active; }
-    [[nodiscard]] bool isActive() const { return m_active; }
-
-    /**
-     * @brief 设置目标（攻击目标）
-     */
-    void setTarget(LivingEntity* target);
-    [[nodiscard]] LivingEntity* getTarget() const { return m_target; }
-
-private:
-    void applyEffects();
-    void attackTarget();
-
-    bool m_active = false;
-    LivingEntity* m_target = nullptr;
-    i32 m_effectCooldown = 0;
-    i32 m_attackCooldown = 0;
-    static constexpr f32 EFFECT_RADIUS = 42.0f;
-    static constexpr f32 ATTACK_RADIUS = 8.0f;
-    static constexpr i32 EFFECT_INTERVAL = 20;
-    static constexpr i32 ATTACK_INTERVAL = 40;
-};
-
-/**
- * @brief 寂守者警告实体
+ * @brief 寂守者警告效果
  *
  * 寂守者检测到振动后产生的警告效果。
  * 不是实体，是效果的一种，但暂时放在这里。
