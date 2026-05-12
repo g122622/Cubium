@@ -35,7 +35,7 @@ public:
      *
      * 不可能触发器永远不会触发。
      */
-    void trigger(PlayerAdvancements& advancements) {
+    void trigger(::mc::server::PlayerAdvancements& advancements) {
         // 不可能触发器永远不会触发
         MC_UNUSED(advancements);
     }

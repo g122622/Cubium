@@ -16,6 +16,15 @@ namespace mc::advancement {
 class Advancement;
 using AdvancementPtr = std::shared_ptr<const Advancement>;
 
+} // namespace mc::advancement
+
+// 前向声明 PlayerAdvancements（在 mc::server 命名空间）
+namespace mc::server {
+class PlayerAdvancements;
+}
+
+namespace mc::advancement {
+
 /**
  * @brief 触发器实例基类
  *
@@ -67,11 +76,6 @@ template<typename T>
 class CriterionListener;
 
 /**
- * @brief 玩家成就进度（前向声明）
- */
-class PlayerAdvancements;
-
-/**
  * @brief 触发器监听器
  *
  * 关联一个触发器实例、成就和条件名称。
@@ -105,7 +109,7 @@ public:
     /**
      * @brief 授予条件
      */
-    void grantCriterion(PlayerAdvancements& advancements) const;
+    void grantCriterion(::mc::server::PlayerAdvancements& advancements) const;
 
     /**
      * @brief 比较运算符（用于set）
@@ -164,20 +168,20 @@ public:
      * @param advancements 玩家成就进度
      * @param listener 监听器
      */
-    virtual void addListener(PlayerAdvancements& advancements, const Listener& listener) = 0;
+    virtual void addListener(::mc::server::PlayerAdvancements& advancements, const Listener& listener) = 0;
 
     /**
      * @brief 移除监听器
      * @param advancements 玩家成就进度
      * @param listener 监听器
      */
-    virtual void removeListener(PlayerAdvancements& advancements, const Listener& listener) = 0;
+    virtual void removeListener(::mc::server::PlayerAdvancements& advancements, const Listener& listener) = 0;
 
     /**
      * @brief 移除玩家的所有监听器
      * @param advancements 玩家成就进度
      */
-    virtual void removeAllListeners(PlayerAdvancements& advancements) = 0;
+    virtual void removeAllListeners(::mc::server::PlayerAdvancements& advancements) = 0;
 
     /**
      * @brief 从JSON反序列化触发器实例
@@ -203,11 +207,11 @@ class AbstractCriterionTrigger : public ICriterionTrigger<T> {
 public:
     using Listener = typename ICriterionTrigger<T>::Listener;
 
-    void addListener(PlayerAdvancements& advancements, const Listener& listener) override {
+    void addListener(::mc::server::PlayerAdvancements& advancements, const Listener& listener) override {
         m_listeners[&advancements].insert(listener);
     }
 
-    void removeListener(PlayerAdvancements& advancements, const Listener& listener) override {
+    void removeListener(::mc::server::PlayerAdvancements& advancements, const Listener& listener) override {
         auto it = m_listeners.find(&advancements);
         if (it != m_listeners.end()) {
             it->second.erase(listener);
@@ -217,7 +221,7 @@ public:
         }
     }
 
-    void removeAllListeners(PlayerAdvancements& advancements) override {
+    void removeAllListeners(::mc::server::PlayerAdvancements& advancements) override {
         m_listeners.erase(&advancements);
     }
 
@@ -232,12 +236,12 @@ protected:
      * @param predicate 检测谓词，返回true表示条件满足
      */
     template<typename PredicateT>
-    void trigger(PlayerAdvancements& advancements, PredicateT&& predicate);
+    void trigger(::mc::server::PlayerAdvancements& advancements, PredicateT&& predicate);
 
     /**
      * @brief 获取玩家的所有监听器
      */
-    [[nodiscard]] const std::set<Listener>& getListeners(PlayerAdvancements& advancements) const {
+    [[nodiscard]] const std::set<Listener>& getListeners(::mc::server::PlayerAdvancements& advancements) const {
         static const std::set<Listener> empty;
         auto it = m_listeners.find(&advancements);
         return it != m_listeners.end() ? it->second : empty;
@@ -246,13 +250,13 @@ protected:
     /**
      * @brief 检查是否有玩家的监听器
      */
-    [[nodiscard]] bool hasListeners(PlayerAdvancements& advancements) const {
+    [[nodiscard]] bool hasListeners(::mc::server::PlayerAdvancements& advancements) const {
         auto it = m_listeners.find(&advancements);
         return it != m_listeners.end() && !it->second.empty();
     }
 
 private:
-    std::unordered_map<PlayerAdvancements*, std::set<Listener>> m_listeners;
+    std::unordered_map<::mc::server::PlayerAdvancements*, std::set<Listener>> m_listeners;
 };
 
 } // namespace mc::advancement

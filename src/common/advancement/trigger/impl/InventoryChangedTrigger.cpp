@@ -169,22 +169,31 @@ Result<std::shared_ptr<ICriterionInstance>> InventoryChangedTrigger::fromJson(co
 }
 
 void InventoryChangedTrigger::trigger(ServerPlayer& player, const PlayerInventory& inventory) {
-    // 注意：此实现需要 TriggerInstantiation.hpp 中的模板方法
-    // 该文件在 server 模块中，需要包含服务器头文件
-    // 服务端事件系统会在物品栏变化时调用此方法
     // 参考 MC 1.16.5: InventoryChangeTrigger.triggerListeners()
-    MC_UNUSED(player);
-    MC_UNUSED(inventory);
-    // TODO: 需要在服务端模块中提供完整实现
-    // 完整实现应该：
-    // for (const auto& listener : getListeners(*player.getAdvancements())) {
-    //     if (listener.getInstance().testWithInventory(
-    //         PlayerInventory::TOTAL_SIZE,
-    //         [&inventory](i32 slot) -> const ItemStack& { return inventory.getItem(slot); }
-    //     )) {
-    //         listener.grantCriterion(*player.getAdvancements());
+    //
+    // 此方法需要在服务端模块中通过包含 TriggerInstantiation.hpp 来启用完整实现。
+    // 模板方法 trigger() 需要访问 PlayerAdvancements 的完整定义。
+    //
+    // 服务端集成示例（在服务端事件处理代码中）：
+    // #include "server/advancement/TriggerInstantiation.hpp"
+    // auto* trigger = CriterionTriggers::instance().getTrigger<InventoryChangedTrigger>();
+    // if (trigger && trigger->hasListeners(*player.getAdvancements())) {
+    //     for (const auto& listener : trigger->getListeners(*player.getAdvancements())) {
+    //         if (listener.getInstance().testWithInventory(
+    //             PlayerInventory::TOTAL_SIZE,
+    //             [&inventory](i32 slot) -> const ItemStack& { return inventory.getItem(slot); }
+    //         )) {
+    //             listener.grantCriterion(*player.getAdvancements());
+    //         }
     //     }
     // }
+    //
+    // 或者使用模板方法（在包含 TriggerInstantiation.hpp 后）：
+    // trigger->trigger(*player.getAdvancements(), [&](const auto& instance) {
+    //     return instance.testWithInventory(PlayerInventory::TOTAL_SIZE, getter);
+    // });
+    MC_UNUSED(player);
+    MC_UNUSED(inventory);
 }
 
 std::shared_ptr<InventoryChangedTriggerInstance> InventoryChangedTrigger::hasItems(std::vector<ItemPredicate> items) {

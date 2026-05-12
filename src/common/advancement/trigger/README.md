@@ -22,6 +22,7 @@ trigger/
 │
 └── impl/                          # 触发器实现
     ├── ImpossibleTrigger.hpp      # 不可能触发器
+    ├── TickTrigger.hpp/cpp        # Tick触发器
     ├── InventoryChangedTrigger.hpp/cpp  # 物品栏变化
     ├── LocationTrigger.hpp/cpp          # 位置触发器
     ├── PlayerKilledEntityTrigger.hpp/cpp # 玩家击杀实体
@@ -41,9 +42,9 @@ class ICriterionTrigger : public ICriterionTriggerBase {
 public:
     using Listener = CriterionListener<T>;
     
-    virtual void addListener(PlayerAdvancements& advancements, const Listener& listener) = 0;
-    virtual void removeListener(PlayerAdvancements& advancements, const Listener& listener) = 0;
-    virtual void removeAllListeners(PlayerAdvancements& advancements) = 0;
+    virtual void addListener(mc::server::PlayerAdvancements& advancements, const Listener& listener) = 0;
+    virtual void removeListener(mc::server::PlayerAdvancements& advancements, const Listener& listener) = 0;
+    virtual void removeAllListeners(mc::server::PlayerAdvancements& advancements) = 0;
 };
 ```
 
@@ -56,10 +57,10 @@ template<typename T>
 class AbstractCriterionTrigger : public ICriterionTrigger<T> {
 protected:
     template<typename PredicateT>
-    void trigger(PlayerAdvancements& advancements, PredicateT&& predicate);
+    void trigger(mc::server::PlayerAdvancements& advancements, PredicateT&& predicate);
     
-    const std::set<Listener>& getListeners(PlayerAdvancements& advancements) const;
-    bool hasListeners(PlayerAdvancements& advancements) const;
+    const std::set<Listener>& getListeners(mc::server::PlayerAdvancements& advancements) const;
+    bool hasListeners(mc::server::PlayerAdvancements& advancements) const;
 };
 ```
 
@@ -70,8 +71,33 @@ protected:
 | 触发器 | ID | 说明 | 状态 |
 |--------|-----|------|------|
 | `ImpossibleTrigger` | `minecraft:impossible` | 无法自动完成，需手动授予 | ✅ 完整实现 |
-| `InventoryChangedTrigger` | `minecraft:inventory_changed` | 物品栏变化 | ✅ 框架完成，待集成事件 |
+| `InventoryChangedTrigger` | `minecraft:inventory_changed` | 物品栏变化 | ✅ 条件检测完成，待服务端事件集成 |
 | `TickTrigger` | `minecraft:tick` | 每tick触发 | ✅ 完整实现 |
+
+### InventoryChangedTrigger 详细说明
+
+`InventoryChangedTrigger` 用于检测玩家物品栏变化，支持以下条件：
+
+- `slots.occupied`: 占用槽位数量范围
+- `slots.full`: 满槽位数量范围
+- `slots.empty`: 空槽位数量范围
+- `items`: 物品谓词列表
+
+```cpp
+// 条件检测示例
+InventoryChangedTriggerInstance instance = ...;
+
+// 使用 testWithInventory 方法检测
+bool matches = instance.testWithInventory(
+    PlayerInventory::TOTAL_SIZE,  // 41
+    [&inventory](i32 slot) -> const ItemStack& {
+        return inventory.getItem(slot);
+    }
+);
+```
+
+**服务端集成**：触发器的实际触发需要在服务端事件系统中完成。
+详见 `src/server/advancement/TriggerInstantiation.hpp` 和事件系统集成文档。
 
 ### 位置触发器
 
@@ -127,6 +153,14 @@ if (predicate.test(itemStack)) {
     // 条件满足
 }
 ```
+
+ItemPredicate 支持以下字段：
+- `item`: 物品ID（如 `minecraft:diamond`）
+- `count`: 数量（精确值或范围）
+- `durability`: 耐久度范围
+- `potion`: 药水类型
+- `nbt`: NBT数据匹配
+- `enchantments`: 附魔匹配
 
 ### EntityPredicate
 
@@ -191,14 +225,27 @@ CriterionTriggers::instance().registerBuiltinTriggers();
 }
 ```
 
-### 触发检测
+### 触发检测（服务端）
+
+在服务端模块中，使用 `TriggerInstantiation.hpp` 来完成触发：
 
 ```cpp
+#include "server/advancement/TriggerInstantiation.hpp"
+
 // 当玩家物品栏变化时
-auto& triggers = CriterionTriggers::instance();
-auto* trigger = triggers.getTrigger<InventoryChangedTrigger>();
-if (trigger) {
-    trigger->trigger(player, inventory);
+void onInventoryChanged(ServerPlayer& player, const PlayerInventory& inventory) {
+    auto* trigger = CriterionTriggers::instance().getTrigger<InventoryChangedTrigger>();
+    if (trigger && trigger->hasListeners(*player.getAdvancements())) {
+        // 使用模板方法触发
+        trigger->trigger(*player.getAdvancements(), [&](const auto& instance) {
+            return instance.testWithInventory(
+                PlayerInventory::TOTAL_SIZE,
+                [&inventory](i32 slot) -> const ItemStack& {
+                    return inventory.getItem(slot);
+                }
+            );
+        });
+    }
 }
 ```
 
@@ -225,7 +272,7 @@ public:
     ResourceLocation getId() const override;
     Result<std::shared_ptr<Instance>> fromJson(const nlohmann::json& json) override;
     
-    void trigger(...);
+    void trigger(ServerPlayer& player, ...);
 };
 ```
 
@@ -240,6 +287,29 @@ registerTrigger(std::make_unique<MyTrigger>());
 ```cpp
 constexpr const char* MY_TRIGGER = "minecraft:my_trigger";
 ```
+
+## 架构说明
+
+### 模块划分
+
+触发器系统分为两个模块：
+
+1. **Common 模块** (`mc::advancement`)
+   - 触发器接口和基类定义
+   - 条件谓词实现
+   - JSON 解析和序列化
+   - `test()` 方法实现
+
+2. **Server 模块** (`mc::server`)
+   - `PlayerAdvancements`: 玩家进度管理
+   - `TriggerInstantiation.hpp`: 模板方法实例化
+   - 事件系统集成
+
+### 命名空间注意事项
+
+- `mc::advancement::PlayerAdvancements` 是前向声明，实际定义在 `mc::server::PlayerAdvancements`
+- 所有触发器接口使用 `mc::server::PlayerAdvancements&` 作为参数类型
+- 服务端集成代码必须包含 `server/advancement/TriggerInstantiation.hpp`
 
 ## 参考
 
