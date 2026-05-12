@@ -578,6 +578,11 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/interaction/ContainerManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
         # 缁村害妯″潡
+        # 统计系统
+        ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/stats/StatRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimension.cpp
         ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimensionManager.cpp
         # 同步管理器
@@ -1250,6 +1255,11 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateBiomeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/MeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ParticleCommand.cpp
+        # 统计系统
+        ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/stats/StatRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimension.cpp
         ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimensionManager.cpp
 )

@@ -360,6 +360,11 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
     # 事件系统
     ${CMAKE_SOURCE_DIR}/src/server/event/ServerEventBus.cpp
+    # 统计系统
+    ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/stats/StatRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/menu/CraftingMenu.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp

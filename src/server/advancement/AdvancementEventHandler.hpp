@@ -1,5 +1,6 @@
 #pragma once
 
+#include "server/application/IServer.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
 #include "server/player/ServerPlayer.hpp"
@@ -12,7 +13,6 @@
 
 // 前向声明
 namespace mc::server {
-class IServer;
 namespace core {
 class PlayerManager;
 }
