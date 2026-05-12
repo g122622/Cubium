@@ -8,20 +8,13 @@
 #include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 // 前向声明
-namespace mc {
-namespace server {
+namespace mc::server {
 class IServer;
-class ServerWorld;
 namespace core {
 class PlayerManager;
-}
-namespace world {
-namespace player {
-class ServerPlayerEntityManager;
-}
-}
 }
 }
 

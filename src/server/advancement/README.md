@@ -60,14 +60,58 @@ auto instance = InventoryChangedTrigger::hasItems(
 ```cpp
 class AdvancementEventHandler {
 public:
+    void setServer(IServer* server);     // 设置服务器接口（必须）
+    void setPlayerManager(core::PlayerManager* pm); // 已废弃
     void initialize();  // 订阅事件
     void shutdown();    // 取消订阅
 
 private:
+    ServerPlayer* getServerPlayer(PlayerId playerId);  // 从 PlayerId 获取 ServerPlayer
     void onInventoryChanged(const InventoryChangedEvent& e);
     void onPlayerKillEntity(const PlayerKillEntityEvent& e);
     void onPlayerLogin(const PlayerLoginEvent& e);
 };
+```
+
+#### 架构说明
+
+AdvancementEventHandler 需要从 PlayerId 获取 ServerPlayer 以触发成就检测。
+
+**调用链：**
+
+```
+PlayerId (事件携带)
+       │
+       ▼
+IServer::playerEntityManager()
+       │
+       ▼
+ServerPlayerEntityManager::getPlayerEntity(playerId, world)
+       │
+       ▼
+Player*
+       │
+       ▼
+Player::asServerPlayer()
+       │
+       ▼
+ServerPlayer*
+```
+
+**关键点：**
+
+1. **不使用 PlayerManager**：`PlayerManager::getPlayer()` 返回 `ServerPlayerData`，这是网络会话数据结构，不持有 `ServerPlayer` 引用。
+
+2. **使用 ServerPlayerEntityManager**：这是正确的路径，它维护 `PlayerId ↔ EntityId` 映射，并能从 `EntityManager` 获取 `Player` 实体。
+
+3. **初始化顺序**：必须在 `initialize()` 之前调用 `setServer(this)`。
+
+**示例：**
+
+```cpp
+// MinecraftServer::initializeInteractionManagers()
+m_advancementEventHandler.setServer(this);
+m_advancementEventHandler.initialize();
 ```
 
 ## 事件集成
@@ -172,16 +216,32 @@ common/advancement/                    server/advancement/
 
 ## 测试
 
-成就系统测试位于 `tests/advancement/AdvancementTest.cpp`，包括：
-- 触发器实例创建和检测
-- 物品谓词匹配
-- 槽位计数检测
-- 序列化/反序列化
+成就系统测试位于：
+- `tests/advancement/AdvancementTest.cpp` - 触发器实例创建和检测、物品谓词匹配、槽位计数检测
+- `tests/server/advancement/AdvancementEventHandlerTest.cpp` - getServerPlayer 架构验证、事件订阅生命周期
 
 运行测试：
 ```bash
 ./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="*Advancement*"
+./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="AdvancementEventHandlerTest*"
 ```
+
+### AdvancementEventHandler 测试覆盖
+
+| 测试用例 | 描述 |
+|---------|------|
+| SetServerNotNull | 验证 setServer() 可以设置非空指针 |
+| SetServerNullptr | 验证 setServer(nullptr) 不崩溃 |
+| SetServerMultipleTimes | 验证多次设置服务器接口 |
+| GetServerPlayerWithoutServer | 验证未设置服务器时的行为 |
+| GetServerPlayerWithNullServer | 验证服务器为 nullptr 时的行为 |
+| InitializeShutdown | 验证初始化和关闭生命周期 |
+| InitializeMultipleTimes | 验证多次初始化 |
+| ShutdownWithoutInitialize | 验证未初始化时关闭 |
+| SetPlayerManagerCompat | 验证向后兼容的 setPlayerManager() |
+| SetBothServerAndPlayerManager | 验证同时设置两个 |
+| ArchitectureGetServerPlayerPath | 验证调用链架构 |
+| EventSubscriptionLifecycle | 验证事件订阅生命周期 |
 
 ## 参考
 

@@ -79,6 +79,8 @@ add_executable(mc_tests
     common/entity/core/BoostHelperTest.cpp
     # 成就系统测试
     advancement/AdvancementTest.cpp
+    # AdvancementEventHandler 测试（getServerPlayer 架构验证）
+    server/advancement/AdvancementEventHandlerTest.cpp
     # ItemDropHelper 测试
     common/entity/utils/ItemDropHelperTest.cpp
     # 经验系统测试
