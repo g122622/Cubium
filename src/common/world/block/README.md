@@ -105,6 +105,51 @@ block/
     - `onBlockAdded()`：放置处理
     - `onBlockRemoved()`：移除处理
     - `isReplaceable()`：方块是否可被替换（支持双层台阶等）
+  - 挖掘系统：
+    - `getPlayerRelativeBlockHardness()`：获取玩家相对方块硬度（见下方详细说明）
+
+### Block.hpp - 挖掘系统方法
+
+**`getPlayerRelativeBlockHardness()`**：
+
+计算玩家对指定方块的相对挖掘硬度，用于确定挖掘进度。
+
+```cpp
+/**
+ * @brief 获取玩家相对方块硬度
+ *
+ * MC 1.16.5: Block.getPlayerRelativeBlockHardness(PlayerEntity, IBlockReader, BlockPos)
+ * 计算玩家每 tick 的挖掘进度增量。
+ *
+ * 计算公式：
+ * - 硬度 <= 0：返回 1.0（瞬间破坏）
+ * - 创造模式：返回 1.0（瞬间破坏）
+ * - 可采集：digSpeed / hardness / 30.0
+ * - 不可采集：digSpeed / hardness / 100.0
+ *
+ * @param player 玩家引用
+ * @param world 世界引用（用于流体检测）
+ * @param pos 方块位置
+ * @param state 方块状态
+ * @return 挖掘进度增量（每 tick）
+ */
+f32 Block::getPlayerRelativeBlockHardness(
+    Player& player,
+    IBlockReader& world,
+    const BlockPos& pos,
+    const BlockState& state
+) const;
+```
+
+**挖掘进度计算**：
+- 返回值 >= 1.0 表示瞬间破坏（创造模式或硬度为 0）
+- 返回值 < 1.0 表示需要多个 tick 才能破坏
+- 挖掘时间（tick）= 1.0 / 相对硬度
+
+**与 Player 类协作**：
+- 调用 `Player::getDigSpeed()` 获取挖掘速度倍率
+- 调用 `Player::canHarvestBlock()` 判断是否可采集
+- 参考 `tests/entity/PlayerDiggingTest.cpp` 测试用例
 
 ### BlockState.hpp/cpp
 

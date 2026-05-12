@@ -227,3 +227,144 @@ flowchart TD
   - `ServerPlayer::sendStatusMessage()` - 重写为通过网络发送消息到客户端
   - `ServerPlayer::canReceiveMessages()` - 重写为检查网络连接状态
   - 参考 MC 1.16.5 `PlayerEntity.sendStatusMessage(ITextComponent, boolean)`
+
+## 挖掘系统
+
+玩家通过 `getDigSpeed()` 和 `canHarvestBlock()` 方法参与方块挖掘计算。
+
+### 核心接口
+
+```cpp
+class Player : public LivingEntity {
+public:
+    /**
+     * @brief 获取玩家挖掘速度
+     *
+     * MC 1.16.5: PlayerEntity.getDigSpeed(BlockState, BlockPos)
+     * 计算玩家对指定方块的挖掘速度，考虑以下因素：
+     * 1. 工具基础挖掘速度
+     * 2. 效率附魔加成（仅当工具有效时）
+     * 3. 急迫效果和潮涌能量加成
+     * 4. 挖掘疲劳惩罚
+     * 5. 水下挖掘惩罚（无水下速掘附魔时）
+     * 6. 空中挖掘惩罚（不在地面时）
+     *
+     * @param state 目标方块状态
+     * @param pos 方块位置（用于流体检测，可选）
+     * @return 挖掘速度倍率
+     */
+    [[nodiscard]] f32 getDigSpeed(const BlockState& state, const BlockPos& pos = BlockPos(0, 0, 0)) const;
+
+    /**
+     * @brief 检查玩家是否能采集方块
+     *
+     * MC 1.16.5: PlayerEntity.canHarvestBlock(BlockState)
+     * 判断玩家使用当前手持工具是否能采集指定方块。
+     *
+     * 采集条件：
+     * 1. 方块不需要工具（requiresTool() == false）-> 可采集
+     * 2. 手持物品的工具类型匹配且等级足够 -> 可采集
+     * 3. 其他情况 -> 不可采集
+     *
+     * @param state 目标方块状态
+     * @return 如果可以采集返回 true
+     */
+    [[nodiscard]] bool canHarvestBlock(const BlockState& state) const;
+};
+```
+
+### 挖掘速度计算公式
+
+```
+最终挖掘速度 = 基础速度 × 效率附魔加成 × 急迫效果乘数 × 挖掘疲劳乘数 × 水下惩罚 × 空中惩罚
+
+详细公式:
+digSpeed = baseSpeed;
+
+// 效率附魔加成 (仅当基础速度 > 1.0 时)
+if (baseSpeed > 1.0 && efficiencyLevel > 0) {
+    digSpeed += (efficiencyLevel * efficiencyLevel + 1);
+}
+
+// 急迫/潮涌效果加成
+if (hasHaste || hasConduitPower) {
+    amplifier = max(hasteAmplifier, conduitAmplifier);
+    digSpeed *= (1.0 + (amplifier + 1) * 0.2);
+}
+
+// 挖掘疲劳效果
+if (hasMiningFatigue) {
+    switch(fatigueAmplifier) {
+        case 0: digSpeed *= 0.3;    break;  // 挖掘疲劳 I
+        case 1: digSpeed *= 0.09;   break;  // 挖掘疲劳 II
+        case 2: digSpeed *= 0.0027; break;  // 挖掘疲劳 III
+        default: digSpeed *= 0.00081; break; // 挖掘疲劳 IV+
+    }
+}
+
+// 水下惩罚 (没有水下亲和附魔时)
+if (eyesInWater && !hasAquaAffinity) {
+    digSpeed /= 5.0;
+}
+
+// 不在地面惩罚
+if (!onGround) {
+    digSpeed /= 5.0;
+}
+```
+
+### 方块相对硬度计算
+
+```cpp
+// Block::getPlayerRelativeBlockHardness()
+f32 hardness = state.hardness();
+if (hardness <= 0.0f) {
+    return 1.0f;  // 瞬间破坏（空气、水等）
+}
+
+if (player.isCreative()) {
+    return 1.0f;  // 创造模式瞬间破坏
+}
+
+f32 digSpeed = player.getDigSpeed(state, pos);
+bool canHarvest = player.canHarvestBlock(state);
+f32 divisor = canHarvest ? 30.0f : 100.0f;
+
+return digSpeed / hardness / divisor;
+```
+
+### 使用示例
+
+```cpp
+// 获取玩家对石头的挖掘速度
+const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
+f32 digSpeed = player.getDigSpeed(*stoneState);
+
+// 检查玩家是否能采集钻石矿石
+const BlockState* diamondOreState = &VanillaBlocks::DIAMOND_ORE->defaultState();
+if (player.canHarvestBlock(*diamondOreState)) {
+    // 可以采集，使用 30 作为除数
+    f32 hardness = player.getDigSpeed(*diamondOreState) / hardness / 30.0f;
+} else {
+    // 不能采集，使用 100 作为除数，挖掘速度大幅降低
+    f32 hardness = player.getDigSpeed(*diamondOreState) / hardness / 100.0f;
+}
+```
+
+### 测试用例
+
+- [tests/entity/PlayerDiggingTest.cpp](../../../../../tests/entity/PlayerDiggingTest.cpp)
+- `EmptyHandHasBaseDigSpeed` - 空手基础挖掘速度
+- `ToolHasCorrectDigSpeed` - 工具挖掘速度
+- `WrongToolHasLowDigSpeed` - 错误工具挖掘速度
+- `EfficiencyEnchantmentIncreasesDigSpeed` - 效率附魔加成
+- `HasteEffectIncreasesDigSpeed` - 急迫效果加成
+- `ConduitPowerIncreasesDigSpeed` - 潮涌能量加成
+- `MiningFatigueReducesDigSpeed` - 挖掘疲劳惩罚
+- `MiningFatigueLevels` - 挖掘疲劳各等级
+- `CanHarvestBlockWithoutTool` - 不需要工具的方块采集
+- `CannotHarvestStoneWithEmptyHand` - 空手不能采集石头
+- `CanHarvestStoneWithPickaxe` - 镐可以采集石头
+- `CannotHarvestDiamondOreWithWoodenPickaxe` - 木镐不能采集钻石矿石
+- `CanHarvestDiamondOreWithIronPickaxe` - 铁镐可以采集钻石矿石
+- `CombinedEffects` - 综合效果叠加测试
