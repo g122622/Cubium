@@ -1163,6 +1163,38 @@ public:
     }
 
     // ========================================================================
+    // 结构方块模式属性
+    // ========================================================================
+
+    /**
+     * @brief 结构方块模式枚举
+     *
+     * MC 1.16.5: net.minecraft.state.properties.StructureMode
+     * 用于 StructureBlock，表示其四种工作模式。
+     */
+    enum class StructureMode : u8 {
+        Save = 0,    ///< 保存模式 - 保存结构到模板
+        Load = 1,    ///< 加载模式 - 从模板加载结构
+        Corner = 2,  ///< 角落模式 - 定义结构角落
+        Data = 3     ///< 数据模式 - 定义实体数据位置
+    };
+
+    /**
+     * @brief 结构方块模式属性
+     *
+     * MC 1.16.5: net.minecraft.state.properties.BlockStateProperties.STRUCTURE_BLOCK_MODE
+     */
+    static const EnumProperty<StructureMode>& STRUCTURE_MODE() {
+        static auto prop = EnumProperty<StructureMode>::create("mode", {
+            StructureMode::Save,
+            StructureMode::Load,
+            StructureMode::Corner,
+            StructureMode::Data
+        });
+        return *prop;
+    }
+
+    // ========================================================================
     // 其他布尔属性
     // ========================================================================
 
@@ -1323,4 +1355,14 @@ struct mc::EnumProperty<mc::world::gen::jigsaw::JigsawOrientation>::Traits {
     static std::optional<mc::world::gen::jigsaw::JigsawOrientation> fromName(std::string_view name) {
         return mc::world::gen::jigsaw::JigsawOrientations::fromName(name);
     }
+};
+
+// ============================================================================
+// StructureMode 枚举特征特化
+// ============================================================================
+
+template<>
+struct mc::EnumProperty<mc::BlockStateProperties::StructureMode>::Traits {
+    static std::string toString(const mc::BlockStateProperties::StructureMode& value);
+    static std::optional<mc::BlockStateProperties::StructureMode> fromName(std::string_view name);
 };

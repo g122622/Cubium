@@ -482,3 +482,102 @@ TEST(AxisUtilTest, IsHorizontalVertical) {
     EXPECT_FALSE(Axes::isVertical(Axis::Z));
     EXPECT_TRUE(Axes::isVertical(Axis::Y));
 }
+
+// ============================================================================
+// StructureMode 枚举属性测试
+// ============================================================================
+
+TEST(StructureModeTest, PropertyCreation) {
+    const auto& prop = BlockStateProperties::STRUCTURE_MODE();
+
+    EXPECT_EQ(prop.name(), "mode");
+    EXPECT_EQ(prop.valueCount(), 4);
+    EXPECT_STREQ(prop.typeName(), "EnumProperty");
+}
+
+TEST(StructureModeTest, AllowedValues) {
+    const auto& prop = BlockStateProperties::STRUCTURE_MODE();
+
+    const auto& values = prop.allowedValues();
+    ASSERT_EQ(values.size(), 4);
+
+    // 验证所有枚举值都存在
+    EXPECT_EQ(values[0], BlockStateProperties::StructureMode::Save);
+    EXPECT_EQ(values[1], BlockStateProperties::StructureMode::Load);
+    EXPECT_EQ(values[2], BlockStateProperties::StructureMode::Corner);
+    EXPECT_EQ(values[3], BlockStateProperties::StructureMode::Data);
+}
+
+TEST(StructureModeTest, IndexOf) {
+    const auto& prop = BlockStateProperties::STRUCTURE_MODE();
+
+    auto saveIdx = prop.indexOf(BlockStateProperties::StructureMode::Save);
+    auto loadIdx = prop.indexOf(BlockStateProperties::StructureMode::Load);
+    auto cornerIdx = prop.indexOf(BlockStateProperties::StructureMode::Corner);
+    auto dataIdx = prop.indexOf(BlockStateProperties::StructureMode::Data);
+
+    ASSERT_TRUE(saveIdx.has_value());
+    ASSERT_TRUE(loadIdx.has_value());
+    ASSERT_TRUE(cornerIdx.has_value());
+    ASSERT_TRUE(dataIdx.has_value());
+
+    EXPECT_EQ(saveIdx.value(), 0);
+    EXPECT_EQ(loadIdx.value(), 1);
+    EXPECT_EQ(cornerIdx.value(), 2);
+    EXPECT_EQ(dataIdx.value(), 3);
+}
+
+TEST(StructureModeTest, ValueAt) {
+    const auto& prop = BlockStateProperties::STRUCTURE_MODE();
+
+    EXPECT_EQ(prop.valueAt(0), BlockStateProperties::StructureMode::Save);
+    EXPECT_EQ(prop.valueAt(1), BlockStateProperties::StructureMode::Load);
+    EXPECT_EQ(prop.valueAt(2), BlockStateProperties::StructureMode::Corner);
+    EXPECT_EQ(prop.valueAt(3), BlockStateProperties::StructureMode::Data);
+}
+
+TEST(StructureModeTest, ValueToString) {
+    const auto& prop = BlockStateProperties::STRUCTURE_MODE();
+
+    EXPECT_EQ(prop.valueToString(BlockStateProperties::StructureMode::Save), "save");
+    EXPECT_EQ(prop.valueToString(BlockStateProperties::StructureMode::Load), "load");
+    EXPECT_EQ(prop.valueToString(BlockStateProperties::StructureMode::Corner), "corner");
+    EXPECT_EQ(prop.valueToString(BlockStateProperties::StructureMode::Data), "data");
+}
+
+TEST(StructureModeTest, ParseValue) {
+    const auto& prop = BlockStateProperties::STRUCTURE_MODE();
+
+    auto save = prop.parse("save");
+    auto load = prop.parse("load");
+    auto corner = prop.parse("corner");
+    auto data = prop.parse("data");
+    auto invalid = prop.parse("invalid");
+
+    ASSERT_TRUE(save.has_value());
+    EXPECT_EQ(save.value(), BlockStateProperties::StructureMode::Save);
+
+    ASSERT_TRUE(load.has_value());
+    EXPECT_EQ(load.value(), BlockStateProperties::StructureMode::Load);
+
+    ASSERT_TRUE(corner.has_value());
+    EXPECT_EQ(corner.value(), BlockStateProperties::StructureMode::Corner);
+
+    ASSERT_TRUE(data.has_value());
+    EXPECT_EQ(data.value(), BlockStateProperties::StructureMode::Data);
+
+    EXPECT_FALSE(invalid.has_value());
+}
+
+TEST(StructureModeTest, RoundTrip) {
+    const auto& prop = BlockStateProperties::STRUCTURE_MODE();
+
+    // 测试所有枚举值的往返转换
+    for (const auto& mode : prop.allowedValues()) {
+        std::string str = prop.valueToString(mode);
+        auto parsed = prop.parse(str);
+
+        ASSERT_TRUE(parsed.has_value()) << "Failed to parse: " << str;
+        EXPECT_EQ(parsed.value(), mode) << "Round trip failed for mode: " << str;
+    }
+}

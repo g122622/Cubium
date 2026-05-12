@@ -60,18 +60,30 @@ const CollisionShape& StructureVoidBlock::getCollisionShape(const BlockState& st
 
 StructureBlock::StructureBlock(const BlockProperties& properties)
     : Block(properties) {
-    // 创建状态容器
+    // 创建状态容器，添加 MODE 属性
+    // 参考 MC 1.16.5: StructureBlock.fillStateContainer() - builder.add(MODE)
     auto container = StateContainer<Block, BlockState>::Builder(*this)
+        .add(BlockStateProperties::STRUCTURE_MODE())
         .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
             return std::make_unique<BlockState>(block, std::move(values), id);
         });
     createBlockState(std::move(container));
+
+    // 设置默认状态：DATA 模式
+    // 参考 MC 1.16.5: StructureBlock.getStateForPlacement() - 默认为 DATA 模式
+    setDefaultState(defaultState()
+        .with(BlockStateProperties::STRUCTURE_MODE(), Mode::Data));
 }
 
 StructureBlock::Mode StructureBlock::getMode(const BlockState& state) const {
-    MC_UNUSED(state);
-    // TODO: 实现 MODE 属性
-    return Mode::Save;
+    return state.get(BlockStateProperties::STRUCTURE_MODE());
+}
+
+BlockState StructureBlock::getStateForPlacement(BlockItemUseContext& context) {
+    // MC 1.16.5: StructureBlock.getStateForPlacement()
+    // 放置时默认为 DATA 模式
+    MC_UNUSED(context);
+    return defaultState();
 }
 
 ActionResultType StructureBlock::onBlockActivated(

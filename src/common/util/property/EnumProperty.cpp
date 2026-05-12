@@ -551,4 +551,38 @@ std::optional<BlockStateProperties::NoteBlockInstrument> EnumProperty<BlockState
     return std::nullopt;
 }
 
+// ============================================================================
+// StructureMode Traits 实现
+// ============================================================================
+
+std::string EnumProperty<BlockStateProperties::StructureMode>::Traits::toString(
+    const BlockStateProperties::StructureMode& value) {
+    switch (value) {
+        case BlockStateProperties::StructureMode::Save:
+            return "save";
+        case BlockStateProperties::StructureMode::Load:
+            return "load";
+        case BlockStateProperties::StructureMode::Corner:
+            return "corner";
+        case BlockStateProperties::StructureMode::Data:
+            return "data";
+        default:
+            return "save";
+    }
+}
+
+std::optional<BlockStateProperties::StructureMode> EnumProperty<BlockStateProperties::StructureMode>::Traits::fromName(
+    std::string_view name) {
+    if (name == "save") {
+        return BlockStateProperties::StructureMode::Save;
+    } else if (name == "load") {
+        return BlockStateProperties::StructureMode::Load;
+    } else if (name == "corner") {
+        return BlockStateProperties::StructureMode::Corner;
+    } else if (name == "data") {
+        return BlockStateProperties::StructureMode::Data;
+    }
+    return std::nullopt;
+}
+
 } // namespace mc

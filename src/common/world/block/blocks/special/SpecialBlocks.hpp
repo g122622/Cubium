@@ -74,22 +74,33 @@ public:
  */
 class StructureBlock : public Block {
 public:
-    /**
-     * @brief 结构方块模式
-     */
-    enum class Mode : u8 {
-        Save = 0,
-        Load = 1,
-        Corner = 2,
-        Data = 3
-    };
+    /// 结构方块模式别名，使用 BlockStateProperties 中定义的 StructureMode
+    using Mode = BlockStateProperties::StructureMode;
 
     explicit StructureBlock(const BlockProperties& properties);
     ~StructureBlock() override = default;
 
     // ========== 状态属性 ==========
 
+    /**
+     * @brief 获取结构方块模式
+     *
+     * @param state 方块状态
+     * @return 当前模式
+     */
     [[nodiscard]] Mode getMode(const BlockState& state) const;
+
+    // ========== 放置逻辑 ==========
+
+    /**
+     * @brief 获取放置时的方块状态
+     *
+     * 放置时默认设置为 DATA 模式。
+     *
+     * @param context 放置上下文
+     * @return 方块状态
+     */
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     // ========== 交互 ==========
 
