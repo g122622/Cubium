@@ -177,7 +177,7 @@ Block (基类)
 - [ ] LecternBlock: 方块实体、书籍交互
 - [ ] BellBlock: 动画系统、声音播放
 - [ ] JukeboxBlock: 方块实体、音乐唱片系统
-- [ ] RespawnAnchorBlock: 维度检测、爆炸逻辑
+- [x] RespawnAnchorBlock: 维度检测、爆炸逻辑、设置重生点（2026-05-12 完成）
 - [ ] LodestoneBlock: 指南针绑定系统
 
 ## 已实现功能详解
@@ -262,6 +262,49 @@ Block (基类)
 | 皮革盔甲 | 清洗颜色 | -1 | 无 |
 
 **创造模式**: 不消耗物品
+
+### RespawnAnchorBlock (重生锚)
+
+完整的 MC 1.16.5 重生锚实现：
+
+**功能**:
+- 4级充能系统 (CHARGES_0_4)
+- 荧石充能：消耗萤石增加1级充能
+- 下界重生点设置
+- 非下界维度爆炸
+- 光照等级随充能变化 (0→0, 1→3, 2→7, 3→11, 4→15)
+- 比较器输出 = 充能等级
+
+**充能机制**:
+| 操作 | 充能变化 | 音效 |
+|------|----------|------|
+| 荧石充能 | +1 (最大4) | `block.respawn_anchor.charge` |
+| 设置重生点 | -1 | `block.respawn_anchor.set_spawn` |
+| 非下界使用 | 爆炸 | 爆炸音效 |
+
+**维度检测**:
+| 维度 | `respawnAnchorWorks()` | 行为 |
+|------|------------------------|------|
+| 主世界 (0) | false | 爆炸 |
+| 下界 (-1) | true | 设置重生点 |
+| 末地 (1) | false | 爆炸 |
+
+**玩家重生点设置** (2026-05-12 实现):
+```cpp
+// 在下界使用重生锚设置重生点
+player.setSpawnPoint(world.dimension(), pos, false);
+```
+- 参数：维度ID（当前世界）、位置（重生锚位置）、强制（false）
+- 参考：MC 1.16.5 `RespawnAnchorBlock.onBlockActivated` 第73行
+
+**爆炸机制**:
+- 爆炸强度：5.0（比TNT的4.0更大）
+- 爆炸模式：`ExplosionMode::Destroy`（破坏方块）
+- 不生成火焰
+
+**实现参考**:
+- 参考 MC 1.16.5 `net.minecraft.block.RespawnAnchorBlock`
+- 单元测试：`RespawnAnchorBlockTest`（16个测试用例）
 
 ## 参考
 
