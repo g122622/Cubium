@@ -12,7 +12,7 @@
 // 前向声明
 namespace mc {
     class Entity;
-    struct DamageSource;
+    class DamageSource;
 }
 
 namespace mc::advancement {

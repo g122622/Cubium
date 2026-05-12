@@ -726,8 +726,36 @@ void ClientApplication::setupNetworkCallbacks()
             }
             case static_cast<u8>(EntityStatusPacket::Status::TamingFailed): {
                 // 状态 6: 驯服失败 - 显示烟雾粒子
-                // MC 1.16.5: 播放烟雾粒子效果（暂时用简单的爱心粒子代替）
-                // TODO: 实现烟雾粒子 (ParticleTypes.SMOKE)
+                // MC 1.16.5: TameableEntity.playTameEffect(false) - 生成7个烟雾粒子
+                // 参考: net.minecraft.entity.passable.TameableEntity.playTameEffect
+                if (m_world.particleManager() != nullptr) {
+                    // 生成7个烟雾粒子，随机分布在实体周围
+                    for (i32 i = 0; i < 7; ++i) {
+                        // 计算随机位置：实体中心 + 随机偏移
+                        // getPosXRandom(1.0D) = posX + (rand.nextDouble() - 0.5) * width * 2.0
+                        // getPosYRandom() + 0.5D = posY + rand.nextDouble() * height + 0.5
+                        // getPosZRandom(1.0D) = posZ + (rand.nextDouble() - 0.5) * width * 2.0
+                        f32 randomWidth = m_random.nextFloat(-1.0f, 1.0f);  // [-1, 1]
+                        f32 randomHeight = m_random.nextFloat();  // [0, 1)
+                        glm::vec3 smokePos = entityPos + glm::vec3(
+                            randomWidth * 0.5f,  // width 假设约 0.5
+                            randomHeight * 1.0f + 0.5f,  // height + 0.5
+                            randomWidth * 0.5f
+                        );
+                        // 速度：高斯分布，标准差 0.02
+                        glm::vec3 velocity(
+                            m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f)
+                        );
+                        m_world.particleManager()->addPendingParticle(
+                            client::renderer::trident::particle::ParticleTypeId::Smoke,
+                            smokePos,
+                            velocity,
+                            &m_world
+                        );
+                    }
+                }
                 break;
             }
             case static_cast<u8>(EntityStatusPacket::Status::LoveHeart): {

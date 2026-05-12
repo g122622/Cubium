@@ -7,6 +7,7 @@
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
+#include "common/advancement/trigger/impl/PlayerKilledEntityTrigger.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -171,42 +172,40 @@ private:
      *
      * 触发 PlayerKilledEntityTrigger。
      * 参考 MC 1.16.5: CriteriaTriggers.PLAYER_KILLED_ENTITY
-     *
-     * 注意：此方法已准备就绪，等待以下依赖完成：
-     * 1. PlayerKilledEntityTrigger 需要注册到 CriterionTriggers
-     *    （需要先实现 DistancePredicate.hpp）
-     * 2. PlayerManager 需要提供 ServerPlayer 访问接口
      */
     void onPlayerKillEntity(const event::PlayerKillEntityEvent& e) {
-        // TODO: 当 DistancePredicate 实现后，取消注释以下代码
         // 获取触发器
-        // auto* trigger = mc::advancement::CriterionTriggers::instance()
-        //     .getTrigger<mc::advancement::PlayerKilledEntityTrigger>();
-        //
-        // if (trigger == nullptr) {
-        //     return;
-        // }
-        //
-        // // 获取 ServerPlayer
-        // mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
-        // if (serverPlayer == nullptr) {
-        //     return;
-        // }
-        //
-        // // 检查是否有监听器
-        // auto* advancements = serverPlayer->getAdvancements();
-        // if (advancements == nullptr) {
-        //     return;
-        // }
-        //
-        // // 检查受害实体和伤害源是否有效
-        // if (e.victim == nullptr || e.cause == nullptr) {
-        //     return;
-        // }
-        //
-        // // 触发检测
-        // trigger->trigger(*serverPlayer, *e.victim, *e.cause);
-        MC_UNUSED(e);
+        auto* trigger = mc::advancement::CriterionTriggers::instance()
+            .getTrigger<mc::advancement::PlayerKilledEntityTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 检查受害实体和伤害源是否有效
+        if (e.victim == nullptr || e.cause == nullptr) {
+            return;
+        }
+
+        // 触发检测 - 使用基类模板方法
+        trigger->AbstractCriterionTrigger<mc::advancement::PlayerKilledEntityTriggerInstance>::trigger(
+            *advancements,
+            [&e](const mc::advancement::PlayerKilledEntityTriggerInstance& instance) {
+                return instance.test(*e.victim, *e.cause);
+            }
+        );
     }
 
     /**

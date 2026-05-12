@@ -2,14 +2,12 @@
 
 #include "../CriterionTrigger.hpp"
 #include "../conditions/EntityPredicate.hpp"
-#include "../conditions/LocationPredicate.hpp"
-#include "../conditions/DistancePredicate.hpp"
 #include <memory>
 
 // 前向声明
 namespace mc {
     class Entity;
-    struct DamageSource;
+    class DamageSource;
 }
 
 namespace mc::advancement {
@@ -41,7 +39,7 @@ public:
     /**
      * @brief 从JSON反序列化实例
      */
-    [[nodiscard]] Result<std::shared_ptr<PlayerKilledEntityTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     /**
      * @brief 触发检测
@@ -80,16 +78,11 @@ public:
 
     /**
      * @brief 检查条件是否满足
-     * @param player 玩家
      * @param entity 被击杀的实体
      * @param source 伤害源
      * @return 是否满足
      */
-    [[nodiscard]] bool test(
-        class ServerPlayer& player,
-        const Entity& entity,
-        const DamageSource& source
-    ) const;
+    [[nodiscard]] bool test(const Entity& entity, const DamageSource& source) const;
 
     /**
      * @brief 从JSON解析
@@ -119,7 +112,7 @@ public:
         return ResourceLocation(TRIGGER_ID);
     }
 
-    [[nodiscard]] Result<std::shared_ptr<EntityKilledPlayerTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(
         class ServerPlayer& player,
@@ -138,11 +131,7 @@ public:
     EntityKilledPlayerTriggerInstance() = default;
     EntityKilledPlayerTriggerInstance(EntityPredicate entity, DamageSourcePredicate killingBlow);
 
-    [[nodiscard]] bool test(
-        class ServerPlayer& player,
-        const Entity& entity,
-        const DamageSource& source
-    ) const;
+    [[nodiscard]] bool test(const Entity& entity, const DamageSource& source) const;
 
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;

@@ -1,4 +1,11 @@
 #include "PlayerKilledEntityTrigger.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/util/assert/AssertAll.hpp"
+
+// 注意：trigger() 方法的完整实现需要服务端模块的支持
+// 服务端代码应包含 server/advancement/TriggerInstantiation.hpp
+// 并使用 triggerWithPredicate() 方法或直接调用基类的 trigger() 模板方法
 
 namespace mc::advancement {
 
@@ -10,7 +17,6 @@ PlayerKilledEntityTriggerInstance::PlayerKilledEntityTriggerInstance(EntityPredi
 }
 
 bool PlayerKilledEntityTriggerInstance::test(
-    ServerPlayer& player,
     const Entity& entity,
     const DamageSource& source
 ) const {
@@ -66,7 +72,7 @@ nlohmann::json PlayerKilledEntityTriggerInstance::conditionsToJson() const {
 
 // ========== PlayerKilledEntityTrigger ==========
 
-Result<std::shared_ptr<PlayerKilledEntityTriggerInstance>> PlayerKilledEntityTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> PlayerKilledEntityTrigger::fromJson(const nlohmann::json& json) {
     auto instance = std::make_shared<PlayerKilledEntityTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -80,11 +86,24 @@ void PlayerKilledEntityTrigger::trigger(
     const Entity& entity,
     const DamageSource& source
 ) {
-    for (const auto& listener : getListeners(*player.getAdvancements())) {
-        if (listener.getInstance().test(player, entity, source)) {
-            listener.grantCriterion(*player.getAdvancements());
-        }
-    }
+    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // 服务端代码应使用以下方式之一触发检测：
+    //
+    // 方法1：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
+    // #include "server/advancement/TriggerInstantiation.hpp"
+    // auto* trigger = CriterionTriggers::instance().getTrigger<PlayerKilledEntityTrigger>();
+    // trigger->AbstractCriterionTrigger<PlayerKilledEntityTriggerInstance>::trigger(
+    //     *player.getAdvancements(),
+    //     [&player, &entity, &source](const PlayerKilledEntityTriggerInstance& instance) {
+    //         return instance.test(player, entity, source);
+    //     }
+    // );
+    //
+    // 方法2：在 AdvancementEventHandler 中直接调用（推荐服务端代码处理）
+    // 参考：server/advancement/AdvancementEventHandler.hpp
+    MC_UNUSED(player);
+    MC_UNUSED(entity);
+    MC_UNUSED(source);
 }
 
 std::shared_ptr<PlayerKilledEntityTriggerInstance> PlayerKilledEntityTrigger::entityKilled() {
@@ -107,11 +126,9 @@ EntityKilledPlayerTriggerInstance::EntityKilledPlayerTriggerInstance(EntityPredi
 }
 
 bool EntityKilledPlayerTriggerInstance::test(
-    ServerPlayer& player,
     const Entity& entity,
     const DamageSource& source
 ) const {
-    MC_UNUSED(player);
     if (!m_entity.test(entity, source)) {
         return false;
     }
@@ -160,7 +177,7 @@ nlohmann::json EntityKilledPlayerTriggerInstance::conditionsToJson() const {
 
 // ========== EntityKilledPlayerTrigger ==========
 
-Result<std::shared_ptr<EntityKilledPlayerTriggerInstance>> EntityKilledPlayerTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> EntityKilledPlayerTrigger::fromJson(const nlohmann::json& json) {
     auto instance = std::make_shared<EntityKilledPlayerTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -174,11 +191,11 @@ void EntityKilledPlayerTrigger::trigger(
     const Entity& entity,
     const DamageSource& source
 ) {
-    for (const auto& listener : getListeners(*player.getAdvancements())) {
-        if (listener.getInstance().test(player, entity, source)) {
-            listener.grantCriterion(*player.getAdvancements());
-        }
-    }
+    // 此方法在 common 模块中无法完整实现
+    // 服务端代码应使用 TriggerInstantiation.hpp 中的 trigger 模板方法
+    MC_UNUSED(player);
+    MC_UNUSED(entity);
+    MC_UNUSED(source);
 }
 
 } // namespace mc::advancement
