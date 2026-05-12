@@ -468,6 +468,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
+        # 事件系统
+        ${CMAKE_SOURCE_DIR}/src/server/event/ServerEventBus.cpp
         # 记分板系统
         ${CMAKE_SOURCE_DIR}/src/server/scoreboard/ServerScoreboard.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/Scoreboard.cpp
@@ -1162,6 +1164,8 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
         # 记分板系统
         ${CMAKE_SOURCE_DIR}/src/server/scoreboard/ServerScoreboard.cpp
+        # 事件系统
+        ${CMAKE_SOURCE_DIR}/src/server/event/ServerEventBus.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp

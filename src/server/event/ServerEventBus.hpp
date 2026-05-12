@@ -8,6 +8,7 @@
 #include <mutex>
 #include <atomic>
 #include <typeindex>
+#include <algorithm>
 
 namespace mc::server::event {
 

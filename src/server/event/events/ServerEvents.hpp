@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ServerEventBus.hpp"
+#include "../ServerEventBus.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/BlockPos.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -138,7 +138,7 @@ struct PlayerEntityInteractEvent : ServerEvent {
  */
 struct PlayerLoginEvent : ServerEvent {
     PlayerId playerId;           ///< 玩家ID
-    String username;             ///< 用户名
+    std::string username;        ///< 用户名
 
     PlayerLoginEvent(u64 tick, PlayerId pid, const std::string& name)
         : ServerEvent(tick), playerId(pid), username(name) {}
@@ -149,7 +149,7 @@ struct PlayerLoginEvent : ServerEvent {
  */
 struct PlayerLogoutEvent : ServerEvent {
     PlayerId playerId;           ///< 玩家ID
-    String reason;               ///< 登出原因
+    std::string reason;          ///< 登出原因
 
     PlayerLogoutEvent(u64 tick, PlayerId pid, const std::string& r)
         : ServerEvent(tick), playerId(pid), reason(r) {}
@@ -538,7 +538,7 @@ struct RecipeUnlockedEvent : ServerEvent {
 
     RecipeUnlockedEvent(u64 tick, PlayerId pid, const ResourceLocation& id)
         : ServerEvent(tick), playerId(pid), recipeId(id) {}
-}
+};
 
 /**
  * @brief 填充桶事件

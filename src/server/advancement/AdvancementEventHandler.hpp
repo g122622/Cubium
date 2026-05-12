@@ -27,7 +27,7 @@ public:
     void initialize() {
         // 订阅物品栏变化事件
         m_inventoryChangedSubscription =
-            ServerEventBus::instance().makeSubscription<event::InventoryChangedEvent>(
+            event::ServerEventBus::instance().makeSubscription<event::InventoryChangedEvent>(
                 [this](const event::InventoryChangedEvent& e) {
                     onInventoryChanged(e);
                 }
@@ -35,7 +35,7 @@ public:
 
         // 订阅玩家击杀实体事件
         m_playerKillSubscription =
-            ServerEventBus::instance().makeSubscription<event::PlayerKillEntityEvent>(
+            event::ServerEventBus::instance().makeSubscription<event::PlayerKillEntityEvent>(
                 [this](const event::PlayerKillEntityEvent& e) {
                     onPlayerKillEntity(e);
                 }
@@ -43,7 +43,7 @@ public:
 
         // 订阅玩家登录事件（初始化成就监听器）
         m_playerLoginSubscription =
-            ServerEventBus::instance().makeSubscription<event::PlayerLoginEvent>(
+            event::ServerEventBus::instance().makeSubscription<event::PlayerLoginEvent>(
                 [this](const event::PlayerLoginEvent& e) {
                     onPlayerLogin(e);
                 }
@@ -58,9 +58,9 @@ public:
      * 取消所有事件订阅。
      */
     void shutdown() {
-        m_inventoryChangedSubscription.release();
-        m_playerKillSubscription.release();
-        m_playerLoginSubscription.release();
+        m_inventoryChangedSubscription.unsubscribe();
+        m_playerKillSubscription.unsubscribe();
+        m_playerLoginSubscription.unsubscribe();
         initialized_ = false;
     }
 
@@ -110,15 +110,12 @@ private:
             return;
         }
 
-        if (!trigger->hasListeners(*advancements)) {
-            return;
-        }
-
         // 触发检测 - 使用 triggerWithPredicate 方法
+        // 注意：triggerWithPredicate 内部会自动检查是否有监听器
         trigger->triggerWithPredicate(*advancements, [&e](const mc::advancement::InventoryChangedTriggerInstance& instance) {
             return instance.testWithInventory(
                 mc::PlayerInventory::TOTAL_SIZE,
-                [&e](i32 slot) -> const mc::ItemStack& {
+                [&e](i32 slot) -> mc::ItemStack {
                     return e.inventory->getItem(slot);
                 }
             );
@@ -147,9 +144,9 @@ private:
     }
 
     // 事件订阅
-    ServerEventBus::Subscription<event::InventoryChangedEvent> m_inventoryChangedSubscription;
-    ServerEventBus::Subscription<event::PlayerKillEntityEvent> m_playerKillSubscription;
-    ServerEventBus::Subscription<event::PlayerLoginEvent> m_playerLoginSubscription;
+    event::ServerEventBus::Subscription<event::InventoryChangedEvent> m_inventoryChangedSubscription;
+    event::ServerEventBus::Subscription<event::PlayerKillEntityEvent> m_playerKillSubscription;
+    event::ServerEventBus::Subscription<event::PlayerLoginEvent> m_playerLoginSubscription;
 
     bool initialized_ = false;
 };

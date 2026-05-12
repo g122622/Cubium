@@ -24,7 +24,7 @@ InventoryChangedTriggerInstance::InventoryChangedTriggerInstance(
 
 bool InventoryChangedTriggerInstance::testWithInventory(
     i32 totalSlots,
-    const std::function<const ItemStack&(i32)>& getSlot
+    const std::function<ItemStack(i32)>& getSlot
 ) const {
     // 计算槽位数量
     i32 occupied = 0;
@@ -33,7 +33,7 @@ bool InventoryChangedTriggerInstance::testWithInventory(
 
     // 遍历所有槽位
     for (i32 i = 0; i < totalSlots; ++i) {
-        const ItemStack& slot = getSlot(i);
+        ItemStack slot = getSlot(i);
         if (slot.isEmpty()) {
             ++empty;
         } else {
@@ -77,7 +77,7 @@ bool InventoryChangedTriggerInstance::testWithInventory(
             std::vector<bool> matched(itemCount, false);
 
             for (i32 i = 0; i < totalSlots; ++i) {
-                const ItemStack& slot = getSlot(i);
+                ItemStack slot = getSlot(i);
                 if (slot.isEmpty()) {
                     continue;
                 }

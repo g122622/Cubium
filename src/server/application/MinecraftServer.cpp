@@ -345,6 +345,10 @@ void MinecraftServer::initializeInteractionManagers()
     m_containerManager->setInventoryManager(m_inventoryManager.get());
     m_blockInteractionManager->setInventoryManager(m_inventoryManager.get());
     m_miningManager->setInventoryManager(m_inventoryManager.get());
+
+    // 初始化成就事件处理器
+    m_advancementEventHandler.initialize();
+    spdlog::info("AdvancementEventHandler initialized");
 }
 
 void MinecraftServer::initializeSyncManagers()
@@ -625,6 +629,9 @@ bool MinecraftServer::openContainerRequest(ContainerType type, const BlockPos& p
 
 void MinecraftServer::shutdownManagers()
 {
+    // 关闭成就事件处理器
+    m_advancementEventHandler.shutdown();
+
     m_blockUpdateSyncManager.reset();
     m_lightSyncManager.reset();
     m_chunkSendManager.reset();

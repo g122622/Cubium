@@ -211,6 +211,13 @@ public:
      */
     void unlockRecipe(const ResourceLocation& recipeId) override;
 
+    /**
+     * @brief 设置物品栏变更回调
+     *
+     * 在玩家加入服务器后调用，设置物品栏变更时的成就触发回调。
+     */
+    void setupInventoryCallback();
+
     // ========== 连接状态 ==========
 
     /**

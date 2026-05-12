@@ -106,12 +106,12 @@ public:
      * 允许在不依赖 PlayerInventory 完整定义的情况下进行检测。
      *
      * @param totalSlots 总槽位数
-     * @param getSlot 获取指定槽位物品的函数
+     * @param getSlot 获取指定槽位物品的函数（返回值类型）
      * @return 是否满足
      */
     [[nodiscard]] bool testWithInventory(
         i32 totalSlots,
-        const std::function<const mc::ItemStack&(i32)>& getSlot
+        const std::function<mc::ItemStack(i32)>& getSlot
     ) const;
 
     /**

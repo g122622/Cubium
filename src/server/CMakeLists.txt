@@ -41,6 +41,8 @@ add_executable(minecraft-server
     player/ServerPlayer.cpp
     # 成就系统
     advancement/PlayerAdvancements.cpp
+    # 事件系统
+    event/ServerEventBus.cpp
     # 记分板系统
     scoreboard/ServerScoreboard.cpp
     # 统计系统

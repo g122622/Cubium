@@ -20,8 +20,11 @@
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/EffectTriggers.hpp"
+#include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
 #include "../advancement/PlayerAdvancements.hpp"
 #include "../advancement/TriggerInstantiation.hpp"
+#include "../event/ServerEventBus.hpp"
+#include "../event/events/ServerEvents.hpp"
 #include "../core/ConnectionManager.hpp"
 #include "../world/ServerWorld.hpp"
 #include "../dimension/ServerDimensionManager.hpp"
@@ -35,10 +38,27 @@ namespace mc {
 ServerPlayer::ServerPlayer(EntityId id, const std::string& name)
     : Player(id, name) {
     initAdvancements();
+    setupInventoryCallback();
 }
 
 void ServerPlayer::initAdvancements() {
     m_advancements = std::make_shared<server::PlayerAdvancements>(static_cast<PlayerId>(id()));
+}
+
+void ServerPlayer::setupInventoryCallback() {
+    // 设置物品栏变更回调，用于触发成就检测
+    inventory().setChangeCallback([this](i32 slot, const ItemStack& oldItem, const ItemStack& newItem) {
+        // 发布 InventoryChangedEvent
+        server::event::InventoryChangedEvent event{
+            0,  // timestamp，需要从 world 获取
+            static_cast<PlayerId>(id()),
+            &inventory(),
+            slot,
+            oldItem.isEmpty() ? nullptr : &oldItem,
+            newItem.isEmpty() ? nullptr : &newItem
+        };
+        server::event::ServerEventBus::instance().publish(event);
+    });
 }
 
 void ServerPlayer::sendChatMessage(const std::string& message) {

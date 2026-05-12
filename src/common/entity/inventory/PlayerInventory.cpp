@@ -41,8 +41,14 @@ void PlayerInventory::setItem(i32 slot, const ItemStack& stack) {
     if (slot < 0 || slot >= TOTAL_SIZE) {
         return;
     }
+    ItemStack oldItem = m_items[slot];
     m_items[slot] = stack;
     m_timesChanged++;
+
+    // 触发变更回调
+    if (m_changeCallback) {
+        m_changeCallback(slot, oldItem, stack);
+    }
 }
 
 ItemStack PlayerInventory::removeItem(i32 slot, i32 count) {

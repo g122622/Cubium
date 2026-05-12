@@ -23,6 +23,7 @@
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/LightSyncManager.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/advancement/AdvancementEventHandler.hpp"
 #include "common/entity/loot/LootTable.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
@@ -755,6 +756,9 @@ protected:
     // 刷怪系统
     std::unique_ptr<::mc::world::spawn::NaturalSpawner> m_naturalSpawner;
     std::unique_ptr<::mc::world::spawn::DespawnManager> m_despawnManager;
+
+    // 成就事件处理器
+    advancement::AdvancementEventHandler m_advancementEventHandler;
 
     // Tick 计数器
     u64 m_tickCounter = 0;

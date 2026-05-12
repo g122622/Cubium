@@ -423,6 +423,29 @@ public:
     // ========== 变更追踪 ==========
 
     /**
+     * @brief 物品栏变更回调类型
+     * @param slot 变更的槽位
+     * @param oldItem 变更前的物品
+     * @param newItem 变更后的物品
+     */
+    using ChangeCallback = std::function<void(i32 slot, const ItemStack& oldItem, const ItemStack& newItem)>;
+
+    /**
+     * @brief 设置变更回调
+     * @param callback 回调函数
+     */
+    void setChangeCallback(ChangeCallback callback) {
+        m_changeCallback = std::move(callback);
+    }
+
+    /**
+     * @brief 清除变更回调
+     */
+    void clearChangeCallback() {
+        m_changeCallback = nullptr;
+    }
+
+    /**
      * @brief 获取变更计数
      * @return 变更次数
      */
@@ -451,6 +474,7 @@ private:
     Player* m_player;
     i32 m_selectedSlot = 0;  // 当前选中的快捷栏槽位 (0-8)
     i32 m_timesChanged = 0;  // 变更计数器（用于同步）
+    ChangeCallback m_changeCallback;  ///< 物品栏变更回调
 };
 
 } // namespace mc
