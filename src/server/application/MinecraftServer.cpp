@@ -347,6 +347,8 @@ void MinecraftServer::initializeInteractionManagers()
     m_miningManager->setInventoryManager(m_inventoryManager.get());
 
     // 初始化成就事件处理器
+    // 设置服务器接口以允许从 PlayerId 获取 ServerPlayer
+    m_advancementEventHandler.setServer(this);
     m_advancementEventHandler.initialize();
     spdlog::info("AdvancementEventHandler initialized");
 }

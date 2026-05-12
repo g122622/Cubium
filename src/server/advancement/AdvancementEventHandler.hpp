@@ -10,8 +10,19 @@
 #include "server/advancement/TriggerInstantiation.hpp"
 
 // 前向声明
-namespace mc::server::core {
-    class PlayerManager;
+namespace mc {
+namespace server {
+class IServer;
+class ServerWorld;
+namespace core {
+class PlayerManager;
+}
+namespace world {
+namespace player {
+class ServerPlayerEntityManager;
+}
+}
+}
 }
 
 namespace mc::server::advancement {
@@ -21,12 +32,39 @@ namespace mc::server::advancement {
  *
  * 订阅服务端事件并触发相应的成就触发器。
  * 参考 MC 1.16.5 的 CriteriaTriggers 触发机制。
+ *
+ * ## 架构说明
+ *
+ * AdvancementEventHandler 需要从 PlayerId 获取 ServerPlayer 以触发成就检测。
+ * 这通过以下路径实现：
+ *
+ * 1. IServer::playerEntityManager() → ServerPlayerEntityManager
+ * 2. ServerPlayerEntityManager::getPlayerEntity(playerId, world) → Player*
+ * 3. Player::asServerPlayer() → ServerPlayer*
+ *
+ * 注意：不使用 PlayerManager::getPlayer() 获取 ServerPlayerData，
+ * 因为 ServerPlayerData 只存储网络会话数据，不持有 ServerPlayer 引用。
  */
 class AdvancementEventHandler {
 public:
     /**
+     * @brief 设置服务器接口
+     * @param server 服务器接口指针
+     *
+     * 必须在 initialize() 之前调用。
+     * IServer 提供访问 ServerPlayerEntityManager 和 ServerWorld 的能力。
+     */
+    void setServer(IServer* server) {
+        m_server = server;
+    }
+
+    /**
      * @brief 设置玩家管理器
      * @param playerManager 玩家管理器指针
+     * @deprecated 使用 setServer() 替代，PlayerManager 无法获取 ServerPlayer
+     *
+     * 此方法保留用于向后兼容，但不再用于获取 ServerPlayer。
+     * 获取 ServerPlayer 应使用 setServer() + getServerPlayer()。
      */
     void setPlayerManager(core::PlayerManager* playerManager) {
         m_playerManager = playerManager;
@@ -194,22 +232,28 @@ private:
      * @param playerId 玩家ID
      * @return ServerPlayer 指针，如果未找到返回 nullptr
      *
-     * 注意：此方法需要 PlayerManager 提供访问 ServerPlayer 的接口
+     * 通过 ServerPlayerEntityManager 获取玩家实体。
+     * 参考 MC 1.16.5: PlayerList.getPlayerByUUID()
      */
     [[nodiscard]] mc::ServerPlayer* getServerPlayer(PlayerId playerId) {
-        if (m_playerManager == nullptr) {
+        if (m_server == nullptr) {
             return nullptr;
         }
 
-        auto* playerData = m_playerManager->getPlayer(playerId);
-        if (playerData == nullptr) {
+        // 获取 ServerPlayerEntityManager
+        auto& entityManager = m_server->playerEntityManager();
+
+        // 获取 ServerWorld
+        auto& world = m_server->world();
+
+        // 通过 PlayerId 获取 Player 实体
+        mc::Player* player = entityManager.getPlayerEntity(playerId, world);
+        if (player == nullptr) {
             return nullptr;
         }
 
-        // TODO: ServerPlayerData 需要提供访问 ServerPlayer 的方法
-        // 或者 PlayerManager 应该提供 getPlayerEntity(playerId) 方法
-        MC_UNUSED(playerData);
-        return nullptr;
+        // 转换为 ServerPlayer
+        return player->asServerPlayer();
     }
 
     // 事件订阅
@@ -217,7 +261,10 @@ private:
     event::ServerEventBus::Subscription<event::PlayerKillEntityEvent> m_playerKillSubscription;
     event::ServerEventBus::Subscription<event::PlayerLoginEvent> m_playerLoginSubscription;
 
-    // 玩家管理器
+    // 服务器接口（用于获取 ServerPlayerEntityManager 和 ServerWorld）
+    IServer* m_server = nullptr;
+
+    // 玩家管理器（保留用于向后兼容，但不再用于获取 ServerPlayer）
     core::PlayerManager* m_playerManager = nullptr;
 
     bool initialized_ = false;
