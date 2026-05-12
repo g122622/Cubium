@@ -559,6 +559,73 @@ bool powered = TripWireBlock::isPowered(state);
 
 // 检查连接状态
 bool connected = TripWireBlock::isConnected(state, Direction::North);
+
+// 检查是否应该连接到相邻方块
+bool shouldConnect = tripwire.shouldConnectTo(neighborState, Direction::East);
+```
+
+**连接检测逻辑** (`shouldConnectTo` 方法)：
+
+参考 MC 1.16.5 `TripWireBlock.shouldConnectTo`：
+
+| 相邻方块类型 | 连接条件 |
+|-------------|---------|
+| 绊线钩 (TripWireHookBlock) | 检查 FACING 是否朝向当前方向的反向（面向绊线） |
+| 绞线 (TripWireBlock) | 直接返回 true |
+| 其他方块 | 返回 false |
+
+```cpp
+bool TripWireBlock::shouldConnectTo(const BlockState& neighborState, Direction direction) const {
+    const Block& neighborBlock = neighborState.getBlock();
+
+    // 检查相邻方块是否是绊线钩
+    if (&neighborBlock == VanillaBlocks::TRIPWIRE_HOOK) {
+        // 绊线钩必须面向绞线才能连接
+        Direction hookFacing = TripWireHookBlock::getFacing(neighborState);
+        return hookFacing == Directions::opposite(direction);
+    }
+
+    // 检查相邻方块是否是绞线
+    if (&neighborBlock == VanillaBlocks::TRIPWIRE) {
+        return true;
+    }
+
+    return false;
+}
+```
+
+**放置后连接更新** (`updatePostPlacement` 方法)：
+
+当相邻方块状态改变时，自动更新绞线的连接属性：
+
+```cpp
+BlockState TripWireBlock::updatePostPlacement(
+    const BlockState& state, Direction facing,
+    const BlockState& facingState, IWorld& world,
+    const BlockPos& currentPos, const BlockPos& facingPos) {
+
+    // 只处理水平方向的更新
+    if (!Directions::isHorizontal(facing)) {
+        return state;
+    }
+
+    // 检查是否应该连接到相邻方块
+    bool shouldConnect = shouldConnectTo(facingState, facing);
+
+    // 根据方向设置对应的连接属性
+    switch (facing) {
+        case Direction::North:
+            return state.with(BlockStateProperties::NORTH(), shouldConnect);
+        case Direction::East:
+            return state.with(BlockStateProperties::EAST(), shouldConnect);
+        case Direction::South:
+            return state.with(BlockStateProperties::SOUTH(), shouldConnect);
+        case Direction::West:
+            return state.with(BlockStateProperties::WEST(), shouldConnect);
+        default:
+            return state;
+    }
+}
 ```
 
 **特性说明**：
@@ -567,8 +634,10 @@ bool connected = TripWireBlock::isConnected(state, Direction::North);
 |------|------|
 | 检测范围 | 方块内向上 0.5 格 |
 | 触发条件 | 任何非潜行实体穿越 |
-| 潜行玩家 | **不会触发绊线**（使用 `entity->isSneaking()` 检测） |
-| 连接 | 与绊线钩连接形成完整绊线系统 |
+| 潜行玩家 | **不会触发绞线**（使用 `entity->isSneaking()` 检测） |
+| 连接属性 | NORTH, EAST, SOUTH, WEST 四个方向的布尔属性 |
+| 连接检测 | `shouldConnectTo()` 判断是否连接到相邻绞线或绞线钩 |
+| 放置更新 | `updatePostPlacement()` 自动更新连接状态 |
 | 信号输出 | 充能时输出 15 强度 |
 
 ### 音符盒
@@ -870,7 +939,7 @@ i32 getStrongPower(..., Direction side) {
 - `DaylightDetectorTest.cpp` - 日光探测器测试（待添加）
 - `NoteBlockTest.cpp` - 音符盒测试（乐器类型检测、音高计算、状态属性）
 - `PistonBlockTest.cpp` - 活塞测试（世界边界检查、构造函数、伸出状态）
-- `TripWireTest.cpp` - 绊线测试（状态属性、红石信号输出、绊线链检测、DISARMED属性）
+- `TripWireTest.cpp` - 绊线测试（状态属性、红石信号输出、绊线链检测、DISARMED属性、shouldConnectTo连接检测、updatePostPlacement连接状态更新）
 
 ## 参考文档
 
