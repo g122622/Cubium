@@ -723,6 +723,23 @@ void Entity::rotate(f32 deltaYaw, f32 deltaPitch) {
 Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz) {
     Vector3 desiredMovement(dx, dy, dz);
 
+    // MC 1.16.5: noClip 检查 - 无视碰撞的实体直接移动
+    // 参考 Entity.move() 行 568-572
+    if (m_noClip) {
+        // 无碰撞模式：直接更新位置，不检测碰撞
+        // MC 1.16.5: this.setBoundingBox(this.getBoundingBox().offset(pos));
+        //            this.resetPositionToBB();
+        m_position.x += dx;
+        m_position.y += dy;
+        m_position.z += dz;
+        reapplyPosition();
+
+        // MC 1.16.5 VexEntity.move(): 即使 noClip=true 也要触发方块碰撞
+        // 参考 VexEntity.java 行 54-57
+        doBlockCollisions(desiredMovement, desiredMovement);
+        return desiredMovement;
+    }
+
     // MC 1.16.5: 应用运动速度乘数（甜浆果丛、蜘蛛网等减速效果）
     // 参考 Entity.move() 行: if (this.motionMultiplier.x != 0.0D) { ... }
     if (m_hasMotionMultiplier) {
