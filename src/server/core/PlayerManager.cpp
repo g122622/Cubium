@@ -1,5 +1,6 @@
 #include "PlayerManager.hpp"
 #include <spdlog/spdlog.h>
+#include <cctype>
 
 namespace mc::server::core {
 
@@ -37,6 +38,11 @@ ServerPlayerData* PlayerManager::addPlayer(PlayerId playerId,
     player.connection = connection;
     player.loggedIn = true;
     player.chunkTracker = std::make_shared<network::PlayerChunkTracker>(playerId);
+
+    // 从连接获取 IP 地址
+    if (connection) {
+        player.ipAddress = connection->getAddress();
+    }
 
     // 更新区块同步管理器
     (void)m_chunkSyncManager.getTracker(playerId);
@@ -172,6 +178,57 @@ PlayerId PlayerManager::getPlayerIdBySession(u32 sessionId) const {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_sessionToPlayer.find(sessionId);
     return it != m_sessionToPlayer.end() ? it->second : 0;
+}
+
+std::vector<PlayerId> PlayerManager::getPlayerIdsByAddress(const std::string& ipAddress) const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    std::vector<PlayerId> result;
+    for (const auto& [id, player] : m_players) {
+        if (player.ipAddress == ipAddress) {
+            result.push_back(id);
+        }
+    }
+    return result;
+}
+
+ServerPlayerData* PlayerManager::findByUsername(const std::string& username) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    for (auto& [id, player] : m_players) {
+        // 不区分大小写比较
+        if (player.username.size() == username.size()) {
+            bool match = true;
+            for (size_t i = 0; i < username.size(); ++i) {
+                if (std::tolower(player.username[i]) != std::tolower(username[i])) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                return &player;
+            }
+        }
+    }
+    return nullptr;
+}
+
+const ServerPlayerData* PlayerManager::findByUsername(const std::string& username) const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    for (const auto& [id, player] : m_players) {
+        // 不区分大小写比较
+        if (player.username.size() == username.size()) {
+            bool match = true;
+            for (size_t i = 0; i < username.size(); ++i) {
+                if (std::tolower(player.username[i]) != std::tolower(username[i])) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                return &player;
+            }
+        }
+    }
+    return nullptr;
 }
 
 } // namespace mc::server::core

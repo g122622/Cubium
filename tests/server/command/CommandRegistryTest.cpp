@@ -95,6 +95,14 @@ public:
     }
 
     /**
+     * @brief 获取远程地址（IP 地址）。
+     */
+    [[nodiscard]] std::string getAddress() const override
+    {
+        return "";
+    }
+
+    /**
      * @brief 获取最近一次断开原因。
      */
     [[nodiscard]] const std::string& disconnectReason() const noexcept

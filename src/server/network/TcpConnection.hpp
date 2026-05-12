@@ -39,6 +39,7 @@ public:
     [[nodiscard]] bool isConnected() const override;
     [[nodiscard]] std::string identifier() const override;
     [[nodiscard]] network::ConnectionType type() const override;
+    [[nodiscard]] std::string getAddress() const override;
 
     // ========== TCP 特有方法 ==========
 

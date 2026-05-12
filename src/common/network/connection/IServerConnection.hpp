@@ -63,6 +63,16 @@ public:
      * @return 连接类型
      */
     [[nodiscard]] virtual ConnectionType type() const = 0;
+
+    /**
+     * @brief 获取远程地址（IP 地址）
+     *
+     * 对于 TCP 连接，返回客户端的 IP 地址（如 "192.168.1.100"）。
+     * 对于本地连接，返回空字符串。
+     *
+     * @return IP 地址字符串，本地连接返回空字符串
+     */
+    [[nodiscard]] virtual std::string getAddress() const = 0;
 };
 
 /// 连接共享指针类型

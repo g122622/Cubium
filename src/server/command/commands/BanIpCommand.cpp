@@ -1,16 +1,13 @@
 #include "BanIpCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "common/command/arguments/EntityArgument.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/command/support/PlayerResolver.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/core/BannedIpList.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "common/util/TimeUtils.hpp"
-#include "common/entity/entities/player/Player.hpp"
 
 #include <sstream>
 #include <iomanip>
@@ -121,34 +118,27 @@ i32 BanIpCommand::banIp(CommandContext<ServerCommandSource>& context) {
     if (isIp) {
         // 直接封禁 IP
         ipAddress = target;
+        // 查找该 IP 的所有在线玩家
+        playersToKick = server->playerManager().getPlayerIdsByAddress(ipAddress);
     } else {
         // 目标是玩家名，需要查找其 IP 地址
-        EntitySelector selector;
-        // 尝试从名称解析玩家
-        auto playerIds = support::resolvePlayerIds(source, EntitySelector::byUsername(target));
+        // 使用 PlayerManager::findByUsername 查找玩家
+        auto* playerData = server->playerManager().findByUsername(target);
 
-        if (playerIds.empty()) {
+        if (playerData == nullptr) {
             // 玩家不在线，无法获取 IP 地址
-            std::ostringstream ss;
-            ss << "commands.banip.failed.invalidIp";
-            source.sendError(ss.str());
-            return 0;
-        }
-
-        // 获取玩家的 IP 地址
-        auto* playerData = server->playerManager().getPlayer(playerIds.front());
-        if (playerData == nullptr || !playerData->hasConnection()) {
             source.sendError("commands.banip.failed.playerNotFound");
             return 0;
         }
 
-        // 从连接获取 IP 地址（这里简化处理，实际需要从连接获取）
-        // 暂时使用 placeholder，实际实现需要从 TcpSession 获取
-        // TODO: 需要在 ServerPlayerData 或 Connection 中存储 IP 地址
-        ipAddress = "127.0.0.1"; // placeholder
-        playersToKick = playerIds;
-
-        spdlog::warn("BanIpCommand: IP address retrieval from connection not fully implemented");
+        // 获取玩家的 IP 地址
+        ipAddress = playerData->ipAddress;
+        if (ipAddress.empty()) {
+            // 本地连接的玩家（单人游戏），无法封禁 IP
+            source.sendError("commands.banip.failed.localPlayer");
+            return 0;
+        }
+        playersToKick.push_back(playerData->playerId);
     }
 
     auto& banList = server->bannedIpList();
@@ -186,18 +176,11 @@ i32 BanIpCommand::banIp(CommandContext<ServerCommandSource>& context) {
     source.sendMessage(ss.str());
 
     // 踢出该 IP 的所有在线玩家
-    if (isIp) {
-        // 需要查找该 IP 的所有玩家
-        // TODO: 需要在 PlayerManager 中实现按 IP 查找玩家的功能
-        spdlog::warn("BanIpCommand: Kicking all players from IP {} not fully implemented", ipAddress);
-    } else {
-        // 踢出已知玩家
-        for (PlayerId playerId : playersToKick) {
-            std::ostringstream kickReason;
-            kickReason << "Your IP has been banned!\nReason: " << reason;
-            server->connectionManager().disconnectPlayer(playerId, kickReason.str());
-            spdlog::info("Player kicked due to IP ban (playerId={})", playerId);
-        }
+    for (PlayerId playerId : playersToKick) {
+        std::ostringstream kickReason;
+        kickReason << "Your IP has been banned!\nReason: " << reason;
+        server->connectionManager().disconnectPlayer(playerId, kickReason.str());
+        spdlog::info("Player kicked due to IP ban (playerId={})", playerId);
     }
 
     return 1;

@@ -54,6 +54,9 @@ struct ServerPlayerData {
     /// 会话ID（用于 TCP 连接标识）
     u32 sessionId = 0;
 
+    /// IP 地址（从连接获取，本地连接为空字符串）
+    std::string ipAddress;
+
     /// 登录状态
     bool loggedIn = false;
 

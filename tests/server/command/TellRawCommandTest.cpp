@@ -93,6 +93,7 @@ public:
     [[nodiscard]] bool isConnected() const override { return m_connected; }
     [[nodiscard]] std::string identifier() const override { return "FakeConnection"; }
     [[nodiscard]] network::ConnectionType type() const override { return network::ConnectionType::Local; }
+    [[nodiscard]] std::string getAddress() const override { return ""; }
 
     [[nodiscard]] size_t sentBytes() const noexcept { return m_sentData.size(); }
     [[nodiscard]] const std::vector<u8>& sentData() const noexcept { return m_sentData; }

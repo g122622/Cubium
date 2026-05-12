@@ -250,6 +250,31 @@ public:
      */
     [[nodiscard]] PlayerId getPlayerIdBySession(u32 sessionId) const;
 
+    /**
+     * @brief 通过 IP 地址查找所有玩家ID
+     * @param ipAddress IP 地址字符串
+     * @return 匹配的玩家ID列表
+     * @note 线程安全
+     * @note 本地连接的玩家 IP 地址为空字符串
+     */
+    [[nodiscard]] std::vector<PlayerId> getPlayerIdsByAddress(const std::string& ipAddress) const;
+
+    /**
+     * @brief 通过用户名查找玩家（不区分大小写）
+     * @param username 用户名
+     * @return 玩家数据指针，如果未找到返回 nullptr
+     * @note 线程安全
+     */
+    [[nodiscard]] ServerPlayerData* findByUsername(const std::string& username);
+
+    /**
+     * @brief 通过用户名查找玩家（不区分大小写，const版本）
+     * @param username 用户名
+     * @return 玩家数据指针，如果未找到返回 nullptr
+     * @note 线程安全
+     */
+    [[nodiscard]] const ServerPlayerData* findByUsername(const std::string& username) const;
+
 private:
     mutable std::recursive_mutex m_mutex;
     std::unordered_map<PlayerId, ServerPlayerData> m_players;

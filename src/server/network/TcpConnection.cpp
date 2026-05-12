@@ -35,6 +35,10 @@ network::ConnectionType TcpConnection::type() const {
     return network::ConnectionType::Tcp;
 }
 
+std::string TcpConnection::getAddress() const {
+    return m_session ? m_session->address() : "";
+}
+
 SessionId TcpConnection::sessionId() const {
     return m_session ? m_session->id() : 0;
 }

@@ -36,4 +36,9 @@ ConnectionType LocalServerConnection::type() const {
     return ConnectionType::Local;
 }
 
+std::string LocalServerConnection::getAddress() const {
+    // 本地连接没有 IP 地址
+    return "";
+}
+
 } // namespace mc::network

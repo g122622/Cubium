@@ -38,6 +38,7 @@ public:
     [[nodiscard]] bool isConnected() const override;
     [[nodiscard]] std::string identifier() const override;
     [[nodiscard]] ConnectionType type() const override;
+    [[nodiscard]] std::string getAddress() const override;
 
     // ========== 本地连接特有方法 ==========
 

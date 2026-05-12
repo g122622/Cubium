@@ -248,3 +248,95 @@ TEST_F(PlayerManagerTest, SetMaxPlayers) {
     manager.setMaxPlayers(50);
     EXPECT_EQ(manager.maxPlayers(), 50);
 }
+
+// ========== IP 地址相关测试 ==========
+
+TEST_F(PlayerManagerTest, LocalConnectionHasEmptyIpAddress) {
+    PlayerManager manager;
+    auto conn = createConnection();
+
+    // 本地连接应返回空 IP 地址
+    EXPECT_EQ(conn->getAddress(), "");
+    EXPECT_EQ(conn->type(), mc::network::ConnectionType::Local);
+
+    auto* player = manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    ASSERT_NE(player, nullptr);
+
+    // 本地连接的玩家 IP 地址应为空
+    EXPECT_EQ(player->ipAddress, "");
+}
+
+TEST_F(PlayerManagerTest, GetPlayerIdsByAddress) {
+    PlayerManager manager;
+    auto conn1 = createConnection();
+    auto conn2 = createConnection();
+    auto conn3 = createConnection();
+
+    auto* player1 = manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
+    auto* player2 = manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
+    auto* player3 = manager.addPlayer(3, mc::util::uuidToString(mc::util::generateOfflineUuid("Eve")), "Eve", conn3);
+
+    ASSERT_NE(player1, nullptr);
+    ASSERT_NE(player2, nullptr);
+    ASSERT_NE(player3, nullptr);
+
+    // 手动设置 IP 地址（模拟 TCP 连接）
+    player1->ipAddress = "192.168.1.100";
+    player2->ipAddress = "192.168.1.100";  // 同一 IP
+    player3->ipAddress = "192.168.1.200";  // 不同 IP
+
+    // 查找同一 IP 的玩家
+    auto players100 = manager.getPlayerIdsByAddress("192.168.1.100");
+    EXPECT_EQ(players100.size(), 2u);
+    EXPECT_NE(std::find(players100.begin(), players100.end(), mc::PlayerId(1)), players100.end());
+    EXPECT_NE(std::find(players100.begin(), players100.end(), mc::PlayerId(2)), players100.end());
+
+    // 查找另一个 IP 的玩家
+    auto players200 = manager.getPlayerIdsByAddress("192.168.1.200");
+    EXPECT_EQ(players200.size(), 1u);
+    EXPECT_EQ(players200[0], mc::PlayerId(3));
+
+    // 查找不存在的 IP
+    auto playersEmpty = manager.getPlayerIdsByAddress("10.0.0.1");
+    EXPECT_EQ(playersEmpty.size(), 0u);
+
+    // 查找空 IP（本地连接）
+    auto localPlayers = manager.getPlayerIdsByAddress("");
+    EXPECT_EQ(localPlayers.size(), 0u);  // 没有空 IP 的玩家（都设置了 IP）
+}
+
+TEST_F(PlayerManagerTest, FindByUsername) {
+    PlayerManager manager;
+    auto conn = createConnection();
+
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn);
+
+    // 精确匹配
+    auto* player = manager.findByUsername("Steve");
+    ASSERT_NE(player, nullptr);
+    EXPECT_EQ(player->playerId, 1u);
+
+    // 不区分大小写
+    auto* playerLower = manager.findByUsername("steve");
+    ASSERT_NE(playerLower, nullptr);
+    EXPECT_EQ(playerLower->playerId, 1u);
+
+    auto* playerUpper = manager.findByUsername("STEVE");
+    ASSERT_NE(playerUpper, nullptr);
+    EXPECT_EQ(playerUpper->playerId, 1u);
+
+    // 混合大小写
+    auto* playerMixed = manager.findByUsername("AlEx");
+    ASSERT_NE(playerMixed, nullptr);
+    EXPECT_EQ(playerMixed->playerId, 2u);
+
+    // 不存在的玩家
+    EXPECT_EQ(manager.findByUsername("NotExists"), nullptr);
+
+    // const 版本
+    const auto& constManager = manager;
+    auto* playerConst = constManager.findByUsername("Steve");
+    ASSERT_NE(playerConst, nullptr);
+    EXPECT_EQ(playerConst->playerId, 1u);
+}
