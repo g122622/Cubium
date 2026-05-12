@@ -90,7 +90,7 @@ protected:
 3. 检查区域内是否有液体（水/熔岩）
 4. 遍历椭球内每个方块
 5. 使用椭球方程判断是否在椭球内
-6. 可雕刻的方块设为空气（Y<11 设为熔岩）
+6. 可雕刻的方块设为 CAVE_AIR（Y<getLavaLevel() 设为熔岩）
 7. 如果上方有草地，替换为泥土
 
 #### ConfiguredCarver<Carver, Config>

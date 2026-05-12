@@ -30,6 +30,8 @@ public:
     // 基础方块
     // ========================================================================
     static Block* AIR;
+    static Block* CAVE_AIR;     // 洞穴空气 - 用于洞穴生成
+    static Block* VOID_AIR;     // 虚空空气 - 用于世界边界外
     static Block* STONE;
     static Block* GRASS_BLOCK;
     static Block* DIRT;

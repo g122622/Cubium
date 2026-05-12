@@ -1394,3 +1394,85 @@ TEST(NetherWartBlocksTest, BothWartBlocksHaveSameProperties) {
     // 两种疣块应该是不同的方块
     EXPECT_NE(VanillaBlocks::NETHER_WART_BLOCK->blockId(), VanillaBlocks::WARPED_WART_BLOCK->blockId());
 }
+
+// ============================================================================
+// Cave Air 和 Void Air 方块测试
+// ============================================================================
+
+TEST(AirVariantsTest, CaveAirBlockProperties) {
+    VanillaBlocks::initialize();
+
+    ASSERT_NE(VanillaBlocks::CAVE_AIR, nullptr);
+
+    const Block& block = *VanillaBlocks::CAVE_AIR;
+
+    // 验证使用 AIR 材料
+    EXPECT_EQ(&block.material(), &Material::AIR);
+
+    // 验证空气属性
+    EXPECT_TRUE(block.defaultState().isAir());
+    EXPECT_FALSE(block.defaultState().isSolid());
+    EXPECT_FALSE(block.defaultState().isOpaque());
+
+    // 验证可以注册和查找
+    EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:cave_air")), nullptr);
+}
+
+TEST(AirVariantsTest, VoidAirBlockProperties) {
+    VanillaBlocks::initialize();
+
+    ASSERT_NE(VanillaBlocks::VOID_AIR, nullptr);
+
+    const Block& block = *VanillaBlocks::VOID_AIR;
+
+    // 验证使用 AIR 材料
+    EXPECT_EQ(&block.material(), &Material::AIR);
+
+    // 验证空气属性
+    EXPECT_TRUE(block.defaultState().isAir());
+    EXPECT_FALSE(block.defaultState().isSolid());
+    EXPECT_FALSE(block.defaultState().isOpaque());
+
+    // 验证可以注册和查找
+    EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:void_air")), nullptr);
+}
+
+TEST(AirVariantsTest, AllAirBlocksAreDistinct) {
+    VanillaBlocks::initialize();
+
+    ASSERT_NE(VanillaBlocks::AIR, nullptr);
+    ASSERT_NE(VanillaBlocks::CAVE_AIR, nullptr);
+    ASSERT_NE(VanillaBlocks::VOID_AIR, nullptr);
+
+    // 三种空气方块应该是不同的方块（不同的方块ID）
+    EXPECT_NE(VanillaBlocks::AIR->blockId(), VanillaBlocks::CAVE_AIR->blockId());
+    EXPECT_NE(VanillaBlocks::AIR->blockId(), VanillaBlocks::VOID_AIR->blockId());
+    EXPECT_NE(VanillaBlocks::CAVE_AIR->blockId(), VanillaBlocks::VOID_AIR->blockId());
+}
+
+TEST(AirVariantsTest, AllAirBlocksHaveSameMaterial) {
+    VanillaBlocks::initialize();
+
+    // 三种空气方块应该使用相同的材料
+    EXPECT_EQ(&VanillaBlocks::AIR->material(), &VanillaBlocks::CAVE_AIR->material());
+    EXPECT_EQ(&VanillaBlocks::AIR->material(), &VanillaBlocks::VOID_AIR->material());
+    EXPECT_EQ(&VanillaBlocks::CAVE_AIR->material(), &VanillaBlocks::VOID_AIR->material());
+}
+
+TEST(AirVariantsTest, AllAirBlocksAreAir) {
+    VanillaBlocks::initialize();
+
+    // 所有空气方块的默认状态都应该 isAir() == true
+    EXPECT_TRUE(VanillaBlocks::AIR->defaultState().isAir());
+    EXPECT_TRUE(VanillaBlocks::CAVE_AIR->defaultState().isAir());
+    EXPECT_TRUE(VanillaBlocks::VOID_AIR->defaultState().isAir());
+}
+
+TEST(AirVariantsTest, CaveAirUsedInWorldCarver) {
+    VanillaBlocks::initialize();
+
+    // 验证 CAVE_AIR 可以用于世界雕刻器
+    const BlockState* caveAirState = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
+    ASSERT_NE(caveAirState, nullptr);
+    EXPECT_TRUE(caveAirState->isAir());
+}

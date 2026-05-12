@@ -161,8 +161,11 @@ public:
 
     /**
      * @brief 获取空气方块状态
-     * 主世界返回 CAVE_AIR，下界返回 CAVE_AIR
-     * @return 空气方块状态
+     *
+     * 返回 CAVE_AIR 方块状态，用于洞穴、峡谷等地下结构的空气空间。
+     * 下界同样使用 CAVE_AIR（通过 getLavaLevel() 区分熔岩填充区域）。
+     *
+     * @return CAVE_AIR 方块状态
      */
     [[nodiscard]] virtual const BlockState* getCaveAirState() const;
 

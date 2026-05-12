@@ -55,7 +55,7 @@ static const std::unordered_set<u32>& getUnderwaterCarvableBlocks()
         VanillaBlocks::LAVA->blockId(),
         VanillaBlocks::OBSIDIAN->blockId(),
         // AIR 由 isAir() 检查
-        // CAVE_AIR 暂未实现
+        // CAVE_AIR 由 WorldCarver::getCaveAirState() 提供
         VanillaBlocks::PACKED_ICE->blockId()
     };
     return blocks;

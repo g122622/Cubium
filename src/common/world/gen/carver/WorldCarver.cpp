@@ -42,9 +42,9 @@ void CarvingMask::setCarved(BlockCoord x, i32 y, BlockCoord z) {
 template<typename Config>
 const BlockState* WorldCarver<Config>::getCaveAirState() const
 {
-    // 目前使用普通 AIR，因为没有单独的 CAVE_AIR 方块
-    // TODO: 当添加 CAVE_AIR 方块后替换
-    return VanillaBlocks::getState(VanillaBlocks::AIR);
+    // 洞穴空气 - 用于洞穴、峡谷等地下结构生成
+    // 参考 MC 1.16.5: net.minecraft.world.gen.carver.WorldCarver.CAVE_AIR
+    return VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
 }
 
 template<typename Config>

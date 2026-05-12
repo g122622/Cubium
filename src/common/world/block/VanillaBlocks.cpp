@@ -103,6 +103,8 @@ bool VanillaBlocks::s_initialized = false;
 
 // 基础方块
 Block* VanillaBlocks::AIR = nullptr;
+Block* VanillaBlocks::CAVE_AIR = nullptr;
+Block* VanillaBlocks::VOID_AIR = nullptr;
 Block* VanillaBlocks::STONE = nullptr;
 Block* VanillaBlocks::GRASS_BLOCK = nullptr;
 Block* VanillaBlocks::DIRT = nullptr;
@@ -749,6 +751,30 @@ void VanillaBlocks::registerBaseBlocks() {
     // 空气 - ID 0
     AIR = &registry.registerBlock<AirBlock>(
         ResourceLocation("minecraft:air"),
+        BlockProperties(Material::AIR)
+            .noCollision()
+            .notSolid()
+            .replaceable()
+            .opacity(0)
+            .propagatesSkylightDown()
+    );
+
+    // 洞穴空气 - 用于洞穴、峡谷等地下结构生成
+    // 参考 MC 1.16.5: net.minecraft.block.Blocks.CAVE_AIR
+    CAVE_AIR = &registry.registerBlock<AirBlock>(
+        ResourceLocation("minecraft:cave_air"),
+        BlockProperties(Material::AIR)
+            .noCollision()
+            .notSolid()
+            .replaceable()
+            .opacity(0)
+            .propagatesSkylightDown()
+    );
+
+    // 虚空空气 - 用于世界边界外的空气空间
+    // 参考 MC 1.16.5: net.minecraft.block.Blocks.VOID_AIR
+    VOID_AIR = &registry.registerBlock<AirBlock>(
+        ResourceLocation("minecraft:void_air"),
         BlockProperties(Material::AIR)
             .noCollision()
             .notSolid()

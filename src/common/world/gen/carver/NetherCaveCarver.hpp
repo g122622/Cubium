@@ -20,7 +20,7 @@ using BlockId = u32;
  * - 可雕刻流体包含熔岩
  * - 更少但更大的洞穴（getMaxCaveCount = 10）
  * - 更扁平的洞穴形状（verticalScale = 5.0）
- * - Y <= 31 时使用熔岩填充，否则使用 CAVE_AIR
+ * - Y <= 31 时使用熔岩填充，Y >= 32 时使用 CAVE_AIR
  *
  * 使用方法：
  * @code
