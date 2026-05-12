@@ -1193,6 +1193,7 @@ void ServerChunkManager::getNeighborChunks(
 
 ChunkData* ServerChunkManager::storeGeneratedChunkToMem(ChunkCoord x, ChunkCoord z, std::unique_ptr<ChunkData> data)
 {
+    MC_TRACE_EVENT("server.chunk", "ServerChunkManager::storeGeneratedChunkToMem");
     MC_ASSERT_RELEASE_MSG(data, "Generated chunk data should not be null");
 
     std::shared_ptr<ChunkData> sharedData(std::move(data));

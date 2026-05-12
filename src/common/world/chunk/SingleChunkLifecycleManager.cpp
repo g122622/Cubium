@@ -1,5 +1,6 @@
 #include "SingleChunkLifecycleManager.hpp"
 #include <chrono>
+#include "common/perfetto/TraceEvents.hpp"
 
 namespace mc {
 
@@ -23,6 +24,8 @@ SingleChunkLifecycleManager::SingleChunkLifecycleManager(ChunkCoord x, ChunkCoor
 
 void SingleChunkLifecycleManager::setStatus(const ChunkStatus& status)
 {
+    MC_TRACE_EVENT("server.initialization", "ServerChunkManager::initialize");
+
     GenerationCallback statusCallback;
     std::lock_guard<std::mutex> lock(m_mutex);
 
