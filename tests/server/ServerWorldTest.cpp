@@ -7,6 +7,10 @@
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/blockentity/storage/ChestEntity.hpp"
+#include "common/world/blockentity/transport/HopperEntity.hpp"
+#include "common/world/blockentity/processing/FurnaceEntity.hpp"
+#include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <thread>
 #include <atomic>
@@ -437,4 +441,233 @@ TEST_F(ServerWorldTest, IsDebugWorld_ReturnsTrue_WithDebugChunkGenerator) {
 
     // 使用 DebugChunkGenerator 时应返回 true
     EXPECT_TRUE(testWorld.isDebugWorld());
+}
+
+// ============================================================================
+// 方块实体管理测试
+// ============================================================================
+
+TEST_F(ServerWorldTest, GetBlockEntity_ReturnsNullptr_WhenNoChunk) {
+    // 没有区块时返回 nullptr
+    BlockEntity* entity = world->getBlockEntity(BlockPos(0, 64, 0));
+    EXPECT_EQ(entity, nullptr);
+}
+
+TEST_F(ServerWorldTest, GetBlockEntity_ReturnsNullptr_WhenNoEntity) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建区块
+    world->getChunkSync(0, 0);
+
+    // 没有方块实体时返回 nullptr
+    BlockEntity* entity = world->getBlockEntity(BlockPos(0, 64, 0));
+    EXPECT_EQ(entity, nullptr);
+}
+
+TEST_F(ServerWorldTest, GetBlockEntity_OutOfWorldBounds_ReturnsNullptr) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 超出世界高度范围返回 nullptr
+    EXPECT_EQ(world->getBlockEntity(BlockPos(0, 1000, 0)), nullptr);
+    EXPECT_EQ(world->getBlockEntity(BlockPos(0, -100, 0)), nullptr);
+}
+
+TEST_F(ServerWorldTest, SetBlockEntity_StoresEntity) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建区块
+    world->getChunkSync(0, 0);
+
+    // 创建方块实体
+    auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(5, 64, 10));
+    blockentity::ChestEntity* rawChest = chest.get();
+
+    // 设置方块实体
+    world->setBlockEntity(BlockPos(5, 64, 10), chest.release());
+
+    // 验证可以获取
+    BlockEntity* retrieved = world->getBlockEntity(BlockPos(5, 64, 10));
+    ASSERT_NE(retrieved, nullptr);
+    EXPECT_EQ(retrieved, rawChest);
+    EXPECT_EQ(retrieved->getType(), BlockEntityType::Chest);
+    EXPECT_EQ(retrieved->getPos(), BlockPos(5, 64, 10));
+}
+
+TEST_F(ServerWorldTest, SetBlockEntity_OverwritesExisting) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建区块
+    world->getChunkSync(0, 0);
+
+    // 创建第一个方块实体
+    auto chest1 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
+    world->setBlockEntity(BlockPos(0, 64, 0), chest1.release());
+
+    // 创建第二个方块实体并覆盖
+    auto chest2 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
+    blockentity::ChestEntity* rawChest2 = chest2.get();
+    world->setBlockEntity(BlockPos(0, 64, 0), chest2.release());
+
+    // 验证是第二个实体
+    BlockEntity* retrieved = world->getBlockEntity(BlockPos(0, 64, 0));
+    ASSERT_NE(retrieved, nullptr);
+    EXPECT_EQ(retrieved, rawChest2);
+}
+
+TEST_F(ServerWorldTest, SetBlockEntity_SetsWorldReference) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建区块
+    world->getChunkSync(0, 0);
+
+    // 创建方块实体
+    auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
+    world->setBlockEntity(BlockPos(0, 64, 0), chest.release());
+
+    // 验证世界引用已设置
+    BlockEntity* retrieved = world->getBlockEntity(BlockPos(0, 64, 0));
+    ASSERT_NE(retrieved, nullptr);
+    EXPECT_EQ(retrieved->getWorld(), world.get());
+}
+
+TEST_F(ServerWorldTest, RemoveBlockEntity_RemovesEntity) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建区块
+    world->getChunkSync(0, 0);
+
+    // 创建并设置方块实体
+    auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
+    world->setBlockEntity(BlockPos(0, 64, 0), chest.release());
+
+    // 验证存在
+    EXPECT_NE(world->getBlockEntity(BlockPos(0, 64, 0)), nullptr);
+
+    // 移除
+    world->removeBlockEntity(BlockPos(0, 64, 0));
+
+    // 验证已移除
+    EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 0)), nullptr);
+}
+
+TEST_F(ServerWorldTest, RemoveBlockEntity_NoEntity_NoCrash) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建区块
+    world->getChunkSync(0, 0);
+
+    // 移除不存在的方块实体不应崩溃
+    world->removeBlockEntity(BlockPos(0, 64, 0));
+    EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 0)), nullptr);
+}
+
+TEST_F(ServerWorldTest, RemoveBlockEntity_OutOfWorldBounds_NoCrash) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 移除超出范围的方块实体不应崩溃
+    world->removeBlockEntity(BlockPos(0, 1000, 0));
+    world->removeBlockEntity(BlockPos(0, -100, 0));
+}
+
+TEST_F(ServerWorldTest, SetBlockEntity_MultipleEntitiesInSameChunk) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建区块
+    world->getChunkSync(0, 0);
+
+    // 创建多个方块实体
+    auto chest1 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
+    auto chest2 = std::make_unique<blockentity::ChestEntity>(BlockPos(5, 65, 10));
+    auto chest3 = std::make_unique<blockentity::ChestEntity>(BlockPos(15, 70, 15));
+
+    blockentity::ChestEntity* raw1 = chest1.get();
+    blockentity::ChestEntity* raw2 = chest2.get();
+    blockentity::ChestEntity* raw3 = chest3.get();
+
+    world->setBlockEntity(BlockPos(0, 64, 0), chest1.release());
+    world->setBlockEntity(BlockPos(5, 65, 10), chest2.release());
+    world->setBlockEntity(BlockPos(15, 70, 15), chest3.release());
+
+    // 验证所有实体都可以获取
+    EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 0)), raw1);
+    EXPECT_EQ(world->getBlockEntity(BlockPos(5, 65, 10)), raw2);
+    EXPECT_EQ(world->getBlockEntity(BlockPos(15, 70, 15)), raw3);
+}
+
+TEST_F(ServerWorldTest, SetBlockEntity_MultipleChunks) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建多个区块
+    world->getChunkSync(0, 0);
+    world->getChunkSync(1, 0);
+    world->getChunkSync(0, 1);
+
+    // 在不同区块创建方块实体
+    auto chest1 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
+    auto chest2 = std::make_unique<blockentity::ChestEntity>(BlockPos(16, 64, 0));  // 区块 (1, 0)
+    auto chest3 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 16));  // 区块 (0, 1)
+
+    blockentity::ChestEntity* raw1 = chest1.get();
+    blockentity::ChestEntity* raw2 = chest2.get();
+    blockentity::ChestEntity* raw3 = chest3.get();
+
+    world->setBlockEntity(BlockPos(0, 64, 0), chest1.release());
+    world->setBlockEntity(BlockPos(16, 64, 0), chest2.release());
+    world->setBlockEntity(BlockPos(0, 64, 16), chest3.release());
+
+    // 验证所有实体都可以获取
+    EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 0)), raw1);
+    EXPECT_EQ(world->getBlockEntity(BlockPos(16, 64, 0)), raw2);
+    EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 16)), raw3);
+}
+
+TEST_F(ServerWorldTest, SetBlockEntity_Nullptr_DoesNothing) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建区块
+    world->getChunkSync(0, 0);
+
+    // 设置 nullptr 不应崩溃
+    world->setBlockEntity(BlockPos(0, 64, 0), nullptr);
+
+    // 验证没有设置任何东西
+    EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 0)), nullptr);
+}
+
+TEST_F(ServerWorldTest, ConstGetBlockEntity_ReturnsCorrectEntity) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建区块
+    world->getChunkSync(0, 0);
+
+    // 创建并设置方块实体
+    auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
+    world->setBlockEntity(BlockPos(0, 64, 0), chest.release());
+
+    // 使用 const 版本获取
+    const ServerWorld& constWorld = *world;
+    const BlockEntity* retrieved = constWorld.getBlockEntity(BlockPos(0, 64, 0));
+    ASSERT_NE(retrieved, nullptr);
+    EXPECT_EQ(retrieved->getType(), BlockEntityType::Chest);
+}
+
+TEST_F(ServerWorldTest, SetBlockEntity_DifferentBlockEntityTypes) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建区块
+    world->getChunkSync(0, 0);
+
+    // 创建不同类型的方块实体
+    auto furnace = std::make_unique<blockentity::FurnaceEntity>(BlockPos(0, 64, 0));
+    auto hopper = std::make_unique<blockentity::HopperEntity>(BlockPos(1, 64, 0));
+    auto sign = std::make_unique<blockentity::SignEntity>(BlockPos(2, 64, 0));
+
+    world->setBlockEntity(BlockPos(0, 64, 0), furnace.release());
+    world->setBlockEntity(BlockPos(1, 64, 0), hopper.release());
+    world->setBlockEntity(BlockPos(2, 64, 0), sign.release());
+
+    // 验证类型正确
+    EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 0))->getType(), BlockEntityType::Furnace);
+    EXPECT_EQ(world->getBlockEntity(BlockPos(1, 64, 0))->getType(), BlockEntityType::Hopper);
+    EXPECT_EQ(world->getBlockEntity(BlockPos(2, 64, 0))->getType(), BlockEntityType::Sign);
 }

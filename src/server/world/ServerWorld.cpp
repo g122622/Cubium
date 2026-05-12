@@ -711,6 +711,108 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
 }
 
 // ============================================================================
+// 方块实体管理
+// ============================================================================
+
+BlockEntity* ServerWorld::getBlockEntity(const BlockPos& pos) {
+    // 超出世界高度范围返回 nullptr
+    if (!isWithinWorldBounds(pos.x, pos.y, pos.z)) {
+        return nullptr;
+    }
+
+    // 获取区块
+    ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
+    ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
+    ChunkData* chunk = getChunk(chunkX, chunkZ);
+    if (!chunk) {
+        return nullptr;
+    }
+
+    // ChunkData::getBlockEntity 接受世界坐标
+    return chunk->getBlockEntity(pos);
+}
+
+const BlockEntity* ServerWorld::getBlockEntity(const BlockPos& pos) const {
+    // 超出世界高度范围返回 nullptr
+    if (!isWithinWorldBounds(pos.x, pos.y, pos.z)) {
+        return nullptr;
+    }
+
+    // 获取区块
+    ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
+    ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
+    const ChunkData* chunk = getChunk(chunkX, chunkZ);
+    if (!chunk) {
+        return nullptr;
+    }
+
+    // ChunkData::getBlockEntity 接受世界坐标
+    return chunk->getBlockEntity(pos);
+}
+
+void ServerWorld::setBlockEntity(const BlockPos& pos, BlockEntity* entity) {
+    if (entity == nullptr) {
+        return;
+    }
+
+    // 超出世界高度范围不设置
+    if (!isWithinWorldBounds(pos.x, pos.y, pos.z)) {
+        // 释放实体以避免内存泄漏
+        delete entity;
+        return;
+    }
+
+    // 获取区块
+    ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
+    ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
+    ChunkData* chunk = getChunkSync(chunkX, chunkZ);
+    if (!chunk) {
+        // 区块未加载，无法设置方块实体
+        // 注意：在 MC 1.16.5 中，如果区块未加载，方块实体会丢失
+        // 这里我们直接释放实体以避免内存泄漏
+        delete entity;
+        return;
+    }
+
+    // 设置方块实体的世界引用
+    entity->setWorld(this);
+
+    // 将原始指针包装为 unique_ptr 并调用 ChunkData::setBlockEntity
+    // 注意：ChunkData::setBlockEntity 返回旧实体（如果有）
+    // ChunkData::setBlockEntity 接受世界坐标
+    std::unique_ptr<BlockEntity> entityPtr(entity);
+    std::unique_ptr<BlockEntity> oldEntity = chunk->setBlockEntity(pos, std::move(entityPtr));
+
+    // 如果有旧实体，它会被自动销毁
+    // 标记区块为已修改
+    chunk->setDirty(true);
+}
+
+void ServerWorld::removeBlockEntity(const BlockPos& pos) {
+    // 超出世界高度范围不处理
+    if (!isWithinWorldBounds(pos.x, pos.y, pos.z)) {
+        return;
+    }
+
+    // 获取区块
+    ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
+    ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
+    ChunkData* chunk = getChunkSync(chunkX, chunkZ);
+    if (!chunk) {
+        return;
+    }
+
+    // 移除方块实体
+    // ChunkData::removeBlockEntity 接受世界坐标
+    std::unique_ptr<BlockEntity> oldEntity = chunk->removeBlockEntity(pos);
+
+    // 如果有旧实体，标记区块为已修改
+    if (oldEntity) {
+        chunk->setDirty(true);
+    }
+}
+
+// ============================================================================
 // 更新循环
 // ============================================================================
 // ============================================================================
