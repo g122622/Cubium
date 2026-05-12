@@ -359,6 +359,15 @@ public:
     static Block* SNOW_BLOCK;      // 雪块（固体方块，用于冰刺等）
     static Block* ICE;
     static Block* GLASS;          // 玻璃（透明，不传播天空光）
+
+    // ========================================================================
+    // 南瓜和西瓜系列
+    // ========================================================================
+    static Block* MELON;               // 西瓜方块
+    static Block* PUMPKIN;             // 南瓜方块（可被剪刀雕刻）
+    static Block* CARVED_PUMPKIN;      // 雕刻南瓜（可生成傀儡）
+    // 注意：JACK_O_LANTERN 在其他方块部分定义
+
     static Block* NETHERRACK;
     static Block* GLOWSTONE;
     static Block* END_STONE;
@@ -674,6 +683,7 @@ private:
     static void registerBoneAndHayBlocks(); // 骨块和干草块
     static void registerNetherExtensionBlocks(); // 下界扩展方块（岩浆块等）
     static void registerNaturalBlocks();    // 自然扩展方块
+    static void registerPumpkinMelonBlocks(); // 南瓜和西瓜系列
     static void registerRedstoneBlocks();   // 红石方块
     static void registerStairsSlabsWalls(); // 楼梯、台阶、墙、栅栏、活板门
 };

@@ -64,6 +64,29 @@ public:
     [[nodiscard]] const Block* getStem() const override { return m_stem; }
     [[nodiscard]] const Block* getAttachedStem() const override { return m_attachedStem; }
 
+    // ========== 交互接口 ==========
+
+    /**
+     * @brief 玩家右键点击方块
+     *
+     * 当玩家使用剪刀右键点击南瓜时，将南瓜雕刻成刻过的南瓜。
+     *
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @param player 玩家
+     * @param hand 手
+     * @param hit 射线检测结果
+     * @return 交互结果类型
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
 private:
     const Block* m_stem;
     const Block* m_attachedStem;

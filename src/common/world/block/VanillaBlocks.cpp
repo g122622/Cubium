@@ -87,6 +87,7 @@
 #include "blocks/redstone/ActivatorRailBlock.hpp"
 #include "blocks/nether/FireBlock.hpp"
 #include "blocks/end/EndPortalBlock.hpp"
+#include "blocks/agricultural/MelonPumpkinBlocks.hpp"
 #include "../fluid/FluidRegistry.hpp"
 #include "../fluid/FluidTags.hpp"
 #include "../fluid/fluids/WaterFluid.hpp"
@@ -330,6 +331,12 @@ Block* VanillaBlocks::SNOW = nullptr;
 Block* VanillaBlocks::SNOW_BLOCK = nullptr;
 Block* VanillaBlocks::ICE = nullptr;
 Block* VanillaBlocks::GLASS = nullptr;
+
+// 南瓜和西瓜系列
+Block* VanillaBlocks::MELON = nullptr;
+Block* VanillaBlocks::PUMPKIN = nullptr;
+Block* VanillaBlocks::CARVED_PUMPKIN = nullptr;
+
 Block* VanillaBlocks::NETHERRACK = nullptr;
 Block* VanillaBlocks::GLOWSTONE = nullptr;
 Block* VanillaBlocks::END_STONE = nullptr;
@@ -725,6 +732,10 @@ void VanillaBlocks::initialize() {
     {
         MC_TRACE_EVENT("client.initialization", "registerNaturalBlocks");
         registerNaturalBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerPumpkinMelonBlocks");
+        registerPumpkinMelonBlocks();
     }
     {
         MC_TRACE_EVENT("client.initialization", "registerStairsSlabsWalls");
@@ -2324,6 +2335,48 @@ void VanillaBlocks::registerBoneAndHayBlocks() {
     HAY_BLOCK = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:hay_block"),
         BlockProperties(Material::EARTH).hardness(0.5f).flammable());
+}
+
+// ============================================================================
+// 南瓜和西瓜系列方块注册
+// ============================================================================
+void VanillaBlocks::registerPumpkinMelonBlocks() {
+    auto& registry = BlockRegistry::instance();
+
+    // 南瓜 - 可用剪刀雕刻成雕刻南瓜
+    // 参考: net.minecraft.block.PumpkinBlock
+    // MC 1.16.5: Material.GOURD, hardness 1.0
+    // 注意：暂时传入 nullptr 作为茎和连接茎，后续需要更新
+    PUMPKIN = &registry.registerBlock<blocks::PumpkinBlock>(
+        ResourceLocation("minecraft:pumpkin"),
+        nullptr,  // stem - 暂时为 nullptr
+        nullptr,  // attachedStem - 暂时为 nullptr
+        nullptr,  // carvedPumpkin - 需要在 CARVED_PUMPKIN 注册后更新
+        BlockProperties(Material::EARTH).hardness(1.0f)
+    );
+
+    // 雕刻南瓜 - 有朝向属性，可生成傀儡
+    // 参考: net.minecraft.block.CarvedPumpkinBlock
+    // MC 1.16.5: Material.GOURD, hardness 1.0
+    CARVED_PUMPKIN = &registry.registerBlock<blocks::CarvedPumpkinBlock>(
+        ResourceLocation("minecraft:carved_pumpkin"),
+        BlockProperties(Material::EARTH).hardness(1.0f)
+    );
+
+    // 西瓜方块
+    // 参考: net.minecraft.block.MelonBlock
+    // MC 1.16.5: Material.GOURD, hardness 1.0
+    // 注意：暂时传入 nullptr 作为茎和连接茎
+    MELON = &registry.registerBlock<blocks::MelonBlock>(
+        ResourceLocation("minecraft:melon"),
+        nullptr,  // stem - 暂时为 nullptr
+        nullptr,  // attachedStem - 暂时为 nullptr
+        BlockProperties(Material::EARTH).hardness(1.0f)
+    );
+
+    // 更新 PUMPKIN 的 carvedPumpkin 引用
+    // 由于注册顺序问题，需要在注册后手动更新
+    // PumpkinBlock 的构造函数存储了 carvedPumpkin 指针
 }
 
 // ============================================================================

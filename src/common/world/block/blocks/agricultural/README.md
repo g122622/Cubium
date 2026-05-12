@@ -134,9 +134,29 @@ auto melonStemBlock = std::make_unique<StemBlock>(melonBlock, stemProps);
 - [x] 可可豆（CocoaBlock）
 - [x] 西瓜/南瓜果实块（MelonBlock, PumpkinBlock, CarvedPumpkinBlock, JackOLanternBlock）
 - [x] 雕刻南瓜/南瓜灯傀儡生成功能（CarvedPumpkinBlock::trySpawnGolem）
+- [x] 南瓜雕刻功能（PumpkinBlock::onBlockActivated - 使用剪刀雕刻）
 - [ ] 甘蔗（SugarCaneBlock）
 - [ ] 仙人掌（CactusBlock）
 - [ ] 竹子（BambooBlock）
+
+## 南瓜雕刻功能
+
+`PumpkinBlock::onBlockActivated` 实现了剪刀雕刻南瓜的功能：
+
+### 功能描述
+- 玩家使用剪刀右键点击南瓜时，南瓜会被雕刻成雕刻南瓜
+- 同时掉落 4 个南瓜种子物品
+- 消耗剪刀 1 点耐久度
+- 播放雕刻音效
+
+### 行为细节
+- 点击南瓜的侧面：雕刻南瓜的朝向与点击面相同
+- 点击南瓜的顶面或底面：雕刻南瓜的朝向为玩家朝向的相反方向
+- 种子在雕刻面方向偏移 0.65 格处生成
+- 种子具有轻微的随机速度
+
+### 参考
+- MC 1.16.5 `net.minecraft.block.PumpkinBlock.onBlockActivated`
 
 ## 傀儡生成
 

@@ -5,11 +5,17 @@
 #include "../../../../entity/core/VanillaEntities.hpp"
 #include "../../../../entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "../../../../entity/entities/passive/golem/SnowGolemEntity.hpp"
+#include "../../../../entity/entities/item/ItemEntity.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../entity/utils/ItemDropHelper.hpp"
+#include "../../../../item/Items.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../sound/SoundCategory.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
+#include "../../../../util/math/random/Random.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../VanillaBlocks.hpp"
 #include <algorithm>
@@ -40,8 +46,118 @@ PumpkinBlock::PumpkinBlock(const Block* stem, const Block* attachedStem, const B
     // 南瓜没有状态属性
 }
 
-// TODO: 实现 onBlockActivated
-// 需要检查剪刀物品类型
+// ============================================================================
+// 南瓜雕刻功能
+// ============================================================================
+
+ActionResultType PumpkinBlock::onBlockActivated(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit) {
+
+    MC_UNUSED(state);
+
+    // 获取玩家手中的物品
+    ItemStack& heldItem = player.getHeldItem(hand);
+
+    // 检查是否为剪刀
+    const Item* item = heldItem.getItem();
+    if (item == nullptr || item != Items::SHEARS) {
+        return ActionResultType::Pass;
+    }
+
+    // 检查是否有雕刻南瓜方块
+    if (m_carvedPumpkin == nullptr) {
+        return ActionResultType::Pass;
+    }
+
+    // 计算雕刻南瓜的朝向
+    // MC 1.16.5: 如果点击的面是垂直方向，则使用玩家的水平朝向的相反方向
+    // 否则使用点击面的方向
+    Direction facing = hit.face();
+    if (facing == Direction::Up || facing == Direction::Down) {
+        // 垂直方向点击，使用玩家的水平朝向的相反方向
+        // 从玩家 yaw 计算水平朝向
+        f32 yaw = player.yaw();
+        while (yaw < 0.0f) yaw += 360.0f;
+        while (yaw >= 360.0f) yaw -= 360.0f;
+
+        Direction playerFacing;
+        if (yaw < 45.0f || yaw >= 315.0f) {
+            playerFacing = Direction::South;
+        } else if (yaw < 135.0f) {
+            playerFacing = Direction::West;
+        } else if (yaw < 225.0f) {
+            playerFacing = Direction::North;
+        } else {
+            playerFacing = Direction::East;
+        }
+        facing = Directions::opposite(playerFacing);
+    }
+
+    // 播放雕刻音效
+    world.playSound(
+        SoundEvents::BLOCK_PUMPKIN_CARVE,
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        1.0f,
+        1.0f
+    );
+
+    // 将南瓜替换为雕刻南瓜
+    const BlockState* carvedState = &m_carvedPumpkin->defaultState();
+
+    // 如果雕刻南瓜有 FACING 属性，设置朝向
+    // CarvedPumpkinBlock 继承自 HorizontalBlock，有 FACING 属性
+    std::optional<Direction> currentFacing = carvedState->getOptional(BlockStateProperties::HORIZONTAL_FACING());
+    if (currentFacing.has_value()) {
+        carvedState = &carvedState->with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+    }
+
+    // 设置方块状态（flag 11: 通知邻居 + 更新客户端）
+    world.setBlockState(pos, carvedState, 11);
+
+    // 生成南瓜种子（4个）
+    // MC 1.16.5: ItemEntity itementity = new ItemEntity(worldIn, (double)pos.getX() + 0.5D + (double)direction1.getXOffset() * 0.65D, (double)pos.getY() + 0.1D, (double)pos.getZ() + 0.5D + (double)direction1.getZOffset() * 0.65D, new ItemStack(Items.PUMPKIN_SEEDS, 4));
+    math::Random rng(static_cast<u64>(pos.x ^ pos.y ^ pos.z));
+
+    // 计算种子生成位置（朝向方向的偏移）
+    f64 seedX = static_cast<f64>(pos.x) + 0.5 + static_cast<f64>(Directions::xOffset(facing)) * 0.65;
+    f64 seedY = static_cast<f64>(pos.y) + 0.1;
+    f64 seedZ = static_cast<f64>(pos.z) + 0.5 + static_cast<f64>(Directions::zOffset(facing)) * 0.65;
+
+    // 创建南瓜种子物品堆（4个）
+    ItemStack seedStack(*Items::PUMPKIN_SEEDS, 4);
+
+    // 使用 ItemDropHelper 生成物品实体
+    // MC 1.16.5: 种子有轻微的随机速度
+    // itementity.setMotion(0.05D * (double)direction1.getXOffset() + worldIn.rand.nextDouble() * 0.02D, 0.05D, 0.05D * (double)direction1.getZOffset() + worldIn.rand.nextDouble() * 0.02D);
+    f32 vx = 0.05f * static_cast<f32>(Directions::xOffset(facing)) + static_cast<f32>(rng.nextDouble() * 0.02);
+    f32 vy = 0.05f;
+    f32 vz = 0.05f * static_cast<f32>(Directions::zOffset(facing)) + static_cast<f32>(rng.nextDouble() * 0.02);
+
+    ItemDropHelper::spawnItemEntity(
+        &world,
+        seedStack,
+        seedX,
+        seedY,
+        seedZ,
+        vx,
+        vy,
+        vz,
+        ItemEntity::DEFAULT_PICKUP_DELAY,
+        ""  // 无所有者限制
+    );
+
+    // 消耗剪刀耐久度
+    // MC 1.16.5: itemstack.damageItem(1, player, (p_220282_1_) -> { p_220282_1_.sendBreakAnimation(handIn); });
+    heldItem.attemptDamageItem(1);
+
+    return ActionResultType::Success;
+}
 
 // ============================================================================
 // CarvedPumpkinBlock
