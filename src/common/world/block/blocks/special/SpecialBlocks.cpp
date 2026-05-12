@@ -1,6 +1,11 @@
 #include "SpecialBlocks.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../WorldEvents.hpp"
 #include "../../../block/VanillaBlocks.hpp"
+#include "../../../block/IBucketPickupHandler.hpp"
+#include "../../../block/blocks/LiquidBlock.hpp"
+#include "../../../fluid/FluidTags.hpp"
+#include "../../../dimension/DimensionType.hpp"
 #include "../../../../entity/core/Entity.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
@@ -8,9 +13,15 @@
 #include "../../../../util/math/Vector3.hpp"
 #include "../../../../core/BlockRaycastResult.hpp"
 #include "../../../../physics/PhysicsConstants.hpp"
+#include <queue>
+#include <utility>
+#include <unordered_set>
 
 namespace mc {
 namespace blocks {
+
+// BlockPos 哈希别名
+using BlockPosHash = std::hash<BlockPos>;
 
 // ========== BarrierBlock ==========
 
@@ -367,16 +378,169 @@ SpongeBlock::SpongeBlock(const BlockProperties& properties)
 }
 
 bool SpongeBlock::tryAbsorbWater(IWorld& world, const BlockPos& pos) {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    // TODO: 实现吸水逻辑
+    i32 absorbedCount = absorb(world, pos);
+    if (absorbedCount > 0) {
+        // 将海绵变为湿润海绵
+        const BlockState& wetSpongeState = VanillaBlocks::WET_SPONGE->defaultState();
+        world.setBlockState(pos, &wetSpongeState, 3);
+
+        // 播放水被吸收的视觉效果（事件 2001，data 为水的方块状态 ID）
+        // MC 1.16.5: world.playEvent(2001, pos, Block.getStateId(Blocks.WATER.getDefaultState()));
+        const BlockState& waterState = VanillaBlocks::WATER->defaultState();
+        world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos, waterState.stateId());
+
+        return true;
+    }
     return false;
+}
+
+void SpongeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    MC_UNUSED(state);
+    // MC 1.16.5: 放置时尝试吸水
+    tryAbsorbWater(world, pos);
+}
+
+void SpongeBlock::neighborChanged(
+    IWorld& world,
+    const BlockPos& pos,
+    Block& neighborBlock,
+    const BlockPos& neighborPos,
+    bool isMoving) {
+
+    MC_UNUSED(neighborBlock);
+    MC_UNUSED(neighborPos);
+    MC_UNUSED(isMoving);
+
+    // MC 1.16.5: 邻居更新时尝试吸水
+    tryAbsorbWater(world, pos);
+
+    // 调用基类方法
+    Block::neighborChanged(world, pos, neighborBlock, neighborPos, isMoving);
+}
+
+i32 SpongeBlock::absorb(IWorld& world, const BlockPos& pos) {
+    // MC 1.16.5: SpongeBlock.absorb()
+    // 使用 BFS 搜索周围的水方块
+
+    // 队列元素：(位置, 深度)
+    std::queue<std::pair<BlockPos, i32>> queue;
+    queue.push({pos, 0});
+
+    i32 absorbedCount = 0;
+
+    // 已访问的位置集合（用于避免重复处理）
+    std::unordered_set<BlockPos, BlockPosHash> visited;
+    visited.insert(pos);
+
+    while (!queue.empty()) {
+        auto [currentPos, depth] = queue.front();
+        queue.pop();
+
+        // 遍历六个方向
+        for (Direction dir : Directions::all()) {
+            BlockPos neighborPos = currentPos.offset(dir);
+
+            // 获取流体状态
+            const fluid::FluidState* fluidState = world.getFluidState(neighborPos);
+            if (fluidState == nullptr || fluidState->isEmpty()) {
+                continue;
+            }
+
+            // 检查是否为水
+            if (!fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
+                continue;
+            }
+
+            // 获取方块状态
+            const BlockState* blockState = world.getBlockState(neighborPos);
+            if (blockState == nullptr) {
+                continue;
+            }
+
+            Block& block = const_cast<Block&>(blockState->getBlock());
+
+            // 情况1：可舀取的水源（如水源方块）
+            // MC 1.16.5: if (blockstate.getBlock() instanceof IBucketPickupHandler)
+            IBucketPickupHandler* bucketPickup = dynamic_cast<IBucketPickupHandler*>(&block);
+            if (bucketPickup != nullptr) {
+                fluid::Fluid* pickedFluid = bucketPickup->pickupFluid(world, neighborPos, *blockState);
+                if (pickedFluid != nullptr) {
+                    ++absorbedCount;
+                    if (depth < MAX_ABSORB_DEPTH && visited.find(neighborPos) == visited.end()) {
+                        visited.insert(neighborPos);
+                        queue.push({neighborPos, depth + 1});
+                    }
+                }
+            }
+            // 情况2：流动水方块
+            // MC 1.16.5: else if (blockstate.getBlock() instanceof FlowingFluidBlock)
+            else if (dynamic_cast<block::LiquidBlock*>(&block) != nullptr) {
+                // 移除流动水方块，设置为空气
+                const BlockState& airState = VanillaBlocks::AIR->defaultState();
+                world.setBlockState(neighborPos, &airState, 3);
+                ++absorbedCount;
+                if (depth < MAX_ABSORB_DEPTH && visited.find(neighborPos) == visited.end()) {
+                    visited.insert(neighborPos);
+                    queue.push({neighborPos, depth + 1});
+                }
+            }
+            // 情况3：海洋植物/海草
+            // MC 1.16.5: else if (material == Material.OCEAN_PLANT || material == Material.SEA_GRASS)
+            else {
+                const Material& material = blockState->getMaterial();
+                if (material == Material::OCEAN_PLANT || material == Material::SEA_GRASS) {
+                    // 掉落物品后移除方块
+                    // MC 1.16.5: spawnDrops(blockstate, worldIn, blockpos1, tileentity);
+                    // TODO: 实现方块掉落（需要 Block::spawnDrops 方法）
+                    // 目前直接移除方块
+                    const BlockState& airState = VanillaBlocks::AIR->defaultState();
+                    world.setBlockState(neighborPos, &airState, 3);
+                    ++absorbedCount;
+                    if (depth < MAX_ABSORB_DEPTH && visited.find(neighborPos) == visited.end()) {
+                        visited.insert(neighborPos);
+                        queue.push({neighborPos, depth + 1});
+                    }
+                }
+            }
+
+            // 超过最大吸收数量就停止
+            if (absorbedCount >= MAX_ABSORB_COUNT) {
+                return absorbedCount;
+            }
+        }
+    }
+
+    return absorbedCount;
 }
 
 // ========== WetSpongeBlock ==========
 
 WetSpongeBlock::WetSpongeBlock(const BlockProperties& properties)
     : Block(properties) {
+}
+
+void WetSpongeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
+    MC_UNUSED(state);
+
+    // MC 1.16.5: WetSpongeBlock.onBlockAdded
+    // 在下界（超热维度）放置时变干
+    if (world.isUltraWarm()) {
+        // 变为干海绵
+        const BlockState& spongeState = VanillaBlocks::SPONGE->defaultState();
+        world.setBlockState(pos, &spongeState, 3);
+
+        // 播放蒸汽效果（事件 2009）
+        world.playEvent(world::WorldEvents::WET_SPONGE_DRY, pos, 0);
+
+        // 播放火焰熄灭音效
+        world.playSound(
+            ResourceLocation("minecraft", "block.fire.extinguish"),
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            1.0f,
+            1.0f
+        );
+    }
 }
 
 // ========== WebBlock ==========

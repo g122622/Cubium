@@ -39,6 +39,7 @@
 #include "blocks/ocean/SeagrassBlock.hpp"
 #include "blocks/ocean/TallSeagrassBlock.hpp"
 #include "blocks/ocean/BubbleColumnBlock.hpp"
+#include "blocks/special/SpecialBlocks.hpp"
 #include "blocks/vegetation/CactusBlock.hpp"
 #include "blocks/vegetation/FlowerBlock.hpp"
 #include "blocks/vegetation/SugarCaneBlock.hpp"
@@ -1223,13 +1224,13 @@ void VanillaBlocks::registerBuildingBlocks() {
 
     // 海绵
     // 参考: new SpongeBlock(Properties.create(Material.SPONGE).hardnessAndResistance(0.6F))
-    SPONGE = &registry.registerBlock<SimpleBlock>(
+    SPONGE = &registry.registerBlock<blocks::SpongeBlock>(
         ResourceLocation("minecraft:sponge"),
         BlockProperties(Material::SPONGE).hardness(0.6f)
     );
 
     // 湿海绵
-    WET_SPONGE = &registry.registerBlock<SimpleBlock>(
+    WET_SPONGE = &registry.registerBlock<blocks::WetSpongeBlock>(
         ResourceLocation("minecraft:wet_sponge"),
         BlockProperties(Material::SPONGE).hardness(0.6f)
     );

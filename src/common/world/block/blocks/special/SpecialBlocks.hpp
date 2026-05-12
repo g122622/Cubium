@@ -317,6 +317,13 @@ private:
  *
  * 可以吸收水的方块。
  *
+ * 吸水机制：
+ * - 从海绵位置开始 BFS 搜索周围的水方块
+ * - 最大搜索深度：6 格
+ * - 最大吸收数量：65 个水方块
+ * - 处理三种类型的水：水源、流动水、海洋植物
+ * - 成功吸水后变成湿润海绵
+ *
  * 状态属性：无（湿润状态是不同的方块）
  *
  * 参考: net.minecraft.block.SpongeBlock
@@ -330,9 +337,59 @@ public:
 
     /**
      * @brief 尝试吸水
+     *
+     * 从海绵位置开始 BFS 搜索周围的水方块并吸收。
+     * 成功吸水后将海绵变为湿润海绵。
+     *
+     * @param world 世界
+     * @param pos 海绵位置
      * @return 如果吸收了水返回 true
      */
     bool tryAbsorbWater(IWorld& world, const BlockPos& pos);
+
+    // ========== 方块回调 ==========
+
+    /**
+     * @brief 方块被放置时的处理
+     *
+     * 放置时尝试吸水。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 方块状态
+     */
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    /**
+     * @brief 邻居方块更新
+     *
+     * 当邻居方块改变时尝试吸水。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param neighborBlock 邻居方块
+     * @param neighborPos 邻居位置
+     * @param isMoving 是否正在移动
+     */
+    void neighborChanged(IWorld& world, const BlockPos& pos,
+                         Block& neighborBlock, const BlockPos& neighborPos,
+                         bool isMoving) override;
+
+private:
+    /// 海绵吸水最大搜索深度（MC 1.16.5）
+    static constexpr i32 MAX_ABSORB_DEPTH = 6;
+
+    /// 海绵吸水最大吸收数量（MC 1.16.5）
+    static constexpr i32 MAX_ABSORB_COUNT = 65;
+
+    /**
+     * @brief 执行吸水 BFS 搜索
+     *
+     * @param world 世界
+     * @param pos 海绵位置
+     * @return 吸收的水方块数量
+     */
+    i32 absorb(IWorld& world, const BlockPos& pos);
 };
 
 /**
@@ -340,12 +397,29 @@ public:
  *
  * 海绵吸水后的状态，需要烤干才能再次吸水。
  *
+ * 特殊行为：
+ * - 在下界放置时会变干（变成普通海绵）
+ * - 产生蒸汽粒子效果和火焰熄灭音效
+ *
  * 参考: net.minecraft.block.WetSpongeBlock
  */
 class WetSpongeBlock : public Block {
 public:
     explicit WetSpongeBlock(const BlockProperties& properties);
     ~WetSpongeBlock() override = default;
+
+    // ========== 方块回调 ==========
+
+    /**
+     * @brief 方块被放置时的处理
+     *
+     * 在下界放置时会变干并产生蒸汽效果。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 方块状态
+     */
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 };
 
 /**
