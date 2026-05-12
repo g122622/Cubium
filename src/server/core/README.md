@@ -58,6 +58,7 @@ struct ServerCoreConfig {
 | `username` | `std::string` | 用户名 |
 | `connection` | `ConnectionWeakPtr` | 网络连接（弱引用） |
 | `sessionId` | `u32` | 会话ID（TCP连接标识） |
+| `ipAddress` | `std::string` | IP 地址（从连接获取，本地连接为空字符串） |
 | `loggedIn` | `bool` | 登录状态 |
 | `chunkTracker` | `shared_ptr<PlayerChunkTracker>` | 区块追踪器 |
 | `x, y, z` | `f32` | 世界坐标 |
@@ -94,11 +95,13 @@ struct ServerCoreConfig {
 **主要方法：**
 | 方法 | 描述 |
 |------|------|
-| `addPlayer(playerId, uuid, username, connection)` | 添加玩家 |
+| `addPlayer(playerId, uuid, username, connection)` | 添加玩家（自动从连接获取 IP 地址） |
 | `removePlayer(playerId)` | 移除玩家 |
 | `removePlayerBySessionId(sessionId)` | 根据会话ID移除玩家 |
 | `getPlayer(playerId)` | 获取玩家数据 |
 | `findBySessionId(sessionId)` | 根据会话ID查找玩家 |
+| `findByUsername(username)` | 根据用户名查找玩家（大小写不敏感） |
+| `getPlayerIdsByAddress(ipAddress)` | 根据IP地址获取所有玩家ID |
 | `hasPlayer(playerId)` | 检查玩家是否存在 |
 | `playerCount()` | 获取玩家数量 |
 | `isFull()` | 检查是否已满 |

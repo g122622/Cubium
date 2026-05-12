@@ -660,6 +660,10 @@ public:
 
 - 支持 IP 地址格式验证
 - 支持通过玩家名称获取 IP 地址
+  - 使用 `PlayerManager::findByUsername()` 按用户名查找玩家（大小写不敏感）
+  - 从 `ServerPlayerData::ipAddress` 获取玩家的 IP 地址
+  - 使用 `PlayerManager::getPlayerIdsByAddress()` 获取同一 IP 的所有在线玩家
+- 本地连接（集成服务器）的玩家 IP 地址为空字符串
 - 封禁信息持久化到 `banned-ips.json`
 - 自动记录封禁时间、执行者等信息
 

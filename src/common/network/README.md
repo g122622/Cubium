@@ -49,6 +49,7 @@ public:
     [[nodiscard]] virtual bool isConnected() const = 0;
     [[nodiscard]] virtual std::string identifier() const = 0;
     [[nodiscard]] virtual ConnectionType type() const = 0;
+    [[nodiscard]] virtual std::string getAddress() const = 0;  // 获取远程 IP 地址
 };
 
 enum class ConnectionType : u8 { Tcp, Local };
@@ -59,10 +60,12 @@ using ConnectionPtr = std::shared_ptr<IServerConnection>;
 - 定义服务端连接的抽象接口
 - 支持 TCP 和 Local 两种连接类型
 - 提供 `send()`、`disconnect()`、`isConnected()` 等基础方法
+- 提供 `getAddress()` 获取客户端 IP 地址
 
 **关键设计**:
 - 使用 `ConnectionPtr` 共享指针管理连接生命周期
 - 连接标识符用于日志和调试
+- `getAddress()` 对于 TCP 连接返回客户端 IP，对于本地连接返回空字符串
 
 #### LocalConnection.hpp/cpp
 
