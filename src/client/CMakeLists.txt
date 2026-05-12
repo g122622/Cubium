@@ -358,6 +358,13 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
+    # 统计系统
+    ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/stats/StatRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
+    # 记分板系统
+    ${CMAKE_SOURCE_DIR}/src/server/scoreboard/ServerScoreboard.cpp
     ${CMAKE_SOURCE_DIR}/src/server/menu/CraftingMenu.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp

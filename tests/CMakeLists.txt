@@ -1155,6 +1155,13 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/BannedIpList.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
+        # 统计系统
+        ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/stats/StatRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
+        # 记分板系统
+        ${CMAKE_SOURCE_DIR}/src/server/scoreboard/ServerScoreboard.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
