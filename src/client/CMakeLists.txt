@@ -442,6 +442,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/interaction/ContainerManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/interaction/SignCommandHelper.cpp
     # 维度模块
     ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimension.cpp
     ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimensionManager.cpp
