@@ -231,6 +231,34 @@ public:
      */
     void removeChildTag(const std::string& name);
 
+    /**
+     * @brief 合并 JSON 标签到现有标签
+     *
+     * 参考 MC 1.16.5 CompoundNBT.merge() 行为：
+     * - 如果两边都是对象，递归合并每个字段
+     * - 否则，源值覆盖目标值
+     *
+     * @param other 要合并的 JSON 对象
+     */
+    void mergeTag(const nlohmann::json& other);
+
+    /**
+     * @brief 合并 JSON 标签到现有标签（移动语义）
+     * @param other 要合并的 JSON 对象
+     */
+    void mergeTag(nlohmann::json&& other);
+
+    /**
+     * @brief 递归合并两个 JSON 对象
+     *
+     * 参考 MC 1.16.5 CompoundNBT.merge() 实现。
+     * 对于对象类型的字段，递归合并；其他类型直接覆盖。
+     *
+     * @param target 目标 JSON 对象（会被修改）
+     * @param source 源 JSON 对象
+     */
+    static void mergeJsonObjects(nlohmann::json& target, const nlohmann::json& source);
+
     // ========== 耐久度 ==========
 
     /**

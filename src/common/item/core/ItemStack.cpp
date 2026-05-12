@@ -1006,5 +1006,45 @@ void ItemStack::removeChildTag(const std::string& name) {
     }
 }
 
+// ============================================================================
+// 标签合并
+// ============================================================================
+
+void ItemStack::mergeTag(const nlohmann::json& other) {
+    if (!other.is_object()) {
+        return;
+    }
+    nlohmann::json& tag = getOrCreateTag();
+    mergeJsonObjects(tag, other);
+}
+
+void ItemStack::mergeTag(nlohmann::json&& other) {
+    if (!other.is_object()) {
+        return;
+    }
+    nlohmann::json& tag = getOrCreateTag();
+    // 对于移动语义，仍然需要递归合并对象
+    mergeJsonObjects(tag, other);
+}
+
+void ItemStack::mergeJsonObjects(nlohmann::json& target, const nlohmann::json& source) {
+    if (!target.is_object() || !source.is_object()) {
+        // 非对象类型，直接替换
+        target = source;
+        return;
+    }
+
+    // 遍历源对象的所有键值对
+    for (auto& [key, value] : source.items()) {
+        if (target.contains(key) && target[key].is_object() && value.is_object()) {
+            // 两边都是对象，递归合并
+            mergeJsonObjects(target[key], value);
+        } else {
+            // 直接设置/覆盖
+            target[key] = value;
+        }
+    }
+}
+
 } // namespace mc
 

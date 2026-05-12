@@ -1502,3 +1502,251 @@ TEST_F(LootTest, SetLootTableFunction_OverwriteExistingTag) {
     EXPECT_EQ("minecraft:chests/second", (*tag2)["LootTable"].get<std::string>());
     EXPECT_EQ(200, (*tag2)["LootTableSeed"].get<i64>());
 }
+
+// ============================================================================
+// SetNbtFunction Tests
+// ============================================================================
+
+TEST_F(LootTest, SetNbtFunction_EmptyString) {
+    // 空字符串不应该修改物品
+    SetNbtFunction func("");
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    ItemStack result = func.apply(stack, *context);
+    EXPECT_FALSE(result.hasTag());  // 不应该有标签
+}
+
+TEST_F(LootTest, SetNbtFunction_EmptyStack) {
+    // 空物品堆不应该被修改
+    SetNbtFunction func("{display:{Name:\"Test\"}}");
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    ItemStack emptyStack;
+    ItemStack result = func.apply(emptyStack, *context);
+    EXPECT_TRUE(result.isEmpty());
+}
+
+TEST_F(LootTest, SetNbtFunction_Builder) {
+    auto func = LootFunctionBuilder::setNbt("{display:{Name:\"Custom Item\"}}");
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ("set_nbt", func->getType());
+
+    auto* setNbtFunc = dynamic_cast<SetNbtFunction*>(func.get());
+    ASSERT_NE(setNbtFunc, nullptr);
+    EXPECT_EQ("{display:{Name:\"Custom Item\"}}", setNbtFunc->getNbtString());
+}
+
+TEST_F(LootTest, SetNbtFunction_SimpleTag) {
+    // 测试简单的 NBT 标签
+    SetNbtFunction func("{Damage:10}");
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    ItemStack result = func.apply(stack, *context);
+
+    // 验证物品仍然存在
+    EXPECT_EQ(diamond, result.getItem());
+    EXPECT_EQ(1, result.getCount());
+
+    // 验证设置了标签
+    ASSERT_TRUE(result.hasTag());
+    const nlohmann::json* tag = result.getTag();
+    ASSERT_NE(tag, nullptr);
+    ASSERT_TRUE(tag->is_object());
+
+    // 验证 Damage 值
+    auto damageIt = tag->find("Damage");
+    ASSERT_NE(damageIt, tag->end());
+    EXPECT_EQ(10, damageIt->get<i32>());
+}
+
+TEST_F(LootTest, SetNbtFunction_NestedTag) {
+    // 测试嵌套的 NBT 标签
+    SetNbtFunction func("{display:{Name:\"Custom Sword\",color:16711680}}");
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    ItemStack result = func.apply(stack, *context);
+
+    // 验证设置了嵌套标签
+    ASSERT_TRUE(result.hasTag());
+    const nlohmann::json* tag = result.getTag();
+    ASSERT_NE(tag, nullptr);
+
+    // 验证 display 子标签
+    auto displayIt = tag->find("display");
+    ASSERT_NE(displayIt, tag->end());
+    ASSERT_TRUE(displayIt->is_object());
+
+    // 验证 Name 和 color
+    EXPECT_EQ("Custom Sword", (*displayIt)["Name"].get<std::string>());
+    EXPECT_EQ(16711680, (*displayIt)["color"].get<i32>());
+}
+
+TEST_F(LootTest, SetNbtFunction_MergeTag) {
+    // 测试合并到现有标签
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    // 首先设置一个初始标签
+    stack.getOrCreateTag()["initial_value"] = 100;
+
+    // 然后应用 SetNbtFunction
+    SetNbtFunction func("{new_value:200}");
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    ItemStack result = func.apply(stack, *context);
+
+    // 验证两个标签都存在
+    ASSERT_TRUE(result.hasTag());
+    const nlohmann::json* tag = result.getTag();
+    ASSERT_NE(tag, nullptr);
+
+    // 初始值应该保留
+    auto initialIt = tag->find("initial_value");
+    ASSERT_NE(initialIt, tag->end());
+    EXPECT_EQ(100, initialIt->get<i32>());
+
+    // 新值应该添加
+    auto newIt = tag->find("new_value");
+    ASSERT_NE(newIt, tag->end());
+    EXPECT_EQ(200, newIt->get<i32>());
+}
+
+TEST_F(LootTest, SetNbtFunction_MergeNestedObject) {
+    // 测试合并嵌套对象（递归合并）
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    // 设置初始嵌套对象
+    nlohmann::json& display = stack.getOrCreateChildTag("display");
+    display["Name"] = "Original Name";
+    display["existing_value"] = 50;
+
+    // 应用函数合并嵌套对象
+    SetNbtFunction func("{display:{color:16711680,new_value:100}}");
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    ItemStack result = func.apply(stack, *context);
+
+    // 验证合并结果
+    const nlohmann::json* tag = result.getTag();
+    ASSERT_NE(tag, nullptr);
+
+    auto displayIt = tag->find("display");
+    ASSERT_NE(displayIt, tag->end());
+
+    // 原有的 Name 应该保留
+    auto nameIt = displayIt->find("Name");
+    ASSERT_NE(nameIt, displayIt->end());
+    EXPECT_EQ("Original Name", nameIt->get<std::string>());
+
+    // 原有的 existing_value 应该保留
+    auto existingIt = displayIt->find("existing_value");
+    ASSERT_NE(existingIt, displayIt->end());
+    EXPECT_EQ(50, existingIt->get<i32>());
+
+    // 新的 color 应该添加
+    auto colorIt = displayIt->find("color");
+    ASSERT_NE(colorIt, displayIt->end());
+    EXPECT_EQ(16711680, colorIt->get<i32>());
+
+    // 新的 new_value 应该添加
+    auto newIt = displayIt->find("new_value");
+    ASSERT_NE(newIt, displayIt->end());
+    EXPECT_EQ(100, newIt->get<i32>());
+}
+
+TEST_F(LootTest, SetNbtFunction_InvalidNbt) {
+    // 测试无效的 NBT 字符串
+    SetNbtFunction func("{invalid nbt string");  // 缺少闭合大括号
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    // 无效的 NBT 应该被忽略，物品保持不变
+    ItemStack result = func.apply(stack, *context);
+    EXPECT_FALSE(result.hasTag());
+}
+
+TEST_F(LootTest, SetNbtFunction_WithTypeSuffixes) {
+    // 测试带类型后缀的 NBT 值
+    SetNbtFunction func("{byte_val:10b,short_val:100s,int_val:1000,long_val:10000l,float_val:3.14f,double_val:3.14159d}");
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    ItemStack result = func.apply(stack, *context);
+
+    ASSERT_TRUE(result.hasTag());
+    const nlohmann::json* tag = result.getTag();
+    ASSERT_NE(tag, nullptr);
+
+    // 验证各种类型的值都被正确解析
+    EXPECT_EQ(10, (*tag)["byte_val"].get<i32>());
+    EXPECT_EQ(100, (*tag)["short_val"].get<i32>());
+    EXPECT_EQ(1000, (*tag)["int_val"].get<i32>());
+    EXPECT_EQ(10000, (*tag)["long_val"].get<i64>());
+    EXPECT_FLOAT_EQ(3.14f, (*tag)["float_val"].get<f32>());
+    EXPECT_DOUBLE_EQ(3.14159, (*tag)["double_val"].get<f64>());
+}
+
+TEST_F(LootTest, SetNbtFunction_Clone) {
+    SetNbtFunction func("{display:{Name:\"Test\"}}");
+
+    auto cloned = func.clone();
+    ASSERT_NE(cloned, nullptr);
+
+    auto* clonedFunc = dynamic_cast<SetNbtFunction*>(cloned.get());
+    ASSERT_NE(clonedFunc, nullptr);
+    EXPECT_EQ("{display:{Name:\"Test\"}}", clonedFunc->getNbtString());
+    EXPECT_EQ("set_nbt", clonedFunc->getType());
+}
