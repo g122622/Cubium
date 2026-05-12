@@ -517,12 +517,16 @@ Result<void> SectionCodec::toChunkSection(
     // 设置光照数据
     if (data.skyLight.has_value() && data.skyLight->size() == SectionCodec::LIGHT_DATA_SIZE) {
         auto& skyLight = section.skyLightNibble();
-        std::memcpy(skyLight.rawData(), data.skyLight->data(), SectionCodec::LIGHT_DATA_SIZE);
+        // 确保目标 NibbleArray 已分配，避免向空指针 memcpy。
+        auto& skyLightData = skyLight.data();
+        std::memcpy(skyLightData.data(), data.skyLight->data(), SectionCodec::LIGHT_DATA_SIZE);
     }
 
     if (data.blockLight.has_value() && data.blockLight->size() == SectionCodec::LIGHT_DATA_SIZE) {
         auto& blockLight = section.blockLightNibble();
-        std::memcpy(blockLight.rawData(), data.blockLight->data(), SectionCodec::LIGHT_DATA_SIZE);
+        // 默认 ChunkSection 的方块光数组可能为空，这里需要先显式分配。
+        auto& blockLightData = blockLight.data();
+        std::memcpy(blockLightData.data(), data.blockLight->data(), SectionCodec::LIGHT_DATA_SIZE);
     }
 
     // 标记需要重新计算

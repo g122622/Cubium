@@ -258,6 +258,27 @@ TEST_F(SectionCodecTest, ToChunkSectionRejectsMalformedLayout)
     EXPECT_EQ(applyResult.error().code(), ErrorCode::InvalidData);
 }
 
+TEST_F(SectionCodecTest, ToChunkSectionAllocatesBlockLightWhenStorageContainsBlockLight)
+{
+    SectionData data;
+    data.key = SectionKey(0, 0, 0, 0);
+    data.blockStates.assign(SectionData::VOLUME, 0);
+    data.biomes.assign(SectionData::BIOME_COUNT, TestBiomes::PLAINS);
+    data.nonEmptyBlockCount = 0;
+    data.blockLight = std::vector<u8>(NibbleArray::BYTE_SIZE, 0);
+    data.blockLight->at(0) = 0x5A;
+
+    ChunkSection restored;
+    EXPECT_TRUE(restored.blockLightNibble().isEmpty());
+
+    auto applyResult = SectionCodec::toChunkSection(data, restored);
+
+    ASSERT_TRUE(applyResult.success());
+    EXPECT_FALSE(restored.blockLightNibble().isEmpty());
+    EXPECT_EQ(restored.blockLightNibble().get(0), 0xA);
+    EXPECT_EQ(restored.blockLightNibble().get(1), 0x5);
+}
+
 TEST_F(SectionCodecTest, DeserializeRejectsImpossibleBlockCount)
 {
     ChunkSection original;
