@@ -129,7 +129,53 @@ MC 1.16.5 时运公式:
 | `SetContentsFunction` | `set_contents` | 设置内容物函数 |
 | `SetLootTableFunction` | `set_loot_table` | 设置掉落表函数 |
 | `ExplorationMapFunction` | `exploration_map` | 探险地图函数 |
-| `SetStewEffectFunction` | `set_stew_effect` | 设置炖菜效果函数 |
+| `SetStewEffectFunction` | `set_stew_effect` | 设置炖菜效果函数 ✅ |
+
+**SetStewEffectFunction 已完成实现**:
+
+为谜之炖菜（Suspicious Stew）设置随机状态效果。参考 MC 1.16.5 `net.minecraft.loot.functions.SetStewEffect`。
+
+**功能特性**:
+- 只对谜之炖菜物品生效
+- 从预设效果列表中随机选择一个效果
+- 支持资源位置格式（`"minecraft:poison"`）和简写格式（`"poison"`）
+- 正确处理瞬间效果（瞬间治疗、瞬间伤害、饱和）：持续时间不乘以20
+- 支持持续时间范围（秒）
+- 支持追加效果到已有炖菜
+
+**NBT格式**:
+```json
+{
+  "Effects": [
+    {
+      "EffectId": 19,        // 效果ID (byte)
+      "EffectDuration": 100  // 持续时间 (ticks)
+    }
+  ]
+}
+```
+
+**使用示例**:
+```cpp
+#include "entity/loot/LootFunctions.hpp"
+
+using namespace mc::loot;
+
+// 创建函数
+SetStewEffectFunction func;
+func.addEffect("minecraft:poison", RandomValueRange(5.0f, 10.0f));  // 中毒 5-10 秒
+func.addEffect("minecraft:blindness", RandomValueRange(5.0f, 7.0f)); // 失明 5-7 秒
+func.addEffect("minecraft:wither", RandomValueRange(5.0f));         // 凋零 5 秒
+
+// 应用到物品
+LootContext context(world, random);
+ItemStack stew(Items::SUSPICIOUS_STEW, 1);
+ItemStack result = func.apply(stew, context);  // 随机选择一个效果添加
+```
+
+**依赖项**:
+- `entity/effect/EffectType.hpp` - 效果类型工具函数
+- `item/Items.hpp` - SUSPICIOUS_STEW 物品定义
 
 **MC 1.16.5 时运矿石掉落算法** (`ApplyBonusFunction::calculateOreDrops`):
 ```
@@ -830,7 +876,7 @@ entry.generate(consumer, context);  // 条件在这里检查
    - SetAttributesFunction（需要属性系统）
    - SetContentsFunction（需要容器物品支持）
    - ExplorationMapFunction（需要地图数据系统）
-   - SetStewEffectFunction（需要药水效果系统）
+   - ~~SetStewEffectFunction~~ ✅ 已完成（为谜之炖菜添加状态效果，支持随机选择和持续时间）
    - ~~SetLootTableFunction~~ ✅ 已完成（设置掉落表到 BlockEntityTag）
 6. ~~**FurnaceSmeltFunction 熔炼函数** - 已通过 RecipeManager 实现完整功能~~ ✅ 已完成
 7. **JSON 函数解析** - 为 Pool 和 Table 级别的函数提供完整支持

@@ -210,3 +210,97 @@ if (entity.effectManager().hasBeneficialEffect()) {
 - [ ] 效果图标显示
 - [ ] NBT序列化/反序列化
 - [ ] 药水物品集成
+
+## 效果类型工具函数
+
+### 效果ID转换
+
+`EffectType.hpp` 提供以下工具函数用于效果类型的ID转换：
+
+| 函数 | 描述 |
+|------|------|
+| `getEffectById(i32)` | 从数值ID(1-32)获取效果类型，无效ID返回 `std::nullopt` |
+| `getEffectByResourceLocation(ResourceLocation)` | 从资源位置获取效果类型（如 `"minecraft:speed"`） |
+| `getEffectResourceLocation(EffectType)` | 获取效果的完整资源位置（如 `minecraft:speed`） |
+| `getEffectResourceName(EffectType)` | 获取效果的资源名称（不含命名空间，如 `speed`） |
+| `isInstantEffect(EffectType)` | 检查是否为瞬间效果（瞬间治疗、瞬间伤害、饱和） |
+
+### 使用示例
+
+```cpp
+#include "entity/effect/EffectType.hpp"
+#include "resource/ResourceLocation.hpp"
+
+using namespace mc::entity::effect;
+
+// 从数值ID获取效果类型
+auto type1 = getEffectById(1);  // EffectType::Speed
+auto type2 = getEffectById(100);  // std::nullopt (无效ID)
+
+// 从资源位置获取效果类型
+auto type3 = getEffectByResourceLocation(ResourceLocation("minecraft:poison"));
+auto type4 = getEffectByResourceLocation(ResourceLocation("poison"));  // 简写格式
+
+// 获取效果的资源位置
+ResourceLocation loc = getEffectResourceLocation(EffectType::Regeneration);
+// loc.toString() == "minecraft:regeneration"
+
+// 获取效果的资源名称
+const char* name = getEffectResourceName(EffectType::NightVision);
+// name == "night_vision"
+
+// 检查是否为瞬间效果
+bool instant = isInstantEffect(EffectType::InstantHealth);  // true
+bool notInstant = isInstantEffect(EffectType::Speed);  // false
+```
+
+### 往返转换
+
+效果类型可以安全地进行往返转换：
+
+```cpp
+// 类型 -> ResourceLocation -> 类型
+for (i32 id = 1; id <= 32; ++id) {
+    auto originalType = getEffectById(id);
+    ResourceLocation loc = getEffectResourceLocation(originalType.value());
+    auto recoveredType = getEffectByResourceLocation(loc);
+    // originalType == recoveredType
+}
+```
+
+### 效果资源名称对照表
+
+| 效果类型 | 资源名称 | 数值ID |
+|----------|----------|--------|
+| 速度 | `speed` | 1 |
+| 缓慢 | `slowness` | 2 |
+| 急迫 | `haste` | 3 |
+| 挖掘疲劳 | `mining_fatigue` | 4 |
+| 力量 | `strength` | 5 |
+| 瞬间治疗 | `instant_health` | 6 |
+| 瞬间伤害 | `instant_damage` | 7 |
+| 跳跃提升 | `jump_boost` | 8 |
+| 反胃 | `nausea` | 9 |
+| 生命恢复 | `regeneration` | 10 |
+| 抗性提升 | `resistance` | 11 |
+| 防火 | `fire_resistance` | 12 |
+| 水下呼吸 | `water_breathing` | 13 |
+| 隐身 | `invisibility` | 14 |
+| 失明 | `blindness` | 15 |
+| 夜视 | `night_vision` | 16 |
+| 饥饿 | `hunger` | 17 |
+| 虚弱 | `weakness` | 18 |
+| 中毒 | `poison` | 19 |
+| 凋零 | `wither` | 20 |
+| 生命提升 | `health_boost` | 21 |
+| 伤害吸收 | `absorption` | 22 |
+| 饱和 | `saturation` | 23 |
+| 发光 | `glowing` | 24 |
+| 漂浮 | `levitation` | 25 |
+| 幸运 | `luck` | 26 |
+| 霉运 | `bad_luck` | 27 |
+| 缓降 | `slow_falling` | 28 |
+| 潮涌能量 | `conduit_power` | 29 |
+| 海豚的恩惠 | `dolphins_grace` | 30 |
+| 不祥之兆 | `bad_omen` | 31 |
+| 村庄英雄 | `hero_of_the_village` | 32 |
