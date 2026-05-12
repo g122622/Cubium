@@ -69,6 +69,59 @@ class ServerWorld : public IWorld, public ICollisionWorld, public StarLightLight
 [[nodiscard]] bool isDebugWorld() const;  // 通过检查区块生成器类型判断是否为调试世界
 ```
 
+**组件访问器**：
+
+`ServerWorld` 提供直接访问内部组件的访问器方法，避免过度封装：
+
+```cpp
+// 区块管理器访问器
+ServerChunkManager* chunkManager();
+const ServerChunkManager* chunkManager() const;
+
+// 实体管理器访问器
+EntityManager& entityManager();
+const EntityManager& entityManager() const;
+
+// 实体追踪器访问器
+EntityTracker& entityTracker();
+const EntityTracker& entityTracker() const;
+
+// 碰撞缓存访问器
+CollisionCache* collisionCache();
+const CollisionCache* collisionCache() const;
+
+// 物理引擎访问器
+PhysicsEngine* physicsEngine();
+const PhysicsEngine* physicsEngine() const;
+
+// 光照管理器访问器
+WorldLightManager* lightManager();
+const WorldLightManager* lightManager() const;
+
+// 天气管理器访问器
+WeatherManager* weatherManager();
+const WeatherManager* weatherManager() const;
+
+// Tick 管理器访问器
+TickManager& tickManager();
+const TickManager& tickManager() const;
+```
+
+**使用示例**：
+```cpp
+// 直接访问区块管理器进行同步区块获取
+ChunkData* chunk = world->chunkManager()->getChunkSync(x, z);
+
+// 直接访问实体管理器进行实体查询
+Entity* entity = world->entityManager().getEntity(entityId);
+bool exists = world->entityManager().hasEntity(entityId);
+size_t count = world->entityManager().entityCount();
+
+// 直接访问碰撞缓存
+world->collisionCache()->invalidateChunkAndNeighbors(chunkX, chunkZ);
+world->collisionCache()->clear();
+```
+
 **方块实体管理**：
 
 `ServerWorld` 实现 `IWorld` 接口的方块实体管理方法，通过区块代理进行操作：
@@ -128,6 +181,26 @@ void tickBlockEntities() {
 - `createExplosion()` 自动将 `LootTableManager` 传递给 `Explosion`
 - 参考 `src/common/world/explosion/README.md` 了解爆炸掉落机制
 
+**实体管理方法**：
+
+`ServerWorld` 提供以下实体管理方法：
+
+```cpp
+// 生成实体（返回分配的实体ID）
+EntityId spawnEntity(std::unique_ptr<Entity> entity) override;
+
+// 移除实体（自动处理实体追踪器状态更新）
+std::unique_ptr<Entity> removeEntity(EntityId id);
+
+// 获取实体（IWorld 接口）
+Entity* getEntity(EntityId id) override;
+const Entity* getEntity(EntityId id) const override;
+```
+
+**重要说明**：
+- `removeEntity()` 会自动从 `EntityTracker` 中移除实体追踪，调用者无需手动调用 `entityTracker().untrackEntity()`
+- 如果直接使用 `entityManager().removeEntity()`，则需要手动处理追踪器状态
+
 **不负责**：
 - 玩家管理（由 `PlayerManager` 管理）
 - 网络通信（由 `ConnectionManager` 管理）
@@ -172,6 +245,9 @@ ChunkData* getChunkSync(ChunkCoord x, ChunkCoord z);
 // 异步获取区块
 std::future<ChunkData*> getChunkAsync(ChunkCoord x, ChunkCoord z, const ChunkStatus* targetStatus);
 void getChunkAsync(ChunkCoord x, ChunkCoord z, ChunkCallback callback, const ChunkStatus* targetStatus);
+
+// 卸载区块
+void unloadChunk(ChunkCoord x, ChunkCoord z);
 
 // 票据管理
 void updatePlayerPosition(PlayerId player, f64 x, f64 z);
@@ -593,12 +669,15 @@ ChunkData* chunk = chunkManager.getChunkSync(x, z);  // 会阻塞！
 
 **问题**：实体移除后未从追踪器中取消追踪，导致内存泄漏。
 
-**解决方案**：确保在实体移除时调用 `untrackEntity()`。
+**解决方案**：`ServerWorld::removeEntity()` 会自动处理实体追踪器状态更新，无需手动调用。
 
 ```cpp
-// 正确：移除实体前取消追踪
-world.entityTracker().untrackEntity(entityId);
+// 正确：直接调用 removeEntity，它会自动取消追踪
 world.removeEntity(entityId);
+
+// 注意：如果直接使用 entityManager().removeEntity()，则需要手动取消追踪
+world.entityTracker().untrackEntity(entityId);
+world.entityManager().removeEntity(entityId);
 ```
 
 ### 3. 物品拾取延迟未处理
