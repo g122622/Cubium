@@ -9,6 +9,11 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 
+// 前向声明
+namespace mc::server::core {
+    class PlayerManager;
+}
+
 namespace mc::server::advancement {
 
 /**
@@ -19,6 +24,14 @@ namespace mc::server::advancement {
  */
 class AdvancementEventHandler {
 public:
+    /**
+     * @brief 设置玩家管理器
+     * @param playerManager 玩家管理器指针
+     */
+    void setPlayerManager(core::PlayerManager* playerManager) {
+        m_playerManager = playerManager;
+    }
+
     /**
      * @brief 初始化事件处理器
      *
@@ -126,9 +139,42 @@ private:
      * @brief 处理玩家击杀实体事件
      *
      * 触发 PlayerKilledEntityTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.PLAYER_KILLED_ENTITY
+     *
+     * 注意：此方法已准备就绪，等待以下依赖完成：
+     * 1. PlayerKilledEntityTrigger 需要注册到 CriterionTriggers
+     *    （需要先实现 DistancePredicate.hpp）
+     * 2. PlayerManager 需要提供 ServerPlayer 访问接口
      */
     void onPlayerKillEntity(const event::PlayerKillEntityEvent& e) {
-        // TODO: 实现 PlayerKilledEntityTrigger 触发
+        // TODO: 当 DistancePredicate 实现后，取消注释以下代码
+        // 获取触发器
+        // auto* trigger = mc::advancement::CriterionTriggers::instance()
+        //     .getTrigger<mc::advancement::PlayerKilledEntityTrigger>();
+        //
+        // if (trigger == nullptr) {
+        //     return;
+        // }
+        //
+        // // 获取 ServerPlayer
+        // mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        // if (serverPlayer == nullptr) {
+        //     return;
+        // }
+        //
+        // // 检查是否有监听器
+        // auto* advancements = serverPlayer->getAdvancements();
+        // if (advancements == nullptr) {
+        //     return;
+        // }
+        //
+        // // 检查受害实体和伤害源是否有效
+        // if (e.victim == nullptr || e.cause == nullptr) {
+        //     return;
+        // }
+        //
+        // // 触发检测
+        // trigger->trigger(*serverPlayer, *e.victim, *e.cause);
         MC_UNUSED(e);
     }
 
@@ -143,10 +189,36 @@ private:
         MC_UNUSED(e);
     }
 
+    /**
+     * @brief 从 PlayerId 获取 ServerPlayer
+     * @param playerId 玩家ID
+     * @return ServerPlayer 指针，如果未找到返回 nullptr
+     *
+     * 注意：此方法需要 PlayerManager 提供访问 ServerPlayer 的接口
+     */
+    [[nodiscard]] mc::ServerPlayer* getServerPlayer(PlayerId playerId) {
+        if (m_playerManager == nullptr) {
+            return nullptr;
+        }
+
+        auto* playerData = m_playerManager->getPlayer(playerId);
+        if (playerData == nullptr) {
+            return nullptr;
+        }
+
+        // TODO: ServerPlayerData 需要提供访问 ServerPlayer 的方法
+        // 或者 PlayerManager 应该提供 getPlayerEntity(playerId) 方法
+        MC_UNUSED(playerData);
+        return nullptr;
+    }
+
     // 事件订阅
     event::ServerEventBus::Subscription<event::InventoryChangedEvent> m_inventoryChangedSubscription;
     event::ServerEventBus::Subscription<event::PlayerKillEntityEvent> m_playerKillSubscription;
     event::ServerEventBus::Subscription<event::PlayerLoginEvent> m_playerLoginSubscription;
+
+    // 玩家管理器
+    core::PlayerManager* m_playerManager = nullptr;
 
     bool initialized_ = false;
 };
