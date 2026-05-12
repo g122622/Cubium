@@ -189,6 +189,8 @@ if (player->shouldPlayStepSound()) {
 - `SetSneakingFalseKeepsCrouchWhenCeilingBlocksStanding` 覆盖低顶空间下的姿态回退
 - [tests/common/entity/PlayerSwimTest.cpp](../../../../../tests/common/entity/PlayerSwimTest.cpp)
 - 空气供应管理、溺水伤害、水下呼吸效果、游泳姿态尺寸、物理常量验证
+- [tests/common/entity/player/PlayerSleepTest.cpp](../../../../../tests/common/entity/player/PlayerSleepTest.cpp)
+- 睡眠功能测试：tryStartSleeping、startSleeping、stopSleeping、睡眠计时器、姿态切换、多态性验证
 
 ## Mermaid 图表
 
@@ -227,6 +229,14 @@ flowchart TD
   - `ServerPlayer::sendStatusMessage()` - 重写为通过网络发送消息到客户端
   - `ServerPlayer::canReceiveMessages()` - 重写为检查网络连接状态
   - 参考 MC 1.16.5 `PlayerEntity.sendStatusMessage(ITextComponent, boolean)`
+- **已新增睡眠系统功能**（2026-05-13）：
+  - `Player::tryStartSleeping(bedPos)` - 尝试开始睡眠（虚方法，基类直接调用 startSleeping）
+  - `Player::startSleeping(bedPos)` - 开始睡眠，通知世界睡眠状态变化
+  - `Player::stopSleeping()` - 停止睡眠，通知世界睡眠状态变化
+  - `IWorld::onPlayerSleepingChanged()` - 世界睡眠状态变化通知（虚方法，默认空实现）
+  - `ServerPlayer::tryStartSleeping()` - 重写为调用完整验证逻辑 `trySleep()`
+  - `ServerWorld::onPlayerSleepingChanged()` - 重写为调用 `updateAllPlayersSleepingFlag()`
+  - 参考 MC 1.16.5 `PlayerEntity.trySleep(BlockPos)` 和 `ServerWorld.updateAllPlayersSleepingFlag()`
 
 ## 挖掘系统
 

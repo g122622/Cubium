@@ -326,6 +326,8 @@ if (spawnPoint.has_value()) {
 - `CooldownTrackerTest.cpp` - 物品冷却追踪器测试（20个测试用例）
 - `SleepManagerTest.cpp` - 睡眠管理器测试
 - `SpawnPointValidatorTest.cpp` - 重生点验证器测试
+- `PlayerMessageTest.cpp` - Player 消息发送测试
+- `PlayerSleepTest.cpp` - Player 睡眠功能测试（21个测试用例）
 
 覆盖：
 - 冷却追踪器：设置/移除冷却、tick更新、进度计算、多物品独立冷却、覆盖设置、典型场景（紫颂果、盾牌）
@@ -336,3 +338,4 @@ if (spawnPoint.has_value()) {
 - 床/重生锚属性检测
 - 维度类型验证
 - GlobalPos 和 BlockPos 操作
+- Player 睡眠：tryStartSleeping、startSleeping、stopSleeping、睡眠计时器、姿态切换、多态性验证
