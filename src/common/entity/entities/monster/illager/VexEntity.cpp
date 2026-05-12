@@ -1,6 +1,7 @@
 #include "VexEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include <memory>
 
 namespace mc {
@@ -9,6 +10,8 @@ VexEntity::VexEntity(LegacyEntityType type, EntityId id)
     : MonsterEntity(type, id)
 {
     // 恼鬼体型小
+    // 注册属性（基类构造函数中调用 registerAttributes() 不会派发到子类）
+    registerAttributes();
 }
 
 std::unique_ptr<Entity> VexEntity::create(IWorld* /*world*/) {
@@ -16,25 +19,27 @@ std::unique_ptr<Entity> VexEntity::create(IWorld* /*world*/) {
 }
 
 void VexEntity::tick() {
+    // MC 1.16.5: 恼鬼在 tick 期间可以穿墙
+    // 参考 VexEntity.tick() 行 62-71
+    setNoClip(true);
     MonsterEntity::tick();
+    setNoClip(false);
+
+    // 恼鬼始终不受重力影响
+    setNoGravity(true);
 
     // 更新生命时间
     if (m_limitedLife && m_lifeTime > 0) {
         m_lifeTime--;
 
-        // 生命结束时开始闪烁
-        if (m_lifeTime <= 100) {
-            // TODO: 闪烁效果
-        }
-
+        // 生命结束时造成饥饿伤害
+        // MC 1.16.5: limitedLifeTicks <= 0 时攻击自己造成 1.0 饥饿伤害
         if (m_lifeTime <= 0) {
-            // 死亡
-            // TODO: 使用伤害方法
+            m_lifeTime = 20;  // 重置为 20 tick 防止连续伤害
+            auto damageSource = DamageSources::starve();
+            hurt(damageSource, 1.0f);
         }
     }
-
-    // 恼鬼可以穿墙
-    // TODO: 设置 noclip 标志
 }
 
 void VexEntity::registerGoals() {

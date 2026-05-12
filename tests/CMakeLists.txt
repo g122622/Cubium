@@ -71,6 +71,8 @@ add_executable(mc_tests
     common/entity/entities/monster/SlimeEntityTest.cpp
     common/entity/entities/monster/EndermiteEntityTest.cpp
     common/entity/entities/monster/ZombieVillagerEntityTest.cpp
+    # VexEntity 穿墙能力和生命周期测试
+    common/entity/entities/monster/illager/VexEntityTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp
     # WitherEntity 数据参数和目标追踪测试
