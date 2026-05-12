@@ -22,6 +22,7 @@ add_executable(minecraft-server
     core/WhitelistManager.cpp
     core/BannedPlayerList.cpp
     core/BannedIpList.cpp
+    core/OpListManager.cpp
     # 维度模块
     dimension/ServerDimension.cpp
     dimension/ServerDimensionManager.cpp

@@ -344,6 +344,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/core/WhitelistManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/BannedPlayerList.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/BannedIpList.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/core/OpListManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
