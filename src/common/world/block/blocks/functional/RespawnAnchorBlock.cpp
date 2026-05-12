@@ -48,8 +48,8 @@ void RespawnAnchorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
 }
 
 void RespawnAnchorBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
-    // 在下界之外，充能的重生锚可能会爆炸
-    // TODO: 检查维度，如果不是下界则爆炸
+    // MC 1.16.5: RespawnAnchorBlock 没有重写 randomTick 方法
+    // 重生锚在非下界的爆炸只在玩家交互时触发（onBlockActivated 中处理）
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
@@ -92,7 +92,7 @@ BlockState RespawnAnchorBlock::charge(IWorld& world, const BlockPos& pos, BlockS
     if (charges < 4) {
         BlockState newState = state.with(BlockStateProperties::CHARGES_0_4(), charges + 1);
         world.setBlockState(pos, &newState, 3);
-        // TODO: 播放充能音效和粒子效果
+        // 注意：充能音效和粒子效果由调用方处理（onBlockActivated 中播放）
         return newState;
     }
     return state;
@@ -177,7 +177,10 @@ ActionResultType RespawnAnchorBlock::onBlockActivated(
         discharge(world, pos, mutableState);
 
         // 设置玩家的重生点
-        // TODO: player.setSpawnPoint(pos, true, dimId);
+        // 参考 MC 1.16.5 RespawnAnchorBlock.onBlockActivated 第73行：
+        // serverplayerentity.func_242111_a(worldIn.func_234923_W_(), pos, 0.0F, false, true);
+        // 参数：维度、位置、角度(由服务器单独保存)、强制=false、发送消息=true
+        player.setSpawnPoint(world.dimension(), pos, false);
 
         // 播放设置重生点音效
         world.playSound(
