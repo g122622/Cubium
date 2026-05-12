@@ -192,6 +192,7 @@ add_executable(mc_tests
     entity/MinecartTests.cpp
     entity/ElytraAndSpinAttackTest.cpp
     common/entity/entities/EntityDaylightTest.cpp
+    common/entity/WaterSplashTest.cpp
     common/SettingsTest.cpp
     server/ServerWorldTest.cpp
     server/ServerWorldBlockUpdateCallbackTest.cpp

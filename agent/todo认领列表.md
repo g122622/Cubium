@@ -9,6 +9,7 @@
 | 2026-05-13 | src/server/dimension/ServerDimension.cpp | 75 | 实现光照更新调用 | 已完成 | Claude |
 | 2026-05-13 | src/common/entity/core/Entity.hpp | 44 | 彻底移除 LegacyEntityType 旧枚举，改用 mc::entity::EntityType | 暂停 | Claude |
 | 2026-05-12 | src/common/entity/loot/LootFunctions.cpp | 1130 | 实现 SetStewEffectFunction::apply 方法 | 已完成 | Claude |
+| 2026-05-13 | src/common/entity/entities/player/Player.cpp | 1589 | 触发入水粒子效果（水花飞溅）| 已完成 | Claude |
 
 ## 已完成的 TODO 详情
 
@@ -51,6 +52,25 @@
 - **放弃**: 放弃此 TODO，原因见备注
 
 ## 已完成的 TODO 详情
+
+### 2026-05-13: 入水粒子效果实现
+
+**原始位置**: `src/common/entity/entities/player/Player.cpp:1589`
+
+**完成内容**:
+1. 在 `Entity` 基类中新增了 `doWaterSplashEffect()` 方法，参考 MC 1.16.5 `Entity.doWaterSplashEffect()`
+2. 在 `Entity` 基类中新增了 `getSplashSound()` 和 `getHighspeedSplashSound()` 虚方法
+3. 在 `Player` 类中覆盖了声音方法，返回玩家专用的溅水声音
+4. 在 `Player` 类中覆盖了 `doWaterSplashEffect()`，添加观察者模式检查
+5. 修改了 `Player::updateAirSupply()` 调用 `doWaterSplashEffect()` 而非直接播放声音
+
+**实现细节**:
+- 粒子数量基于实体宽度：`1 + width * 20`
+- 气泡粒子 (Bubble)：位置在实体包围盒内随机，Y 坐标固定在水面上方，速度继承实体速度但 Y 方向减去随机值
+- 水溅粒子 (Splash)：位置同气泡，速度继承实体速度
+- 声音选择基于速度因子 f1：`sqrt(vx² * 0.2 + vy² + vz² * 0.2) * 0.2`
+- f1 < 0.25 使用普通溅水声，否则使用高速溅水声
+- 音调随机化：`1.0 + (rand - rand) * 0.4`
 
 ### 2026-05-12: SetStewEffectFunction::apply 实现
 

@@ -324,6 +324,99 @@ class PigEntity : public AnimalEntity {
 - `Player` 也走同一条声音链路，受伤和死亡会通过 `makeSoundEventId(...)` 发出对应事件。
 - `ServerWorld` 可以挂接声音回调，把事件继续交给 `MinecraftServer` 的广播接口。
 
+## 水花溅射效果
+
+实体入水时的水花效果系统，参考 MC 1.16.5 `Entity.doWaterSplashEffect()`。
+
+### 核心方法
+
+```cpp
+class Entity {
+public:
+    // 获取溅水声音（子类可覆盖）
+    [[nodiscard]] virtual ResourceLocation getSplashSound() const;
+
+    // 获取高速溅水声音（子类可覆盖）
+    [[nodiscard]] virtual ResourceLocation getHighspeedSplashSound() const;
+
+    // 执行水花溅射效果
+    virtual void doWaterSplashEffect();
+};
+```
+
+### 速度因子计算
+
+速度因子 f1 决定水花强度和声音选择：
+
+```cpp
+// f1 = sqrt(vx² × 0.2 + vy² + vz² × 0.2) × 0.2
+f32 f1 = std::sqrt(vx * vx * 0.2f + vy * vy + vz * vz * 0.2f) * 0.2f;
+f1 = std::min(f1, 1.0f);  // 限制在 [0, 1]
+```
+
+- 水平速度权重：0.2（降低水平速度影响）
+- 垂直速度权重：1.0（保留完整影响）
+
+### 声音选择
+
+| 速度因子 | 声音类型 |
+|---------|---------|
+| f1 < 0.25 | 普通溅水声 (`getSplashSound()`) |
+| f1 >= 0.25 | 高速溅水声 (`getHighspeedSplashSound()`) |
+
+音量使用 f1，音调随机化：`1.0 + (rand - rand) × 0.4`
+
+### 粒子生成
+
+| 粒子类型 | 数量公式 | 位置 | 速度 |
+|---------|---------|------|------|
+| Bubble | `1 + width × 20` | 包围盒内随机，Y=floor(posY)+1 | `(vx, vy - rand(0,0.2), vz)` |
+| Splash | `1 + width × 20` | 包围盒内随机，Y=floor(posY)+1 | `(vx, vy, vz)` |
+
+### Player 覆盖
+
+```cpp
+class Player {
+public:
+    // 返回玩家专用溅水声音
+    [[nodiscard]] ResourceLocation getSplashSound() const override {
+        return SoundEvents::ENTITY_PLAYER_SPLASH;
+    }
+
+    [[nodiscard]] ResourceLocation getHighspeedSplashSound() const override {
+        return SoundEvents::ENTITY_PLAYER_SPLASH_HIGH_SPEED;
+    }
+
+    // 观察者模式不产生水花效果
+    void doWaterSplashEffect() override {
+        if (isSpectator()) return;
+        Entity::doWaterSplashEffect();
+    }
+};
+```
+
+### 使用示例
+
+```cpp
+// 在 Player::updateAirSupply() 中检测入水
+void Player::updateAirSupply() {
+    bool inWater = isInWater();
+    bool justEnteredWater = inWater && !m_wasInWater;
+
+    LivingEntity::updateAirSupply();
+
+    if (justEnteredWater) {
+        doWaterSplashEffect();  // 触发水花效果
+    }
+
+    m_wasInWater = inWater;
+}
+```
+
+### 测试用例
+
+- [tests/common/entity/WaterSplashTest.cpp](../../../../tests/common/entity/WaterSplashTest.cpp) 验证粒子生成、声音播放、速度因子计算、玩家观察者模式等。
+
 ## 传送系统
 
 实体传送功能，支持安全传送和随机传送。参考 MC 1.16.5 `Entity.attemptTeleport` 和 `Entity.randomTeleport`。

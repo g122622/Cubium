@@ -824,6 +824,10 @@ protected:
      */
     [[nodiscard]] std::optional<ResourceLocation> getFallSound(i32 fallHeight) const;
 
+public:
+
+    // ========== 水花溅射效果 ==========
+
     /**
      * @brief 获取溅水声音
      *
@@ -851,8 +855,6 @@ protected:
      * 覆盖以检查观察者模式（观察者不产生水花效果）。
      */
     void doWaterSplashEffect() override;
-
-public:
 
     // ========== 视野晃动 ==========
 
