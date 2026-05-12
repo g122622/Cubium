@@ -142,9 +142,12 @@ CriterionTriggers::instance().registerTrigger(std::make_unique<MyTrigger>());
 ### BlockPredicate
 
 方块匹配条件：
-- 方块ID
-- 方块标签
-- 状态属性
+- 方块ID（通过 BlockRegistry 查找）
+- 方块标签（通过 BlockTags 检查）
+- 状态属性（复用 `mc::StatePropertiesPredicate`）
+
+**注意**：BlockPredicate 复用了 `mc::StatePropertiesPredicate`（位于 `common/entity/loot/StatePropertiesPredicate.hpp`）
+来实现状态属性匹配，避免代码重复。该类支持精确匹配和范围匹配。
 
 ## JSON 格式
 

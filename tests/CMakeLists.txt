@@ -264,6 +264,8 @@ add_executable(mc_tests
     common/entity/loot/LootSerializersTest.cpp
     # SetStewEffectFunction 测试
     common/entity/loot/SetStewEffectTest.cpp
+    # BlockPredicate 和 StatePropertiesPredicate 测试
+    common/advancement/BlockPredicateTest.cpp
     # EffectType 工具函数测试
     common/entity/effect/EffectTypeTest.cpp
     common/world/gen/WorldGenSpawnerTest.cpp
@@ -817,6 +819,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootTable.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootSerializers.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/loot/LootConditions.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/entity/loot/StatePropertiesPredicate.cpp
         # 成就系统
         ${CMAKE_SOURCE_DIR}/src/common/advancement/Advancement.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/AdvancementProgress.cpp

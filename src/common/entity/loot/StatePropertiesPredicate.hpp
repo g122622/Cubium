@@ -1,6 +1,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/core/Result.hpp"
+#include <nlohmann/json.hpp>
 #include <memory>
 #include <vector>
 #include <string>
@@ -220,6 +222,28 @@ public:
      * @return JSON 字符串
      */
     [[nodiscard]] std::string toJson() const;
+
+    /**
+     * @brief 从 JSON 解析状态属性谓词
+     *
+     * JSON 格式（MC 1.16.5 StatePropertiesPredicate）：
+     * {
+     *   "age": "3",                    // 精确匹配
+     *   "power": { "min": "5" },       // 范围匹配（仅最小值）
+     *   "level": { "max": "10" },      // 范围匹配（仅最大值）
+     *   "facing": { "min": "north", "max": "south" }  // 范围匹配
+     * }
+     *
+     * @param json JSON 对象
+     * @return 解析结果
+     */
+    [[nodiscard]] static Result<StatePropertiesPredicate> fromJson(const nlohmann::json& json);
+
+    /**
+     * @brief 转换为 nlohmann::json 对象
+     * @return JSON 对象
+     */
+    [[nodiscard]] nlohmann::json toJsonValue() const;
 
     /**
      * @brief 遍历不存在的属性

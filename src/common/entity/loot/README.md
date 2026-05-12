@@ -83,6 +83,12 @@ StatePropertiesPredicate properties;
 properties.addExactMatch("lit", "true");       // 精确匹配
 properties.addRangeMatch("age", "5", "7");     // 范围匹配
 
+// 从 JSON 解析
+auto result = StatePropertiesPredicate::fromJson(json);
+if (result.success()) {
+    properties = std::move(result.value());
+}
+
 // 创建条件
 BlockStateCondition condition("minecraft:redstone_lamp", std::move(properties));
 ```

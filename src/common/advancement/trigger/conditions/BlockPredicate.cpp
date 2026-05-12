@@ -1,30 +1,25 @@
 #include "BlockPredicate.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace mc::advancement {
 
-// ========== StatePropertiesPredicate ==========
-
-bool StatePropertiesPredicate::test(const BlockState& state) const {
-    if (m_isAny) {
-        return true;
-    }
-    // [TODO 阶段3+4：触发器完善] 检查状态属性
-    MC_UNUSED(state);
-    return true;
-}
-
-Result<StatePropertiesPredicate> StatePropertiesPredicate::fromJson(const nlohmann::json& json) {
-    MC_UNUSED(json);
-    return StatePropertiesPredicate{};
-}
-
-nlohmann::json StatePropertiesPredicate::toJson() const {
-    return nullptr;
-}
-
 // ========== BlockPredicate ==========
+
+BlockPredicate::BlockPredicate(
+    std::optional<ResourceLocation> block,
+    std::optional<ResourceLocation> tag,
+    StatePropertiesPredicate state
+)
+    : m_block(std::move(block))
+    , m_tag(std::move(tag))
+    , m_state(std::move(state))
+    , m_isAny(!m_block.has_value() && !m_tag.has_value() && m_state.isEmpty())
+{
+}
 
 bool BlockPredicate::test(const BlockState& state) const {
     if (m_isAny) {
@@ -33,18 +28,32 @@ bool BlockPredicate::test(const BlockState& state) const {
 
     // 检查方块ID
     if (m_block.has_value()) {
-        // [TODO 阶段3+4：触发器完善] 需要方块注册表支持获取方块ID比较
-        // if (state.getBlock().getId() != m_block.value()) return false;
+        // 参考 MC 1.16.5: if (this.block != null && block != this.block)
+        const Block* expectedBlock = BlockRegistry::instance().getBlock(m_block.value());
+        if (expectedBlock == nullptr) {
+            // 未知的方块ID，不匹配
+            return false;
+        }
+        if (&state.getBlock() != expectedBlock) {
+            return false;
+        }
     }
 
     // 检查标签
     if (m_tag.has_value()) {
-        // [TODO 阶段3+4：触发器完善] 需要标签系统支持检查方块是否在标签中
-        // if (!state.getBlock().isInTag(m_tag.value())) return false;
+        // 参考 MC 1.16.5: if (this.tag != null && !this.tag.contains(block))
+        BlockTag* tag = BlockTags::getTag(m_tag.value());
+        if (tag == nullptr) {
+            // 未知的标签，不匹配
+            return false;
+        }
+        if (!tag->contains(state)) {
+            return false;
+        }
     }
 
     // 检查状态属性
-    if (!m_state.test(state)) {
+    if (!m_state.matches(state)) {
         return false;
     }
 
@@ -73,15 +82,10 @@ Result<BlockPredicate> BlockPredicate::fromJson(const nlohmann::json& json) {
         if (stateResult.failed()) {
             return stateResult.error();
         }
-        state = stateResult.value();
+        state = std::move(stateResult.value());
     }
 
-    BlockPredicate predicate;
-    predicate.m_block = std::move(block);
-    predicate.m_tag = std::move(tag);
-    predicate.m_state = std::move(state);
-    predicate.m_isAny = !predicate.m_block.has_value() && !predicate.m_tag.has_value() && predicate.m_state.isAny();
-    return predicate;
+    return BlockPredicate(std::move(block), std::move(tag), std::move(state));
 }
 
 nlohmann::json BlockPredicate::toJson() const {
@@ -96,8 +100,8 @@ nlohmann::json BlockPredicate::toJson() const {
     if (m_tag.has_value()) {
         json["tag"] = m_tag.value().toString();
     }
-    if (!m_state.isAny()) {
-        json["state"] = m_state.toJson();
+    if (!m_state.isEmpty()) {
+        json["state"] = m_state.toJsonValue();
     }
     return json;
 }
@@ -109,8 +113,28 @@ bool FluidPredicate::test(const BlockState& state) const {
         return true;
     }
 
-    // [TODO 阶段3+4：触发器完善] 需要流体系统支持检查流体
-    MC_UNUSED(state);
+    // 检查流体ID
+    if (m_fluid.has_value()) {
+        // 参考 MC 1.16.5: FluidState fluidstate = world.getFluidState(pos);
+        // if (!fluidstate.is(m_fluid)) return false;
+
+        // 获取流体状态
+        const fluid::FluidState* fluidState = state.getFluidState();
+        if (fluidState == nullptr) {
+            return false;
+        }
+
+        // 检查流体类型
+        // 目前简化实现：检查流体是否匹配
+        // TODO: 完善流体系统后，使用 FluidRegistry 和流体ID比较
+        MC_UNUSED(fluidState);
+    }
+
+    // 检查状态属性
+    if (!m_state.matches(state)) {
+        return false;
+    }
+
     return true;
 }
 
@@ -120,14 +144,24 @@ Result<FluidPredicate> FluidPredicate::fromJson(const nlohmann::json& json) {
     }
 
     std::optional<ResourceLocation> fluid;
+    StatePropertiesPredicate state;
 
     if (json.contains("fluid")) {
         fluid = ResourceLocation(json["fluid"].get<std::string>());
     }
 
+    if (json.contains("state")) {
+        auto stateResult = StatePropertiesPredicate::fromJson(json["state"]);
+        if (stateResult.failed()) {
+            return stateResult.error();
+        }
+        state = std::move(stateResult.value());
+    }
+
     FluidPredicate predicate;
     predicate.m_fluid = std::move(fluid);
-    predicate.m_isAny = !predicate.m_fluid.has_value();
+    predicate.m_state = std::move(state);
+    predicate.m_isAny = !predicate.m_fluid.has_value() && predicate.m_state.isEmpty();
     return predicate;
 }
 
@@ -139,6 +173,9 @@ nlohmann::json FluidPredicate::toJson() const {
     nlohmann::json json;
     if (m_fluid.has_value()) {
         json["fluid"] = m_fluid.value().toString();
+    }
+    if (!m_state.isEmpty()) {
+        json["state"] = m_state.toJsonValue();
     }
     return json;
 }

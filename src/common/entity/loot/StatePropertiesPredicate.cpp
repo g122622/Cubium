@@ -3,6 +3,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/util/property/IProperty.hpp"
 #include "common/util/property/Property.hpp"
+#include <nlohmann/json.hpp>
 #include <sstream>
 
 namespace mc {
@@ -231,6 +232,74 @@ std::string StatePropertiesPredicate::toJson() const {
     }
     ss << "}";
     return ss.str();
+}
+
+nlohmann::json StatePropertiesPredicate::toJsonValue() const {
+    if (m_matchers.empty()) {
+        return nlohmann::json::object();
+    }
+
+    nlohmann::json json = nlohmann::json::object();
+    for (const auto& matcher : m_matchers) {
+        const std::string& propName = matcher->propertyName();
+
+        // 使用 dynamic_cast 来判断匹配器类型
+        if (const auto* exactMatcher = dynamic_cast<const ExactMatcher*>(matcher.get())) {
+            json[propName] = exactMatcher->value();
+        } else if (const auto* rangedMatcher = dynamic_cast<const RangedMatcher*>(matcher.get())) {
+            nlohmann::json rangeJson = nlohmann::json::object();
+            if (rangedMatcher->minValue().has_value()) {
+                rangeJson["min"] = *rangedMatcher->minValue();
+            }
+            if (rangedMatcher->maxValue().has_value()) {
+                rangeJson["max"] = *rangedMatcher->maxValue();
+            }
+            json[propName] = std::move(rangeJson);
+        }
+    }
+
+    return json;
+}
+
+Result<StatePropertiesPredicate> StatePropertiesPredicate::fromJson(const nlohmann::json& json) {
+    // 参考 MC 1.16.5: StatePropertiesPredicate.deserializeProperties
+    if (json.is_null() || !json.is_object()) {
+        return StatePropertiesPredicate{};
+    }
+
+    StatePropertiesPredicate predicate;
+    for (auto it = json.begin(); it != json.end(); ++it) {
+        const std::string& propName = it.key();
+        const nlohmann::json& value = it.value();
+
+        // 解析单个属性匹配器
+        if (value.is_string()) {
+            // 精确匹配: "age": "3"
+            predicate.addExactMatch(propName, value.get<std::string>());
+        } else if (value.is_object()) {
+            // 范围匹配: "power": { "min": "5", "max": "10" }
+            std::optional<std::string> min;
+            std::optional<std::string> max;
+
+            if (value.contains("min") && !value["min"].is_null()) {
+                min = value["min"].get<std::string>();
+            }
+            if (value.contains("max") && !value["max"].is_null()) {
+                max = value["max"].get<std::string>();
+            }
+
+            // 如果 min == max，优化为精确匹配
+            if (min.has_value() && max.has_value() && *min == *max) {
+                predicate.addExactMatch(propName, *min);
+            } else if (min.has_value() || max.has_value()) {
+                predicate.addRangeMatch(propName, std::move(min), std::move(max));
+            }
+            // 如果 min 和 max 都没有，跳过这个属性
+        }
+        // 其他类型忽略
+    }
+
+    return predicate;
 }
 
 } // namespace mc
