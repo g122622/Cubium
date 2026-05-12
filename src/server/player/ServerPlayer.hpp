@@ -4,6 +4,7 @@
 #include "common/entity/player/SleepResult.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
+#include "server/stats/StatisticsManager.hpp"
 #include <memory>
 #include <utility>
 #include <vector>
@@ -178,6 +179,38 @@ public:
      */
     void initAdvancements();
 
+    // ========== 统计系统 ==========
+
+    /**
+     * @brief 获取玩家统计管理器
+     * @return 统计管理器引用
+     */
+    [[nodiscard]] server::stats::StatisticsManager& getStats() { return m_statistics; }
+    [[nodiscard]] const server::stats::StatisticsManager& getStats() const { return m_statistics; }
+
+    /**
+     * @brief 增加物品合成统计（重写 Player 基类）
+     * @param itemId 物品资源位置
+     * @param count 合成数量
+     */
+    void awardCraftedStat(const ResourceLocation& itemId, i32 count) override;
+
+    /**
+     * @brief 物品合成完成时调用（重写 Player 基类）
+     * @param stack 合成的物品堆
+     * @param amount 合成数量
+     */
+    void onItemCrafted(ItemStack& stack, i32 amount) override;
+
+    /**
+     * @brief 解锁配方（重写 Player 基类）
+     *
+     * 触发 RecipeUnlockedTrigger 成就。
+     *
+     * @param recipeId 配方资源位置
+     */
+    void unlockRecipe(const ResourceLocation& recipeId) override;
+
     // ========== 连接状态 ==========
 
     /**
@@ -292,6 +325,7 @@ private:
     server::ServerWorld* m_world = nullptr;
     server::IServer* m_server = nullptr;
     std::shared_ptr<server::PlayerAdvancements> m_advancements;
+    server::stats::StatisticsManager m_statistics;
     bool m_online = true;
 };
 

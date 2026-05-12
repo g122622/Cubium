@@ -1,4 +1,5 @@
 #include "EffectTriggers.hpp"
+#include "server/advancement/TriggerInstantiation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace mc::advancement {
@@ -63,9 +64,13 @@ Result<std::shared_ptr<RecipeUnlockedTrigger::Instance>> RecipeUnlockedTrigger::
 }
 
 void RecipeUnlockedTrigger::trigger(ServerPlayer& player, const ResourceLocation& recipe) {
-    // [TODO 阶段2+3：事件系统集成] 由 RecipeUnlockedEvent 触发
-    MC_UNUSED(player);
-    MC_UNUSED(recipe);
+    // 参考 MC 1.16.5 RecipeUnlockedTrigger.trigger()
+    // 遍历玩家的所有监听器，检查配方 ID 是否匹配
+    for (const auto& listener : getListeners(*player.getAdvancements())) {
+        if (listener.getInstance().test(recipe)) {
+            listener.grantCriterion(*player.getAdvancements());
+        }
+    }
 }
 
 // ========== EffectsChangedTrigger ==========

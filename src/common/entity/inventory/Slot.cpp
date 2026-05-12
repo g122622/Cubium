@@ -198,15 +198,12 @@ void ResultSlot::onSwapCraft(i32 numItemsCrafted) {
 }
 
 void ResultSlot::onCrafting(const ItemStack& stack) {
-    // MC 1.16.5: 触发成就和配方解锁
-    if (m_amountCrafted > 0) {
-        // TODO: 触发成就（需要成就系统实现）
-        // stack.onCrafting(m_player->getWorld(), m_player, m_amountCrafted);
-
-        // TODO: 触发配方解锁事件（需要成就系统实现）
-        // if (m_player instanceof ServerPlayer) {
-        //     CriteriaTriggers.RECIPE_UNLOCKED.trigger(...);
-        // }
+    // MC 1.16.5: 触发统计和成就
+    // 参考: net.minecraft.inventory.container.CraftingResultSlot.onCrafting
+    if (m_amountCrafted > 0 && m_player != nullptr) {
+        // 调用玩家的合成回调（统计 + 成就）
+        // ServerPlayer 会重写此方法来更新统计和触发成就
+        m_player->onItemCrafted(const_cast<ItemStack&>(stack), m_amountCrafted);
     }
     m_amountCrafted = 0;
 
@@ -307,17 +304,16 @@ void mc::FurnaceResultSlot::onCrafting(const ItemStack& stack, i32 amount) {
 }
 
 void mc::FurnaceResultSlot::onCrafting(const ItemStack& stack) {
-    // MC 1.16.5: 触发熔炼成就和经验发放
+    // MC 1.16.5: 触发熔炼统计和经验发放
     // 参考: net.minecraft.inventory.container.FurnaceResultSlot.onCrafting
-    if (m_removeCount > 0) {
-        // 触发熔炼成就（待成就系统实现后添加）
-        // if (m_player != nullptr) {
-        //     stack.onCrafting(m_player->getWorld(), *m_player, m_removeCount);
-        // }
+    if (m_removeCount > 0 && m_player != nullptr) {
+        // 调用玩家的合成回调（统计 + 成就）
+        // 注意：这里使用 const_cast 是因为 onItemCrafted 需要非 const ItemStack
+        m_player->onItemCrafted(const_cast<ItemStack&>(stack), m_removeCount);
 
         // 从熔炉方块实体发放累积的经验
         // 参考 MC 1.16.5: AbstractFurnaceTileEntity.func_235645_d_
-        if (m_furnaceEntity != nullptr && m_player != nullptr) {
+        if (m_furnaceEntity != nullptr) {
             f32 storedXp = m_furnaceEntity->getStoredExperience();
             if (storedXp > 0.0f) {
                 // 提取并清空累积经验

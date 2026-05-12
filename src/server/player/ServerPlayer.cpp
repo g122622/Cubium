@@ -10,6 +10,8 @@
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -150,6 +152,40 @@ bool ServerPlayer::consumeExperienceLevels(i32 levels) {
 void ServerPlayer::setExperience(i32 level, f32 progress, i32 totalExperience) {
     Player::setExperience(level, progress, totalExperience);
     syncExperience();
+}
+
+// ========== 统计系统实现 ==========
+
+void ServerPlayer::awardCraftedStat(const ResourceLocation& itemId, i32 count) {
+    m_statistics.incrementCrafted(itemId, count);
+}
+
+void ServerPlayer::onItemCrafted(ItemStack& stack, i32 amount) {
+    // MC 1.16.5: 更新合成统计
+    if (!stack.isEmpty() && stack.getItem() != nullptr) {
+        // 获取物品的资源位置
+        const ResourceLocation& itemId = stack.getItem()->itemLocation();
+        awardCraftedStat(itemId, amount);
+
+        // MC 1.16.5: 调用 Item.onCreated（地图等物品的特殊初始化）
+        // 注意：Item::onCreated 方法在当前项目中尚未实现
+        // 如果需要，可以在 Item 类中添加虚方法 onCreated(ItemStack, IWorld, Player)
+        // stack.getItem()->onCreated(stack, getWorld(), *this);
+    }
+}
+
+void ServerPlayer::unlockRecipe(const ResourceLocation& recipeId) {
+    // MC 1.16.5: 触发配方解锁成就
+    // 参考: net.minecraft.advancements.CriteriaTriggers.RECIPE_UNLOCKED.trigger(player, recipe)
+    if (m_advancements != nullptr) {
+        auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::RecipeUnlockedTrigger>();
+        if (trigger != nullptr) {
+            trigger->trigger(*this, recipeId);
+        }
+    }
+
+    // TODO: 更新配方书（当配方书系统实现后）
+    // m_recipeBook.unlock(recipeId);
 }
 
 // ========== 睡眠系统实现 ==========

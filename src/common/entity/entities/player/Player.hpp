@@ -10,6 +10,7 @@
 #include "../../../network/packet/ProtocolPackets.hpp"
 #include "../../../world/GlobalPos.hpp"
 #include "../../../item/core/ActionResult.hpp"
+#include "../../../resource/ResourceLocation.hpp"
 #include "ChatVisibility.hpp"
 #include "GameModeUtils.hpp"
 #include "PlayerModelPart.hpp"
@@ -21,6 +22,9 @@
 #include <optional>
 
 namespace mc {
+
+// Forward declaration
+class ItemStack;
 
 class AbstractContainerMenu;
 class ItemEntity;
@@ -358,6 +362,51 @@ public:
      * @return 如果玩家能接收消息返回 true
      */
     [[nodiscard]] virtual bool canReceiveMessages() const { return false; }
+
+    // ========== 统计系统 ==========
+
+    /**
+     * @brief 增加物品合成统计
+     *
+     * 当玩家合成物品时调用，更新统计数据。
+     * ServerPlayer 重写此方法以实际更新统计。
+     *
+     * @param itemId 物品资源位置
+     * @param count 合成数量
+     */
+    virtual void awardCraftedStat(const ResourceLocation& itemId, i32 count) {
+        (void)itemId;
+        (void)count;
+        // 基类默认空实现
+    }
+
+    /**
+     * @brief 物品合成完成时调用
+     *
+     * 当物品通过合成或熔炼创建时调用，用于触发成就等。
+     * ServerPlayer 重写此方法以触发成就系统。
+     *
+     * @param stack 合成的物品堆
+     * @param amount 合成数量
+     */
+    virtual void onItemCrafted(ItemStack& stack, i32 amount) {
+        (void)stack;
+        (void)amount;
+        // 基类默认空实现
+    }
+
+    /**
+     * @brief 解锁配方
+     *
+     * 当玩家首次合成某配方时调用，用于解锁配方书和触发成就。
+     * ServerPlayer 重写此方法以触发 RecipeUnlockedTrigger。
+     *
+     * @param recipeId 配方资源位置
+     */
+    virtual void unlockRecipe(const ResourceLocation& recipeId) {
+        (void)recipeId;
+        // 基类默认空实现
+    }
 
     // ========== 类型转换 ==========
 

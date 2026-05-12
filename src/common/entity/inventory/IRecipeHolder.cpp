@@ -1,7 +1,6 @@
 #include "entity/inventory/IRecipeHolder.hpp"
 #include "item/crafting/IRecipe.hpp"
-
-// Player 和 ServerPlayer 的实际使用在 TODO 中，待配方系统完善后实现
+#include "entity/entities/player/Player.hpp"
 
 namespace mc {
 
@@ -9,11 +8,15 @@ void IRecipeHolder::onCrafting(Player& player) {
     // MC 1.16.5: 如果配方不是动态的，解锁配方并清除
     const crafting::IRecipe<IInventory>* recipe = getRecipeUsed();
     if (recipe != nullptr && !recipe->isDynamic()) {
-        // 解锁配方（需要 ServerPlayer 实现）
-        // player.unlockRecipes({recipe});
+        // 获取配方 ID
+        ResourceLocation recipeId = recipe->getId();
+
+        // 触发配方解锁成就（仅对 ServerPlayer 有效）
+        // ServerPlayer::unlockRecipe 方法会更新配方书并触发成就
+        player.unlockRecipe(recipeId);
+
         setRecipeUsed(nullptr);
     }
-    (void)player; // 避免未使用警告
 }
 
 bool IRecipeHolder::canUseRecipe(IWorld& world, ServerPlayer& player, const crafting::IRecipe<IInventory>* recipe) {
