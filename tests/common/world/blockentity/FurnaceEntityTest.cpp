@@ -310,13 +310,36 @@ TEST_F(FurnaceBurnTimeTest, Charcoal_HasCorrectBurnTime) {
     EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(charcoal), 1600);
 }
 
+// ========== 煤炭块测试 (16000 tick) ==========
+
 TEST_F(FurnaceBurnTimeTest, CoalBlock_HasCorrectBurnTime) {
-    // 煤炭块燃烧时间：16000 tick（800秒），可烧炼 80 个物品
-    // 参考 MC 1.16.5 AbstractFurnaceTileEntity.getBurnTimes()
+    // 参考: MC 1.16.5 第 98 行: addItemBurnTime(map, Blocks.COAL_BLOCK, 16000);
+    // 煤炭块燃烧时间是煤炭的 10 倍 (16000 tick = 800 秒 = 13 分 20 秒)
+    // 可烧炼 80 个物品 (16000 / 200 = 80)
+    ASSERT_NE(VanillaBlocks::COAL_BLOCK, nullptr) << "COAL_BLOCK should be registered";
     const BlockItem* coalBlockItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::COAL_BLOCK);
     ASSERT_NE(coalBlockItem, nullptr) << "COAL_BLOCK should have a BlockItem";
     ItemStack stack(static_cast<const Item*>(coalBlockItem), 1);
     EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 16000);
+}
+
+TEST_F(FurnaceBurnTimeTest, CoalBlock_IsTenTimesCoalBurnTime) {
+    // 验证煤炭块燃烧时间是煤炭的 10 倍
+    ASSERT_NE(Items::COAL, nullptr) << "COAL should be registered";
+    ASSERT_NE(VanillaBlocks::COAL_BLOCK, nullptr) << "COAL_BLOCK should be registered";
+
+    ItemStack coal(Items::COAL, 1);
+    i32 coalBurnTime = AbstractFurnaceEntity::getBurnTime(coal);
+    EXPECT_EQ(coalBurnTime, 1600);
+
+    const BlockItem* coalBlockItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::COAL_BLOCK);
+    ASSERT_NE(coalBlockItem, nullptr) << "COAL_BLOCK should have a BlockItem";
+    ItemStack coalBlock(static_cast<const Item*>(coalBlockItem), 1);
+    i32 coalBlockBurnTime = AbstractFurnaceEntity::getBurnTime(coalBlock);
+    EXPECT_EQ(coalBlockBurnTime, 16000);
+
+    // 煤炭块 = 10 个煤炭
+    EXPECT_EQ(coalBlockBurnTime, coalBurnTime * 10);
 }
 
 // ========== 木头类测试 (300 tick) ==========
