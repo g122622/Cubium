@@ -12,11 +12,13 @@
 
 namespace mc {
 class BlockState;
+class ServerPlayer;
 namespace loot {
 class LootTableManager;
 }
 namespace server {
 struct ServerPlayerData;  // 前向声明（struct 而非 class）
+class IServer;
 }
 }
 
@@ -86,6 +88,12 @@ public:
      * @brief 设置物品栏管理器（用于物品消耗）
      */
     void setInventoryManager(InventoryManager* inventoryManager);
+
+    /**
+     * @brief 设置服务器接口（用于告示牌命令执行等）
+     * @param server 服务器接口指针
+     */
+    void setServer(IServer* server) { m_server = server; }
 
     /**
      * @brief 处理方块交互数据包
@@ -237,11 +245,23 @@ private:
      */
     void generateBlockDrops(const BlockPos& pos, const BlockState& state, PlayerId playerId, const ItemStack* tool);
 
+    /**
+     * @brief 处理告示牌命令执行
+     *
+     * 当玩家右键点击告示牌时，检查文本中的点击事件并执行命令。
+     *
+     * @param pos 告示牌位置
+     * @param player 执行命令的玩家
+     * @return 如果执行了命令返回 true
+     */
+    bool handleSignCommand(const BlockPos& pos, mc::ServerPlayer& player);
+
 private:
     ServerWorld& m_world;
     core::PlayerManager& m_playerManager;
     loot::LootTableManager& m_lootTableManager;
     InventoryManager* m_inventoryManager = nullptr;
+    IServer* m_server = nullptr;
 
     std::function<void(PlayerId, const BlockPos&, const BlockState&)> m_onBlockBreak;
     std::function<void(PlayerId, const BlockPos&, const BlockState&)> m_onBlockPlace;

@@ -346,6 +346,9 @@ void MinecraftServer::initializeInteractionManagers()
     m_blockInteractionManager->setInventoryManager(m_inventoryManager.get());
     m_miningManager->setInventoryManager(m_inventoryManager.get());
 
+    // 设置服务器接口到 BlockInteractionManager（用于告示牌命令执行等）
+    m_blockInteractionManager->setServer(this);
+
     // 初始化成就事件处理器
     // 设置服务器接口以允许从 PlayerId 获取 ServerPlayer
     m_advancementEventHandler.setServer(this);

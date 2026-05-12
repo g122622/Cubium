@@ -192,6 +192,7 @@ add_executable(mc_tests
     server/test_integrated_server.cpp
     server/BlockDropHandlerTest.cpp
     server/BlockInteractionManagerTest.cpp
+    server/interaction/SignCommandHelperTest.cpp
     server/MiningManagerTest.cpp
     server/menu/CraftingMenuTest.cpp
     server/BlockUpdateSyncManagerTest.cpp
@@ -577,6 +578,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/ContainerManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/interaction/SignCommandHelper.cpp
         # 缁村害妯″潡
         # 统计系统
         ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp

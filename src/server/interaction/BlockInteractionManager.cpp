@@ -1,9 +1,13 @@
 #include "BlockInteractionManager.hpp"
 #include "InventoryManager.hpp"
+#include "SignCommandHelper.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/world/drop/BlockDropHandler.hpp"
+#include "server/application/IServer.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/core/BlockRaycastResult.hpp"
@@ -11,6 +15,8 @@
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <spdlog/spdlog.h>
 #include <cmath>
@@ -332,7 +338,25 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
         hand,
         hitResult);
 
-    const bool handled = (result == ActionResultType::Success || result == ActionResultType::Consume);
+    // MC 1.16.5: 如果方块交互成功，检查是否为告示牌并执行命令
+    bool handled = (result == ActionResultType::Success || result == ActionResultType::Consume);
+    if (handled && m_server != nullptr) {
+        // 检查是否为告示牌方块
+        BlockEntity* blockEntity = m_world.getBlockEntity(pos);
+        if (blockEntity && blockEntity->getType() == BlockEntityType::Sign) {
+            // 获取实际的 ServerPlayer 实体
+            ServerPlayerEntityManager& entityManager = m_server->playerEntityManager();
+            Player* playerEntity = entityManager.getPlayerEntity(playerId, m_world);
+            if (playerEntity != nullptr) {
+                mc::ServerPlayer* serverPlayer = playerEntity->asServerPlayer();
+                if (serverPlayer != nullptr) {
+                    // 执行告示牌命令
+                    handleSignCommand(pos, *serverPlayer);
+                }
+            }
+        }
+    }
+
     return BlockInteractionResult{handled, handled ? "Block used" : "Block use pass"};
 }
 
@@ -491,6 +515,25 @@ void BlockInteractionManager::generateBlockDrops(
         state,
         tool,
         rng);
+}
+
+bool BlockInteractionManager::handleSignCommand(const BlockPos& pos, mc::ServerPlayer& player) {
+    // MC 1.16.5: 参考 SignBlock.onBlockActivated()
+    // 当玩家右键点击告示牌时，执行告示牌上的命令
+
+    // 获取方块实体
+    BlockEntity* blockEntity = m_world.getBlockEntity(pos);
+    if (!blockEntity || blockEntity->getType() != BlockEntityType::Sign) {
+        return false;
+    }
+
+    auto* signEntity = static_cast<blockentity::SignEntity*>(blockEntity);
+    if (!signEntity) {
+        return false;
+    }
+
+    // 使用 SignCommandHelper 执行命令
+    return SignCommandHelper::executeSignCommands(*signEntity, player);
 }
 
 } // namespace mc::server::interaction
