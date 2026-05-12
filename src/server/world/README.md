@@ -694,6 +694,7 @@ if (world->isDebugWorld()) {
 | `tests/common/util/thread/ServerWorkerPoolTest.cpp` | ServerWorkerPool 单元测试 |
 | `tests/common/world/gen/DebugChunkGeneratorTest.cpp` | DebugChunkGenerator 功能、isDebugGenerator 虚方法 |
 | `tests/common/world/chunk/ChunkDataBlockEntityTest.cpp` | ChunkData 方块实体存储测试（getBlockEntity、setBlockEntity、removeBlockEntity、边界情况、脏标记） |
+| `tests/server/world/ServerWorldBlockEntityTest.cpp` | ServerWorld 方块实体代理测试（getBlockEntity、setBlockEntity、removeBlockEntity、世界引用设置、区块边界情况） |
 
 ### 测试覆盖范围
 

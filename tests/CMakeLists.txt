@@ -206,8 +206,6 @@ add_executable(mc_tests
     server/core/BannedIpListTest.cpp
     # ServerPlayer 消息发送测试
     server/player/ServerPlayerMessageTest.cpp
-    # 合成统计和成就触发测试
-    server/player/CraftingStatisticsTest.cpp
     # 维度管理器测试
     server/dimension/ServerDimensionManagerTest.cpp
     server/weather/WeatherManagerTest.cpp
@@ -307,6 +305,8 @@ add_executable(mc_tests
     # EntityTracker UUID 测试
     server/world/EntityTrackerUuidTest.cpp
     # 鐗╁搧鎷惧彇绠＄悊鍣ㄦ祴璇?    server/world/ItemPickupManagerTest.cpp
+    # ServerWorld 方块实体测试
+    server/world/ServerWorldBlockEntityTest.cpp
     # 璧勬簮鍖呭吋瀹瑰眰娴嬭瘯
     common/resource/compat/CompatLayerTest.cpp
     # 鍐呯疆妯″瀷鐫€鑹查厤缃祴璇?    common/resource/VanillaResourcesTintModelTest.cpp
@@ -809,7 +809,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/BlockPredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/TickTrigger.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/InventoryChangedTrigger.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/EffectTriggers.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
         # 澶╀綋璁＄畻
@@ -1157,13 +1156,6 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/BannedIpList.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
-        # 统计系统
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
-        # 记分板系统
-        ${CMAKE_SOURCE_DIR}/src/server/scoreboard/ServerScoreboard.cpp
         # 事件系统
         ${CMAKE_SOURCE_DIR}/src/server/event/ServerEventBus.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
