@@ -653,6 +653,15 @@ public:
     void updateAllPlayersSleepingFlag();
 
     /**
+     * @brief 通知世界玩家睡眠状态变化
+     *
+     * 重写 IWorld::onPlayerSleepingChanged()，调用 updateAllPlayersSleepingFlag()。
+     */
+    void onPlayerSleepingChanged() override {
+        updateAllPlayersSleepingFlag();
+    }
+
+    /**
      * @brief 检查并处理全员睡眠
      *
      * 在 tick() 中调用，检查是否所有玩家都完全入睡，

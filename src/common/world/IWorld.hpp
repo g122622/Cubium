@@ -862,6 +862,21 @@ public:
         (void)status;
     }
 
+    // ========== 睡眠系统 ==========
+
+    /**
+     * @brief 通知世界玩家睡眠状态变化
+     *
+     * 当玩家开始或停止睡眠时调用，用于更新世界的睡眠标志。
+     * ServerWorld 重写此方法来调用 updateAllPlayersSleepingFlag()。
+     * ClientWorld 返回空实现。
+     *
+     * 参考 MC 1.16.5: ServerWorld.updateAllPlayersSleepingFlag()
+     */
+    virtual void onPlayerSleepingChanged() {
+        // 默认空实现
+    }
+
 protected:
     IWorld() = default;
 };

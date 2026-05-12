@@ -252,6 +252,18 @@ public:
     entity::SleepResult trySleep(const BlockPos& bedPos);
 
     /**
+     * @brief 尝试开始睡眠（重写基类虚方法）
+     *
+     * 调用 trySleep() 进行完整验证。
+     *
+     * @param bedPos 床头位置
+     * @return 睡眠结果
+     */
+    entity::SleepResult tryStartSleeping(const BlockPos& bedPos) override {
+        return trySleep(bedPos);
+    }
+
+    /**
      * @brief 停止睡眠
      *
      * @param resetTimer 是否重置睡眠计时器（true=立即重置为0，false=设置为100继续渐变）

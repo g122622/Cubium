@@ -7,6 +7,7 @@
 #include "../../effect/EffectInstance.hpp"
 #include "../../food/FoodStats.hpp"
 #include "../../player/CooldownTracker.hpp"
+#include "../../player/SleepResult.hpp"
 #include "../../../network/packet/ProtocolPackets.hpp"
 #include "../../../world/GlobalPos.hpp"
 #include "../../../item/core/ActionResult.hpp"
@@ -545,11 +546,25 @@ public:
      *
      * 注意：这是低级 API，仅设置状态。
      * - 客户端：用于接收服务端睡眠状态更新
-     * - 服务端：应使用 ServerPlayer::trySleep() 进行完整验证流程
+     * - 服务端：应使用 tryStartSleeping() 进行完整验证流程
      *
      * @param pos 床位位置
      */
     void startSleeping(const BlockPos& pos);
+
+    /**
+     * @brief 尝试开始睡眠（带验证）
+     *
+     * 执行完整的睡眠验证流程，包括距离检查、阻挡检查、时间检查、怪物检查等。
+     * 基类实现为简单成功（直接调用 startSleeping）。
+     * ServerPlayer 重写此方法进行完整验证。
+     *
+     * 参考 MC 1.16.5: ServerPlayerEntity.trySleep()
+     *
+     * @param bedPos 床头位置
+     * @return 睡眠结果
+     */
+    virtual entity::SleepResult tryStartSleeping(const BlockPos& bedPos);
 
     /**
      * @brief 停止睡眠（基础状态管理）

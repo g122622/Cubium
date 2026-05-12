@@ -328,6 +328,19 @@ void Player::startSleeping(const BlockPos& pos) {
 
     // 清除速度
     setVelocity(Vector3(0.0f, 0.0f, 0.0f));
+
+    // 通知世界玩家睡眠状态变化
+    // ServerWorld 会重写此方法调用 updateAllPlayersSleepingFlag()
+    if (m_world != nullptr) {
+        m_world->onPlayerSleepingChanged();
+    }
+}
+
+entity::SleepResult Player::tryStartSleeping(const BlockPos& bedPos) {
+    // 基类实现：简单调用 startSleeping，不做验证
+    // ServerPlayer 会重写此方法进行完整验证
+    startSleeping(bedPos);
+    return entity::SleepResult::OK;
 }
 
 void Player::stopSleeping() {
@@ -340,6 +353,12 @@ void Player::stopSleeping() {
 
     // 设置睡眠状态为 false（这会尝试切换到站立姿态）
     setSleeping(false);
+
+    // 通知世界玩家睡眠状态变化
+    // ServerWorld 会重写此方法调用 updateAllPlayersSleepingFlag()
+    if (m_world != nullptr) {
+        m_world->onPlayerSleepingChanged();
+    }
 
     // 注意：睡眠计时器在 tick() 中会处理唤醒后的渐变
     // 唤醒后 sleepTimer 会继续增加到 110 然后重置
