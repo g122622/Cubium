@@ -278,6 +278,29 @@ class StateHolder {
 | `ROTATION_0_15()` | rotation | 0-15 | 旗帜/告示牌旋转 |
 | `STAGE_0_1()` | stage | 0-1 | 树苗阶段 |
 
+**枚举属性**:
+| 属性 | 名称 | 值 | 说明 |
+|------|------|-----|------|
+| `CHEST_TYPE()` | type | Single, Left, Right | 箱子类型 |
+| `DOUBLE_BLOCK_HALF()` | half | Upper, Lower | 双方块半部分 |
+| `DOOR_HINGE()` | hinge | Left, Right | 门铰链位置 |
+| `BED_PART()` | part | Head, Foot | 床部分 |
+| `BELL_ATTACHMENT()` | attachment | Floor, Ceiling, SingleWall, DoubleWall | 钟附着类型 |
+| `ATTACH_FACE()` | face | Floor, Wall, Ceiling | 按钮附着面 |
+| `STAIRS_SHAPE()` | shape | Straight, InnerLeft, InnerRight, OuterLeft, OuterRight | 楼梯形状 |
+| `SLAB_TYPE()` | type | Bottom, Top, Double | 台阶类型 |
+| `WALL_HEIGHT_NORTH/EAST/SOUTH/WEST()` | north/east/south/west | None, Low, Tall | 墙连接高度 |
+| `BAMBOO_LEAVES_PROP()` | leaves | None, Small, Large | 竹子叶子类型 |
+| `HALF()` | half | Top, Bottom | 半部分（楼梯、活板门） |
+| `RAIL_SHAPE()` | shape | NorthSouth, EastWest, AscendingEast, ... | 铁轨形状 |
+| `RAIL_SHAPE_STRAIGHT()` | shape | NorthSouth, EastWest, AscendingEast, ... | 直轨形状 |
+| `REDSTONE_NORTH/EAST/SOUTH/WEST()` | north/east/south/west | Up, Side, None | 红石线连接状态 |
+| `PISTON_TYPE()` | type | Default, Sticky | 活塞类型 |
+| `COMPARATOR_MODE()` | mode | Compare, Subtract | 比较器模式 |
+| `NOTE_BLOCK_INSTRUMENT()` | instrument | Harp, Basedrum, Snare, ... | 音符盒乐器 |
+| `ORIENTATION()` | orientation | DownEast, DownNorth, ... | Jigsaw 方向 |
+| `STRUCTURE_MODE()` | mode | Save, Load, Corner, Data | 结构方块模式 |
+
 ---
 
 ### FluidProperties.hpp
@@ -564,6 +587,7 @@ const BooleanProperty& lit = BlockStateProperties::LIT();
 | `EnumPropertyAxisTest` | 坐标轴属性创建、值转换、解析 |
 | `DirectionPropertyTest` | 所有方向、仅水平方向、过滤器创建 |
 | `BlockStatePropertiesTest` | 预定义属性访问、值数量验证 |
+| `StructureModeTest` | StructureMode 枚举属性创建、值转换、解析、往返测试 |
 | `StateContainerTest` | 空容器、单属性、多属性、状态数量、属性获取 |
 | `BlockStateTest` | 属性获取、设置、循环切换、状态ID、字符串转换、缓存 |
 | `DirectionUtilTest` | 方向工具函数（opposite、offset、rotateY等） |

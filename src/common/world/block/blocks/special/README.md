@@ -18,8 +18,37 @@ special/
 |------|------|----------|
 | `BarrierBlock` | 屏障（不可见不可破坏） | 无 |
 | `StructureVoidBlock` | 结构空位 | 无 |
-| `StructureBlock` | 结构方块 | MODE |
+| `StructureBlock` | 结构方块 | MODE (Save/Load/Corner/Data) |
 | `JigsawBlock` | 拼图方块 | ORIENTATION |
+
+#### StructureBlock MODE 属性
+
+**StructureBlock** 使用 `BlockStateProperties::STRUCTURE_MODE()` 属性，包含四种模式：
+
+| 模式 | 字符串值 | 说明 |
+|------|----------|------|
+| `Save` | "save" | 保存模式 - 保存结构到模板 |
+| `Load` | "load" | 加载模式 - 从模板加载结构 |
+| `Corner` | "corner" | 角落模式 - 定义结构角落 |
+| `Data` | "data" | 数据模式 - 定义实体数据位置 |
+
+**默认状态**: 放置时默认为 `Data` 模式（参考 MC 1.16.5 `getStateForPlacement()`）
+
+**使用示例**:
+```cpp
+// 获取 StructureBlock 的模式
+StructureBlock* structBlock = dynamic_cast<StructureBlock*>(VanillaBlocks::STRUCTURE_BLOCK);
+if (structBlock) {
+    StructureBlock::Mode mode = structBlock->getMode(state);
+    if (mode == StructureBlock::Mode::Save) {
+        // 处理保存模式
+    }
+}
+
+// 创建带指定模式的状态
+const BlockState& saveState = state.with(BlockStateProperties::STRUCTURE_MODE(), 
+    BlockStateProperties::StructureMode::Save);
+```
 
 ### 命令方块
 
