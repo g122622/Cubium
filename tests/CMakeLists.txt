@@ -142,6 +142,7 @@ add_executable(mc_tests
     common/entity/EntityMotionMultiplierTest.cpp
     common/world/block/blocks/CropBlocksTest.cpp
     common/world/block/blocks/GolemBlockTest.cpp
+    common/world/block/blocks/PumpkinCarveTest.cpp
     common/world/block/blocks/RespawnAnchorBlockTest.cpp
     common/world/block/blocks/SpongeBlockTest.cpp
     common/world/block/CompostableItemsTest.cpp

@@ -2343,6 +2343,14 @@ void VanillaBlocks::registerBoneAndHayBlocks() {
 void VanillaBlocks::registerPumpkinMelonBlocks() {
     auto& registry = BlockRegistry::instance();
 
+    // 先注册雕刻南瓜 - 有朝向属性，可生成傀儡
+    // 参考: net.minecraft.block.CarvedPumpkinBlock
+    // MC 1.16.5: Material.GOURD, hardness 1.0
+    CARVED_PUMPKIN = &registry.registerBlock<blocks::CarvedPumpkinBlock>(
+        ResourceLocation("minecraft:carved_pumpkin"),
+        BlockProperties(Material::EARTH).hardness(1.0f)
+    );
+
     // 南瓜 - 可用剪刀雕刻成雕刻南瓜
     // 参考: net.minecraft.block.PumpkinBlock
     // MC 1.16.5: Material.GOURD, hardness 1.0
@@ -2351,15 +2359,7 @@ void VanillaBlocks::registerPumpkinMelonBlocks() {
         ResourceLocation("minecraft:pumpkin"),
         nullptr,  // stem - 暂时为 nullptr
         nullptr,  // attachedStem - 暂时为 nullptr
-        nullptr,  // carvedPumpkin - 需要在 CARVED_PUMPKIN 注册后更新
-        BlockProperties(Material::EARTH).hardness(1.0f)
-    );
-
-    // 雕刻南瓜 - 有朝向属性，可生成傀儡
-    // 参考: net.minecraft.block.CarvedPumpkinBlock
-    // MC 1.16.5: Material.GOURD, hardness 1.0
-    CARVED_PUMPKIN = &registry.registerBlock<blocks::CarvedPumpkinBlock>(
-        ResourceLocation("minecraft:carved_pumpkin"),
+        CARVED_PUMPKIN,  // carvedPumpkin - 已注册的雕刻南瓜
         BlockProperties(Material::EARTH).hardness(1.0f)
     );
 
@@ -2373,10 +2373,6 @@ void VanillaBlocks::registerPumpkinMelonBlocks() {
         nullptr,  // attachedStem - 暂时为 nullptr
         BlockProperties(Material::EARTH).hardness(1.0f)
     );
-
-    // 更新 PUMPKIN 的 carvedPumpkin 引用
-    // 由于注册顺序问题，需要在注册后手动更新
-    // PumpkinBlock 的构造函数存储了 carvedPumpkin 指针
 }
 
 // ============================================================================
