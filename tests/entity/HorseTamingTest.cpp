@@ -1,0 +1,511 @@
+#include <gtest/gtest.h>
+
+#include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
+#include "common/entity/entities/passive/horse/HorseEntity.hpp"
+#include "common/entity/entities/passive/horse/DonkeyEntity.hpp"
+#include "common/entity/entities/passive/horse/MuleEntity.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/border/WorldBorder.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/core/Constants.hpp"
+#include "common/sound/SoundEvents.hpp"
+
+#include <memory>
+#include <unordered_map>
+
+namespace mc {
+namespace {
+
+/**
+ * @brief 测试用 Mock World，支持广播实体状态
+ */
+class HorseTamingTestWorld final : public IWorld {
+public:
+    void setBlock(i32 x, i32 y, i32 z, const BlockState* state) {
+        m_blocks[BlockPos(x, y, z)] = state;
+    }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
+        const auto it = m_blocks.find(BlockPos(x, y, z));
+        if (it != m_blocks.end()) {
+            return it->second;
+        }
+        return &VanillaBlocks::AIR->defaultState();
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override {
+        m_blocks[BlockPos(x, y, z)] = state;
+        return true;
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override {
+        return fluid::Fluid::getFluidState(0);
+    }
+
+    [[nodiscard]] f32 getBrightness(const BlockPos& /*pos*/) const override {
+        return 1.0f;
+    }
+
+    // Stub implementations
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
+        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
+    }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
+    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
+    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+    [[nodiscard]] bool isClientSide() override { return false; }
+
+    EntityId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
+
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override {
+        throw std::runtime_error("HorseTamingTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override {
+        throw std::runtime_error("HorseTamingTestWorld::tickManager not implemented");
+    }
+
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
+        throw std::runtime_error("HorseTamingTestWorld::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
+        throw std::runtime_error("HorseTamingTestWorld::worldBorder not implemented");
+    }
+
+    // 实体状态广播追踪
+    void broadcastEntityStatus(EntityId entityId, u8 status) override {
+        m_lastBroadcastEntityId = entityId;
+        m_lastBroadcastStatus = status;
+        m_broadcastCount++;
+    }
+
+    [[nodiscard]] EntityId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
+    [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
+    [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
+    void resetBroadcastTracking() {
+        m_lastBroadcastEntityId = EntityId(0);
+        m_lastBroadcastStatus = 0;
+        m_broadcastCount = 0;
+    }
+
+private:
+    std::unordered_map<BlockPos, const BlockState*> m_blocks;
+    math::Random m_random{12345};
+    EntityId m_lastBroadcastEntityId{0};
+    u8 m_lastBroadcastStatus = 0;
+    i32 m_broadcastCount = 0;
+};
+
+// ============================================================================
+// AbstractHorseEntity::setTame 测试
+// ============================================================================
+
+TEST(HorseTamingTest, SetTame_UpdatesTameState) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    EXPECT_FALSE(horse.isTame());
+
+    horse.setTame(true);
+    EXPECT_TRUE(horse.isTame());
+
+    horse.setTame(false);
+    EXPECT_FALSE(horse.isTame());
+}
+
+// ============================================================================
+// AbstractHorseEntity::makeMad 测试
+// ============================================================================
+
+TEST(HorseTamingTest, MakeMad_TriggersRearingAnimation) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    // 愤怒前未扬蹄
+    EXPECT_FALSE(horse.isRearing());
+
+    // 让马愤怒
+    horse.makeMad();
+
+    // 愤怒后扬蹄
+    EXPECT_TRUE(horse.isRearing());
+}
+
+TEST(HorseTamingTest, MakeMad_DoesNotRearIfAlreadyRearing) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    // 先设置扬蹄状态
+    horse.setRearing(true);
+    EXPECT_TRUE(horse.isRearing());
+
+    world.resetBroadcastTracking();
+
+    // 再次调用 makeMad 不应再次扬蹄
+    // 由于已经在扬蹄，makeMad 应该跳过（不播放音效）
+    horse.makeMad();
+
+    // 仍然是扬蹄状态
+    EXPECT_TRUE(horse.isRearing());
+}
+
+// ============================================================================
+// AbstractHorseEntity::makeHorseRear 测试
+// ============================================================================
+
+TEST(HorseTamingTest, MakeHorseRear_SetsRearingFlag) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    EXPECT_FALSE(horse.isRearing());
+
+    horse.makeHorseRear();
+    EXPECT_TRUE(horse.isRearing());
+}
+
+TEST(HorseTamingTest, MakeHorseRear_ClearsEatingFlag) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    // 设置进食状态
+    horse.setEating(true);
+    EXPECT_TRUE(horse.isEating());
+
+    // 扬蹄应该清除进食状态
+    horse.makeHorseRear();
+    EXPECT_TRUE(horse.isRearing());
+    EXPECT_FALSE(horse.isEating());
+}
+
+// ============================================================================
+// AbstractHorseEntity::isRearing/setRearing 测试
+// ============================================================================
+
+TEST(HorseTamingTest, Rearing_CanBeSetAndCleared) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    // 初始不扬蹄
+    EXPECT_FALSE(horse.isRearing());
+
+    // 设置扬蹄
+    horse.setRearing(true);
+    EXPECT_TRUE(horse.isRearing());
+
+    // 清除扬蹄
+    horse.setRearing(false);
+    EXPECT_FALSE(horse.isRearing());
+}
+
+TEST(HorseTamingTest, Rearing_ClearsEatingWhenSet) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    // 设置进食状态
+    horse.setEating(true);
+    EXPECT_TRUE(horse.isEating());
+
+    // 扬蹄应该清除进食状态
+    horse.setRearing(true);
+    EXPECT_TRUE(horse.isRearing());
+    EXPECT_FALSE(horse.isEating());
+}
+
+// ============================================================================
+// AbstractHorseEntity::Temper 测试
+// ============================================================================
+
+TEST(HorseTamingTest, Temper_StartsAtZero) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    EXPECT_EQ(horse.getTemper(), 0);
+}
+
+TEST(HorseTamingTest, IncreaseTemper_IncreasesTemper) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    // 增加驯服进度
+    horse.increaseTemper(10);
+    EXPECT_EQ(horse.getTemper(), 10);
+
+    horse.increaseTemper(5);
+    EXPECT_EQ(horse.getTemper(), 15);
+}
+
+TEST(HorseTamingTest, IncreaseTemper_ReturnsTrueWhenMaxReached) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    // 默认 maxTemper 是 100
+    EXPECT_EQ(horse.getMaxTemper(), 100);
+
+    // 增加到最大值
+    bool result = horse.increaseTemper(100);
+    EXPECT_TRUE(result);
+    EXPECT_TRUE(horse.isTame());
+}
+
+// ============================================================================
+// AbstractHorseEntity::setSaddle 测试
+// ============================================================================
+
+TEST(HorseTamingTest, SetSaddle_UpdatesSaddleState) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    EXPECT_FALSE(horse.hasSaddle());
+
+    horse.setSaddle(true);
+    EXPECT_TRUE(horse.hasSaddle());
+
+    horse.setSaddle(false);
+    EXPECT_FALSE(horse.hasSaddle());
+}
+
+// ============================================================================
+// HorseEntity::getAngrySound 测试
+// ============================================================================
+
+TEST(HorseTamingTest, Horse_GetAngrySound_ReturnsCorrectSound) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    auto sound = horse.getAngrySound();
+    EXPECT_TRUE(sound.has_value());
+    EXPECT_EQ(sound.value(), SoundEvents::ENTITY_HORSE_ANGRY);
+}
+
+// ============================================================================
+// 进食状态测试
+// ============================================================================
+
+TEST(HorseTamingTest, Eating_CanBeSetAndCleared) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    EXPECT_FALSE(horse.isEating());
+
+    horse.setEating(true);
+    EXPECT_TRUE(horse.isEating());
+
+    horse.setEating(false);
+    EXPECT_FALSE(horse.isEating());
+}
+
+// ============================================================================
+// 繁殖状态测试
+// ============================================================================
+
+TEST(HorseTamingTest, Bred_CanBeSetAndCleared) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    EXPECT_FALSE(horse.isBred());
+
+    horse.setBred(true);
+    EXPECT_TRUE(horse.isBred());
+
+    horse.setBred(false);
+    EXPECT_FALSE(horse.isBred());
+}
+
+// ============================================================================
+// 嘴巴张开状态测试
+// ============================================================================
+
+TEST(HorseTamingTest, MouthOpen_CanBeSetAndCleared) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    EXPECT_FALSE(horse.isMouthOpen());
+
+    horse.setMouthOpen(true);
+    EXPECT_TRUE(horse.isMouthOpen());
+
+    horse.setMouthOpen(false);
+    EXPECT_FALSE(horse.isMouthOpen());
+}
+
+// ============================================================================
+// DonkeyEntity 和 MuleEntity 基本测试
+// ============================================================================
+
+TEST(HorseTamingTest, Donkey_CanBeCreated) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    DonkeyEntity donkey(LegacyEntityType::Donkey, EntityId(1));
+    donkey.setWorld(&world);
+
+    EXPECT_FALSE(donkey.isTame());
+    EXPECT_FALSE(donkey.hasSaddle());
+    EXPECT_EQ(donkey.getTemper(), 0);
+}
+
+TEST(HorseTamingTest, Mule_CanBeCreated) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    MuleEntity mule(LegacyEntityType::Mule, EntityId(1));
+    mule.setWorld(&world);
+
+    EXPECT_FALSE(mule.isTame());
+    EXPECT_FALSE(mule.hasSaddle());
+    EXPECT_EQ(mule.getTemper(), 0);
+}
+
+// ============================================================================
+// 跳跃系统测试
+// ============================================================================
+
+TEST(HorseTamingTest, JumpPower_CanBeSetAndRetrieved) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    // 初始跳跃力度为 0
+    EXPECT_EQ(horse.getJumpPower(), 0);
+
+    // 设置跳跃力度
+    horse.setJumpPower(50);
+    EXPECT_EQ(horse.getJumpPower(), 50);
+
+    // 跳跃力度应该被 clamp 在 0-100 范围内
+    horse.setJumpPower(150);
+    EXPECT_EQ(horse.getJumpPower(), 100);
+
+    horse.setJumpPower(-10);
+    EXPECT_EQ(horse.getJumpPower(), 0);
+}
+
+TEST(HorseTamingTest, JumpStrength_CanBeSetAndRetrieved) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    // 设置跳跃强度
+    horse.setJumpStrength(0.8f);
+    EXPECT_FLOAT_EQ(horse.getJumpStrength(), 0.8f);
+}
+
+// ============================================================================
+// 速度测试
+// ============================================================================
+
+TEST(HorseTamingTest, Speed_IsInitialized) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    // 速度应该在 MIN_SPEED 和 MAX_SPEED 之间
+    f32 speed = horse.getSpeed();
+    EXPECT_GT(speed, 0.0f);
+    EXPECT_LT(speed, 1.0f);
+}
+
+// ============================================================================
+// 装备系统测试
+// ============================================================================
+
+TEST(HorseTamingTest, EquipmentSlotCount_ReturnsCorrectValue) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    HorseEntity horse(LegacyEntityType::Horse, EntityId(1));
+    horse.setWorld(&world);
+
+    // 马有 2 个装备槽（鞍和马铠）
+    EXPECT_EQ(horse.getEquipmentSlotCount(), 2);
+}
+
+TEST(HorseTamingTest, DonkeyEquipmentSlotCount_WithChest) {
+    VanillaBlocks::initialize();
+
+    HorseTamingTestWorld world;
+    DonkeyEntity donkey(LegacyEntityType::Donkey, EntityId(1));
+    donkey.setWorld(&world);
+
+    // 驴默认有 2 个槽位
+    EXPECT_EQ(donkey.getInventorySize(), 2);
+
+    // 设置箱子后有更多槽位
+    donkey.setChest(true);
+    EXPECT_EQ(donkey.getInventorySize(), 17); // 鞍 + 15 格箱子
+}
+
+} // namespace
+} // namespace mc

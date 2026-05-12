@@ -118,6 +118,84 @@ public:
 - `STATUS_PARAM`: 鞍、驯服、繁殖、进食、扬蹄、张嘴状态
 - `OWNER_UUID_PARAM`: 主人 UUID
 
+## 驯服系统
+
+### 驯服流程
+
+马类实体的驯服通过 `RunAroundLikeCrazyGoal` AI 目标实现：
+
+1. **骑乘驯服**：玩家骑上未驯服的马
+2. **疯狂奔跑**：马随机移动，每 tick 有 1/50 概率检查驯服
+3. **驯服检查**：
+   - 增加驯服进度（temper += 5）
+   - 如果 `random(maxTemper) < temper`，驯服成功
+4. **驯服成功**：调用 `setTamedBy(player)`
+5. **驯服失败**：甩下玩家，播放扬蹄动画和愤怒音效
+
+### 核心方法
+
+#### setTamedBy(Player*)
+由玩家驯服此马：
+```cpp
+bool setTamedBy(Player* player);
+```
+- 设置主人 UUID
+- 设置驯服状态
+- 触发进度（TameAnimalTrigger）
+- 发送爱心粒子效果（状态码 7）
+
+#### makeMad()
+让马愤怒（驯服失败时调用）：
+```cpp
+void makeMad();
+```
+- 触发扬蹄动画
+- 播放愤怒音效（通过 `getAngrySound()`）
+
+#### makeHorseRear()
+让马后腿站立：
+```cpp
+void makeHorseRear();
+```
+- 设置 `jumpRearingCounter = 1`
+- 设置扬蹄状态（网络同步）
+
+#### 扬蹄状态管理
+```cpp
+bool isRearing() const;     // 检查是否正在扬蹄
+void setRearing(bool);       // 设置扬蹄状态
+```
+
+#### 主人 UUID 管理
+```cpp
+std::string getOwnerUuid() const;  // 获取主人UUID
+void setOwnerUuid(const std::string& uuid);  // 设置主人UUID
+```
+
+### 扬蹄动画状态
+
+状态标志使用位掩码存储在 `STATUS_PARAM` 中：
+
+| 标志 | 位 | 说明 |
+|------|-----|------|
+| `STATUS_FLAG_TAME` | 2 | 已驯服 |
+| `STATUS_FLAG_SADDLE` | 4 | 已装备鞍 |
+| `STATUS_FLAG_BRED` | 8 | 已繁殖 |
+| `STATUS_FLAG_EATING` | 16 | 正在吃 |
+| `STATUS_FLAG_REARING` | 32 | 正在扬蹄 |
+| `STATUS_FLAG_MOUTH_OPEN` | 64 | 嘴张开 |
+
+### 状态辅助方法
+
+| 方法 | 说明 |
+|------|------|
+| `isTame()` / `setTame(bool)` | 驯服状态 |
+| `hasSaddle()` / `setSaddle(bool)` | 鞍装备状态 |
+| `isRearing()` / `setRearing(bool)` | 扬蹄动画状态 |
+| `isEating()` / `setEating(bool)` | 进食状态 |
+| `isBred()` / `setBred(bool)` | 繁殖状态 |
+| `isMouthOpen()` / `setMouthOpen(bool)` | 嘴巴张开状态 |
+
 ## 使用示例
 
 ```cpp
@@ -137,7 +215,17 @@ horse->stopJumping();
 
 // 加速（胡萝卜钓竿）
 horse->boost();
+
+// 驯服
+horse->setTamedBy(player);  // 设置主人，触发进度，显示爱心粒子
+
+// 让马愤怒（驯服失败时）
+horse->makeMad();  // 扬蹄 + 播放愤怒音效
 ```
+
+## 测试用例
+
+马类实体的测试位于 `tests/entity/HorseSupportTypesTest.cpp` 和 `tests/entity/HorseAppearanceSupportTypesTest.cpp`。
 
 ## 参考
 
@@ -148,3 +236,4 @@ horse->boost();
 - MC 1.16.5 SkeletonHorseEntity
 - MC 1.16.5 ZombieHorseEntity
 - MC 1.16.5 LlamaEntity
+- MC 1.16.5 RunAroundLikeCrazyGoal

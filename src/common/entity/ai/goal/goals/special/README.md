@@ -101,11 +101,53 @@ void CreeperEntity::registerGoals() {
 - 马正在被骑乘
 
 **tick 行为**:
+- 马 AI 随机移动（模拟疯狂奔跑）
 - 每 tick 有 1/50 概率执行驯服检查
-- 如果驯服成功：驯服马并设置主人
-- 否则：增加驯服进度并甩下玩家
+- 如果驯服成功：
+  - 调用 `setTamedBy(player)` 设置主人
+  - 发送 `EntityStatus::TamingSucceeded`（爱心粒子）
+- 如果驯服失败：
+  - 增加 `temper` 进度（+5）
+  - 调用 `removePassengers()` 甩下玩家
+  - 调用 `makeMad()` 触发扬蹄动画和愤怒音效
+  - 发送 `EntityStatus::TamingFailed`（烟雾粒子）
+
+**驯服机制**:
+```cpp
+// MC 1.16.5 驯服概率计算
+i32 temper = horse.getTemper();     // 当前进度
+i32 maxTemper = horse.getMaxTemper(); // 最大进度（马默认100）
+
+if (maxTemper > 0 && random.nextInt(maxTemper) < temper) {
+    // 驯服成功
+    horse.setTamedBy(player);
+} else {
+    // 增加进度
+    horse.increaseTemper(5);
+}
+```
 
 **互斥标志**: `Move`
+
+**使用示例**:
+```cpp
+void AbstractHorseEntity::registerGoals() {
+    // 优先级 1: 疯狂奔跑（未驯服时）
+    m_goalSelector.addGoal(1, std::make_unique<RunAroundLikeCrazyGoal>(this, 1.2));
+}
+```
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| TEMPER_INCREASE | 5 | 每次驯服失败增加的进度 |
+| TAMING_CHECK_CHANCE | 1/50 | 每 tick 驯服检查概率 |
+
+**依赖关系**:
+- 需要实体实现 `AbstractHorseEntity` 接口
+- 需要 `setTamedBy(Player*)` 方法
+- 需要 `makeMad()` 方法（扬蹄 + 愤怒音效）
+- 需要 `removePassengers()` 方法
 
 ---
 

@@ -136,6 +136,54 @@ public:
     void setRearing(bool rearing);
 
     /**
+     * @brief 检查是否正在吃
+     * @return 是否正在吃
+     */
+    [[nodiscard]] bool isEating() const {
+        return getHorseWatchableBoolean(STATUS_FLAG_EATING);
+    }
+
+    /**
+     * @brief 设置进食状态
+     * @param eating 是否正在吃
+     */
+    void setEating(bool eating) {
+        setHorseWatchableBoolean(STATUS_FLAG_EATING, eating);
+    }
+
+    /**
+     * @brief 检查是否已繁殖
+     * @return 是否已繁殖
+     */
+    [[nodiscard]] bool isBred() const {
+        return getHorseWatchableBoolean(STATUS_FLAG_BRED);
+    }
+
+    /**
+     * @brief 设置繁殖状态
+     * @param bred 是否已繁殖
+     */
+    void setBred(bool bred) {
+        setHorseWatchableBoolean(STATUS_FLAG_BRED, bred);
+    }
+
+    /**
+     * @brief 检查嘴巴是否张开
+     * @return 嘴巴是否张开
+     */
+    [[nodiscard]] bool isMouthOpen() const {
+        return getHorseWatchableBoolean(STATUS_FLAG_MOUTH_OPEN);
+    }
+
+    /**
+     * @brief 设置嘴巴张开状态
+     * @param open 嘴巴是否张开
+     */
+    void setMouthOpen(bool open) {
+        setHorseWatchableBoolean(STATUS_FLAG_MOUTH_OPEN, open);
+    }
+
+    /**
      * @brief 获取愤怒音效
      *
      * 基类返回 nullptr，子类应重写提供具体音效。

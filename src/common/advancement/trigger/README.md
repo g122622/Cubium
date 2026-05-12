@@ -120,6 +120,38 @@ bool matches = instance.testWithInventory(
 | `CuredZombieVillagerTrigger` | `minecraft:cured_zombie_villager` | 治愈僵尸村民 |
 | `VillagerTradeTrigger` | `minecraft:villager_trade` | 村民交易 |
 
+#### TameAnimalTrigger 详细说明
+
+`TameAnimalTrigger` 用于检测玩家驯服动物的事件，支持条件检测：
+
+- `entity`: 实体谓词，匹配被驯服的动物类型
+
+```cpp
+// 触发驯服事件（服务端）
+void onAnimalTamed(ServerPlayer& player, AnimalEntity* animal) {
+    auto* trigger = CriterionTriggers::instance().getTrigger<TameAnimalTrigger>();
+    if (trigger && trigger->hasListeners(*player.getAdvancements())) {
+        trigger->trigger(*player.getAdvancements(), animal);
+    }
+}
+```
+
+**使用示例** (JSON 成就条件):
+```json
+{
+    "criteria": {
+        "tamed_horse": {
+            "trigger": "minecraft:tame_animal",
+            "conditions": {
+                "entity": {
+                    "type": "minecraft:horse"
+                }
+            }
+        }
+    }
+}
+```
+
 ### 方块触发器
 
 | 触发器 | ID | 说明 |
