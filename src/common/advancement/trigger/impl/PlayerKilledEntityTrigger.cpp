@@ -94,12 +94,12 @@ void PlayerKilledEntityTrigger::trigger(
     // auto* trigger = CriterionTriggers::instance().getTrigger<PlayerKilledEntityTrigger>();
     // trigger->AbstractCriterionTrigger<PlayerKilledEntityTriggerInstance>::trigger(
     //     *player.getAdvancements(),
-    //     [&player, &entity, &source](const PlayerKilledEntityTriggerInstance& instance) {
-    //         return instance.test(player, entity, source);
+    //     [&entity, &source](const PlayerKilledEntityTriggerInstance& instance) {
+    //         return instance.test(entity, source);
     //     }
     // );
     //
-    // 方法2：在 AdvancementEventHandler 中直接调用（推荐服务端代码处理）
+    // 方法2：在 AdvancementEventHandler 中直接调用（推荐）
     // 参考：server/advancement/AdvancementEventHandler.hpp
     MC_UNUSED(player);
     MC_UNUSED(entity);

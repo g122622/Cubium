@@ -114,6 +114,9 @@ CriterionTriggers::instance().registerTrigger(std::make_unique<MyTrigger>());
 |--------|-----|------|
 | ImpossibleTrigger | `minecraft:impossible` | 完整实现 |
 | InventoryChangedTrigger | `minecraft:inventory_changed` | 完整实现（含服务端集成） |
+| TameAnimalTrigger | `minecraft:tame_animal` | 完整实现（含服务端集成） |
+| PlayerKilledEntityTrigger | `minecraft:player_killed_entity` | 完整实现（含服务端集成） |
+| EntityKilledPlayerTrigger | `minecraft:entity_killed_player` | 完整实现 |
 
 ## 条件谓词
 

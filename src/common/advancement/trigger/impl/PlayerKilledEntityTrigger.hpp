@@ -2,6 +2,7 @@
 
 #include "../CriterionTrigger.hpp"
 #include "../conditions/EntityPredicate.hpp"
+#include "../conditions/LocationPredicate.hpp"
 #include <memory>
 
 // 前向声明
@@ -131,6 +132,12 @@ public:
     EntityKilledPlayerTriggerInstance() = default;
     EntityKilledPlayerTriggerInstance(EntityPredicate entity, DamageSourcePredicate killingBlow);
 
+    /**
+     * @brief 检查条件是否满足
+     * @param entity 击杀者实体
+     * @param source 伤害源
+     * @return 是否满足
+     */
     [[nodiscard]] bool test(const Entity& entity, const DamageSource& source) const;
 
     Result<void> fromJson(const nlohmann::json& json);

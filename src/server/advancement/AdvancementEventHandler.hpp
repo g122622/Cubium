@@ -209,7 +209,8 @@ private:
             return;
         }
 
-        // 触发检测 - 使用基类模板方法
+        // 使用基类的 trigger 模板方法触发检测
+        // 参考 TriggerInstantiation.hpp
         trigger->AbstractCriterionTrigger<mc::advancement::PlayerKilledEntityTriggerInstance>::trigger(
             *advancements,
             [&e](const mc::advancement::PlayerKilledEntityTriggerInstance& instance) {
