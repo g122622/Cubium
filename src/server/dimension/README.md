@@ -30,7 +30,7 @@ server/dimension/
 **关键方法**:
 - `initialize()` - 初始化维度资源
 - `shutdown()` - 清理维度资源
-- `tick()` - 维度刻更新
+- `tick()` - 维度刻更新（包含区块管理器和光照管理器更新）
 - `addPlayer()/removePlayer()` - 玩家管理
 - `recordPortalPosition()/findNearestPortal()` - 传送门追踪
 
@@ -152,6 +152,36 @@ auto nearestPortal = dimension->findNearestPortal(playerPos, 128);
 // 移除传送门记录
 dimension->forgetPortalPosition(portalPos);
 ```
+
+## 光照更新
+
+`ServerDimension::tick()` 方法中包含光照更新逻辑，参考 MC 1.16.5 `ServerChunkProvider.ChunkExecutor.driveOne()` 实现：
+
+```cpp
+void ServerDimension::tick() {
+    Dimension::tick();
+
+    // 更新区块管理器
+    if (m_chunkManager) {
+        m_chunkManager->tick();
+    }
+
+    // 更新光照管理器
+    if (m_lightManager) {
+        if (m_lightManager->hasLightWork()) {
+            // 处理所有待处理的光照更新
+            // 参数：maxUpdates=最大值（处理所有）, updateSkyLight=根据维度类型, updateBlockLight=true
+            m_lightManager->tick(std::numeric_limits<i32>::max(), type().hasSkyLight(), true);
+        }
+    }
+}
+```
+
+**光照更新要点**：
+- 使用 `hasLightWork()` 检查是否有待处理的光照工作，避免不必要的处理
+- 使用 `std::numeric_limits<i32>::max()` 作为最大更新数量，处理所有待处理的光照
+- 根据 `type().hasSkyLight()` 动态决定是否更新天空光照（下界和末地没有天空光照）
+- 方块光照始终更新
 
 ## 与其他模块的关系
 

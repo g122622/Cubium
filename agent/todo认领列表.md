@@ -37,7 +37,11 @@
 - EntityUtils::legacyTypeToTypeId() 函数
 - 所有测试代码
 
-这是一个架构级重构，需要更周密的计划和更多时间。建议作为独立任务处理。
+**后续处理建议**: 这是一个架构级重构任务，建议作为独立任务处理。可以通过以下步骤逐步迁移：
+1. 首先在 Entity 类中添加 `isPlayer()`, `isItem()`, `isType(const char*)` 等辅助方法
+2. 逐步迁移 `legacyType() == LegacyEntityType::XXX` 调用到新方法
+3. 修改 EntityManager::getEntitiesByType() 使用字符串参数
+4. 最后移除 LegacyEntityType 枚举
 
 ## 状态说明
 
