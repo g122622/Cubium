@@ -236,6 +236,13 @@ bool ServerChunkManager::hasChunk(ChunkCoord x, ChunkCoord z) const
 
 ChunkData* ServerChunkManager::getChunkSync(ChunkCoord x, ChunkCoord z)
 {
+    MC_TRACE_EVENT("server.chunk",
+            "ServerChunkManager::getChunkSync",
+            "x", x,
+            "z", z,
+            [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](::perfetto::EventContext ctx) {
+                flow(ctx);
+    });
     // spdlog::debug("Requesting chunk synchronously at ({}, {}), current m_chunks size: {}", x, z, m_chunks.size());
 
     // 先检查缓存
@@ -364,6 +371,8 @@ void ServerChunkManager::saveChunkSections(const ChunkData& chunk)
 
 std::unique_ptr<ChunkData> ServerChunkManager::loadChunkFromStorage(ChunkCoord x, ChunkCoord z)
 {
+    MC_TRACE_EVENT("server.chunk", "ServerChunkManager::loadChunkFromStorage");
+
     if (!m_world || !m_world->isStorageOpen()) {
         return nullptr;
     }
@@ -598,6 +607,8 @@ void ServerChunkManager::tick()
 
 void ServerChunkManager::scheduleGeneration(SingleChunkLifecycleManager& singleChunkLifecycleManager, const ChunkStatus& targetStatus)
 {
+    MC_TRACE_EVENT("server.chunk", "ServerChunkManager::scheduleGeneration");
+
     // 如果已经达到目标状态、已有缓存结果或已有正在使用的 primer，则不重复调度
     if (singleChunkLifecycleManager.hasCompletedStatus(targetStatus) ||
         getChunk(singleChunkLifecycleManager.x(), singleChunkLifecycleManager.z()) != nullptr) {
@@ -667,6 +678,15 @@ void ServerChunkManager::requestChunkGenerationAsync(ChunkCoord x, ChunkCoord z,
                                                 std::shared_ptr<std::promise<ChunkData*>> promise)
 {
     MC_ASSERT_RELEASE_MSG(targetStatus.ordinal() >= 0, "Invalid target chunk status ordinal");
+    MC_TRACE_EVENT("server.chunk",
+            "ServerChunkManager::requestChunkGenerationAsync",
+            "x", x,
+            "z", z,
+            "targetStatus", targetStatus.name(),
+            "priority", priority,
+            [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](::perfetto::EventContext ctx) {
+                flow(ctx);
+    });
 
     const u64 key = posToKey(x, z);
 
@@ -1100,6 +1120,8 @@ bool ServerChunkManager::checkNeighborsReady(ChunkCoord x, ChunkCoord z, const C
 
 void ServerChunkManager::onChunkStatusChanged(ChunkCoord x, ChunkCoord z, const ChunkStatus& /*status*/)
 {
+    MC_TRACE_EVENT("server.chunk", "ServerChunkManager::onChunkStatusChanged");
+
     static constexpr i32 retryRadius = 8;
 
     std::vector<SingleChunkLifecycleManager*> neighbors;
