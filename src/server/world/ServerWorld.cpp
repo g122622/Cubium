@@ -289,7 +289,7 @@ void ServerWorld::initializeWorldSpawn()
 {
     spdlog::info("ServerWorld: Initializing world spawn point...");
 
-    // 确保出生点区块已加载
+    // 直接使用 m_chunkManager->getChunkSync()，确保出生点区块已加载
     ChunkPos spawnChunk(0, 0);
     ChunkData* chunk = m_chunkManager->getChunkSync(spawnChunk.x, spawnChunk.z);
 
@@ -322,7 +322,8 @@ void ServerWorld::initializeWorldSpawn()
 // 区块管理
 // ============================================================================
 
-// todo 这是过度封装，删掉这个方法，调用者直接m_chunkManager->xxx(...)就行，不要多余封装
+// 注意：非const版本的 getChunk 提供可变访问，供需要修改区块的场景使用。
+// const版本是 IWorld 接口实现。
 ChunkData* ServerWorld::getChunk(ChunkCoord x, ChunkCoord z)
 {
     if (m_chunkManager) {
@@ -331,7 +332,6 @@ ChunkData* ServerWorld::getChunk(ChunkCoord x, ChunkCoord z)
     return nullptr;
 }
 
-// todo 这是过度封装，删掉这个方法，调用者直接m_chunkManager->xxx(...)就行，不要多余封装
 const ChunkData* ServerWorld::getChunk(ChunkCoord x, ChunkCoord z) const
 {
     if (m_chunkManager) {
@@ -340,30 +340,12 @@ const ChunkData* ServerWorld::getChunk(ChunkCoord x, ChunkCoord z) const
     return nullptr;
 }
 
-// todo 这是过度封装，删掉这个方法，调用者直接m_chunkManager->xxx(...)就行，不要多余封装
 bool ServerWorld::hasChunk(ChunkCoord x, ChunkCoord z) const
 {
     if (m_chunkManager) {
         return m_chunkManager->hasChunk(x, z);
     }
     return false;
-}
-
-// todo 这是过度封装，删掉这个方法，调用者直接m_chunkManager->xxx(...)就行，不要多余封装
-ChunkData* ServerWorld::getChunkSync(ChunkCoord x, ChunkCoord z)
-{
-    if (m_chunkManager) {
-        return m_chunkManager->getChunkSync(x, z);
-    }
-    return nullptr;
-}
-
-// todo 这是过度封装，删掉这个方法，调用者直接m_chunkManager->xxx(...)就行，不要多余封装
-void ServerWorld::unloadChunk(ChunkCoord x, ChunkCoord z)
-{
-    if (m_chunkManager) {
-        m_chunkManager->unloadChunk(x, z);
-    }
 }
 
 // ============================================================================
@@ -422,7 +404,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
             "chunkZ", chunkZ
         );
 
-        chunk = getChunkSync(chunkX, chunkZ);
+        chunk = m_chunkManager->getChunkSync(chunkX, chunkZ);
         if (!chunk) {
             return false;
         }
@@ -770,7 +752,7 @@ void ServerWorld::setBlockEntity(const BlockPos& pos, BlockEntity* entity) {
     // 获取区块
     ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
     ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
-    ChunkData* chunk = getChunkSync(chunkX, chunkZ);
+    ChunkData* chunk = m_chunkManager->getChunkSync(chunkX, chunkZ);
     if (!chunk) {
         // 区块未加载，无法设置方块实体
         // 注意：在 MC 1.16.5 中，如果区块未加载，方块实体会丢失
@@ -802,7 +784,7 @@ void ServerWorld::removeBlockEntity(const BlockPos& pos) {
     // 获取区块
     ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
     ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
-    ChunkData* chunk = getChunkSync(chunkX, chunkZ);
+    ChunkData* chunk = m_chunkManager->getChunkSync(chunkX, chunkZ);
     if (!chunk) {
         return;
     }
@@ -1231,42 +1213,20 @@ std::vector<AxisAlignedBB> ServerWorld::getEntityCollisions(
     return collisions;
 }
 
-// todo 这是过度封装，删掉这个方法，调用者直接world->EntityManager().xxx(...)就行，不要多余封装
+// IWorld 接口实现：委托给 EntityManager
 std::vector<Entity*> ServerWorld::getEntitiesInAABB(const AxisAlignedBB& box, const Entity* except) const
 {
     return m_entityManager.getEntitiesInAABB(box, except);
 }
 
-// todo 这是过度封装，删掉这个方法，调用者直接world->EntityManager().xxx(...)就行，不要多余封装
 std::vector<Entity*> ServerWorld::getEntitiesInRange(const Vector3& pos, f32 range, const Entity* except) const
 {
     return m_entityManager.getEntitiesInRange(pos, range, except);
 }
 
-// todo 这是过度封装，删掉这个方法，调用者直接world->EntityManager().xxx(...)就行，不要多余封装
 std::vector<Entity*> ServerWorld::getPlayers() const
 {
     return m_entityManager.getPlayers();
-}
-
-// ============================================================================
-// 碰撞缓存
-// ============================================================================
-
-// todo 这是过度封装，删掉这个方法，调用者直接world->CollisionCache().xxx(...)就行，不要多余封装
-void ServerWorld::invalidateCollisionCache(ChunkCoord chunkX, ChunkCoord chunkZ)
-{
-    if (m_collisionCache) {
-        m_collisionCache->invalidateChunkAndNeighbors(chunkX, chunkZ);
-    }
-}
-
-// todo 这是过度封装，删掉这个方法，调用者直接world->CollisionCache().xxx(...)就行，不要多余封装
-void ServerWorld::clearCollisionCache()
-{
-    if (m_collisionCache) {
-        m_collisionCache->clear();
-    }
 }
 
 // ============================================================================
@@ -1294,11 +1254,15 @@ EntityId ServerWorld::spawnEntity(std::unique_ptr<Entity> entity)
     return id;
 }
 
-// todo 这是过度封装，删掉这个方法，调用者直接world->EntityManager().xxx(...)就行，不要多余封装
+// 注意：此方法不仅移除实体，还负责取消追踪。
+// 调用者应使用此方法而非直接调用 entityManager().removeEntity()，
+// 以确保实体追踪器状态正确更新。
 std::unique_ptr<Entity> ServerWorld::removeEntity(EntityId id)
 {
     auto entity = m_entityManager.removeEntity(id);
     if (entity) {
+        // 从追踪器中移除
+        m_entityTracker.untrackEntity(id);
         // spdlog::debug("Removed entity with ID {}", id);
     } else {
         spdlog::error("Attempted to remove non-existent entity with ID {}", id);
@@ -1306,28 +1270,15 @@ std::unique_ptr<Entity> ServerWorld::removeEntity(EntityId id)
     return entity;
 }
 
-// todo 这是过度封装，删掉这个方法，调用者直接world->EntityManager().xxx(...)就行，不要多余封装
+// IWorld 接口实现：委托给 EntityManager
 Entity* ServerWorld::getEntity(EntityId id)
 {
     return m_entityManager.getEntity(id);
 }
 
-// todo 这是过度封装，删掉这个方法，调用者直接world->EntityManager().xxx(...)就行，不要多余封装
 const Entity* ServerWorld::getEntity(EntityId id) const
 {
     return m_entityManager.getEntity(id);
-}
-
-// todo 这是过度封装，删掉这个方法，调用者直接world->EntityManager().xxx(...)就行，不要多余封装
-bool ServerWorld::hasEntity(EntityId id) const
-{
-    return m_entityManager.hasEntity(id);
-}
-
-// todo 这是过度封装，删掉这个方法，调用者直接world->EntityManager().xxx(...)就行，不要多余封装
-size_t ServerWorld::entityCount() const
-{
-    return m_entityManager.entityCount();
 }
 
 i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntityData>& entities)

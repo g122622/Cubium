@@ -122,7 +122,7 @@ TEST_F(ServerWorldTest, HasChunk_NotExists) {
 }
 
 TEST_F(ServerWorldTest, GetChunkSync_CreatesChunk) {
-    ChunkData* chunk = world->getChunkSync(0, 0);
+    ChunkData* chunk = world->chunkManager()->getChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
     EXPECT_EQ(chunk->x(), 0);
     EXPECT_EQ(chunk->z(), 0);
@@ -130,14 +130,14 @@ TEST_F(ServerWorldTest, GetChunkSync_CreatesChunk) {
 }
 
 TEST_F(ServerWorldTest, GetChunkSync_ReturnsSameChunk) {
-    ChunkData* chunk1 = world->getChunkSync(5, 10);
-    ChunkData* chunk2 = world->getChunkSync(5, 10);
+    ChunkData* chunk1 = world->chunkManager()->getChunkSync(5, 10);
+    ChunkData* chunk2 = world->chunkManager()->getChunkSync(5, 10);
 
     EXPECT_EQ(chunk1, chunk2);
 }
 
 TEST_F(ServerWorldTest, GetChunk_AfterGeneration) {
-    world->getChunkSync(3, 7);
+    world->chunkManager()->getChunkSync(3, 7);
 
     ChunkData* chunk = world->getChunk(3, 7);
     ASSERT_NE(chunk, nullptr);
@@ -146,31 +146,31 @@ TEST_F(ServerWorldTest, GetChunk_AfterGeneration) {
 }
 
 TEST_F(ServerWorldTest, UnloadChunk) {
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
     EXPECT_TRUE(world->hasChunk(0, 0));
 
-    world->unloadChunk(0, 0);
+    world->chunkManager()->unloadChunk(0, 0);
     EXPECT_FALSE(world->hasChunk(0, 0));
 }
 
 TEST_F(ServerWorldTest, ChunkCount) {
     EXPECT_EQ(world->chunkCount(), 0);
 
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
     EXPECT_EQ(world->chunkCount(), 1);
 
-    world->getChunkSync(1, 0);
-    world->getChunkSync(0, 1);
+    world->chunkManager()->getChunkSync(1, 0);
+    world->chunkManager()->getChunkSync(0, 1);
     EXPECT_EQ(world->chunkCount(), 3);
 
-    world->unloadChunk(1, 0);
+    world->chunkManager()->unloadChunk(1, 0);
     EXPECT_EQ(world->chunkCount(), 2);
 }
 
 TEST_F(ServerWorldTest, MultipleChunks) {
     for (int x = -2; x <= 2; ++x) {
         for (int z = -2; z <= 2; ++z) {
-            world->getChunkSync(x, z);
+            world->chunkManager()->getChunkSync(x, z);
         }
     }
 
@@ -250,7 +250,7 @@ TEST_F(ServerWorldTest, SetBlock_MultipleBlocks) {
 TEST_F(ServerWorldTest, GetHeight_ReturnsAirLayerAboveTopBlock) {
     ASSERT_TRUE(world->initialize().success());
 
-    ChunkData* chunk = world->getChunkSync(0, 0);
+    ChunkData* chunk = world->chunkManager()->getChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     const i32 localX = 0;
@@ -325,7 +325,7 @@ TEST_F(ServerWorldTest, ChunkUnloading) {
     world->initialize();
 
     // 创建一个区块
-    world->getChunkSync(100, 100);
+    world->chunkManager()->getChunkSync(100, 100);
 
     // 执行多次 tick 触发卸载检查
     for (int i = 0; i < 200; ++i) {
@@ -351,7 +351,7 @@ TEST_F(ServerWorldTest, ConcurrentChunkAccess) {
             for (int j = 0; j < 100; ++j) {
                 int x = (i * 100 + j) % 20 - 10;
                 int z = (i * 100 + j + 50) % 20 - 10;
-                world->getChunkSync(x, z);
+                world->chunkManager()->getChunkSync(x, z);
                 world->hasChunk(x, z);
             }
         });
@@ -457,7 +457,7 @@ TEST_F(ServerWorldTest, GetBlockEntity_ReturnsNullptr_WhenNoEntity) {
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     // 没有方块实体时返回 nullptr
     BlockEntity* entity = world->getBlockEntity(BlockPos(0, 64, 0));
@@ -476,7 +476,7 @@ TEST_F(ServerWorldTest, SetBlockEntity_StoresEntity) {
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     // 创建方块实体
     auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(5, 64, 10));
@@ -497,7 +497,7 @@ TEST_F(ServerWorldTest, SetBlockEntity_OverwritesExisting) {
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     // 创建第一个方块实体
     auto chest1 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
@@ -518,7 +518,7 @@ TEST_F(ServerWorldTest, SetBlockEntity_SetsWorldReference) {
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     // 创建方块实体
     auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
@@ -534,7 +534,7 @@ TEST_F(ServerWorldTest, RemoveBlockEntity_RemovesEntity) {
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     // 创建并设置方块实体
     auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
@@ -554,7 +554,7 @@ TEST_F(ServerWorldTest, RemoveBlockEntity_NoEntity_NoCrash) {
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     // 移除不存在的方块实体不应崩溃
     world->removeBlockEntity(BlockPos(0, 64, 0));
@@ -573,7 +573,7 @@ TEST_F(ServerWorldTest, SetBlockEntity_MultipleEntitiesInSameChunk) {
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     // 创建多个方块实体
     auto chest1 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
@@ -598,9 +598,9 @@ TEST_F(ServerWorldTest, SetBlockEntity_MultipleChunks) {
     ASSERT_TRUE(world->initialize().success());
 
     // 创建多个区块
-    world->getChunkSync(0, 0);
-    world->getChunkSync(1, 0);
-    world->getChunkSync(0, 1);
+    world->chunkManager()->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(1, 0);
+    world->chunkManager()->getChunkSync(0, 1);
 
     // 在不同区块创建方块实体
     auto chest1 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
@@ -625,7 +625,7 @@ TEST_F(ServerWorldTest, SetBlockEntity_Nullptr_DoesNothing) {
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     // 设置 nullptr 不应崩溃
     world->setBlockEntity(BlockPos(0, 64, 0), nullptr);
@@ -638,7 +638,7 @@ TEST_F(ServerWorldTest, ConstGetBlockEntity_ReturnsCorrectEntity) {
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     // 创建并设置方块实体
     auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
@@ -655,7 +655,7 @@ TEST_F(ServerWorldTest, SetBlockEntity_DifferentBlockEntityTypes) {
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     // 创建不同类型的方块实体
     auto furnace = std::make_unique<blockentity::FurnaceEntity>(BlockPos(0, 64, 0));

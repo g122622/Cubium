@@ -145,11 +145,15 @@ public:
 
     // ========== 区块管理 ==========
 
+    /**
+     * @brief 获取区块（可变版本，供需要修改区块的场景使用）
+     *
+     * 这是 ServerWorld 特有的方法，提供非 const 访问。
+     * IWorld 接口的 const 版本也会委托给此方法。
+     */
     [[nodiscard]] ChunkData* getChunk(ChunkCoord x, ChunkCoord z);
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const override;
     [[nodiscard]] bool hasChunk(ChunkCoord x, ChunkCoord z) const override;
-    [[nodiscard]] ChunkData* getChunkSync(ChunkCoord x, ChunkCoord z);
-    void unloadChunk(ChunkCoord x, ChunkCoord z);
 
     // ========== 方块操作 ==========
 
@@ -455,8 +459,13 @@ public:
 
     // ========== 碰撞缓存 ==========
 
-    void invalidateCollisionCache(ChunkCoord chunkX, ChunkCoord chunkZ);
-    void clearCollisionCache();
+    /**
+     * @brief 获取碰撞缓存
+     *
+     * 提供直接访问碰撞缓存的接口，用于需要手动操作碰撞缓存的场景。
+     */
+    [[nodiscard]] physics::CollisionCache* collisionCache() { return m_collisionCache.get(); }
+    [[nodiscard]] const physics::CollisionCache* collisionCache() const { return m_collisionCache.get(); }
 
     // ========== ICollisionWorld 接口实现 ==========
 
@@ -466,12 +475,20 @@ public:
 
     // ========== 实体管理 ==========
 
+    /**
+     * @brief 移除实体
+     *
+     * 注意：此方法不仅从 EntityManager 移除实体，还会取消实体追踪。
+     * 调用者应使用此方法而非直接调用 entityManager().removeEntity()，
+     * 以确保实体追踪器状态正确更新。
+     *
+     * @param id 要移除的实体ID
+     * @return 被移除的实体所有权，如果实体不存在返回 nullptr
+     */
     std::unique_ptr<Entity> removeEntity(EntityId id);
     [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override;
     [[nodiscard]] Entity* getEntity(EntityId id) override;
     [[nodiscard]] const Entity* getEntity(EntityId id) const override;
-    [[nodiscard]] bool hasEntity(EntityId id) const;
-    [[nodiscard]] size_t entityCount() const;
 
     [[nodiscard]] EntityManager& entityManager() { return m_entityManager; }
     [[nodiscard]] const EntityManager& entityManager() const { return m_entityManager; }

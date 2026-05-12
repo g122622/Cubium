@@ -49,7 +49,7 @@ protected:
 
 TEST_F(ServerWorldBlockEntityTest, GetBlockEntity_ReturnsNullptrWhenNotFound) {
     // 先创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     BlockPos pos(10, 64, 10);
 
@@ -71,7 +71,7 @@ TEST_F(ServerWorldBlockEntityTest, GetBlockEntity_ReturnsNullptrForUnloadedChunk
 
 TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_StoresEntity) {
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     BlockPos pos(10, 64, 10);
     auto entity = std::make_unique<TestBlockEntity>(pos);
@@ -89,7 +89,7 @@ TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_StoresEntity) {
 
 TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_SetsWorldReference) {
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     BlockPos pos(10, 64, 10);
     auto entity = std::make_unique<TestBlockEntity>(pos);
@@ -105,7 +105,7 @@ TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_SetsWorldReference) {
 
 TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_ReplacesExistingEntity) {
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     BlockPos pos(10, 64, 10);
 
@@ -126,7 +126,7 @@ TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_ReplacesExistingEntity) {
 
 TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_HandlesNullptr) {
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     BlockPos pos(10, 64, 10);
 
@@ -138,7 +138,7 @@ TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_HandlesNullptr) {
 
 TEST_F(ServerWorldBlockEntityTest, RemoveBlockEntity_RemovesExistingEntity) {
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     BlockPos pos(10, 64, 10);
     auto entity = std::make_unique<TestBlockEntity>(pos);
@@ -154,7 +154,7 @@ TEST_F(ServerWorldBlockEntityTest, RemoveBlockEntity_RemovesExistingEntity) {
 
 TEST_F(ServerWorldBlockEntityTest, RemoveBlockEntity_HandlesNonExistentEntity) {
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     BlockPos pos(10, 64, 10);
 
@@ -175,7 +175,7 @@ TEST_F(ServerWorldBlockEntityTest, RemoveBlockEntity_HandlesUnloadedChunk) {
 
 TEST_F(ServerWorldBlockEntityTest, SetAndGetEntityAtWorldBoundary) {
     // 创建区块（包含原点）
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     // 测试在边界位置
     BlockPos pos(0, 0, 0);
@@ -189,7 +189,7 @@ TEST_F(ServerWorldBlockEntityTest, SetAndGetEntityAtWorldBoundary) {
 
 TEST_F(ServerWorldBlockEntityTest, MultipleBlockEntitiesInSameChunk) {
     // 创建区块
-    world->getChunkSync(0, 0);
+    world->chunkManager()->getChunkSync(0, 0);
 
     // 在同一个区块内设置多个方块实体
     BlockPos pos1(5, 64, 5);
