@@ -124,9 +124,10 @@ bool ElytraLayer<TEntity>::shouldRender(const TEntity& entity) const {
         }
 
         return m_customElytraRegion != nullptr || m_capeRegion != nullptr;
+    } else {
+        // 非 LivingEntity 类型，仅检查纹理
+        return m_customElytraRegion != nullptr || m_capeRegion != nullptr;
     }
-
-    return m_customElytraRegion != nullptr || m_capeRegion != nullptr;
 }
 
 template<typename TEntity>
@@ -145,10 +146,9 @@ f32 ElytraLayer<TEntity>::calculateElytraAngle(TEntity& entity, const mc::client
     bool isCrouching = false;
 
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
-        // 检查是否在滑翔（MC 1.16.5: isElytraFlying() = getFlag(7)）
-        // 当前简化实现：检查 fallDistance 或其他状态
-        // TODO: 添加 isElytraFlying() 到 LivingEntity
-        isGliding = entity.fallDistance() > 0.0f && !entity.onGround();
+        // MC 1.16.5: 检查是否正在鞘翅飞行（getFlag(7)）
+        // 使用 Entity::isElytraFlying() 检测滑翔状态
+        isGliding = entity.isElytraFlying();
 
         // 检查是否蹲伏（使用 context 中的状态）
         isCrouching = context.isSneaking;
@@ -194,8 +194,11 @@ f32 ElytraLayer<TEntity>::calculateElytraAngle(TEntity& entity, const mc::client
             angleZ = CROUCHING_Z_ANGLE;
         }
 
-        // TODO: 对于 Player，使用平滑角度插值 (rotateElytraX/Y/Z)
-        // 这需要 ClientEntity 或 Player 有 rotateElytraX/Y/Z 字段
+        // 注意：平滑角度插值需要架构调整
+        // MC 1.16.5 中 AbstractClientPlayerEntity 有 rotateElytraX/Y/Z 字段
+        // 当前项目的 ClientEntity 已有这些字段和 updateElytraAngles() 方法
+        // 但渲染层使用的是 Player/LivingEntity 实体，不是 ClientEntity
+        // 完整实现需要：在渲染流程中关联 ClientEntity 或在 Player 中添加这些字段
     }
 
     // 将角度转换为展开度数（用于网格生成）
