@@ -691,12 +691,56 @@ void ClientApplication::setupNetworkCallbacks()
     callbacks.onEntityStatus = [this](u32 entityId, u8 status) {
         // 处理实体状态事件
         // 参考 MC 1.16.5 ClientPlayNetHandler.handleEntityStatus()
+        using namespace network;
+
+        // 获取实体位置用于粒子效果
+        ClientEntity* entity = m_world.entityManager().getEntity(entityId);
+        glm::vec3 entityPos(0.0f);
+        if (entity != nullptr) {
+            entityPos = glm::vec3(entity->x(), entity->y(), entity->z());
+        }
+
         switch (status) {
-            case static_cast<u8>(network::EntityStatusPacket::Status::GuardianAttack): {
+            case static_cast<u8>(EntityStatusPacket::Status::GuardianAttack): {
                 // 状态 21: 守卫者开始攻击
                 // MC 1.16.5: this.client.getSoundHandler().play(new GuardianSound((GuardianEntity)entity));
                 if (m_audioService) {
                     m_audioService->onGuardianAttack(entityId);
+                }
+                break;
+            }
+            case static_cast<u8>(EntityStatusPacket::Status::TamingSucceeded): {
+                // 状态 7: 驯服成功 - 显示爱心粒子
+                // MC 1.16.5: this.client.particleManager.addParticle(ParticleTypes.HEART, x, y + 0.5, z, 0.0, 0.0, 0.0);
+                if (m_world.particleManager() != nullptr) {
+                    // 在实体头顶位置生成爱心粒子
+                    glm::vec3 heartPos = entityPos + glm::vec3(0.0f, 0.5f, 0.0f);
+                    m_world.particleManager()->addPendingParticle(
+                        ParticleTypeId::Heart,
+                        heartPos,
+                        glm::vec3(0.0f, 0.0f, 0.0f),
+                        &m_world
+                    );
+                }
+                break;
+            }
+            case static_cast<u8>(EntityStatusPacket::Status::TamingFailed): {
+                // 状态 6: 驯服失败 - 显示烟雾粒子
+                // MC 1.16.5: 播放烟雾粒子效果（暂时用简单的爱心粒子代替）
+                // TODO: 实现烟雾粒子 (ParticleTypes.SMOKE)
+                break;
+            }
+            case static_cast<u8>(EntityStatusPacket::Status::LoveHeart): {
+                // 状态 18: 繁殖爱心效果
+                // MC 1.16.5: this.client.particleManager.addParticle(ParticleTypes.HEART, x, y + 0.5, z, 0.0, 0.0, 0.0);
+                if (m_world.particleManager() != nullptr) {
+                    glm::vec3 heartPos = entityPos + glm::vec3(0.0f, 0.5f, 0.0f);
+                    m_world.particleManager()->addPendingParticle(
+                        ParticleTypeId::Heart,
+                        heartPos,
+                        glm::vec3(0.0f, 0.0f, 0.0f),
+                        &m_world
+                    );
                 }
                 break;
             }

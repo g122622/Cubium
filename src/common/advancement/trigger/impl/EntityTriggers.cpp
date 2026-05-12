@@ -1,4 +1,9 @@
 #include "EntityTriggers.hpp"
+#include "common/util/assert/AssertAll.hpp"
+
+// 注意：trigger() 方法的完整实现需要服务端模块的支持
+// 服务端代码应包含 server/advancement/TriggerInstantiation.hpp
+// 并使用 triggerWithPredicate() 方法或直接调用基类的 trigger() 模板方法
 
 namespace mc::advancement {
 
@@ -37,7 +42,7 @@ nlohmann::json TameAnimalTriggerInstance::conditionsToJson() const {
 
 // ========== TameAnimalTrigger ==========
 
-Result<std::shared_ptr<TameAnimalTriggerInstance>> TameAnimalTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> TameAnimalTrigger::fromJson(const nlohmann::json& json) {
     auto instance = std::make_shared<TameAnimalTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -47,7 +52,21 @@ Result<std::shared_ptr<TameAnimalTriggerInstance>> TameAnimalTrigger::fromJson(c
 }
 
 void TameAnimalTrigger::trigger(ServerPlayer& player, const Entity& entity) {
-    // [TODO 阶段2+3：事件系统集成] 由 TameAnimalEvent 触发
+    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // 服务端代码应使用以下方式之一触发检测：
+    //
+    // 方法1：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
+    // #include "server/advancement/TriggerInstantiation.hpp"
+    // auto* trigger = CriterionTriggers::instance().getTrigger<TameAnimalTrigger>();
+    // trigger->AbstractCriterionTrigger<TameAnimalTriggerInstance>::trigger(
+    //     *player.getAdvancements(),
+    //     [&entity](const TameAnimalTriggerInstance& instance) {
+    //         return instance.test(entity);
+    //     }
+    // );
+    //
+    // 方法2：在 setTamedBy 中直接调用（推荐服务端代码处理）
+    // 参考：server/advancement/AdvancementEventHandler.hpp
     MC_UNUSED(player);
     MC_UNUSED(entity);
 }
@@ -123,7 +142,7 @@ nlohmann::json BredAnimalsTriggerInstance::conditionsToJson() const {
 
 // ========== BredAnimalsTrigger ==========
 
-Result<std::shared_ptr<BredAnimalsTriggerInstance>> BredAnimalsTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> BredAnimalsTrigger::fromJson(const nlohmann::json& json) {
     auto instance = std::make_shared<BredAnimalsTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -180,7 +199,7 @@ nlohmann::json SummonedEntityTriggerInstance::conditionsToJson() const {
 
 // ========== SummonedEntityTrigger ==========
 
-Result<std::shared_ptr<SummonedEntityTriggerInstance>> SummonedEntityTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> SummonedEntityTrigger::fromJson(const nlohmann::json& json) {
     auto instance = std::make_shared<SummonedEntityTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -251,7 +270,7 @@ nlohmann::json CuredZombieVillagerTriggerInstance::conditionsToJson() const {
 
 // ========== CuredZombieVillagerTrigger ==========
 
-Result<std::shared_ptr<CuredZombieVillagerTriggerInstance>> CuredZombieVillagerTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> CuredZombieVillagerTrigger::fromJson(const nlohmann::json& json) {
     auto instance = std::make_shared<CuredZombieVillagerTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -323,7 +342,7 @@ nlohmann::json VillagerTradeTriggerInstance::conditionsToJson() const {
 
 // ========== VillagerTradeTrigger ==========
 
-Result<std::shared_ptr<VillagerTradeTriggerInstance>> VillagerTradeTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> VillagerTradeTrigger::fromJson(const nlohmann::json& json) {
     auto instance = std::make_shared<VillagerTradeTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {

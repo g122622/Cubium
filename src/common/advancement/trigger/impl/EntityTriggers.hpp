@@ -2,9 +2,15 @@
 
 #include "../CriterionTrigger.hpp"
 #include "../conditions/EntityPredicate.hpp"
+#include "../conditions/ItemPredicate.hpp"
 #include <memory>
 
-namespace mc::advancement {
+namespace mc {
+
+// 前向声明
+class ItemStack;
+
+namespace advancement {
 
 // 前向声明 Instance 类
 class TameAnimalTriggerInstance;
@@ -27,7 +33,7 @@ public:
         return ResourceLocation(TRIGGER_ID);
     }
 
-    [[nodiscard]] Result<std::shared_ptr<TameAnimalTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(class ServerPlayer& player, const class Entity& entity);
 };
@@ -65,7 +71,7 @@ public:
         return ResourceLocation(TRIGGER_ID);
     }
 
-    [[nodiscard]] Result<std::shared_ptr<BredAnimalsTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(
         class ServerPlayer& player,
@@ -113,7 +119,7 @@ public:
         return ResourceLocation(TRIGGER_ID);
     }
 
-    [[nodiscard]] Result<std::shared_ptr<SummonedEntityTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(class ServerPlayer& player, const class Entity& entity);
 };
@@ -150,7 +156,7 @@ public:
         return ResourceLocation(TRIGGER_ID);
     }
 
-    [[nodiscard]] Result<std::shared_ptr<CuredZombieVillagerTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(class ServerPlayer& player, const class Entity& zombie, const class Entity& villager);
 };
@@ -188,7 +194,7 @@ public:
         return ResourceLocation(TRIGGER_ID);
     }
 
-    [[nodiscard]] Result<std::shared_ptr<VillagerTradeTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(class ServerPlayer& player, const class Entity& villager, const class ItemStack& item);
 };
@@ -216,4 +222,5 @@ private:
     ItemPredicate m_item;
 };
 
-} // namespace mc::advancement
+} // namespace advancement
+} // namespace mc

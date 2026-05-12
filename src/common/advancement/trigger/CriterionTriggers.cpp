@@ -3,6 +3,7 @@
 #include "impl/InventoryChangedTrigger.hpp"
 #include "impl/TickTrigger.hpp"
 #include "impl/EffectTriggers.hpp"
+#include "impl/EntityTriggers.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::advancement {
@@ -55,6 +56,9 @@ void CriterionTriggers::registerBuiltinTriggers() {
     registerTrigger(std::make_unique<RecipeUnlockedTrigger>());
     registerTrigger(std::make_unique<EffectsChangedTrigger>());
     registerTrigger(std::make_unique<BrewedPotionTrigger>());
+
+    // 注册实体相关触发器
+    registerTrigger(std::make_unique<TameAnimalTrigger>());
 
     // [TODO 阶段3+4：触发器完善] 注册更多触发器
     // registerTrigger(std::make_unique<LocationTrigger>());

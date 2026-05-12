@@ -5,6 +5,7 @@
 #include "../../../interfaces/IEquipable.hpp"
 #include "../../../core/DataParameter.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../world/blockentity/core/SimpleInventory.hpp"
 #include <memory>
 #include <optional>
@@ -95,6 +96,66 @@ public:
      * @param tame 是否驯服
      */
     void setTame(bool tame);
+
+    /**
+     * @brief 由玩家驯服此马
+     *
+     * MC 1.16.5: setTamedBy(PlayerEntity player)
+     * 设置主人UUID、设为已驯服、触发进度、发送爱心粒子
+     *
+     * @param player 驯服者
+     * @return 是否成功
+     */
+    bool setTamedBy(Player* player);
+
+    /**
+     * @brief 让马愤怒（扬蹄并播放愤怒音效）
+     *
+     * MC 1.16.5: makeMad()
+     * 当驯服失败或被激怒时调用。
+     */
+    void makeMad();
+
+    /**
+     * @brief 让马后腿站立（扬蹄）
+     *
+     * MC 1.16.5: makeHorseRear()
+     */
+    void makeHorseRear();
+
+    /**
+     * @brief 检查是否正在扬蹄
+     * @return 是否正在扬蹄
+     */
+    [[nodiscard]] bool isRearing() const;
+
+    /**
+     * @brief 设置扬蹄状态
+     * @param rearing 是否扬蹄
+     */
+    void setRearing(bool rearing);
+
+    /**
+     * @brief 获取愤怒音效
+     *
+     * 基类返回 nullptr，子类应重写提供具体音效。
+     * MC 1.16.5: getAngrySound()
+     *
+     * @return 愤怒音效资源位置，如果没有返回空
+     */
+    [[nodiscard]] virtual std::optional<ResourceLocation> getAngrySound() const { return std::nullopt; }
+
+    /**
+     * @brief 获取主人UUID
+     * @return 主人UUID字符串，如果没有主人返回空字符串
+     */
+    [[nodiscard]] std::string getOwnerUuid() const;
+
+    /**
+     * @brief 设置主人UUID
+     * @param uuid 主人UUID字符串
+     */
+    void setOwnerUuid(const std::string& uuid);
 
     /**
      * @brief 获取驯服进度 (0-100)

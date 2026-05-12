@@ -18,6 +18,7 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/math/MathConstants.hpp"
 #include "../../../../util/math/MathUtils.hpp"
+#include "../../../../network/packet/EntityPackets.hpp"
 #include <cmath>
 
 namespace mc {
@@ -378,6 +379,103 @@ void AbstractHorseEntity::initRandomAttributes() {
     m_speed = rng.nextFloat(MIN_SPEED, MAX_SPEED);
     m_jumpStrength = rng.nextFloat(MIN_JUMP, MAX_JUMP);
     m_horseHealth = rng.nextFloat(MIN_HEALTH, MAX_HEALTH);
+}
+
+// ========== 驯服系统 ==========
+
+bool AbstractHorseEntity::setTamedBy(Player* player) {
+    if (player == nullptr) {
+        return false;
+    }
+
+    // MC 1.16.5: this.setOwnerUniqueId(player.getUniqueID());
+    setOwnerUuid(player->uuid());
+
+    // MC 1.16.5: this.setHorseTamed(true);
+    setTame(true);
+
+    // MC 1.16.5: if (player instanceof ServerPlayerEntity) {
+    //     CriteriaTriggers.TAME_ANIMAL.trigger((ServerPlayerEntity)player, this);
+    // }
+    // 注意：进度触发需要在 server 模块中处理，这里只调用 Player::asServerPlayer()
+    // 服务端代码可以重写此方法来添加进度触发逻辑
+    // ServerPlayer* serverPlayer = player->asServerPlayer();
+    // if (serverPlayer != nullptr) { ... }
+
+    // MC 1.16.5: this.world.setEntityState(this, (byte)7);
+    // 发送实体状态包，让客户端显示爱心粒子
+    if (m_world != nullptr) {
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded));
+    }
+
+    return true;
+}
+
+void AbstractHorseEntity::makeMad() {
+    // MC 1.16.5: if (!this.isRearing()) { this.makeHorseRear(); ... }
+    if (!isRearing()) {
+        makeHorseRear();
+
+        // MC 1.16.5: SoundEvent soundevent = this.getAngrySound();
+        // if (soundevent != null) { this.playSound(soundevent, ...); }
+        auto soundEvent = getAngrySound();
+        if (soundEvent.has_value()) {
+            playSound(soundEvent.value(), getSoundVolume(), getSoundPitch());
+        }
+    }
+}
+
+void AbstractHorseEntity::makeHorseRear() {
+    // MC 1.16.5: if (this.canPassengerSteer() || this.isServerWorld()) {
+    //     this.jumpRearingCounter = 1;
+    //     this.setRearing(true);
+    // }
+    // 简化实现：始终允许扬蹄
+    m_jumpRearingCounter = 1;
+    setRearing(true);
+}
+
+bool AbstractHorseEntity::isRearing() const {
+    return getHorseWatchableBoolean(STATUS_FLAG_REARING);
+}
+
+void AbstractHorseEntity::setRearing(bool rearing) {
+    // MC 1.16.5: if (rearing) { this.setEatingHaystack(false); }
+    if (rearing) {
+        setHorseWatchableBoolean(STATUS_FLAG_EATING, false);
+    }
+    setHorseWatchableBoolean(STATUS_FLAG_REARING, rearing);
+}
+
+std::string AbstractHorseEntity::getOwnerUuid() const {
+    i64 ownerId = m_dataManager.get(OWNER_UUID_PARAM);
+    if (ownerId == 0) {
+        return "";
+    }
+    // 将 i64 转换为 UUID 字符串
+    // MC 1.16.5 使用 UUID 存储，这里我们使用简化的字符串存储
+    return std::to_string(ownerId);
+}
+
+void AbstractHorseEntity::setOwnerUuid(const std::string& uuid) {
+    // 将 UUID 字符串转换为 i64
+    // 简化实现：直接存储哈希值或解析数字
+    if (uuid.empty()) {
+        m_dataManager.set(OWNER_UUID_PARAM, static_cast<i64>(0));
+    } else {
+        // 尝试解析为数字
+        try {
+            i64 ownerId = std::stoll(uuid);
+            m_dataManager.set(OWNER_UUID_PARAM, ownerId);
+        } catch (...) {
+            // 解析失败，使用哈希值
+            i64 hash = 0;
+            for (char c : uuid) {
+                hash = hash * 31 + c;
+            }
+            m_dataManager.set(OWNER_UUID_PARAM, hash);
+        }
+    }
 }
 
 } // namespace mc

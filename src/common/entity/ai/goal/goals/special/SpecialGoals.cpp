@@ -9,6 +9,7 @@
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
+#include "../../../../../network/packet/EntityPackets.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -190,14 +191,14 @@ void RunAroundLikeCrazyGoal::tick() {
         ::mc::Player* player = static_cast<::mc::Player*>(passenger);
 
         // 驯服检查
+        // MC 1.16.5: if (j > 0 && this.horseHost.getRNG().nextInt(j) < i && !net.minecraftforge.event.ForgeEventFactory.onAnimalTame(horseHost, (PlayerEntity)entity))
         i32 temper = m_horse->getTemper();
         i32 maxTemper = m_horse->getMaxTemper();
 
         if (maxTemper > 0 && rng.nextInt(maxTemper) < temper) {
             // 达到驯服条件
-            m_horse->setTame(true);
-            // TODO: 触发驯服事件
-            // m_horse->setTamedBy(player);
+            // MC 1.16.5: this.horseHost.setTamedBy((PlayerEntity)entity);
+            m_horse->setTamedBy(player);
             return;
         }
 
@@ -205,10 +206,16 @@ void RunAroundLikeCrazyGoal::tick() {
         m_horse->increaseTemper(5);
 
         // 甩下玩家
-        // MC 1.16.5: removePassengers() + makeMad()
-        // TODO: 实现甩下玩家逻辑
-        // m_horse->removePassengers();
-        // m_horse->makeMad();
+        // MC 1.16.5: this.horseHost.removePassengers();
+        //            this.horseHost.makeMad();
+        //            this.horseHost.world.setEntityState(this.horseHost, (byte)6);
+        m_horse->removePassengers();
+        m_horse->makeMad();
+
+        // 发送驯服失败状态包（烟雾粒子效果）
+        if (worldPtr != nullptr) {
+            worldPtr->broadcastEntityStatus(m_horse->id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+        }
     }
 }
 

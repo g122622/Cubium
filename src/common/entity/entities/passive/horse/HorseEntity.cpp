@@ -69,19 +69,23 @@ void HorseEntity::tick()
 {
     AbstractHorseEntity::tick();
 
+    // 更新扬蹄计时器 - 使用基类的 STATUS_FLAG_REARING 进行网络同步
     if (m_isRearing) {
         --m_rearingCounter;
         if (m_rearingCounter <= 0) {
             m_isRearing = false;
+            setRearing(false);
         }
     }
 
+    // 未驯服的马被骑乘时随机扬蹄（模拟不安行为）
+    // 注意：扬蹄并甩下玩家的完整逻辑在 RunAroundLikeCrazyGoal 中实现
     if (!isTame() && isBeingRidden() && !m_isRearing) {
         math::Random random(ticksExisted());
         if (random.nextFloat() < 0.02f) {
             m_isRearing = true;
             m_rearingCounter = 20;
-            // TODO: 对齐 1.16.5 的未驯服马上抬前腿和甩下骑手逻辑。
+            setRearing(true);
         }
     }
 }
@@ -109,6 +113,12 @@ std::optional<ResourceLocation> HorseEntity::getHurtSound(DamageSource& /*source
 
 std::optional<ResourceLocation> HorseEntity::getDeathSound() const {
     return SoundEvents::ENTITY_HORSE_DEATH;
+}
+
+std::optional<ResourceLocation> HorseEntity::getAngrySound() const {
+    // MC 1.16.5: HorseEntity.getAngrySound() 返回 ENTITY_HORSE_ANGRY
+    // 注意：基类 makeMad() 会先调用 makeHorseRear() 然后调用此方法获取音效并播放
+    return SoundEvents::ENTITY_HORSE_ANGRY;
 }
 
 void HorseEntity::playEatSound() {

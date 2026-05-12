@@ -118,6 +118,14 @@ public:
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
     /**
+     * @brief 获取愤怒音效
+     *
+     * MC 1.16.5: HorseEntity.getAngrySound()
+     * 返回马的愤怒音效，扬蹄时播放
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAngrySound() const override;
+
+    /**
      * @brief 播放进食音效
      */
     void playEatSound();
