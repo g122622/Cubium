@@ -58,12 +58,13 @@ struct BlockPlacementResult {
 | `handleBlockInteraction()` | 处理方块交互数据包（开始/中止/停止破坏） |
 | `handleBlockPlacement()` | 处理方块放置（位置验证、碰撞检测、物品消耗） |
 | `handleBlockBreak()` | 处理方块破坏（验证、掉落物生成、设置为空气） |
-| `handleBlockUse()` | 处理右键激活（调用方块 `onBlockActivated`） |
+| `handleBlockUse()` | 处理右键激活（调用方块 `onBlockActivated`，含告示牌命令执行） |
 | `canInteract()` | 验证玩家是否可以与方块交互（距离检查，最大6格） |
 | `canBreakBlock()` | 验证玩家是否可以破坏方块（硬度检查） |
 | `generateBlockDrops()` | 生成方块掉落物 |
 | `setOnBlockBreak()` | 设置方块破坏回调 |
 | `setOnBlockPlace()` | 设置方块放置回调 |
+| `setServer()` | 设置服务器接口（用于告示牌命令执行等） |
 
 **私有辅助方法**（重构后抽取的公共逻辑）：
 
@@ -75,6 +76,7 @@ struct BlockPlacementResult {
 | `checkWorldModificationAllowed()` | 检查是否可以在当前世界执行修改操作（调试世界检查） |
 | `getHeldTool()` | 获取玩家手持物品 |
 | `setBlockToAir()` | 将方块设置为空气并触发回调 |
+| `handleSignCommand()` | 处理告示牌命令执行（右键点击告示牌时触发） |
 
 **交互距离验证**：
 - 玩家眼睛位置到方块中心距离平方 <= 36.0（6格）
@@ -82,6 +84,13 @@ struct BlockPlacementResult {
 **游戏模式处理**：
 - 创造模式：放置方块不消耗物品
 - 旁观模式：禁止放置方块
+
+**告示牌命令执行**（MC 1.16.5）：
+当玩家右键点击告示牌（`handleBlockUse`）时，会自动检查并执行告示牌文本中的点击事件：
+1. 检测方块是否为告示牌（`BlockEntityType::Sign`）
+2. 获取 `ServerPlayer` 实体（通过 `IServer::playerEntityManager()`）
+3. 调用 `SignCommandHelper::executeSignCommands()` 执行命令
+4. 仅执行 `RunCommand` 类型的点击事件（其他类型如 `OpenUrl` 由客户端处理）
 
 ---
 
@@ -316,10 +325,11 @@ struct OpenContainer {
 
 | 模块 | 依赖 |
 |------|------|
-| BlockInteractionManager | ServerWorld, PlayerManager, LootTableManager, InventoryManager, BlockDropHandler, BlockItemRegistry |
+| BlockInteractionManager | ServerWorld, PlayerManager, LootTableManager, InventoryManager, BlockDropHandler, BlockItemRegistry, IServer |
 | MiningManager | PlayerManager, ConnectionManager, ServerWorld, InventoryManager |
 | ContainerManager | PlayerManager |
 | InventoryManager | PlayerManager |
+| SignCommandHelper | SignEntity, ServerPlayer, CommandRegistry, ServerCommandSource |
 
 **交互流程**：
 
