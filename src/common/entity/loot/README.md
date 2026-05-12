@@ -823,6 +823,7 @@ entry.generate(consumer, context);  // 条件在这里检查
 5. **桩实现完善** - 完善以下函数的实际实现（当前为桩）：
    - ~~CopyNameFunction~~ ✅ 已完成（从实体/方块实体复制名称）
    - ~~CopyBlockStateFunction~~ ✅ 已完成（复制 BlockState 属性到 ItemStack 的 BlockStateTag）
+   - ~~SetNbtFunction~~ ✅ 已完成（使用 Mojangson 格式解析 NBT 字符串并合并到 ItemStack）
    - CopyNbtFunction（需要 NBT 路径解析）
    - FillPlayerHeadFunction（需要玩家皮肤系统）
    - SetAttributesFunction（需要属性系统）
