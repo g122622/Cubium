@@ -156,6 +156,12 @@ auto particle = ParticleRegistry::instance().createParticle(
 
 ### 方块粒子（block/）
 - **DiggingParticle**: 挖掘方块产生的粒子
+  - 使用 TERRAIN_SHEET 渲染类型（方块纹理图集）
+  - 从 `BlockModelCache` 动态获取方块纹理 UV 坐标
+  - 从 16x16 纹理中随机选取 4x4 区域（模拟 MC 的 `field_217587_G`/`field_217588_H`）
+  - 受重力影响，有碰撞检测
+  - 生命周期约 20 tick，淡出效果
+  - 参考 MC 1.16.5 `DiggingParticle`
 
 ### 效果粒子（effect/）
 - **FlameParticle**: 火焰粒子，向上漂浮并缩小
