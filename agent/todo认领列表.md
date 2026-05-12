@@ -6,7 +6,38 @@
 
 | 时间 | 文件路径 | 行号 | TODO 内容摘要 | 状态 | 认领人 |
 |------|----------|------|---------------|------|--------|
+| 2026-05-13 | src/server/dimension/ServerDimension.cpp | 75 | 实现光照更新调用 | 已完成 | Claude |
+| 2026-05-13 | src/common/entity/core/Entity.hpp | 44 | 彻底移除 LegacyEntityType 旧枚举，改用 mc::entity::EntityType | 暂停 | Claude |
 | 2026-05-12 | src/common/entity/loot/LootFunctions.cpp | 1130 | 实现 SetStewEffectFunction::apply 方法 | 已完成 | Claude |
+
+## 已完成的 TODO 详情
+
+### 2026-05-13: ServerDimension 光照更新实现
+
+**原始位置**: `src/server/dimension/ServerDimension.cpp:75`
+
+**完成内容**:
+1. 实现了 `ServerDimension::tick()` 中的光照更新调用
+2. 参考 MC 1.16.5 `ServerChunkProvider.ChunkExecutor.driveOne()` 中的光照更新逻辑
+3. 使用 `hasLightWork()` 检查是否有待处理的光照工作
+4. 使用 `tick(std::numeric_limits<i32>::max(), type().hasSkyLight(), true)` 处理所有待处理的光照更新
+5. 根据维度类型动态决定是否更新天空光照
+
+## 暂停的 TODO 详情
+
+### 2026-05-13: LegacyEntityType 移除（暂停）
+
+**原始位置**: `src/common/entity/core/Entity.hpp:44`
+
+**暂停原因**: 涉及范围过大，需要修改：
+- Entity 基类构造函数签名
+- 数十个实体子类构造函数
+- 数百处 `legacyType()` 调用（约 60+ 处代码）
+- EntityManager 接口
+- EntityUtils::legacyTypeToTypeId() 函数
+- 所有测试代码
+
+这是一个架构级重构，需要更周密的计划和更多时间。建议作为独立任务处理。
 
 ## 状态说明
 

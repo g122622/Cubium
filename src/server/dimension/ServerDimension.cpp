@@ -3,6 +3,7 @@
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/core/Result.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <limits>
 
 namespace mc {
 
@@ -71,8 +72,15 @@ void ServerDimension::tick() {
     }
 
     // 更新光照管理器
+    // 参考 MC 1.16.5: ServerChunkProvider.ChunkExecutor.driveOne() 中调用 lightManager.func_215588_z_()
+    // 光照更新使用 Integer.MAX_VALUE 作为最大更新数量，同时更新天空光照和方块光照
     if (m_lightManager) {
-        // TODO: 光照更新
+        // 检查是否有待处理的光照工作
+        if (m_lightManager->hasLightWork()) {
+            // 处理所有待处理的光照更新
+            // 参数：maxUpdates=最大整数（处理所有）, updateSkyLight=根据维度类型, updateBlockLight=true
+            m_lightManager->tick(std::numeric_limits<i32>::max(), type().hasSkyLight(), true);
+        }
     }
 }
 
