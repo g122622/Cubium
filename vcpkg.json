@@ -15,7 +15,12 @@
     "libarchive",
     "openal-soft",
     "zstd",
-    "rocksdb",
+    {
+      "name": "rocksdb",
+      "features": [
+        "zstd"
+      ]
+    },
     "entt",
     "perfetto"
   ],
