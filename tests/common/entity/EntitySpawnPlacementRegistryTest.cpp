@@ -260,21 +260,78 @@ TEST_F(EntitySpawnPlacementRegistryTest, GetHeightmapTypeForUnknownEntity) {
 // ========== SpawnReason 枚举测试 ==========
 
 TEST_F(EntitySpawnPlacementRegistryTest, SpawnReasonValues) {
-    // 验证 SpawnReason 枚举值
+    // 验证 SpawnReason 枚举值（与 MC 1.16.5 对齐）
+    // 参考: net.minecraft.entity.SpawnReason
     EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Natural), 0);
     EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::ChunkGeneration), 1);
-    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::SpawnEgg), 2);
-    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Spawner), 3);
-    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Structure), 4);
-    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Breeding), 5);
+    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Spawner), 2);
+    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Structure), 3);
+    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Breeding), 4);
+    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::MobSummons), 5);
     EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Jockey), 6);
-    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::MobSummons), 7);
+    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Event), 7);
     EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Conversion), 8);
     EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Reinforcement), 9);
     EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Trigger), 10);
     EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Bucket), 11);
-    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Dispenser), 12);
-    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Event), 13);
+    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::SpawnEgg), 12);
+    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Command), 13);
+    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Dispenser), 14);
+    EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Patrol), 15);
+}
+
+TEST_F(EntitySpawnPlacementRegistryTest, SpawnReasonNameConversion) {
+    // 测试 SpawnReason 名称转换函数
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Natural), "natural");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::ChunkGeneration), "chunk_generation");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Spawner), "spawner");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Structure), "structure");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Breeding), "breeding");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::MobSummons), "mob_summons");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Jockey), "jockey");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Event), "event");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Conversion), "conversion");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Reinforcement), "reinforcement");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Trigger), "trigger");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Bucket), "bucket");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::SpawnEgg), "spawn_egg");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Command), "command");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Dispenser), "dispenser");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Patrol), "patrol");
+}
+
+TEST_F(EntitySpawnPlacementRegistryTest, SpawnReasonFromName) {
+    // 测试从名称获取 SpawnReason
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("natural"), world::spawn::SpawnReason::Natural);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("chunk_generation"), world::spawn::SpawnReason::ChunkGeneration);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("spawner"), world::spawn::SpawnReason::Spawner);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("structure"), world::spawn::SpawnReason::Structure);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("breeding"), world::spawn::SpawnReason::Breeding);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("mob_summons"), world::spawn::SpawnReason::MobSummons);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("jockey"), world::spawn::SpawnReason::Jockey);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("event"), world::spawn::SpawnReason::Event);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("conversion"), world::spawn::SpawnReason::Conversion);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("reinforcement"), world::spawn::SpawnReason::Reinforcement);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("trigger"), world::spawn::SpawnReason::Trigger);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("bucket"), world::spawn::SpawnReason::Bucket);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("spawn_egg"), world::spawn::SpawnReason::SpawnEgg);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("command"), world::spawn::SpawnReason::Command);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("dispenser"), world::spawn::SpawnReason::Dispenser);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("patrol"), world::spawn::SpawnReason::Patrol);
+
+    // 测试无效名称返回默认值 Natural
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("invalid"), world::spawn::SpawnReason::Natural);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName(""), world::spawn::SpawnReason::Natural);
+}
+
+TEST_F(EntitySpawnPlacementRegistryTest, SpawnReasonRoundTrip) {
+    // 测试名称转换的往返一致性
+    for (int i = 0; i <= 15; ++i) {
+        auto reason = static_cast<world::spawn::SpawnReason>(i);
+        const char* name = world::spawn::getSpawnReasonName(reason);
+        world::spawn::SpawnReason converted = world::spawn::getSpawnReasonByName(name);
+        EXPECT_EQ(converted, reason) << "Failed for reason index " << i;
+    }
 }
 
 // ========== PlacementType 枚举测试 ==========

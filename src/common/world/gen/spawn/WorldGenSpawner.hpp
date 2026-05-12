@@ -41,17 +41,14 @@ struct SpawnedEntityData {
     /// 生成位置 Z
     f32 z = 0.0f;
 
-    /// 生成原因（区块生成）
-    // TODO 目前似乎只有这一个生成原因，需要拓展
-    static constexpr i32 SPAWN_REASON_CHUNK_GENERATION = 1;
-
-    /// 生成原因
-    i32 spawnReason = SPAWN_REASON_CHUNK_GENERATION;
+    /// 生成原因（默认为区块生成）
+    world::spawn::SpawnReason spawnReason = world::spawn::SpawnReason::ChunkGeneration;
 
     SpawnedEntityData() = default;
 
-    SpawnedEntityData(std::string typeId, f32 px, f32 py, f32 pz)
-        : entityTypeId(std::move(typeId)), x(px), y(py), z(pz) {}
+    SpawnedEntityData(std::string typeId, f32 px, f32 py, f32 pz,
+                      world::spawn::SpawnReason reason = world::spawn::SpawnReason::ChunkGeneration)
+        : entityTypeId(std::move(typeId)), x(px), y(py), z(pz), spawnReason(reason) {}
 };
 
 /**

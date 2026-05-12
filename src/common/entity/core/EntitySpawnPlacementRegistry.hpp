@@ -23,26 +23,114 @@ namespace world::spawn {
 /**
  * @brief 生成原因枚举
  *
- * 定义实体生成的各种原因，用于决定生成规则。
+ * 定义实体生成的各种原因，用于决定生成规则和实体初始化行为。
+ * 不同生成原因可能影响实体的初始状态和行为。
  *
- * 参考 MC 1.16.5 SpawnReason
+ * 参考 MC 1.16.5 net.minecraft.entity.SpawnReason
  */
 enum class SpawnReason : u8 {
-    Natural,            // 自然生成
-    ChunkGeneration,    // 区块生成时放置
-    SpawnEgg,           // 生成蛋
-    Spawner,            // 刷怪笼
-    Structure,          // 结构生成（如村民）
-    Breeding,           // 繁殖
-    Jockey,             // 骑乘生成
-    MobSummons,         // 召唤
-    Conversion,         // 转化（如僵尸村民）
-    Reinforcement,      // 增援（如僵尸召唤其他僵尸）
-    Trigger,            // 触发器
-    Bucket,             // 水桶释放
-    Dispenser,          // 发射器
-    Event               // 事件（如袭击）
+    /// 自然生成 - 常规的自然刷新生成
+    Natural,
+
+    /// 区块生成 - 区块首次生成时放置实体（如动物群）
+    ChunkGeneration,
+
+    /// 刷怪笼 - 由刷怪笼生成
+    Spawner,
+
+    /// 结构生成 - 由世界结构生成（如村民、掠夺者）
+    Structure,
+
+    /// 繁殖 - 通过繁殖产生（如动物幼崽、村民婴儿）
+    Breeding,
+
+    /// 召唤 - 被其他生物召唤（如恼鬼被唤魔者召唤、铁傀儡被村民召唤）
+    MobSummons,
+
+    /// 骑乘 - 作为骑乘者生成（如小僵尸骑鸡、蜘蛛骑士）
+    Jockey,
+
+    /// 事件 - 由游戏事件触发（如袭击、僵尸围城、流浪商人刷新）
+    Event,
+
+    /// 转化 - 由其他实体转化而来（如僵尸村民变村民、溺尸转化）
+    Conversion,
+
+    /// 增援 - 僵尸召唤增援
+    Reinforcement,
+
+    /// 触发 - 由特定条件触发（如骷髅陷阱马、三叉戟闪电）
+    Trigger,
+
+    /// 水桶 - 从水桶释放（如鱼、美西螈）
+    Bucket,
+
+    /// 刷怪蛋 - 使用刷怪蛋生成
+    SpawnEgg,
+
+    /// 命令 - 由 /summon 命令生成
+    Command,
+
+    /// 发射器 - 由发射器使用刷怪蛋或水桶生成
+    Dispenser,
+
+    /// 巡逻队 - 掠夺者巡逻队成员生成
+    Patrol
 };
+
+/**
+ * @brief 获取生成原因的名称字符串
+ *
+ * @param reason 生成原因
+ * @return 名称字符串（如 "natural", "chunk_generation"）
+ */
+[[nodiscard]] inline const char* getSpawnReasonName(SpawnReason reason) {
+    switch (reason) {
+        case SpawnReason::Natural:          return "natural";
+        case SpawnReason::ChunkGeneration:  return "chunk_generation";
+        case SpawnReason::Spawner:          return "spawner";
+        case SpawnReason::Structure:        return "structure";
+        case SpawnReason::Breeding:         return "breeding";
+        case SpawnReason::MobSummons:       return "mob_summons";
+        case SpawnReason::Jockey:           return "jockey";
+        case SpawnReason::Event:            return "event";
+        case SpawnReason::Conversion:       return "conversion";
+        case SpawnReason::Reinforcement:    return "reinforcement";
+        case SpawnReason::Trigger:          return "trigger";
+        case SpawnReason::Bucket:           return "bucket";
+        case SpawnReason::SpawnEgg:         return "spawn_egg";
+        case SpawnReason::Command:          return "command";
+        case SpawnReason::Dispenser:        return "dispenser";
+        case SpawnReason::Patrol:           return "patrol";
+        default:                            return "unknown";
+    }
+}
+
+/**
+ * @brief 根据名称字符串获取生成原因
+ *
+ * @param name 名称字符串（如 "natural", "chunk_generation"）
+ * @return 生成原因，如果名称无效返回 SpawnReason::Natural
+ */
+[[nodiscard]] inline SpawnReason getSpawnReasonByName(const std::string& name) {
+    if (name == "natural")          return SpawnReason::Natural;
+    if (name == "chunk_generation") return SpawnReason::ChunkGeneration;
+    if (name == "spawner")          return SpawnReason::Spawner;
+    if (name == "structure")        return SpawnReason::Structure;
+    if (name == "breeding")         return SpawnReason::Breeding;
+    if (name == "mob_summons")      return SpawnReason::MobSummons;
+    if (name == "jockey")           return SpawnReason::Jockey;
+    if (name == "event")            return SpawnReason::Event;
+    if (name == "conversion")       return SpawnReason::Conversion;
+    if (name == "reinforcement")    return SpawnReason::Reinforcement;
+    if (name == "trigger")          return SpawnReason::Trigger;
+    if (name == "bucket")           return SpawnReason::Bucket;
+    if (name == "spawn_egg")        return SpawnReason::SpawnEgg;
+    if (name == "command")          return SpawnReason::Command;
+    if (name == "dispenser")        return SpawnReason::Dispenser;
+    if (name == "patrol")           return SpawnReason::Patrol;
+    return SpawnReason::Natural;
+}
 
 /**
  * @brief 实体生成放置类型

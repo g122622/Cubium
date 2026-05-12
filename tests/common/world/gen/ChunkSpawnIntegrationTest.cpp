@@ -95,7 +95,7 @@ TEST_F(ChunkSpawnIntegrationTest, SpawnedEntityDataStructure) {
     EXPECT_FLOAT_EQ(data.x, 100.5f);
     EXPECT_FLOAT_EQ(data.y, 64.0f);
     EXPECT_FLOAT_EQ(data.z, 200.3f);
-    EXPECT_EQ(data.spawnReason, SpawnedEntityData::SPAWN_REASON_CHUNK_GENERATION);
+    EXPECT_EQ(data.spawnReason, world::spawn::SpawnReason::ChunkGeneration);
 }
 
 // 测试 SpawnedEntityData 默认构造
@@ -106,7 +106,7 @@ TEST_F(ChunkSpawnIntegrationTest, SpawnedEntityDataDefaultConstructor) {
     EXPECT_FLOAT_EQ(data.x, 0.0f);
     EXPECT_FLOAT_EQ(data.y, 0.0f);
     EXPECT_FLOAT_EQ(data.z, 0.0f);
-    EXPECT_EQ(data.spawnReason, SpawnedEntityData::SPAWN_REASON_CHUNK_GENERATION);
+    EXPECT_EQ(data.spawnReason, world::spawn::SpawnReason::ChunkGeneration);
 }
 
 // 测试 ChunkPrimer 存储生成实体
