@@ -11,12 +11,14 @@
 #include "common/world/blockentity/transport/HopperEntity.hpp"
 #include "common/world/blockentity/processing/FurnaceEntity.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <thread>
 #include <atomic>
 
 using namespace mc;
 using namespace mc::server;
+using namespace mc::blockentity;
 
 // ============================================================================
 // Mock 连接用于测试
@@ -670,4 +672,133 @@ TEST_F(ServerWorldTest, SetBlockEntity_DifferentBlockEntityTypes) {
     EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 0))->getType(), BlockEntityType::Furnace);
     EXPECT_EQ(world->getBlockEntity(BlockPos(1, 64, 0))->getType(), BlockEntityType::Hopper);
     EXPECT_EQ(world->getBlockEntity(BlockPos(2, 64, 0))->getType(), BlockEntityType::Sign);
+}
+
+// ============================================================================
+// 组件访问器测试
+// ============================================================================
+
+TEST_F(ServerWorldTest, CollisionCacheAccessor_ReturnsNullptrBeforeInitialize) {
+    // 初始化前碰撞缓存应该为 nullptr
+    EXPECT_EQ(world->collisionCache(), nullptr);
+}
+
+TEST_F(ServerWorldTest, CollisionCacheAccessor_ReturnsValidPointerAfterInitialize) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 初始化后碰撞缓存应该有效
+    auto* cache = world->collisionCache();
+    ASSERT_NE(cache, nullptr);
+}
+
+TEST_F(ServerWorldTest, CollisionCacheAccessor_ConstVersionWorks) {
+    ASSERT_TRUE(world->initialize().success());
+
+    const ServerWorld& constWorld = *world;
+    const auto* cache = constWorld.collisionCache();
+    ASSERT_NE(cache, nullptr);
+}
+
+TEST_F(ServerWorldTest, EntityManagerAccessor_ReturnsValidReference) {
+    // 即使未初始化，entityManager 也应该有效
+    auto& em = world->entityManager();
+    EXPECT_EQ(em.entityCount(), 0);
+}
+
+TEST_F(ServerWorldTest, EntityManagerAccessor_ConstVersionWorks) {
+    const ServerWorld& constWorld = *world;
+    const auto& em = constWorld.entityManager();
+    EXPECT_EQ(em.entityCount(), 0);
+}
+
+TEST_F(ServerWorldTest, ChunkManagerAccessor_ReturnsNullptrBeforeSetChunkManager) {
+    // 初始化前区块管理器应该为 nullptr
+    EXPECT_EQ(world->chunkManager(), nullptr);
+}
+
+TEST_F(ServerWorldTest, ChunkManagerAccessor_ReturnsValidPointerAfterInitialize) {
+    ASSERT_TRUE(world->initialize().success());
+
+    auto* cm = world->chunkManager();
+    ASSERT_NE(cm, nullptr);
+    EXPECT_EQ(cm->viewDistance(), 10);  // 配置中设置的值
+}
+
+// ============================================================================
+// 实体移除自动追踪测试
+// ============================================================================
+
+TEST_F(ServerWorldTest, RemoveEntity_AutoUntracksFromEntityTracker) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建一个简单实体
+    ItemStack stack;  // 空物品堆
+    auto entity = std::make_unique<ItemEntity>(EntityId(1), stack, 100.0f, 64.0f, 100.0f);
+    EntityId entityId = entity->id();
+
+    // 生成实体
+    EntityId spawnedId = world->spawnEntity(std::move(entity));
+    EXPECT_NE(spawnedId, EntityId(0));
+
+    // 验证实体的追踪器状态
+    EXPECT_TRUE(world->entityTracker().isTracking(entityId));
+
+    // 移除实体 - 应该自动从追踪器中移除
+    auto removedEntity = world->removeEntity(entityId);
+
+    // 验证实体被正确移除
+    ASSERT_NE(removedEntity, nullptr);
+    EXPECT_EQ(removedEntity->id(), entityId);
+
+    // 验证实体不再被追踪
+    EXPECT_FALSE(world->entityTracker().isTracking(entityId));
+
+    // 验证实体已从管理器中移除
+    EXPECT_EQ(world->entityManager().getEntity(entityId), nullptr);
+}
+
+TEST_F(ServerWorldTest, RemoveEntity_NonExistentEntity_ReturnsNullptr) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 移除不存在的实体应该返回 nullptr
+    auto result = world->removeEntity(EntityId(99999));
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(ServerWorldTest, RemoveEntity_MultipleEntities_OnlyTargetRemoved) {
+    ASSERT_TRUE(world->initialize().success());
+
+    // 创建多个实体
+    ItemStack stack;  // 空物品堆
+    auto entity1 = std::make_unique<ItemEntity>(EntityId(1), stack, 0.0f, 64.0f, 0.0f);
+    auto entity2 = std::make_unique<ItemEntity>(EntityId(2), stack, 10.0f, 64.0f, 10.0f);
+    auto entity3 = std::make_unique<ItemEntity>(EntityId(3), stack, 20.0f, 64.0f, 20.0f);
+
+    EntityId id1 = entity1->id();
+    EntityId id2 = entity2->id();
+    EntityId id3 = entity3->id();
+
+    world->spawnEntity(std::move(entity1));
+    world->spawnEntity(std::move(entity2));
+    world->spawnEntity(std::move(entity3));
+
+    // 验证所有实体都被追踪
+    EXPECT_TRUE(world->entityTracker().isTracking(id1));
+    EXPECT_TRUE(world->entityTracker().isTracking(id2));
+    EXPECT_TRUE(world->entityTracker().isTracking(id3));
+
+    // 移除中间的实体
+    auto removed = world->removeEntity(id2);
+    ASSERT_NE(removed, nullptr);
+    EXPECT_EQ(removed->id(), id2);
+
+    // 验证只有目标实体被移除和取消追踪
+    EXPECT_FALSE(world->entityTracker().isTracking(id2));
+    EXPECT_EQ(world->entityManager().getEntity(id2), nullptr);
+
+    // 验证其他实体仍然存在
+    EXPECT_TRUE(world->entityTracker().isTracking(id1));
+    EXPECT_TRUE(world->entityTracker().isTracking(id3));
+    EXPECT_NE(world->entityManager().getEntity(id1), nullptr);
+    EXPECT_NE(world->entityManager().getEntity(id3), nullptr);
 }
