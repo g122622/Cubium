@@ -350,7 +350,7 @@ void ServerChunkManager::saveChunkSections(const ChunkData& chunk)
         // 转换并保存Section
         auto dataResult = world::storage::SectionCodec::fromChunkSection(*section, sectionKey, biomes);
         if (dataResult.success()) {
-            auto saveResult = sectionMgr.saveSection(sectionKey, dataResult.value());
+            auto saveResult = sectionMgr.saveSectionSync(sectionKey, dataResult.value());
             if (saveResult.failed()) {
                 spdlog::warn("Failed to save section ({}, {}, {}): {}",
                              chunk.x(), sectionY, chunk.z(),
@@ -386,7 +386,7 @@ std::unique_ptr<ChunkData> ServerChunkManager::loadChunkFromStorage(ChunkCoord x
         world::storage::SectionKey sectionKey(x, z, sectionY, dimension);
 
         // 尝试加载Section
-        auto loadResult = sectionMgr.loadSection(sectionKey);
+        auto loadResult = sectionMgr.loadSectionSync(sectionKey);
         if (loadResult.failed() || !loadResult.value()) {
             continue;
         }

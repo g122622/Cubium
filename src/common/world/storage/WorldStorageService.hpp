@@ -65,7 +65,7 @@ struct WorldStorageConfig {
  * if (result.success()) {
  *     // 通过子服务访问
  *     auto& sectionMgr = storage.sectionManager(DimensionId::Overworld);
- *     auto data = sectionMgr.loadSection(key);
+ *     auto data = sectionMgr.loadSectionSync(key);
  *
  *     // 关闭存储
  *     storage.close();

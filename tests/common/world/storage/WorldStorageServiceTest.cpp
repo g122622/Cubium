@@ -123,11 +123,11 @@ TEST_F(WorldStorageServiceTest, SaveAndLoadSection)
     SectionKey key(0, 0, 0, 0);
     SectionData originalData = createTestSectionData(0, 0, 0, 0, 42);
 
-    auto saveResult = mgr.saveSection(key, originalData);
+    auto saveResult = mgr.saveSectionSync(key, originalData);
     ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
 
     // 加载 Section
-    auto loadResult = mgr.loadSection(key);
+    auto loadResult = mgr.loadSectionSync(key);
     ASSERT_TRUE(loadResult.success()) << loadResult.error().message();
 
     const auto loadedData = loadResult.value();
@@ -160,7 +160,7 @@ TEST_F(WorldStorageServiceTest, MultipleSections)
                 SectionData data = createTestSectionData(cx, cz, sy, 0,
                     static_cast<u32>(cx * 100 + cz * 10 + sy));
 
-                auto saveResult = mgr.saveSection(key, data);
+                auto saveResult = mgr.saveSectionSync(key, data);
                 ASSERT_TRUE(saveResult.success()) << "Failed to save section at (" << cx << ", " << cz << ", " << static_cast<int>(sy) << ")";
             }
         }
@@ -172,7 +172,7 @@ TEST_F(WorldStorageServiceTest, MultipleSections)
             for (i8 sy = 0; sy < 3; ++sy) {
                 SectionKey key(cx, cz, sy, 0);
 
-                auto loadResult = mgr.loadSection(key);
+                auto loadResult = mgr.loadSectionSync(key);
                 ASSERT_TRUE(loadResult.success());
 
                 const auto sectionSnapshot = loadResult.value();
@@ -201,7 +201,7 @@ TEST_F(WorldStorageServiceTest, FlushAllDirty)
     for (int i = 0; i < 10; ++i) {
         SectionKey key(i, 0, 0, 0);
         SectionData data = createTestSectionData(i, 0, 0, 0, i);
-        auto saveResult = mgr.saveSection(key, data);
+        auto saveResult = mgr.saveSectionSync(key, data);
         ASSERT_TRUE(saveResult.success());
     }
 
@@ -225,7 +225,7 @@ TEST_F(WorldStorageServiceTest, DifferentDimensions)
         auto& overworld = storage.sectionManager(0);  // Overworld
         SectionKey key(0, 0, 0, 0);
         SectionData data = createTestSectionData(0, 0, 0, 0, 1);
-        auto saveResult = overworld.saveSection(key, data);
+        auto saveResult = overworld.saveSectionSync(key, data);
         ASSERT_TRUE(saveResult.success());
     }
 
@@ -233,7 +233,7 @@ TEST_F(WorldStorageServiceTest, DifferentDimensions)
         auto& nether = storage.sectionManager(1);  // Nether
         SectionKey key(0, 0, 0, 1);
         SectionData data = createTestSectionData(0, 0, 0, 1, 2);
-        auto saveResult = nether.saveSection(key, data);
+        auto saveResult = nether.saveSectionSync(key, data);
         ASSERT_TRUE(saveResult.success());
     }
 
@@ -241,14 +241,14 @@ TEST_F(WorldStorageServiceTest, DifferentDimensions)
         auto& theEnd = storage.sectionManager(2);  // The End
         SectionKey key(0, 0, 0, 2);
         SectionData data = createTestSectionData(0, 0, 0, 2, 3);
-        auto saveResult = theEnd.saveSection(key, data);
+        auto saveResult = theEnd.saveSectionSync(key, data);
         ASSERT_TRUE(saveResult.success());
     }
 
     // 验证各维度数据独立
     {
         auto& overworld = storage.sectionManager(0);
-        auto loadResult = overworld.loadSection(SectionKey(0, 0, 0, 0));
+        auto loadResult = overworld.loadSectionSync(SectionKey(0, 0, 0, 0));
         ASSERT_TRUE(loadResult.success());
 
         const auto sectionSnapshot = loadResult.value();
@@ -258,7 +258,7 @@ TEST_F(WorldStorageServiceTest, DifferentDimensions)
 
     {
         auto& nether = storage.sectionManager(1);
-        auto loadResult = nether.loadSection(SectionKey(0, 0, 0, 1));
+        auto loadResult = nether.loadSectionSync(SectionKey(0, 0, 0, 1));
         ASSERT_TRUE(loadResult.success());
 
         const auto sectionSnapshot = loadResult.value();
@@ -268,7 +268,7 @@ TEST_F(WorldStorageServiceTest, DifferentDimensions)
 
     {
         auto& theEnd = storage.sectionManager(2);
-        auto loadResult = theEnd.loadSection(SectionKey(0, 0, 0, 2));
+        auto loadResult = theEnd.loadSectionSync(SectionKey(0, 0, 0, 2));
         ASSERT_TRUE(loadResult.success());
 
         const auto sectionSnapshot = loadResult.value();
@@ -294,7 +294,7 @@ TEST_F(WorldStorageServiceTest, ReopenPreservesData)
         SectionKey key(10, 20, 5, 0);
         SectionData data = createTestSectionData(10, 20, 5, 0, 999);
 
-        auto saveResult = mgr.saveSection(key, data);
+        auto saveResult = mgr.saveSectionSync(key, data);
         ASSERT_TRUE(saveResult.success());
 
         // 强制刷新
@@ -315,7 +315,7 @@ TEST_F(WorldStorageServiceTest, ReopenPreservesData)
         auto& mgr = storage.sectionManager(0);
 
         SectionKey key(10, 20, 5, 0);
-        auto loadResult = mgr.loadSection(key);
+        auto loadResult = mgr.loadSectionSync(key);
         ASSERT_TRUE(loadResult.success());
 
         const auto sectionSnapshot = loadResult.value();
@@ -344,10 +344,10 @@ TEST_F(WorldStorageServiceTest, SaveAllPreservesOverwrittenSectionSnapshot)
     SectionKey key(30, 40, 6, 0);
     SectionData data = createTestSectionData(30, 40, 6, 0, 123);
 
-    auto saveResult = mgr.saveSection(key, data);
+    auto saveResult = mgr.saveSectionSync(key, data);
     ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
 
-    auto loadResult = mgr.loadSection(key);
+    auto loadResult = mgr.loadSectionSync(key);
     ASSERT_TRUE(loadResult.success()) << loadResult.error().message();
 
     const auto initialSnapshot = loadResult.value();
@@ -356,7 +356,7 @@ TEST_F(WorldStorageServiceTest, SaveAllPreservesOverwrittenSectionSnapshot)
 
     // 通过正常保存覆盖同一 Section，验证已返回的快照仍保持原值。
     SectionData updatedData = createTestSectionData(30, 40, 6, 0, 777);
-    auto overwriteResult = mgr.saveSection(key, updatedData);
+    auto overwriteResult = mgr.saveSectionSync(key, updatedData);
     ASSERT_TRUE(overwriteResult.success()) << overwriteResult.error().message();
 
     EXPECT_EQ(initialSnapshot->getBlockStateId(0, 0, 0), 123u);
@@ -372,7 +372,7 @@ TEST_F(WorldStorageServiceTest, SaveAllPreservesOverwrittenSectionSnapshot)
         ASSERT_TRUE(reopenResult.success()) << reopenResult.error().message();
 
         auto& reopenedMgr = reopenedStorage.sectionManager(0);
-        auto reopenedLoadResult = reopenedMgr.loadSection(key);
+        auto reopenedLoadResult = reopenedMgr.loadSectionSync(key);
         ASSERT_TRUE(reopenedLoadResult.success()) << reopenedLoadResult.error().message();
         const auto reopenedSnapshot = reopenedLoadResult.value();
         ASSERT_NE(reopenedSnapshot, nullptr);
@@ -397,10 +397,10 @@ TEST_F(WorldStorageServiceTest, FlushAllDirtyPersistsOverwrittenSectionSnapshot)
     SectionKey key(50, 60, 7, 0);
     SectionData data = createTestSectionData(50, 60, 7, 0, 456);
 
-    auto saveResult = mgr.saveSection(key, data);
+    auto saveResult = mgr.saveSectionSync(key, data);
     ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
 
-    auto loadResult = mgr.loadSection(key);
+    auto loadResult = mgr.loadSectionSync(key);
     ASSERT_TRUE(loadResult.success()) << loadResult.error().message();
 
     const auto initialSnapshot = loadResult.value();
@@ -409,7 +409,7 @@ TEST_F(WorldStorageServiceTest, FlushAllDirtyPersistsOverwrittenSectionSnapshot)
 
     // 通过正常保存覆盖同一 Section，验证已返回的快照不受后续缓存替换影响。
     SectionData updatedData = createTestSectionData(50, 60, 7, 0, 888);
-    auto overwriteResult = mgr.saveSection(key, updatedData);
+    auto overwriteResult = mgr.saveSectionSync(key, updatedData);
     ASSERT_TRUE(overwriteResult.success()) << overwriteResult.error().message();
 
     EXPECT_EQ(initialSnapshot->getBlockStateId(0, 0, 0), 456u);
@@ -425,7 +425,7 @@ TEST_F(WorldStorageServiceTest, FlushAllDirtyPersistsOverwrittenSectionSnapshot)
         ASSERT_TRUE(reopenResult.success()) << reopenResult.error().message();
 
         auto& reopenedMgr = reopenedStorage.sectionManager(0);
-        auto reopenedLoadResult = reopenedMgr.loadSection(key);
+        auto reopenedLoadResult = reopenedMgr.loadSectionSync(key);
         ASSERT_TRUE(reopenedLoadResult.success()) << reopenedLoadResult.error().message();
         const auto reopenedSnapshot = reopenedLoadResult.value();
         ASSERT_NE(reopenedSnapshot, nullptr);
@@ -448,7 +448,7 @@ TEST_F(WorldStorageServiceTest, InvalidSectionKey)
 
     // 尝试加载不存在的 Section
     SectionKey nonexistentKey(99999, 99999, 15, 0);
-    auto loadResult = mgr.loadSection(nonexistentKey);
+    auto loadResult = mgr.loadSectionSync(nonexistentKey);
 
     // 应该返回 nullptr 表示不存在
     EXPECT_TRUE(loadResult.success());

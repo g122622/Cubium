@@ -108,7 +108,7 @@ public:
      * @param key Section标识
     * @return Section数据快照，失败返回错误
      */
-    Result<std::shared_ptr<const SectionData>> loadSection(const SectionKey& key);
+    Result<std::shared_ptr<const SectionData>> loadSectionSync(const SectionKey& key);
 
     /**
      * @brief 异步加载Section
@@ -130,7 +130,7 @@ public:
      * @param keys Section标识列表
      * @param callback 加载完成回调
      */
-    void loadSections(
+    void loadSectionsSync(
         const std::vector<SectionKey>& keys,
         LoadCallback callback
     );
@@ -149,7 +149,7 @@ public:
      * @param immediate 是否立即同步写入
      * @return 成功或错误
      */
-    Result<void> saveSection(
+    Result<void> saveSectionSync(
         const SectionKey& key,
         const SectionData& data,
         bool immediate = false

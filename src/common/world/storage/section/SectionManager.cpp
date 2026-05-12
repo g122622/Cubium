@@ -28,8 +28,8 @@ SectionManager::SectionManager(
 // Section加载
 // ============================================================================
 
-Result<std::shared_ptr<const SectionData>> SectionManager::loadSection(const SectionKey& key) {
-    MC_TRACE_EVENT("storage.section", "SectionManager::loadSection",
+Result<std::shared_ptr<const SectionData>> SectionManager::loadSectionSync(const SectionKey& key) {
+    MC_TRACE_EVENT("storage.section", "SectionManager::loadSectionSync",
                    "chunkX", key.chunkX,
                    "chunkZ", key.chunkZ,
                    "sectionY", static_cast<i32>(key.sectionY));
@@ -45,7 +45,7 @@ Result<std::shared_ptr<const SectionData>> SectionManager::loadSection(const Sec
     // 先检查缓存
     auto cached = m_cache.get(key);
     if (cached) {
-        MC_TRACE_EVENT("storage.section", "SectionManager::loadSection.cacheHit");
+        MC_TRACE_EVENT("storage.section", "SectionManager::loadSectionSync.cacheHit");
         return std::static_pointer_cast<const SectionData>(cached);
     }
 
@@ -71,12 +71,12 @@ std::future<Result<std::shared_ptr<const SectionData>>> SectionManager::loadSect
             return false;
         }
 
-        promise->set_value(loadSection(key));
+        promise->set_value(loadSectionSync(key));
         return true;
     };
 
     if (!m_taskManager) {
-        promise->set_value(loadSection(key));
+        promise->set_value(loadSectionSync(key));
         return future;
     }
 
@@ -85,15 +85,15 @@ std::future<Result<std::shared_ptr<const SectionData>>> SectionManager::loadSect
     return future;
 }
 
-void SectionManager::loadSections(
+void SectionManager::loadSectionsSync(
     const std::vector<SectionKey>& keys,
     LoadCallback callback
 ) {
-    MC_TRACE_EVENT("storage.section", "SectionManager::loadSections",
+    MC_TRACE_EVENT("storage.section", "SectionManager::loadSectionsSync",
                    "count", keys.size());
 
     for (const auto& key : keys) {
-        auto result = loadSection(key);
+        auto result = loadSectionSync(key);
         callback(key, result.success() ? result.value() : nullptr);
     }
 }
@@ -102,12 +102,12 @@ void SectionManager::loadSections(
 // Section保存
 // ============================================================================
 
-Result<void> SectionManager::saveSection(
+Result<void> SectionManager::saveSectionSync(
     const SectionKey& key,
     const SectionData& data,
     bool immediate
 ) {
-    MC_TRACE_EVENT("storage.section", "SectionManager::saveSection",
+    MC_TRACE_EVENT("storage.section", "SectionManager::saveSectionSync",
                    "chunkX", key.chunkX,
                    "chunkZ", key.chunkZ,
                    "sectionY", static_cast<i32>(key.sectionY),
@@ -159,12 +159,12 @@ std::future<Result<void>> SectionManager::saveSectionAsync(
             return false;
         }
 
-        promise->set_value(saveSection(key, data));
+        promise->set_value(saveSectionSync(key, data));
         return true;
     };
 
     if (!m_taskManager) {
-        promise->set_value(saveSection(key, data));
+        promise->set_value(saveSectionSync(key, data));
         return future;
     }
 
@@ -261,7 +261,7 @@ Result<size_t> SectionManager::saveAll() {
             continue;
         }
 
-        auto result = saveSection(key, *data, false);
+        auto result = saveSectionSync(key, *data, false);
         if (result.success()) {
             ++savedCount;
         }
@@ -287,7 +287,7 @@ Result<void> SectionManager::unloadSection(const SectionKey& key) {
     if (isDirty) {
         auto data = m_cache.get(key);
         if (data) {
-            auto saveResult = saveSection(key, *data, false);
+            auto saveResult = saveSectionSync(key, *data, false);
             if (!saveResult.success()) {
                 return saveResult;
             }
