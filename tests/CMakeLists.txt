@@ -259,6 +259,10 @@ add_executable(mc_tests
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
     common/entity/loot/LootSerializersTest.cpp
+    # SetStewEffectFunction 测试
+    common/entity/loot/SetStewEffectTest.cpp
+    # EffectType 工具函数测试
+    common/entity/effect/EffectTypeTest.cpp
     common/world/gen/WorldGenSpawnerTest.cpp
     common/world/gen/OceanFeatureTest.cpp
     common/world/gen/WaterContentRegistryTest.cpp

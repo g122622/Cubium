@@ -1,7 +1,9 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include "../../resource/ResourceLocation.hpp"
 #include <string>
+#include <optional>
 
 namespace mc {
 namespace entity {
@@ -66,6 +68,50 @@ enum class EffectType : u8 {
  * @brief 获取效果默认颜色
  */
 [[nodiscard]] u32 getEffectColor(EffectType type);
+
+/**
+ * @brief 从数值ID获取效果类型
+ *
+ * @param id 效果ID（1-32）
+ * @return 效果类型，如果ID无效返回 std::nullopt
+ */
+[[nodiscard]] std::optional<EffectType> getEffectById(i32 id) noexcept;
+
+/**
+ * @brief 从资源位置获取效果类型
+ *
+ * 支持 "minecraft:speed" 格式或简写 "speed" 格式。
+ *
+ * @param id 资源位置
+ * @return 效果类型，如果未找到返回 std::nullopt
+ */
+[[nodiscard]] std::optional<EffectType> getEffectByResourceLocation(const ResourceLocation& id) noexcept;
+
+/**
+ * @brief 获取效果的资源位置
+ *
+ * @param type 效果类型
+ * @return 资源位置（如 "minecraft:speed"）
+ */
+[[nodiscard]] ResourceLocation getEffectResourceLocation(EffectType type) noexcept;
+
+/**
+ * @brief 获取效果的资源名称（不含命名空间）
+ *
+ * @param type 效果类型
+ * @return 资源名称（如 "speed"）
+ */
+[[nodiscard]] const char* getEffectResourceName(EffectType type) noexcept;
+
+/**
+ * @brief 检查效果是否为瞬间效果
+ *
+ * 瞬间效果包括：瞬间治疗、瞬间伤害、饱和
+ *
+ * @param type 效果类型
+ * @return 如果是瞬间效果返回 true
+ */
+[[nodiscard]] bool isInstantEffect(EffectType type) noexcept;
 
 } // namespace effect
 } // namespace entity

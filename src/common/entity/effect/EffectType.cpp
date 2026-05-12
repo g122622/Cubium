@@ -1,8 +1,98 @@
 #include "EffectType.hpp"
+#include <algorithm>
+#include <unordered_map>
 
 namespace mc {
 namespace entity {
 namespace effect {
+
+// ============================================================================
+// 效果名称映射
+// ============================================================================
+
+namespace {
+
+/// 效果资源名称映射（不含命名空间）
+const std::unordered_map<std::string, EffectType> s_effectResourceNameMap = {
+    {"speed", EffectType::Speed},
+    {"slowness", EffectType::Slowness},
+    {"haste", EffectType::Haste},
+    {"mining_fatigue", EffectType::MiningFatigue},
+    {"strength", EffectType::Strength},
+    {"instant_health", EffectType::InstantHealth},
+    {"instant_damage", EffectType::InstantDamage},
+    {"jump_boost", EffectType::JumpBoost},
+    {"nausea", EffectType::Nausea},
+    {"regeneration", EffectType::Regeneration},
+    {"resistance", EffectType::Resistance},
+    {"fire_resistance", EffectType::FireResistance},
+    {"water_breathing", EffectType::WaterBreathing},
+    {"invisibility", EffectType::Invisibility},
+    {"blindness", EffectType::Blindness},
+    {"night_vision", EffectType::NightVision},
+    {"hunger", EffectType::Hunger},
+    {"weakness", EffectType::Weakness},
+    {"poison", EffectType::Poison},
+    {"wither", EffectType::Wither},
+    {"health_boost", EffectType::HealthBoost},
+    {"absorption", EffectType::Absorption},
+    {"saturation", EffectType::Saturation},
+    {"glowing", EffectType::Glowing},
+    {"levitation", EffectType::Levitation},
+    {"luck", EffectType::Luck},
+    {"bad_luck", EffectType::BadLuck},
+    {"slow_falling", EffectType::SlowFalling},
+    {"conduit_power", EffectType::ConduitPower},
+    {"dolphins_grace", EffectType::DolphinsGrace},
+    {"bad_omen", EffectType::BadOmen},
+    {"hero_of_the_village", EffectType::HeroOfTheVillage},
+};
+
+/// 效果类型到资源名称的映射
+const char* s_effectResourceNames[] = {
+    "",  // 0 - 无效
+    "speed",              // 1
+    "slowness",           // 2
+    "haste",              // 3
+    "mining_fatigue",     // 4
+    "strength",           // 5
+    "instant_health",     // 6
+    "instant_damage",     // 7
+    "jump_boost",         // 8
+    "nausea",             // 9
+    "regeneration",       // 10
+    "resistance",         // 11
+    "fire_resistance",    // 12
+    "water_breathing",    // 13
+    "invisibility",       // 14
+    "blindness",          // 15
+    "night_vision",       // 16
+    "hunger",             // 17
+    "weakness",           // 18
+    "poison",             // 19
+    "wither",             // 20
+    "health_boost",       // 21
+    "absorption",         // 22
+    "saturation",         // 23
+    "glowing",            // 24
+    "levitation",         // 25
+    "luck",               // 26
+    "bad_luck",           // 27
+    "slow_falling",       // 28
+    "conduit_power",      // 29
+    "dolphins_grace",     // 30
+    "bad_omen",           // 31
+    "hero_of_the_village", // 32
+};
+
+/// 效果类型数量（不包括 0）
+constexpr i32 EFFECT_COUNT = 32;
+
+} // namespace
+
+// ============================================================================
+// 显示名称
+// ============================================================================
 
 const char* getEffectName(EffectType type) {
     switch (type) {
@@ -106,6 +196,53 @@ u32 getEffectColor(EffectType type) {
         case EffectType::HeroOfTheVillage: return 0x44FF44;
         default: return 0xFFFFFF;
     }
+}
+
+// ============================================================================
+// ID 转换函数
+// ============================================================================
+
+std::optional<EffectType> getEffectById(i32 id) noexcept {
+    if (id < 1 || id > EFFECT_COUNT) {
+        return std::nullopt;
+    }
+    return static_cast<EffectType>(id);
+}
+
+std::optional<EffectType> getEffectByResourceLocation(const ResourceLocation& id) noexcept {
+    // 尝试直接匹配路径（不含命名空间）
+    std::string path = id.path();
+    std::transform(path.begin(), path.end(), path.begin(),
+        [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
+
+    auto it = s_effectResourceNameMap.find(path);
+    if (it != s_effectResourceNameMap.end()) {
+        return it->second;
+    }
+
+    // 尝试下划线转换（处理 "nightVision" -> "night_vision" 等）
+    // Minecraft 使用 snake_case 格式
+    return std::nullopt;
+}
+
+ResourceLocation getEffectResourceLocation(EffectType type) noexcept {
+    const char* name = getEffectResourceName(type);
+    return ResourceLocation("minecraft", name);
+}
+
+const char* getEffectResourceName(EffectType type) noexcept {
+    const i32 id = static_cast<i32>(type);
+    if (id < 1 || id > EFFECT_COUNT) {
+        return "unknown";
+    }
+    return s_effectResourceNames[id];
+}
+
+bool isInstantEffect(EffectType type) noexcept {
+    // MC 1.16.5: 瞬间效果包括瞬间治疗、瞬间伤害、饱和
+    return type == EffectType::InstantHealth ||
+           type == EffectType::InstantDamage ||
+           type == EffectType::Saturation;
 }
 
 } // namespace effect
