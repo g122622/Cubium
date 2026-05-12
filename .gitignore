@@ -108,3 +108,9 @@ saves/
 *.maf
 *.mtc
 *.mtc0
+
+# Server runtime files
+ops.json
+banned-players.json
+banned-ips.json
+whitelist.json
