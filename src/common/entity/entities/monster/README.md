@@ -234,16 +234,50 @@ Entity
 **参考**: `src/common/entity/entities/monster/ocean/README.md`
 
 ### illager/ - 灾厄村民
-| 实体 | 说明 | 特殊行为 |
-|------|------|----------|
-| AbstractIllagerEntity | 灾厄村民基类 | 手臂姿势状态 |
-| VindicatorEntity | 卫道士 | 斧头近战攻击 |
-| EvokerEntity | 唤魔者 | 尖牙攻击、召唤恼鬼 |
-| IllusionerEntity | 幻术师 | 分身、失明攻击 |
-| PillagerEntity | 掠夺者 | 弩远程攻击 |
-| RavagerEntity | 劫掠兽 | 冲撞攻击、破坏方块 |
-| VexEntity | 恼鬼 | 穿墙飞行、小碰撞箱 |
-| WitchEntity | 女巫 | 药水攻击、治疗 |
+| 实体 | 说明 | 特殊行为 | 实现状态 |
+|------|------|----------|---------|
+| AbstractIllagerEntity | 灾厄村民基类 | 手臂姿势状态 | ✅ 完成 |
+| VindicatorEntity | 卫道士 | 斧头近战攻击 | ✅ 属性已修复 |
+| EvokerEntity | 唤魔者 | 尖牙攻击、召唤恼鬼 | ✅ 属性已修复 |
+| IllusionerEntity | 幻术师 | 分身、失明攻击 | ⏳ 框架完成 |
+| PillagerEntity | 掠夺者 | 弩远程攻击 | ✅ 属性已修复 |
+| RavagerEntity | 劫掠兽 | 冲撞攻击、破坏方块 | ⏳ 框架完成 |
+| VexEntity | 恼鬼 | **穿墙飞行**、有限生命 | ✅ 完成 |
+| WitchEntity | 女巫 | 药水攻击、治疗 | ✅ 完成 |
+
+#### 恼鬼 (VexEntity) 详细实现
+
+恼鬼是由唤魔者召唤的小型飞行敌对生物，具有独特的穿墙能力。
+
+**核心特性**:
+| 特性 | 值 |
+|------|-----|
+| 宽度/高度 | 0.4f / 0.8f |
+| 最大生命值 | 14.0 |
+| 攻击伤害 | 4.0 (铁剑) |
+| 飞行能力 | canFly() = true |
+| 日光燃烧 | shouldBurnInDaylight() = false |
+
+**穿墙实现** (MC 1.16.5 VexEntity.tick() 行 62-71):
+```cpp
+void VexEntity::tick() {
+    setNoClip(true);          // 启用穿墙
+    MonsterEntity::tick();
+    setNoClip(false);         // 关闭穿墙
+    setNoGravity(true);       // 始终无重力
+
+    // 有限生命机制
+    if (m_limitedLife && m_lifeTime > 0) {
+        m_lifeTime--;
+        if (m_lifeTime <= 0) {
+            m_lifeTime = 20;  // 重置防止连续伤害
+            hurt(DamageSources::starve(), 1.0f);
+        }
+    }
+}
+```
+
+详细文档见 `illager/README.md`
 
 ## 属性值对齐状态
 
