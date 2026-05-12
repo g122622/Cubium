@@ -662,6 +662,15 @@ public:
     }
 
     /**
+     * @brief 通知世界方块被放置
+     *
+     * 重写 IWorld::onBlockPlaced()，发布 BlockPlaceEvent 用于进度触发。
+     * 参考 MC 1.16.5: CriteriaTriggers.PLACED_BLOCK.trigger()
+     */
+    void onBlockPlaced(PlayerId playerId, const BlockPos& pos,
+                       const BlockState* state, const ItemStack* item) override;
+
+    /**
      * @brief 检查并处理全员睡眠
      *
      * 在 tick() 中调用，检查是否所有玩家都完全入睡，

@@ -8,6 +8,7 @@
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
 #include "common/advancement/trigger/impl/PlayerKilledEntityTrigger.hpp"
+#include "common/advancement/trigger/impl/BlockTriggers.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -94,6 +95,14 @@ public:
                 }
             );
 
+        // 订阅方块放置事件
+        m_blockPlaceSubscription =
+            event::ServerEventBus::instance().makeSubscription<event::BlockPlaceEvent>(
+                [this](const event::BlockPlaceEvent& e) {
+                    onBlockPlaced(e);
+                }
+            );
+
         initialized_ = true;
     }
 
@@ -106,6 +115,7 @@ public:
         m_inventoryChangedSubscription.unsubscribe();
         m_playerKillSubscription.unsubscribe();
         m_playerLoginSubscription.unsubscribe();
+        m_blockPlaceSubscription.unsubscribe();
         initialized_ = false;
     }
 
@@ -220,6 +230,61 @@ private:
     }
 
     /**
+     * @brief 处理方块放置事件
+     *
+     * 触发 PlacedBlockTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.PLACED_BLOCK.trigger()
+     */
+    void onBlockPlaced(const event::BlockPlaceEvent& e) {
+        // 获取触发器
+        auto* trigger = mc::advancement::CriterionTriggers::instance()
+            .getTrigger<mc::advancement::PlacedBlockTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 检查玩家ID是否有效（可能为0表示非玩家放置）
+        if (e.playerId == 0) {
+            return;
+        }
+
+        // 检查方块状态是否有效
+        if (e.state == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 获取世界引用（用于 LocationPredicate 检测）
+        mc::ServerWorld* world = serverPlayer->getWorld();
+        if (world == nullptr) {
+            return;
+        }
+
+        // 获取使用的物品（可能为null）
+        const mc::ItemStack item = e.item != nullptr ? *e.item : mc::ItemStack();
+
+        // 触发检测 - 使用基类模板方法
+        trigger->AbstractCriterionTrigger<mc::advancement::PlacedBlockTriggerInstance>::trigger(
+            *advancements,
+            [&e, world, &item](const mc::advancement::PlacedBlockTriggerInstance& instance) {
+                return instance.test(*e.state, *world, e.pos, item);
+            }
+        );
+    }
+
+    /**
      * @brief 从 PlayerId 获取 ServerPlayer
      * @param playerId 玩家ID
      * @return ServerPlayer 指针，如果未找到返回 nullptr
@@ -252,6 +317,7 @@ private:
     event::ServerEventBus::Subscription<event::InventoryChangedEvent> m_inventoryChangedSubscription;
     event::ServerEventBus::Subscription<event::PlayerKillEntityEvent> m_playerKillSubscription;
     event::ServerEventBus::Subscription<event::PlayerLoginEvent> m_playerLoginSubscription;
+    event::ServerEventBus::Subscription<event::BlockPlaceEvent> m_blockPlaceSubscription;
 
     // 服务器接口（用于获取 ServerPlayerEntityManager 和 ServerWorld）
     IServer* m_server = nullptr;

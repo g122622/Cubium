@@ -5,6 +5,7 @@
 #include "impl/EffectTriggers.hpp"
 #include "impl/EntityTriggers.hpp"
 #include "impl/PlayerKilledEntityTrigger.hpp"
+#include "impl/BlockTriggers.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::advancement {
@@ -63,9 +64,8 @@ void CriterionTriggers::registerBuiltinTriggers() {
     registerTrigger(std::make_unique<PlayerKilledEntityTrigger>());
     registerTrigger(std::make_unique<EntityKilledPlayerTrigger>());
 
-    // [TODO 阶段3+4：触发器完善] 注册更多触发器
-    // registerTrigger(std::make_unique<LocationTrigger>());
-    // 等等...
+    // 注册方块相关触发器
+    registerTrigger(std::make_unique<PlacedBlockTrigger>());
 
     spdlog::info("Registered {} builtin triggers", m_triggers.size());
 }

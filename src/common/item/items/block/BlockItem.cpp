@@ -87,10 +87,11 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const {
         // 注意：需要使用 const_cast 因为 onBlockPlacedBy 是非 const 方法
         const_cast<Block&>(*m_block).onBlockPlacedBy(world, pos, *actualState);
 
-        // TODO: 触发进度触发器
-        // if (player != nullptr) {
-        //     CriteriaTriggers.PLACED_BLOCK.trigger(player, pos, stack);
-        // }
+        // 触发进度触发器
+        // 参考 MC 1.16.5: BlockItem.onItemUse() 中的 CriteriaTriggers.PLACED_BLOCK.trigger()
+        if (player != nullptr) {
+            world.onBlockPlaced(static_cast<PlayerId>(player->id()), pos, actualState, &stack);
+        }
     }
 
     // 播放放置音效

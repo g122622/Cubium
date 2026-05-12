@@ -40,14 +40,18 @@ struct BlockBreakEvent : ServerEvent {
 
 /**
  * @brief 方块放置事件
+ *
+ * 当玩家成功放置方块时触发。
+ * 参考 MC 1.16.5: CriteriaTriggers.PLACED_BLOCK
  */
 struct BlockPlaceEvent : ServerEvent {
-    PlayerId playerId;           ///< 放置者ID
+    PlayerId playerId;           ///< 放置者ID（可能为0表示非玩家放置）
     BlockPos pos;                ///< 方块位置
     const BlockState* state;     ///< 放置的方块状态
+    const ItemStack* item;       ///< 使用的物品（可能为null）
 
-    BlockPlaceEvent(u64 tick, PlayerId pid, const BlockPos& p, const BlockState* s)
-        : ServerEvent(tick), playerId(pid), pos(p), state(s) {}
+    BlockPlaceEvent(u64 tick, PlayerId pid, const BlockPos& p, const BlockState* s, const ItemStack* i = nullptr)
+        : ServerEvent(tick), playerId(pid), pos(p), state(s), item(i) {}
 };
 
 /**

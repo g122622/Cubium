@@ -26,6 +26,7 @@ class Block;
 class IRandom;
 class BlockEntity;
 class Player;
+class ItemStack;
 enum class Direction : u8;
 enum class ContainerType : u8;
 
@@ -874,6 +875,31 @@ public:
      * 参考 MC 1.16.5: ServerWorld.updateAllPlayersSleepingFlag()
      */
     virtual void onPlayerSleepingChanged() {
+        // 默认空实现
+    }
+
+    // ========== 进度触发 ==========
+
+    /**
+     * @brief 通知世界方块被放置
+     *
+     * 当玩家成功放置方块时调用，用于触发进度检测。
+     * ServerWorld 重写此方法来发布 BlockPlaceEvent。
+     * ClientWorld 和其他实现返回空实现。
+     *
+     * 参考 MC 1.16.5: BlockItem.onItemUse() 中的 CriteriaTriggers.PLACED_BLOCK.trigger()
+     *
+     * @param playerId 放置方块的玩家ID（可能为0表示非玩家放置）
+     * @param pos 方块位置
+     * @param state 放置的方块状态
+     * @param item 用于放置的物品（可能为null）
+     */
+    virtual void onBlockPlaced(PlayerId playerId, const BlockPos& pos,
+                               const BlockState* state, const ItemStack* item) {
+        (void)playerId;
+        (void)pos;
+        (void)state;
+        (void)item;
         // 默认空实现
     }
 

@@ -58,7 +58,7 @@ nlohmann::json EnterBlockTriggerInstance::conditionsToJson() const {
 
 // ========== EnterBlockTrigger ==========
 
-Result<std::shared_ptr<EnterBlockTriggerInstance>> EnterBlockTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> EnterBlockTrigger::fromJson(const nlohmann::json& json) {
     auto instance = std::make_shared<EnterBlockTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -159,7 +159,7 @@ nlohmann::json PlacedBlockTriggerInstance::conditionsToJson() const {
 
 // ========== PlacedBlockTrigger ==========
 
-Result<std::shared_ptr<PlacedBlockTriggerInstance>> PlacedBlockTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> PlacedBlockTrigger::fromJson(const nlohmann::json& json) {
     auto instance = std::make_shared<PlacedBlockTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -216,7 +216,7 @@ nlohmann::json SlideDownBlockTriggerInstance::conditionsToJson() const {
 
 // ========== SlideDownBlockTrigger ==========
 
-Result<std::shared_ptr<SlideDownBlockTriggerInstance>> SlideDownBlockTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> SlideDownBlockTrigger::fromJson(const nlohmann::json& json) {
     auto instance = std::make_shared<SlideDownBlockTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {
@@ -302,7 +302,7 @@ nlohmann::json BeeNestDestroyedTriggerInstance::conditionsToJson() const {
 
 // ========== BeeNestDestroyedTrigger ==========
 
-Result<std::shared_ptr<BeeNestDestroyedTriggerInstance>> BeeNestDestroyedTrigger::fromJson(const nlohmann::json& json) {
+Result<std::shared_ptr<ICriterionInstance>> BeeNestDestroyedTrigger::fromJson(const nlohmann::json& json) {
     auto instance = std::make_shared<BeeNestDestroyedTriggerInstance>();
     auto result = instance->fromJson(json);
     if (result.failed()) {

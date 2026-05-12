@@ -7,6 +7,8 @@
 #include "ServerChunkManager.hpp"
 #include "weather/WeatherManager.hpp"
 #include "server/core/TimeManager.hpp"
+#include "server/event/ServerEventBus.hpp"
+#include "server/event/events/ServerEvents.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
@@ -1628,6 +1630,20 @@ void ServerWorld::wakeUpAllPlayers() {
     }
 
     m_allPlayersSleeping = false;
+}
+
+void ServerWorld::onBlockPlaced(PlayerId playerId, const BlockPos& pos,
+                                 const BlockState* state, const ItemStack* item) {
+    // 发布 BlockPlaceEvent 用于进度触发
+    // 参考 MC 1.16.5: CriteriaTriggers.PLACED_BLOCK.trigger()
+    event::BlockPlaceEvent event{
+        currentTick(),
+        playerId,
+        pos,
+        state,
+        item
+    };
+    event::ServerEventBus::instance().publish(event);
 }
 
 } // namespace mc::server

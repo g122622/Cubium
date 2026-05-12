@@ -34,7 +34,7 @@ public:
         return ResourceLocation(TRIGGER_ID);
     }
 
-    [[nodiscard]] Result<std::shared_ptr<EnterBlockTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     /**
      * @brief 触发检测
@@ -88,7 +88,7 @@ public:
         return ResourceLocation(TRIGGER_ID);
     }
 
-    [[nodiscard]] Result<std::shared_ptr<PlacedBlockTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(
         class ServerPlayer& player,
@@ -141,7 +141,7 @@ public:
         return ResourceLocation(TRIGGER_ID);
     }
 
-    [[nodiscard]] Result<std::shared_ptr<SlideDownBlockTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(class ServerPlayer& player, const BlockState& state);
 };
@@ -178,7 +178,7 @@ public:
         return ResourceLocation(TRIGGER_ID);
     }
 
-    [[nodiscard]] Result<std::shared_ptr<BeeNestDestroyedTriggerInstance>> fromJson(const nlohmann::json& json);
+    [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(
         class ServerPlayer& player,
