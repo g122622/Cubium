@@ -18,6 +18,7 @@ src/server/core/
 ├── WhitelistManager.hpp/cpp  # 白名单管理器
 ├── BannedPlayerList.hpp/cpp  # 玩家封禁列表管理器
 ├── BannedIpList.hpp/cpp      # IP 封禁列表管理器
+├── OpListManager.hpp/cpp     # OP 权限列表管理器
 └── PacketHandler.hpp/cpp     # 统一数据包处理器
 ```
 
@@ -530,6 +531,118 @@ if (ipBanList.isBanned("192.168.1.100")) {
 
 ---
 
+### OpListManager.hpp/cpp
+
+OP（操作员）权限列表管理器，负责服务器 OP 权限的管理。
+
+**职责：**
+- 添加/移除 OP 权限
+- 从文件加载/保存 OP 列表
+- 检查玩家是否为 OP
+- 查询 OP 权限等级
+
+**数据结构：**
+```cpp
+/**
+ * @brief OP 权限等级
+ *
+ * 参考 MC 1.16.5 net.minecraft.server.MinecraftServer 中的权限等级定义
+ */
+enum class OpLevel : u8 {
+    Normal = 0,      // 普通玩家，无特殊权限
+    Moderator = 1,   // 管理员：绕过出生点保护
+    GameMaster = 2,  // 游戏管理员：使用命令方块、调试棒等（默认 OP 等级）
+    Admin = 3,       // 高级管理员：管理其他玩家、使用危险命令
+    Owner = 4        // 服务器所有者：所有权限
+};
+
+/**
+ * @brief OP 条目
+ */
+struct OpEntry {
+    std::string uuid;                // 玩家 UUID
+    std::string name;                // 玩家名称
+    OpLevel level = OpLevel::GameMaster;  // 权限等级
+    bool bypassesPlayerLimit = false;      // 是否绕过玩家数量限制
+};
+```
+
+**存储格式（JSON 数组，与 MC 1.16.5 完全兼容）：**
+```json
+[
+  {
+    "uuid": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Admin",
+    "level": 4,
+    "bypassesPlayerLimit": true
+  },
+  {
+    "uuid": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+    "name": "Moderator",
+    "level": 2,
+    "bypassesPlayerLimit": false
+  }
+]
+```
+
+**主要方法：**
+| 方法 | 描述 |
+|------|------|
+| `setEntry(entry)` | 添加或更新 OP 条目 |
+| `removeEntry(uuid)` | 通过 UUID 移除 OP |
+| `isOp(uuid)` | 检查玩家是否为 OP |
+| `getLevel(uuid)` | 获取 OP 权限等级（非 OP 返回 Normal） |
+| `getEntry(uuid)` | 获取 OP 条目 |
+| `getAllEntries()` | 获取所有 OP 条目 |
+| `size()` | 获取 OP 数量 |
+| `empty()` | 检查列表是否为空 |
+| `clear()` | 清空 OP 列表 |
+| `load(path)` | 从文件加载 OP 列表 |
+| `save(path)` | 保存 OP 列表到文件 |
+| `reload()` | 重新加载 OP 列表 |
+| `filePath()` | 获取当前文件路径 |
+
+**使用示例：**
+```cpp
+OpListManager opList;
+opList.load("ops.json");
+
+// 添加 OP（默认等级 2）
+OpEntry entry(
+    "uuid-123",              // UUID
+    "Player1",               // 名称
+    OpLevel::GameMaster,     // 权限等级
+    false                    // 不绕过玩家限制
+);
+opList.setEntry(entry);
+opList.save();  // 保存更改
+
+// 检查玩家是否为 OP
+if (opList.isOp(uuid)) {
+    OpLevel level = opList.getLevel(uuid);
+    // 根据 level 判断权限
+}
+
+// 移除 OP
+opList.removeEntry(uuid);
+opList.save();
+```
+
+**权限等级对应命令权限：**
+| 等级 | 权限 |
+|------|------|
+| 0 (Normal) | 基础命令 |
+| 1 (Moderator) | 绕过出生点保护 |
+| 2 (GameMaster) | 命令方块、调试棒、选择器 |
+| 3 (Admin) | 管理其他玩家、封禁、白名单 |
+| 4 (Owner) | 所有命令、停止服务器、op/deop |
+
+**线程安全：**
+- 所有公共方法都是线程安全的
+- 使用 `std::mutex` 保护内部数据结构
+
+---
+
 ### PacketHandler.hpp/cpp
 
 统一数据包处理器，协调各管理器处理入站数据包。
@@ -606,6 +719,22 @@ enum class PacketHandleResult {
                        ┌─────────────────────┐
                        │   GameModeManager   │
                        │   (游戏模式管理)     │
+                       └─────────────────────┘
+                                  │
+         ┌────────────────────────┼────────────────────────┐
+         │                        │                        │
+         ▼                        ▼                        ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│ WhitelistManager│     │BannedPlayerList │     │  OpListManager  │
+│   (白名单管理)   │     │  (玩家封禁管理)  │     │  (OP权限管理)   │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+         │                        │                        │
+         └────────────────────────┴────────────────────────┘
+                                  │
+                                  ▼
+                       ┌─────────────────────┐
+                       │   BannedIpList      │
+                       │   (IP封禁管理)       │
                        └─────────────────────┘
 ```
 
@@ -850,6 +979,7 @@ if (playerId == 0) {
 | `WhitelistManagerTest.cpp` | 白名单启用/禁用、条目管理、文件加载/保存 |
 | `BannedPlayerListTest.cpp` | 玩家封禁条目管理、文件加载/保存、过期检查 |
 | `BannedIpListTest.cpp` | IP 封禁条目管理、文件加载/保存、过期检查 |
+| `OpListManagerTest.cpp` | OP 权限管理、条目增删改查、文件加载/保存 |
 
 ### 运行测试
 

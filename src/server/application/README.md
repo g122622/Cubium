@@ -24,6 +24,7 @@ src/server/application/
 - `IServer` - Pure abstract interface class that provides:
   - Lifecycle management: `initialize()`, `shutdown()`, `tick()`, `isRunning()`
   - Core managers access: `playerManager()`, `connectionManager()`, `timeManager()`, `teleportManager()`, `keepAliveManager()`, `positionTracker()`, `packetHandler()`, `gameModeManager()`
+  - Permission managers access: `whitelistManager()`, `bannedPlayerList()`, `bannedIpList()`, `opListManager()`
   - World managers access: `world()`, `chunkManager()`, `lightManager()`, `entityManager()`, `entityTracker()`, `physicsEngine()`, `weatherManager()`, `itemPickupManager()`
   - Interaction managers access: `blockInteractionManager()`, `miningManager()`, `containerManager()`, `inventoryManager()`
     - Player inventory access: `playerInventory(playerId)`
