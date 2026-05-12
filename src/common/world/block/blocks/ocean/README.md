@@ -12,7 +12,8 @@ ocean/
 ├── SeagrassBlock.hpp/cpp  # 海草方块
 ├── TallSeagrassBlock.hpp/cpp # 高海草方块
 ├── BubbleColumnBlock.hpp/cpp # 气泡柱方块
-└── DriedKelpBlock.hpp/cpp # 干海带块和潮涌核心
+├── DriedKelpBlock.hpp/cpp # 干海带块
+└── ConduitBlock.hpp/cpp   # 潮涌核心
 ```
 
 ## 方块类型

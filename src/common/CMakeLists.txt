@@ -529,6 +529,7 @@ add_library(mc_common STATIC
     world/block/blocks/ocean/TallSeagrassBlock.cpp
     world/block/blocks/ocean/BubbleColumnBlock.cpp
     world/block/blocks/ocean/DriedKelpBlock.cpp
+    world/block/blocks/ocean/ConduitBlock.cpp
     world/block/blocks/SignBlock.cpp
 
     # World - Block - Nether

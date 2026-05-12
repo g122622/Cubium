@@ -33,6 +33,7 @@
 #include "blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "blocks/nether/NyliumBlock.hpp"
 #include "blocks/ocean/DriedKelpBlock.hpp"
+#include "blocks/ocean/ConduitBlock.hpp"
 #include "blocks/ocean/SeaPickleBlock.hpp"
 #include "blocks/ocean/KelpBlock.hpp"
 #include "blocks/ocean/SeagrassBlock.hpp"
