@@ -16,7 +16,7 @@ namespace server {
 
 bool SignCommandHelper::executeSignCommands(
     blockentity::SignEntity& signEntity,
-    ServerPlayer& player) {
+    mc::ServerPlayer& player) {
 
     // MC 1.16.5: 参考 SignTileEntity.executeCommand()
     // 遍历所有行文本，检查并执行点击事件
@@ -90,7 +90,7 @@ bool SignCommandHelper::executeSignCommands(
 
 bool SignCommandHelper::executeCommand(
     const std::string& command,
-    ServerPlayer& player,
+    mc::ServerPlayer& player,
     const BlockPos& signPos) {
 
     // 检查服务器引用
@@ -107,7 +107,7 @@ bool SignCommandHelper::executeCommand(
 
     // 创建命令源
     // MC 1.16.5: 告示牌命令源的权限级别为 2，位置为告示牌位置
-    mc::command::ServerCommandSource source(
+    command::ServerCommandSource source(
         player.getServer(),
         &player,
         player.getWorld(),

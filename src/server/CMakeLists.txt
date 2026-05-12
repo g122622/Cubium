@@ -55,7 +55,7 @@ add_executable(minecraft-server
     interaction/MiningManager.cpp
     interaction/ContainerManager.cpp
     interaction/InventoryManager.cpp
-    # interaction/SignCommandHelper.cpp  # TODO: Pre-existing namespace conflict with ServerPlayer
+    interaction/SignCommandHelper.cpp
     # 同步管理器
     sync/EntitySyncManager.cpp
     sync/BlockUpdateSyncManager.cpp

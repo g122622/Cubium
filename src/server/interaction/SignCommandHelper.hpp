@@ -8,7 +8,7 @@ namespace mc {
 
 // 前向声明
 class ServerPlayer;
-class BlockPos;
+
 namespace blockentity {
 class SignEntity;
 }
@@ -37,7 +37,7 @@ public:
      */
     static bool executeSignCommands(
         blockentity::SignEntity& signEntity,
-        ServerPlayer& player);
+        mc::ServerPlayer& player);
 
 private:
     /**
@@ -50,7 +50,7 @@ private:
      */
     static bool executeCommand(
         const std::string& command,
-        ServerPlayer& player,
+        mc::ServerPlayer& player,
         const BlockPos& signPos);
 };
 
