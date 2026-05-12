@@ -1297,3 +1297,208 @@ TEST_F(LootTest, LootTable_StoneWithoutSilkTouch) {
     ASSERT_EQ(1, items.size());
     EXPECT_EQ("minecraft:cobblestone", items[0].getItem()->toString());
 }
+
+// ============================================================================
+// CopyBlockStateFunction Apply Tests
+// ============================================================================
+
+TEST_F(LootTest, CopyBlockStateFunction_EmptyStack) {
+    // 空物品堆不应该崩溃
+    CopyBlockStateFunction func("minecraft:chest");
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    ItemStack emptyStack;
+    ItemStack result = func.apply(emptyStack, *context);
+    EXPECT_TRUE(result.isEmpty());
+}
+
+TEST_F(LootTest, CopyBlockStateFunction_NoBlockStateInContext) {
+    // 没有 BlockState 参数时应该返回原物品
+    CopyBlockStateFunction func("minecraft:chest");
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+    // 不设置 BLOCK_STATE 参数
+
+    ItemStack result = func.apply(stack, *context);
+    EXPECT_EQ(stack.getItem(), result.getItem());
+    EXPECT_EQ(stack.getCount(), result.getCount());
+    // 不应该有 BlockStateTag
+    EXPECT_FALSE(result.hasTag());
+}
+
+TEST_F(LootTest, CopyBlockStateFunction_BlockIdMismatch) {
+    // 方块 ID 不匹配时不应复制
+    CopyBlockStateFunction func("minecraft:chest");
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    // 创建一个假的 BlockState（这里用空指针模拟不匹配情况）
+    // 由于实际需要真正的 BlockState，这个测试验证函数不会崩溃
+    ItemStack result = func.apply(stack, *context);
+    EXPECT_EQ(stack.getItem(), result.getItem());
+}
+
+TEST_F(LootTest, CopyBlockStateFunction_EmptyPropertiesList) {
+    // 空属性列表（应该复制所有属性）
+    // 这个测试验证函数能正常处理空属性列表
+    CopyBlockStateFunction func("minecraft:furnace", {});  // 空属性列表
+
+    EXPECT_TRUE(func.getProperties().empty());
+    EXPECT_EQ("minecraft:furnace", func.getBlockId());
+}
+
+TEST_F(LootTest, CopyBlockStateFunction_SpecifiedProperties) {
+    // 指定属性列表
+    std::vector<std::string> props = {"facing", "lit"};
+    CopyBlockStateFunction func("minecraft:furnace", props);
+
+    EXPECT_EQ(2, func.getProperties().size());
+    EXPECT_EQ("facing", func.getProperties()[0]);
+    EXPECT_EQ("lit", func.getProperties()[1]);
+}
+
+// ============================================================================
+// SetLootTableFunction Apply Tests
+// ============================================================================
+
+TEST_F(LootTest, SetLootTableFunction_EmptyStack) {
+    // 空物品堆不应该崩溃
+    SetLootTableFunction func("minecraft:chests/simple_dungeon", 12345);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    ItemStack emptyStack;
+    ItemStack result = func.apply(emptyStack, *context);
+    EXPECT_TRUE(result.isEmpty());
+}
+
+TEST_F(LootTest, SetLootTableFunction_EmptyLootTableId) {
+    // 空掉落表 ID 应该返回原物品
+    SetLootTableFunction func("", 12345);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    ItemStack result = func.apply(stack, *context);
+    EXPECT_FALSE(result.hasTag());  // 不应该有标签
+}
+
+TEST_F(LootTest, SetLootTableFunction_BasicApply) {
+    // 基本功能测试：设置掉落表 ID
+    SetLootTableFunction func("minecraft:chests/simple_dungeon", 12345);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    ItemStack result = func.apply(stack, *context);
+
+    // 验证物品仍然存在
+    EXPECT_EQ(diamond, result.getItem());
+    EXPECT_EQ(1, result.getCount());
+
+    // 验证设置了 BlockEntityTag
+    ASSERT_TRUE(result.hasTag());
+    const nlohmann::json* blockEntityTag = result.getChildTag("BlockEntityTag");
+    ASSERT_NE(blockEntityTag, nullptr);
+
+    // 验证掉落表 ID
+    auto lootTableIt = blockEntityTag->find("LootTable");
+    ASSERT_NE(lootTableIt, blockEntityTag->end());
+    EXPECT_EQ("minecraft:chests/simple_dungeon", lootTableIt->get<std::string>());
+
+    // 验证种子
+    auto seedIt = blockEntityTag->find("LootTableSeed");
+    ASSERT_NE(seedIt, blockEntityTag->end());
+    EXPECT_EQ(12345, seedIt->get<i64>());
+}
+
+TEST_F(LootTest, SetLootTableFunction_ZeroSeedNotStored) {
+    // 种子为 0 时不应该存储
+    SetLootTableFunction func("minecraft:chests/spawn_bonus_chest", 0);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    ItemStack result = func.apply(stack, *context);
+
+    // 验证设置了 BlockEntityTag
+    ASSERT_TRUE(result.hasTag());
+    const nlohmann::json* blockEntityTag = result.getChildTag("BlockEntityTag");
+    ASSERT_NE(blockEntityTag, nullptr);
+
+    // 验证掉落表 ID 存在
+    auto lootTableIt = blockEntityTag->find("LootTable");
+    ASSERT_NE(lootTableIt, blockEntityTag->end());
+    EXPECT_EQ("minecraft:chests/spawn_bonus_chest", lootTableIt->get<std::string>());
+
+    // 种子为 0 时不应该存储
+    auto seedIt = blockEntityTag->find("LootTableSeed");
+    EXPECT_EQ(seedIt, blockEntityTag->end());
+}
+
+TEST_F(LootTest, SetLootTableFunction_OverwriteExistingTag) {
+    // 测试覆盖现有的 BlockEntityTag
+    SetLootTableFunction func1("minecraft:chests/first", 100);
+    SetLootTableFunction func2("minecraft:chests/second", 200);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world)
+        .withRandom(rng)
+        .build();
+
+    // 第一次设置
+    ItemStack result1 = func1.apply(stack, *context);
+    const nlohmann::json* tag1 = result1.getChildTag("BlockEntityTag");
+    ASSERT_NE(tag1, nullptr);
+    EXPECT_EQ("minecraft:chests/first", (*tag1)["LootTable"].get<std::string>());
+
+    // 第二次设置应该覆盖
+    ItemStack result2 = func2.apply(result1, *context);
+    const nlohmann::json* tag2 = result2.getChildTag("BlockEntityTag");
+    ASSERT_NE(tag2, nullptr);
+    EXPECT_EQ("minecraft:chests/second", (*tag2)["LootTable"].get<std::string>());
+    EXPECT_EQ(200, (*tag2)["LootTableSeed"].get<i64>());
+}

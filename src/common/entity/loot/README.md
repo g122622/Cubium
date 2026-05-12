@@ -822,12 +822,13 @@ entry.generate(consumer, context);  // 条件在这里检查
 4. **缓存优化** - 掉落表缓存和预编译
 5. **桩实现完善** - 完善以下函数的实际实现（当前为桩）：
    - ~~CopyNameFunction~~ ✅ 已完成（从实体/方块实体复制名称）
-   - CopyBlockStateFunction（需要 BlockState 属性复制机制）
+   - ~~CopyBlockStateFunction~~ ✅ 已完成（复制 BlockState 属性到 ItemStack 的 BlockStateTag）
    - CopyNbtFunction（需要 NBT 路径解析）
    - FillPlayerHeadFunction（需要玩家皮肤系统）
    - SetAttributesFunction（需要属性系统）
    - SetContentsFunction（需要容器物品支持）
    - ExplorationMapFunction（需要地图数据系统）
    - SetStewEffectFunction（需要药水效果系统）
+   - ~~SetLootTableFunction~~ ✅ 已完成（设置掉落表到 BlockEntityTag）
 6. ~~**FurnaceSmeltFunction 熔炼函数** - 已通过 RecipeManager 实现完整功能~~ ✅ 已完成
 7. **JSON 函数解析** - 为 Pool 和 Table 级别的函数提供完整支持

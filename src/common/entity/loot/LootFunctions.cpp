@@ -11,10 +11,12 @@
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/crafting/SmeltingRecipe.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/property/IProperty.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -719,15 +721,54 @@ CopyBlockStateFunction::CopyBlockStateFunction(const std::string& blockId,
 }
 
 ItemStack CopyBlockStateFunction::apply(ItemStack stack, LootContext& context) const {
-    MC_UNUSED(context);
-
     if (stack.isEmpty()) {
         return stack;
     }
 
-    // TODO: 实现方块状态复制
-    // 参考: net.minecraft.loot.functions.CopyBlockState
-    // 需要将 BlockState 的属性值复制到 ItemStack 的 NBT 中
+    // 从 LootContext 获取 BlockState
+    auto* blockState = context.get<BlockState>(LootParams::BLOCK_STATE);
+    if (blockState == nullptr) {
+        return stack;
+    }
+
+    // 验证方块 ID 是否匹配
+    const std::string actualBlockId = blockState->getBlock().blockLocation().toString();
+    if (!m_blockId.empty() && actualBlockId != m_blockId) {
+        return stack;
+    }
+
+    // 获取或创建 BlockStateTag 子标签
+    nlohmann::json& blockStateTag = stack.getOrCreateChildTag("BlockStateTag");
+
+    // 遍历 BlockState 的所有属性
+    const auto& allValues = blockState->values();
+
+    // 获取方块的属性名称映射（通过 StateContainer）
+    const auto& blockProperties = blockState->getBlock().stateContainer().properties();
+
+    for (const auto& [propName, prop] : blockProperties) {
+        // 如果指定了属性列表，只复制指定的属性
+        if (!m_properties.empty()) {
+            bool found = false;
+            for (const auto& wanted : m_properties) {
+                if (wanted == propName) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                continue;
+            }
+        }
+
+        // 获取属性值
+        auto it = allValues.find(prop);
+        if (it != allValues.end()) {
+            // 获取属性值的字符串表示
+            std::string valueStr = prop->valueToString(it->second);
+            blockStateTag[propName] = valueStr;
+        }
+    }
 
     return stack;
 }
@@ -871,15 +912,27 @@ SetLootTableFunction::SetLootTableFunction(const std::string& lootTableId, u64 s
 }
 
 ItemStack SetLootTableFunction::apply(ItemStack stack, LootContext& context) const {
+    MC_UNUSED(context);
+
     if (stack.isEmpty() || m_lootTableId.empty()) {
         return stack;
     }
 
-    // TODO: 实现掉落表设置
-    // 参考: net.minecraft.loot.functions.SetLootTable
-    // 需要将掉落表ID设置到物品的NBT中
+    // 参考 MC 1.16.5 net.minecraft.loot.functions.SetLootTable
+    // 将掉落表信息写入 BlockEntityTag 子标签
+    // 结构: {BlockEntityTag: {LootTable: "minecraft:blocks/chest", LootTableSeed: 12345L}}
 
-    MC_UNUSED(context);
+    nlohmann::json& blockEntityTag = stack.getOrCreateChildTag("BlockEntityTag");
+
+    // 设置掉落表 ID
+    blockEntityTag["LootTable"] = m_lootTableId;
+
+    // 如果有种子，也设置种子（种子为 0 时不存储）
+    if (m_seed != 0) {
+        // JSON 数字类型自动处理整数
+        blockEntityTag["LootTableSeed"] = static_cast<i64>(m_seed);
+    }
+
     return stack;
 }
 
