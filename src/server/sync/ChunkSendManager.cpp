@@ -24,8 +24,8 @@ void ChunkSendManager::sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std:
     }
 
     // 检查区块是否已加载
-    if (m_chunkManager.hasChunk(x, z)) {
-        auto chunk = m_chunkManager.getChunkShared(x, z);
+    if (m_chunkManager.hasChunkInMem(x, z)) {
+        auto chunk = m_chunkManager.tryToGetChunkSharedInMem(x, z);
         if (chunk) {
             auto result = network::ChunkSerializer::serializeChunk(*chunk);
             if (result.success()) {
@@ -38,9 +38,9 @@ void ChunkSendManager::sendChunkToPlayers(ChunkCoord x, ChunkCoord z, const std:
     } else {
         // 区块未加载，触发异步加载
         // 注意：玩家列表需要复制到回调中
-        m_chunkManager.getChunkAsync(x, z, [this, x, z, players, validateTracking](bool success, ChunkData* chunk) {
+        m_chunkManager.requestChunkAsync(x, z, ChunkStatuses::FULL, [this, x, z, players, validateTracking](bool success, ChunkData* chunk) {
             if (success && chunk) {
-                auto loadedChunk = m_chunkManager.getChunkShared(x, z);
+                auto loadedChunk = m_chunkManager.tryToGetChunkSharedInMem(x, z);
                 if (!loadedChunk) {
                     spdlog::warn("Failed to get shared chunk ({}, {}) for sending", x, z);
                     return;
@@ -91,7 +91,7 @@ void ChunkSendManager::onPlayerTrackingChange(PlayerId player, ChunkCoord x, Chu
     if (isTracking) {
         // 玩家进入区块视距范围
         // 检查区块是否已加载
-        if (m_chunkManager.hasChunk(x, z)) {
+        if (m_chunkManager.hasChunkInMem(x, z)) {
             // 区块已加载，立即发送
             sendChunkToPlayers(x, z, {player}, true);
         }
