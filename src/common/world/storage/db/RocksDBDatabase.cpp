@@ -72,12 +72,16 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
     std::vector<rocksdb::ColumnFamilyDescriptor> cfDescriptors;
 
     if (!dbExists) {
+        MC_TRACE_EVENT("storage.db", "RocksDBDatabase::open::new", "event", "Creating new database");
+
         // 数据库不存在，创建所有列族
         spdlog::info("Creating new database at {}", path.string());
 
         // 确保目录存在
         std::error_code ec;
         if (!std::filesystem::exists(path)) {
+            MC_TRACE_EVENT("storage.db", "RocksDBDatabase::open::create_directories", "event", "Creating database directory");
+
             if (!std::filesystem::create_directories(path, ec)) {
                 return Error(ErrorCode::FileOpenFailed,
                              fmt::format("Failed to create database directory: {}", ec.message()));
@@ -91,6 +95,8 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
             cfDescriptors.emplace_back(cfName, cfOptions);
         }
     } else {
+        MC_TRACE_EVENT("storage.db", "RocksDBDatabase::open::existing", "event", "Opening existing database");
+
         // 数据库已存在，打开所有列族
         spdlog::info("Opening existing database at {}", path.string());
 
@@ -716,6 +722,8 @@ std::vector<std::string> RocksDBDatabase::listColumnFamilies() const {
 // ============================================================================
 
 rocksdb::ColumnFamilyOptions RocksDBDatabase::createCFOptions() const {
+    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::createCFOptions");
+
     return m_config.createColumnFamilyOptions();
 }
 
