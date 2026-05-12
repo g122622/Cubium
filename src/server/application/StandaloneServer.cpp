@@ -148,6 +148,38 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     // 初始化核心管理器
     initializeCoreManagers();
 
+    // 加载白名单、封禁列表和 OP 列表
+    const auto dataDir = m_settingsPath.parent_path();
+    if (!dataDir.empty()) {
+        // 加载白名单
+        auto whitelistPath = dataDir / "whitelist.json";
+        auto whitelistResult = m_whitelistManager->load(whitelistPath);
+        if (whitelistResult.failed()) {
+            spdlog::warn("Failed to load whitelist: {}", whitelistResult.error().message());
+        }
+
+        // 加载玩家封禁列表
+        auto bannedPlayersPath = dataDir / "banned-players.json";
+        auto bannedPlayersResult = m_bannedPlayerList->load(bannedPlayersPath);
+        if (bannedPlayersResult.failed()) {
+            spdlog::warn("Failed to load banned players: {}", bannedPlayersResult.error().message());
+        }
+
+        // 加载 IP 封禁列表
+        auto bannedIpsPath = dataDir / "banned-ips.json";
+        auto bannedIpsResult = m_bannedIpList->load(bannedIpsPath);
+        if (bannedIpsResult.failed()) {
+            spdlog::warn("Failed to load banned IPs: {}", bannedIpsResult.error().message());
+        }
+
+        // 加载 OP 列表
+        auto opsPath = dataDir / "ops.json";
+        auto opsResult = m_opListManager->load(opsPath);
+        if (opsResult.failed()) {
+            spdlog::warn("Failed to load ops: {}", opsResult.error().message());
+        }
+    }
+
     // 创建世界
     ServerWorldConfig worldConfig;
     worldConfig.viewDistance = m_settings.viewDistance.get();

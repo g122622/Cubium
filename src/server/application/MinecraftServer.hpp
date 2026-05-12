@@ -14,6 +14,7 @@
 #include "server/core/WhitelistManager.hpp"
 #include "server/core/BannedPlayerList.hpp"
 #include "server/core/BannedIpList.hpp"
+#include "server/core/OpListManager.hpp"
 #include "server/interaction/BlockInteractionManager.hpp"
 #include "server/interaction/MiningManager.hpp"
 #include "server/interaction/ContainerManager.hpp"
@@ -141,6 +142,11 @@ public:
 
     [[nodiscard]] core::BannedIpList& bannedIpList() override { return *m_bannedIpList; }
     [[nodiscard]] const core::BannedIpList& bannedIpList() const override { return *m_bannedIpList; }
+
+    // ========== OP 管理器 ==========
+
+    [[nodiscard]] core::OpListManager& opListManager() override { return *m_opListManager; }
+    [[nodiscard]] const core::OpListManager& opListManager() const override { return *m_opListManager; }
 
     // ========== 世界管理器 ==========
 
@@ -726,6 +732,7 @@ protected:
     std::unique_ptr<core::WhitelistManager> m_whitelistManager;
     std::unique_ptr<core::BannedPlayerList> m_bannedPlayerList;
     std::unique_ptr<core::BannedIpList> m_bannedIpList;
+    std::unique_ptr<core::OpListManager> m_opListManager;
 
     // 世界（由子类创建并设置）
     std::unique_ptr<ServerWorld> m_world;

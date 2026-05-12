@@ -48,6 +48,7 @@ class GameModeManager;
 class WhitelistManager;
 class BannedPlayerList;
 class BannedIpList;
+class OpListManager;
 }
 
 namespace interaction {
@@ -151,6 +152,15 @@ public:
      */
     [[nodiscard]] virtual core::BannedIpList& bannedIpList() = 0;
     [[nodiscard]] virtual const core::BannedIpList& bannedIpList() const = 0;
+
+    // ========== OP 管理器 ==========
+
+    /**
+     * @brief 获取 OP 列表管理器
+     * @return OP 列表管理器引用
+     */
+    [[nodiscard]] virtual core::OpListManager& opListManager() = 0;
+    [[nodiscard]] virtual const core::OpListManager& opListManager() const = 0;
 
     // ========== 维度管理器 ==========
 

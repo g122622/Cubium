@@ -7,6 +7,7 @@
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/core/OpListManager.hpp"
 
 #include <sstream>
 
@@ -30,8 +31,7 @@ void OpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
     // /op <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player",
-        EntityArgumentType::player()
-    );
+        EntityArgumentType::player());
     playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return opPlayer(ctx);
     });
@@ -51,29 +51,57 @@ i32 OpCommand::opPlayer(CommandContext<ServerCommandSource>& context) {
         return 0;
     }
 
-    // 目前只能操作一个玩家
+    // 只操作一个玩家
     PlayerId targetId = playerIds.front();
 
-    // 获取玩家数据
+    // 获取服务器实例
     auto* server = source.server();
     if (server == nullptr) {
         source.sendError("commands.op.failed.noServer");
         return 0;
     }
 
+    // 获取玩家数据
     auto* playerData = server->playerManager().getPlayer(targetId);
     if (playerData == nullptr) {
         source.sendError("commands.op.failed.playerNotFound");
         return 0;
     }
 
-    // TODO: 实现权限管理系统
-    // 当前简化实现：仅发送消息提示
-    // 需要：
-    // 1. ServerPlayerData 添加 permissionLevel 字段
-    // 2. 保存到配置文件或数据库
-    // 3. 通知客户端权限变更
+    // 获取 OP 列表管理器
+    auto& opList = server->opListManager();
 
+    // 检查玩家是否已经是 OP
+    if (opList.isOp(playerData->uuid)) {
+        std::ostringstream ss;
+        ss << "commands.op.failed";
+        source.sendError(ss.str());
+        return 0;
+    }
+
+    // 创建 OP 条目
+    // MC 1.16.5 默认 OP 等级为 2（GameMaster）
+    // 但可以通过服务器配置设置默认等级
+    server::core::OpEntry entry(
+        playerData->uuid,
+        playerData->username,
+        server::core::OpLevel::GameMaster,  // 默认等级 2
+        false  // bypassesPlayerLimit
+    );
+
+    // 添加到 OP 列表
+    if (!opList.setEntry(entry)) {
+        source.sendError("commands.op.failed");
+        return 0;
+    }
+
+    // 保存 OP 列表
+    auto saveResult = opList.save();
+    if (saveResult.failed()) {
+        spdlog::error("Failed to save ops.json: {}", saveResult.error().message());
+    }
+
+    // 发送成功消息
     std::ostringstream ss;
     ss << "Made " << playerData->username << " a server operator";
     source.sendMessage(ss.str());

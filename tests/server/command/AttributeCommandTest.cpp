@@ -25,6 +25,7 @@
 #include "server/core/WhitelistManager.hpp"
 #include "server/core/BannedPlayerList.hpp"
 #include "server/core/BannedIpList.hpp"
+#include "server/core/OpListManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/network/connection/IServerConnection.hpp"
@@ -151,6 +152,8 @@ public:
     [[nodiscard]] const server::core::BannedPlayerList& bannedPlayerList() const override { return m_bannedPlayerList; }
     [[nodiscard]] server::core::BannedIpList& bannedIpList() override { return m_bannedIpList; }
     [[nodiscard]] const server::core::BannedIpList& bannedIpList() const override { return m_bannedIpList; }
+    [[nodiscard]] server::core::OpListManager& opListManager() override { return m_opListManager; }
+    [[nodiscard]] const server::core::OpListManager& opListManager() const override { return m_opListManager; }
 
     [[nodiscard]] ServerDimensionManager& dimensionManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { throw std::logic_error("unused"); }
@@ -267,6 +270,7 @@ private:
     server::core::WhitelistManager m_whitelistManager;
     server::core::BannedPlayerList m_bannedPlayerList;
     server::core::BannedIpList m_bannedIpList;
+    server::core::OpListManager m_opListManager;
     CommandRegistry m_commandRegistry;
     std::vector<std::shared_ptr<FakeConnection>> m_connections;
 };

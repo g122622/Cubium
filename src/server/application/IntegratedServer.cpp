@@ -121,6 +121,13 @@ Result<void> IntegratedServer::initialize(const IntegratedServerConfig& config)
     // 初始化核心管理器
     initializeCoreManagers();
 
+    // 加载 OP 列表（集成服务器使用默认路径）
+    // 白名单和封禁列表在集成服务器中通常不需要
+    auto opsResult = m_opListManager->load("ops.json");
+    if (opsResult.failed()) {
+        spdlog::debug("No ops.json found or failed to load: {}", opsResult.error().message());
+    }
+
     // 创建世界
     ServerWorldConfig worldConfig;
     worldConfig.viewDistance = config.viewDistance;

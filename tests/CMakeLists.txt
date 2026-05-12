@@ -207,6 +207,7 @@ add_executable(mc_tests
     server/core/WhitelistManagerTest.cpp
     server/core/BannedPlayerListTest.cpp
     server/core/BannedIpListTest.cpp
+    server/core/OpListManagerTest.cpp
     # ServerPlayer 消息发送测试
     server/player/ServerPlayerMessageTest.cpp
     # 维度管理器测试
@@ -458,6 +459,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/WhitelistManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/BannedPlayerList.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/BannedIpList.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/core/OpListManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
@@ -1164,6 +1166,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/WhitelistManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/BannedPlayerList.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/BannedIpList.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/core/OpListManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
         # 事件系统

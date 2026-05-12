@@ -7,6 +7,7 @@
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/core/OpListManager.hpp"
 
 #include <sstream>
 
@@ -54,22 +55,44 @@ i32 DeOpCommand::deopPlayer(CommandContext<ServerCommandSource>& context) {
     // 只操作一个玩家
     PlayerId targetId = playerIds.front();
 
-    // 获取玩家数据
+    // 获取服务器实例
     auto* server = source.server();
     if (server == nullptr) {
         source.sendError("commands.deop.failed.noServer");
         return 0;
     }
 
+    // 获取玩家数据
     auto* playerData = server->playerManager().getPlayer(targetId);
     if (playerData == nullptr) {
         source.sendError("commands.deop.failed.playerNotFound");
         return 0;
     }
 
-    // TODO: 实现权限管理系统
-    // 当前简化实现：仅发送消息提示
+    // 获取 OP 列表管理器
+    auto& opList = server->opListManager();
 
+    // 检查玩家是否是 OP
+    if (!opList.isOp(playerData->uuid)) {
+        std::ostringstream ss;
+        ss << "commands.deop.failed";
+        source.sendError(ss.str());
+        return 0;
+    }
+
+    // 从 OP 列表移除
+    if (!opList.removeEntry(playerData->uuid)) {
+        source.sendError("commands.deop.failed");
+        return 0;
+    }
+
+    // 保存 OP 列表
+    auto saveResult = opList.save();
+    if (saveResult.failed()) {
+        spdlog::error("Failed to save ops.json: {}", saveResult.error().message());
+    }
+
+    // 发送成功消息
     std::ostringstream ss;
     ss << "Made " << playerData->username << " no longer a server operator";
     source.sendMessage(ss.str());
