@@ -17,6 +17,7 @@
 #include "../../sound/SoundEvents.hpp"
 #include "../../util/text/StringTextComponent.hpp"
 #include "../damage/DamageSource.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -226,6 +227,99 @@ void Entity::playSound(const ResourceLocation& soundEventId, f32 volume, f32 pit
     }
 
     m_world->playSound(soundEventId, getSoundCategory(), m_position, volume, pitch);
+}
+
+ResourceLocation Entity::getSplashSound() const {
+    // MC 1.16.5: Entity.getSplashSound() -> SoundEvents.ENTITY_GENERIC_SPLASH
+    return SoundEvents::ENTITY_GENERIC_SPLASH;
+}
+
+ResourceLocation Entity::getHighspeedSplashSound() const {
+    // MC 1.16.5: Entity.getHighspeedSplashSound() -> SoundEvents.ENTITY_GENERIC_SPLASH
+    // 默认返回与普通溅水相同的声音，子类可覆盖
+    return SoundEvents::ENTITY_GENERIC_SPLASH;
+}
+
+void Entity::doWaterSplashEffect() {
+    // 参考 MC 1.16.5 Entity.doWaterSplashEffect()
+    // 确定控制者（骑乘时使用乘客的速度）
+    // MC: Entity entity = this.isBeingRidden() && this.getControllingPassenger() != null
+    //         ? this.getControllingPassenger() : this;
+
+    // 获取速度向量
+    Vector3 vel = velocity();
+    f32 vx = vel.x;
+    f32 vy = vel.y;
+    f32 vz = vel.z;
+
+    // 计算速度因子 f1
+    // MC: float f1 = MathHelper.sqrt(vector3d.x * vector3d.x * 0.2D
+    //         + vector3d.y * vector3d.y + vector3d.z * vector3d.z * 0.2D) * f;
+    // 默认 f = 0.2F（实体自己）
+    f32 f1 = std::sqrt(vx * vx * 0.2f + vy * vy + vz * vz * 0.2f) * 0.2f;
+
+    // f1 限制在 [0, 1] 范围
+    if (f1 > 1.0f) {
+        f1 = 1.0f;
+    }
+
+    // 获取随机数生成器
+    math::Random& rng = m_world->getRandom();
+
+    // 根据速度选择声音并播放
+    // MC: if ((double)f1 < 0.25D) -> getSplashSound(), else -> getHighspeedSplashSound()
+    // 音调: 1.0F + (this.rand.nextFloat() - this.rand.nextFloat()) * 0.4F
+    f32 pitch = 1.0f + (rng.nextFloat() - rng.nextFloat()) * 0.4f;
+
+    if (static_cast<f64>(f1) < 0.25) {
+        playSound(getSplashSound(), f1, pitch);
+    } else {
+        playSound(getHighspeedSplashSound(), f1, pitch);
+    }
+
+    // 生成粒子
+    // 粒子数量: 1 + width * 20
+    i32 particleCount = static_cast<i32>(1.0f + width() * 20.0f);
+
+    // Y 坐标: floor(posY) + 1.0 (水面上方一格)
+    f32 particleY = std::floor(m_position.y) + 1.0f;
+
+    // 引入粒子类型
+    using client::renderer::trident::particle::ParticleTypeId;
+
+    // 生成气泡粒子 (BUBBLE)
+    for (i32 i = 0; i < particleCount; ++i) {
+        // 位置: 在实体包围盒内随机
+        f32 offsetX = (rng.nextDouble() * 2.0 - 1.0) * static_cast<f64>(width());
+        f32 offsetZ = (rng.nextDouble() * 2.0 - 1.0) * static_cast<f64>(width());
+
+        f32 particleX = m_position.x + static_cast<f32>(offsetX);
+        f32 particleZ = m_position.z + static_cast<f32>(offsetZ);
+
+        // 速度: 使用实体速度，Y 方向减去随机值
+        f32 bubbleVy = vy - static_cast<f32>(rng.nextDouble() * 0.2);
+
+        m_world->addParticle(
+            ParticleTypeId::Bubble,
+            Vector3(particleX, particleY, particleZ),
+            Vector3(vx, bubbleVy, vz));
+    }
+
+    // 生成水溅粒子 (SPLASH)
+    for (i32 j = 0; j < particleCount; ++j) {
+        // 位置: 在实体包围盒内随机
+        f32 offsetX = (rng.nextDouble() * 2.0 - 1.0) * static_cast<f64>(width());
+        f32 offsetZ = (rng.nextDouble() * 2.0 - 1.0) * static_cast<f64>(width());
+
+        f32 particleX = m_position.x + static_cast<f32>(offsetX);
+        f32 particleZ = m_position.z + static_cast<f32>(offsetZ);
+
+        // 速度: 使用实体速度
+        m_world->addParticle(
+            ParticleTypeId::Splash,
+            Vector3(particleX, particleY, particleZ),
+            Vector3(vx, vy, vz));
+    }
 }
 
 void Entity::playStepSound(const BlockPos& pos, const BlockState* blockState) {

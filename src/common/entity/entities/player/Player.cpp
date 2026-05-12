@@ -1411,6 +1411,26 @@ std::optional<ResourceLocation> Player::getFallSound(i32 fallHeight) const {
     return SoundEvents::ENTITY_PLAYER_SMALL_FALL;
 }
 
+ResourceLocation Player::getSplashSound() const {
+    // 参考 MC 1.16.5: PlayerEntity.getSplashSound()
+    return SoundEvents::ENTITY_PLAYER_SPLASH;
+}
+
+ResourceLocation Player::getHighspeedSplashSound() const {
+    // 参考 MC 1.16.5: PlayerEntity.getHighspeedSplashSound()
+    return SoundEvents::ENTITY_PLAYER_SPLASH_HIGH_SPEED;
+}
+
+void Player::doWaterSplashEffect() {
+    // 参考 MC 1.16.5: PlayerEntity.doWaterSplashEffect()
+    // 观察者模式不产生水花效果
+    if (isSpectator()) {
+        return;
+    }
+    // 调用父类方法
+    Entity::doWaterSplashEffect();
+}
+
 // ============================================================================
 // 属性注册（覆盖 LivingEntity 方法）
 // ============================================================================
@@ -1581,12 +1601,10 @@ void Player::updateAirSupply() {
     // 调用基类方法处理标准空气消耗和溺水逻辑
     LivingEntity::updateAirSupply();
 
-    // 入水溅水声（玩家特有效果）
+    // 入水溅水效果（玩家特有效果）
+    // MC 1.16.5: PlayerEntity.doWaterSplashEffect() 检查观察者模式后调用父类方法
     if (justEnteredWater) {
-        // MC 1.16.5: this.world.playSound(null, this.getPosX(), this.getPosY(), this.getPosZ(),
-        //              SoundEvents.ENTITY_PLAYER_SPLASH, this.getSoundCategory(), 1.0F, 1.0F);
-        playSound(SoundEvents::ENTITY_PLAYER_SPLASH, 1.0f, 1.0f);
-        // TODO: 触发入水粒子效果（水花飞溅）
+        doWaterSplashEffect();
     }
 
     // 更新上一帧状态

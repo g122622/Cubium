@@ -369,6 +369,44 @@ public:
      */
     void playSound(const ResourceLocation& soundEventId, f32 volume, f32 pitch) const;
 
+    /**
+     * @brief 获取溅水声音
+     *
+     * 参考 MC 1.16.5 Entity.getSplashSound()
+     * 子类可覆盖以提供特定溅水音效。
+     *
+     * @return 溅水声音事件
+     */
+    [[nodiscard]] virtual ResourceLocation getSplashSound() const;
+
+    /**
+     * @brief 获取高速溅水声音
+     *
+     * 参考 MC 1.16.5 Entity.getHighspeedSplashSound()
+     * 当实体高速入水时播放此音效。
+     * 子类可覆盖以提供特定高速溅水音效。
+     *
+     * @return 高速溅水声音事件
+     */
+    [[nodiscard]] virtual ResourceLocation getHighspeedSplashSound() const;
+
+    /**
+     * @brief 执行水花溅射效果
+     *
+     * 参考 MC 1.16.5 Entity.doWaterSplashEffect()
+     * 当实体入水时播放水花音效并生成气泡和水溅粒子。
+     *
+     * 实现细节：
+     * - 根据实体速度计算溅水强度 f1
+     * - f1 < 0.25 时播放普通溅水声，否则播放高速溅水声
+     * - 音量使用 f1，音调使用 1.0 + (rand - rand) * 0.4
+     * - 生成 (1 + width * 20) 个气泡粒子和水溅粒子
+     * - 粒子位置在实体包围盒内随机，Y 坐标固定在水面上方
+     *
+     * Player 类覆盖此方法以检查观察者模式。
+     */
+    virtual void doWaterSplashEffect();
+
     // ========== 设置属性 ==========
 
     void setPosition(f32 x, f32 y, f32 z);

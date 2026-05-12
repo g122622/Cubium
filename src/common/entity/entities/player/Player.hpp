@@ -824,6 +824,34 @@ protected:
      */
     [[nodiscard]] std::optional<ResourceLocation> getFallSound(i32 fallHeight) const;
 
+    /**
+     * @brief 获取溅水声音
+     *
+     * 参考 MC 1.16.5: PlayerEntity.getSplashSound()
+     * 玩家使用特定的溅水声音。
+     *
+     * @return ENTITY_PLAYER_SPLASH 声音事件
+     */
+    [[nodiscard]] ResourceLocation getSplashSound() const override;
+
+    /**
+     * @brief 获取高速溅水声音
+     *
+     * 参考 MC 1.16.5: PlayerEntity.getHighspeedSplashSound()
+     * 玩家高速入水时使用特定的声音。
+     *
+     * @return ENTITY_PLAYER_SPLASH_HIGH_SPEED 声音事件
+     */
+    [[nodiscard]] ResourceLocation getHighspeedSplashSound() const override;
+
+    /**
+     * @brief 执行水花溅射效果
+     *
+     * 参考 MC 1.16.5: PlayerEntity.doWaterSplashEffect()
+     * 覆盖以检查观察者模式（观察者不产生水花效果）。
+     */
+    void doWaterSplashEffect() override;
+
 public:
 
     // ========== 视野晃动 ==========
