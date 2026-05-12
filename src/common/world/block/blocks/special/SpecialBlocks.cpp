@@ -489,10 +489,10 @@ i32 SpongeBlock::absorb(IWorld& world, const BlockPos& pos) {
             else {
                 const Material& material = blockState->getMaterial();
                 if (material == Material::OCEAN_PLANT || material == Material::SEA_GRASS) {
-                    // 掉落物品后移除方块
+                    // [已知限制] 海洋植物掉落物品尚未实现
                     // MC 1.16.5: spawnDrops(blockstate, worldIn, blockpos1, tileentity);
-                    // TODO: 实现方块掉落（需要 Block::spawnDrops 方法）
-                    // 目前直接移除方块
+                    // 需要 Block::spawnDrops() 方法支持，当前直接移除方块
+                    // 详见 README.md "海绵吸水机制 - 已知限制" 章节
                     const BlockState& airState = VanillaBlocks::AIR->defaultState();
                     world.setBlockState(neighborPos, &airState, 3);
                     ++absorbedCount;

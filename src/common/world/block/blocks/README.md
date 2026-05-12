@@ -87,6 +87,7 @@ blocks/
 - 红石方块详情请参阅 [redstone/README.md](redstone/README.md)
 - 末地方块详情请参阅 [end/README.md](end/README.md)
 - 建筑方块详情请参阅 [building/README.md](building/README.md)
+- 特殊方块详情请参阅 [special/README.md](special/README.md)（海绵、屏障、命令方块等）
 
 ## 类继承关系
 
