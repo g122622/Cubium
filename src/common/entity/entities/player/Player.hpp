@@ -1115,6 +1115,42 @@ public:
         m_cooldownTracker.setCooldown(item, ticks);
     }
 
+    // ========== 挖掘系统 ==========
+
+    /**
+     * @brief 获取玩家挖掘速度
+     *
+     * MC 1.16.5: PlayerEntity.getDigSpeed(BlockState, BlockPos)
+     * 计算玩家对指定方块的挖掘速度，考虑以下因素：
+     * 1. 工具基础挖掘速度
+     * 2. 效率附魔加成（仅当工具有效时）
+     * 3. 急迫效果和潮涌能量加成
+     * 4. 挖掘疲劳惩罚
+     * 5. 水下挖掘惩罚（无水下速掘附魔时）
+     * 6. 空中挖掘惩罚（不在地面时）
+     *
+     * @param state 目标方块状态
+     * @param pos 方块位置（用于流体检测，可选）
+     * @return 挖掘速度倍率
+     */
+    [[nodiscard]] f32 getDigSpeed(const BlockState& state, const BlockPos& pos = BlockPos(0, 0, 0)) const;
+
+    /**
+     * @brief 检查玩家是否能采集方块
+     *
+     * MC 1.16.5: PlayerEntity.canHarvestBlock(BlockState)
+     * 判断玩家使用当前手持工具是否能采集指定方块。
+     *
+     * 采集条件：
+     * 1. 方块不需要工具（requiresTool() == false）-> 可采集
+     * 2. 手持物品的工具类型匹配且等级足够 -> 可采集
+     * 3. 其他情况 -> 不可采集
+     *
+     * @param state 目标方块状态
+     * @return 如果可以采集返回 true
+     */
+    [[nodiscard]] bool canHarvestBlock(const BlockState& state) const;
+
     /**
      * @brief 攻击目标实体
      *

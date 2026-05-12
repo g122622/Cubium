@@ -1256,6 +1256,101 @@ ItemStack& Player::getHeldItem(Hand hand) {
 }
 
 // ============================================================================
+// 挖掘系统
+// ============================================================================
+
+f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const {
+    // 参考 MC 1.16.5: PlayerEntity.getDigSpeed(BlockState, BlockPos)
+
+    // 1. 获取工具基础挖掘速度
+    ItemStack heldItem = getHeldItem(Hand::MainHand);
+    f32 speed = heldItem.isEmpty() ? 1.0f : heldItem.getDestroySpeed(state);
+
+    // 2. 效率附魔加成（仅当工具对当前方块有效时，即 speed > 1.0）
+    if (speed > 1.0f) {
+        i32 efficiencyLevel = item::enchant::EnchantmentHelper::getEfficiencyLevel(heldItem);
+        if (efficiencyLevel > 0) {
+            // 效率附魔加成公式: level^2 + 1
+            // I: 2, II: 5, III: 10, IV: 17, V: 26
+            speed += static_cast<f32>(item::enchant::EfficiencyEnchantment::getMiningSpeedBonus(efficiencyLevel));
+        }
+    }
+
+    // 3. 急迫效果和潮涌能量加成
+    // MC 1.16.5: EffectUtils.getMiningSpeedup(this)
+    i32 hasteLevel = -1;
+    i32 conduitLevel = -1;
+
+    const auto* hasteEffect = getEffect(entity::effect::EffectType::Haste);
+    if (hasteEffect) {
+        hasteLevel = hasteEffect->amplifier();
+    }
+
+    const auto* conduitEffect = getEffect(entity::effect::EffectType::ConduitPower);
+    if (conduitEffect) {
+        conduitLevel = conduitEffect->amplifier();
+    }
+
+    i32 maxMiningSpeedup = std::max(hasteLevel, conduitLevel);
+    if (maxMiningSpeedup >= 0) {
+        // 计算乘数: 1.0 + (amplifier + 1) * 0.2
+        // I级: 1.2, II级: 1.4, III级: 1.6, ...
+        speed *= 1.0f + static_cast<f32>(maxMiningSpeedup + 1) * 0.2f;
+    }
+
+    // 4. 挖掘疲劳惩罚
+    const auto* fatigueEffect = getEffect(entity::effect::EffectType::MiningFatigue);
+    if (fatigueEffect) {
+        i32 amplifier = fatigueEffect->amplifier();
+        // MC 1.16.5 挖掘疲劳乘数表
+        static constexpr f32 FATIGUE_MULTIPLIERS[] = {0.3f, 0.09f, 0.0027f, 0.00081f};
+        if (amplifier >= 0 && static_cast<size_t>(amplifier) < 4) {
+            speed *= FATIGUE_MULTIPLIERS[amplifier];
+        } else {
+            speed *= 0.00081f;  // IV级及以上使用最小值
+        }
+    }
+
+    // 5. 水下挖掘惩罚（仅当眼睛在水中且没有水下速掘附魔时）
+    // MC 1.16.5: if (this.areEyesInFluid(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(this))
+    if (areEyesInWater()) {
+        // 检查头盔是否有水下速掘附魔
+        const ItemStack& helmet = m_inventory.getHelmet();
+        if (!item::enchant::EnchantmentHelper::hasAquaAffinity(helmet)) {
+            speed /= 5.0f;
+        }
+    }
+
+    // 6. 空中挖掘惩罚（不在地面时）
+    if (!m_onGround) {
+        speed /= 5.0f;
+    }
+
+    return speed;
+}
+
+bool Player::canHarvestBlock(const BlockState& state) const {
+    // 参考 MC 1.16.5: PlayerEntity.canHarvestBlock(BlockState)
+    // 以及 ForgeHooks.canHarvestBlock()
+
+    // 如果方块不需要工具，总是可以采集
+    if (!state.requiresTool()) {
+        return true;
+    }
+
+    // 获取手持物品
+    ItemStack heldItem = getHeldItem(Hand::MainHand);
+
+    // 检查工具是否能采集
+    if (!heldItem.isEmpty()) {
+        return heldItem.canHarvestBlock(state);
+    }
+
+    // 空手无法采集需要工具的方块
+    return false;
+}
+
+// ============================================================================
 // 受伤/死亡（覆盖 LivingEntity 方法）
 // ============================================================================
 

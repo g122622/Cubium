@@ -677,9 +677,7 @@ f32 Block::getPlayerRelativeBlockHardness(
     // 基础挖掘速度 = 1 / (hardness * 30) 对于硬度 > 0
     // 创造模式：瞬间破坏
 
-    MC_UNUSED(player);
     MC_UNUSED(world);
-    MC_UNUSED(pos);
 
     f32 hardness = state.hardness();
     if (hardness <= 0.0f) {
@@ -687,18 +685,23 @@ f32 Block::getPlayerRelativeBlockHardness(
         return 1.0f;
     }
 
-    // TODO: 获取玩家的挖掘速度倍率
-    // f32 digSpeed = player.getDigSpeed(state, pos);
-    // bool canHarvest = !state.requiresTool() || player.canHarvestBlock(state);
-    //
-    // if (canHarvest) {
-    //     return digSpeed / hardness / 30.0f;
-    // } else {
-    //     return digSpeed / hardness / 30.0f / 100.0f;
-    // }
+    // 创造模式瞬间破坏
+    if (player.isCreative()) {
+        return 1.0f;
+    }
 
-    // 简化实现：返回基础挖掘速度
-    return 1.0f / (hardness * 30.0f);
+    // 获取玩家的挖掘速度倍率
+    f32 digSpeed = player.getDigSpeed(state, pos);
+
+    // 检查是否可以使用正确工具采集
+    bool canHarvest = player.canHarvestBlock(state);
+
+    // 方块相对硬度 = digSpeed / hardness / divisor
+    // 正确工具: divisor = 30
+    // 错误工具: divisor = 100 (慢约 3.3 倍)
+    f32 divisor = canHarvest ? 30.0f : 100.0f;
+
+    return digSpeed / hardness / divisor;
 }
 
 } // namespace mc
