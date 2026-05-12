@@ -68,11 +68,9 @@ void ConduitBlock::onBlockAdded(
     auto& registry = blockentity::BlockEntityRegistry::instance();
     auto blockEntity = registry.create(BlockEntityType::Conduit, pos);
     if (blockEntity != nullptr) {
-        // 设置世界引用
-        blockEntity->setWorld(&world);
-        // 存储方块实体
-        // TODO: 实现世界方块实体存储
-        // world.setBlockEntity(pos, std::move(blockEntity));
+        // 设置世界引用并存储方块实体
+        // 注意：setBlockEntity 会接管所有权并设置世界引用
+        world.setBlockEntity(pos, blockEntity.release());
     }
 }
 
@@ -81,13 +79,10 @@ void ConduitBlock::onBlockRemoved(
     const BlockPos& pos,
     const BlockState& state)
 {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
     MC_UNUSED(state);
 
     // 移除方块实体
-    // TODO: 实现世界方块实体移除
-    // world.removeBlockEntity(pos);
+    world.removeBlockEntity(pos);
 }
 
 BlockState ConduitBlock::updatePostPlacement(
@@ -106,10 +101,8 @@ BlockState ConduitBlock::updatePostPlacement(
         waterloggable::scheduleWaterTick(world, currentPos);
     }
 
-    // 触发方块实体更新
-    // TODO: 获取方块实体并触发重新检测
-    // auto* blockEntity = world.getBlockEntity(pos);
-    // if (blockEntity != nullptr) { ... }
+    // 注意：潮涌核心的激活状态检测在 ConduitEntity::tick() 中自动完成
+    // 当方块更新时不需要手动触发重新检测
 
     return state;
 }

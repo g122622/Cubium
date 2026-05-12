@@ -160,11 +160,6 @@ public:
 
     /**
      * @brief 获取指定位置的方块实体
-     *
-     * 通过区块代理获取方块实体。如果区块未加载或没有方块实体，返回 nullptr。
-     *
-     * 参考 MC 1.16.5: net.minecraft.world.World.getTileEntity
-     *
      * @param pos 方块位置
      * @return 方块实体指针，如果不存在返回 nullptr
      */
@@ -173,26 +168,13 @@ public:
 
     /**
      * @brief 设置指定位置的方块实体
-     *
-     * 将方块实体存储到对应区块中。如果区块未加载，则不执行任何操作。
-     * 如果该位置已有方块实体，则替换之。
-     *
-     * 注意：此方法获取 BlockEntity 的所有权。
-     *
-     * 参考 MC 1.16.5: net.minecraft.world.World.setTileEntity
-     *
      * @param pos 方块位置
-     * @param entity 方块实体原始指针（转移所有权）
+     * @param entity 方块实体指针（获取所有权）
      */
     void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override;
 
     /**
      * @brief 移除指定位置的方块实体
-     *
-     * 从对应区块中移除方块实体。如果区块未加载或没有方块实体，则不执行任何操作。
-     *
-     * 参考 MC 1.16.5: net.minecraft.world.World.removeTileEntity
-     *
      * @param pos 方块位置
      */
     void removeBlockEntity(const BlockPos& pos) override;

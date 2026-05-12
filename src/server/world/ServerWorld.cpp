@@ -380,6 +380,67 @@ const BlockState* ServerWorld::getBlockState(i32 x, i32 y, i32 z) const
 }
 
 // ============================================================================
+// 方块实体管理
+// ============================================================================
+
+BlockEntity* ServerWorld::getBlockEntity(const BlockPos& pos) {
+    ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
+    ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
+
+    ChunkData* chunk = getChunk(chunkX, chunkZ);
+    if (!chunk) {
+        return nullptr;
+    }
+
+    return chunk->getBlockEntity(pos);
+}
+
+const BlockEntity* ServerWorld::getBlockEntity(const BlockPos& pos) const {
+    ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
+    ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
+
+    const ChunkData* chunk = getChunk(chunkX, chunkZ);
+    if (!chunk) {
+        return nullptr;
+    }
+
+    return chunk->getBlockEntity(pos);
+}
+
+void ServerWorld::setBlockEntity(const BlockPos& pos, BlockEntity* entity) {
+    if (entity == nullptr) {
+        return;
+    }
+
+    ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
+    ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
+
+    ChunkData* chunk = getChunk(chunkX, chunkZ);
+    if (!chunk) {
+        return;
+    }
+
+    // 设置世界引用
+    entity->setWorld(this);
+
+    // 转移所有权给区块
+    std::unique_ptr<BlockEntity> entityPtr(entity);
+    chunk->setBlockEntity(pos, std::move(entityPtr));
+}
+
+void ServerWorld::removeBlockEntity(const BlockPos& pos) {
+    ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
+    ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
+
+    ChunkData* chunk = getChunk(chunkX, chunkZ);
+    if (!chunk) {
+        return;
+    }
+
+    chunk->removeBlockEntity(pos);
+}
+
+// ============================================================================
 // 修改世界中的方块
 // 注意：会自动给客户端发包，不要在外部调用后再发一次！
 // ============================================================================

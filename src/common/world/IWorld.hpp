@@ -3,7 +3,6 @@
 #include "../core/Types.hpp"
 #include "block/BlockPos.hpp"
 #include "IWorldWriter.hpp"
-#include "blockentity/BlockEntity.hpp"
 #include "../util/math/Vector3.hpp"
 #include "../util/AxisAlignedBB.hpp"
 #include "../resource/ResourceLocation.hpp"
@@ -25,6 +24,7 @@ class BlockPos;
 class PhysicsEngine;
 class Block;
 class IRandom;
+class BlockEntity;
 class Player;
 enum class Direction : u8;
 enum class ContainerType : u8;
@@ -113,8 +113,6 @@ public:
      * @brief 获取方块实体
      * @param pos 方块位置
      * @return 方块实体指针，如果不存在返回 nullptr
-     *
-     * 默认实现返回 nullptr。ServerWorld 重写此方法以代理到 ChunkData。
      */
     [[nodiscard]] virtual BlockEntity* getBlockEntity(const BlockPos& pos) {
         (void)pos;
@@ -143,20 +141,15 @@ public:
      * @brief 设置方块实体
      * @param pos 方块位置
      * @param entity 方块实体指针（获取所有权）
-     *
-     * 默认实现为空操作，会释放传入的 entity 指针以避免内存泄漏。
-     * ServerWorld 重写此方法以代理到 ChunkData。
      */
     virtual void setBlockEntity(const BlockPos& pos, BlockEntity* entity) {
         (void)pos;
-        delete entity;  // 释放所有权，避免内存泄漏
+        (void)entity;
     }
 
     /**
      * @brief 移除方块实体
      * @param pos 方块位置
-     *
-     * 默认实现为空操作。ServerWorld 重写此方法以代理到 ChunkData。
      */
     virtual void removeBlockEntity(const BlockPos& pos) {
         (void)pos;
