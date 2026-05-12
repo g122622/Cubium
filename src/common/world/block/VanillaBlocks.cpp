@@ -155,6 +155,7 @@ Block* VanillaBlocks::LAPIS_BLOCK = nullptr;
 Block* VanillaBlocks::EMERALD_BLOCK = nullptr;
 Block* VanillaBlocks::REDSTONE_BLOCK = nullptr;
 Block* VanillaBlocks::NETHERITE_BLOCK = nullptr;
+Block* VanillaBlocks::COAL_BLOCK = nullptr;
 
 // 建筑方块
 Block* VanillaBlocks::BRICKS = nullptr;
@@ -1183,6 +1184,20 @@ void VanillaBlocks::registerMineralBlocks() {
             .resistance(1200.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .harvestLevel(3)
+            .requiresTool()
+    );
+
+    // 煤炭块
+    // 参考 MC 1.16.5: new Block(Properties.create(Material.ROCK, MaterialColor.BLACK)
+    //     .setRequiresTool().hardnessAndResistance(5.0F, 6.0F))
+    // 需要石镐及以上 (harvestLevel 1)
+    COAL_BLOCK = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:coal_block"),
+        BlockProperties(Material::ROCK)
+            .hardness(5.0f)
+            .resistance(6.0f)
+            .harvestTool(HarvestTool::Pickaxe)
+            .harvestLevel(1)
             .requiresTool()
     );
 }

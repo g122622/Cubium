@@ -95,6 +95,7 @@ public:
     static Block* EMERALD_BLOCK;
     static Block* REDSTONE_BLOCK;
     static Block* NETHERITE_BLOCK;      // 下界合金块
+    static Block* COAL_BLOCK;           // 煤炭块
 
     // ========================================================================
     // 建筑方块
