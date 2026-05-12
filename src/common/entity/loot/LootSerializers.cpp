@@ -1045,9 +1045,22 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetAttributesFunctio
     return castToBase<SetAttributesFunction, LootFunction>(std::move(function));
 }
 
-Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetContentsFunction(const nlohmann::json& /*json*/) {
-    // set_contents 函数需要解析条目，当前简化实现
-    return castToBase<SetContentsFunction, LootFunction>(std::make_unique<SetContentsFunction>());
+Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetContentsFunction(const nlohmann::json& json) {
+    auto function = std::make_unique<SetContentsFunction>();
+
+    // 解析 entries 数组
+    // 格式: { "function": "minecraft:set_contents", "entries": [...] }
+    if (json.contains("entries") && json["entries"].is_array()) {
+        auto entriesResult = parseEntries(json["entries"]);
+        if (!entriesResult.success()) {
+            return entriesResult.error();
+        }
+        for (auto& entry : entriesResult.value()) {
+            function->addEntry(std::move(entry));
+        }
+    }
+
+    return castToBase<SetContentsFunction, LootFunction>(std::move(function));
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetLootTableFunction(const nlohmann::json& json) {

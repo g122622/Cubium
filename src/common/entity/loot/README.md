@@ -132,10 +132,51 @@ MC 1.16.5 时运公式:
 | `CopyNbtFunction` | `copy_nbt` | 复制NBT函数 |
 | `FillPlayerHeadFunction` | `fill_player_head` | 填充玩家头颅函数 |
 | `SetAttributesFunction` | `set_attributes` | 设置属性函数 ✅ |
-| `SetContentsFunction` | `set_contents` | 设置内容物函数 |
+| `SetContentsFunction` | `set_contents` | 设置内容物函数 ✅ |
 | `SetLootTableFunction` | `set_loot_table` | 设置掉落表函数 |
 | `ExplorationMapFunction` | `exploration_map` | 探险地图函数 |
 | `SetStewEffectFunction` | `set_stew_effect` | 设置炖菜效果函数 ✅ |
+
+**SetContentsFunction 已完成实现**:
+
+为容器物品设置内容物。参考 MC 1.16.5 `net.minecraft.loot.functions.SetContents`。
+
+**功能特性**:
+- 遍历 LootEntry 列表生成物品
+- 支持物品数量超过最大堆叠数时自动拆分
+- 将生成的物品序列化到 ItemStack 的 BlockEntityTag.Items 中
+- 与已有 BlockEntityTag 数据正确合并
+- 支持 JSON 解析（entries 数组）
+
+**NBT 格式**:
+```json
+{
+  "BlockEntityTag": {
+    "Items": [
+      {"Slot": 0, "id": "minecraft:diamond", "Count": 5},
+      {"Slot": 1, "id": "minecraft:iron_ingot", "Count": 3}
+    ],
+    // 其他 BlockEntity 数据
+  }
+}
+```
+
+**使用示例**:
+```cpp
+#include "entity/loot/LootFunctions.hpp"
+
+using namespace mc::loot;
+
+// 创建函数并添加内容物
+SetContentsFunction func;
+func.addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f, 3.0f)));
+func.addEntry(std::make_unique<ItemLootEntry>("minecraft:iron_ingot", RandomValueRange(2.0f, 5.0f)));
+
+// 应用到物品
+LootContext context(world, random);
+ItemStack chest(...);
+ItemStack result = func.apply(chest, context);
+```
 
 **SetStewEffectFunction 已完成实现**:
 
@@ -880,7 +921,7 @@ entry.generate(consumer, context);  // 条件在这里检查
    - CopyNbtFunction（需要 NBT 路径解析）
    - FillPlayerHeadFunction（需要玩家皮肤系统）
    - ~~SetAttributesFunction~~ ✅ 已完成（为物品添加属性修饰符，支持随机数值、多槽位、UUID生成）
-   - SetContentsFunction（需要容器物品支持）
+   - ~~SetContentsFunction~~ ✅ 已完成（设置容器物品内容物到 BlockEntityTag.Items）
    - ExplorationMapFunction（需要地图数据系统）
    - ~~SetStewEffectFunction~~ ✅ 已完成（为谜之炖菜添加状态效果，支持随机选择和持续时间）
    - ~~SetLootTableFunction~~ ✅ 已完成（设置掉落表到 BlockEntityTag）

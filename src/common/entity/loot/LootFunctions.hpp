@@ -18,6 +18,9 @@ class BlockState;
 
 namespace loot {
 
+// Forward declarations
+class LootEntry;
+
 /**
  * @brief 掉落函数基类
  *
@@ -693,14 +696,33 @@ private:
  * 参考: net.minecraft.loot.functions.SetContents
  *
  * 用于生成带有物品的容器（如箱子矿车）。
+ *
+ * 实现逻辑：
+ * 1. 遍历所有 LootEntry，生成物品
+ * 2. 将生成的物品序列化到 ItemStack 的 BlockEntityTag.Items 中
+ * 3. 参考 MC 1.16.5 ItemStackHelper.saveAllItems() 格式
  */
 class SetContentsFunction : public LootFunction {
 public:
     SetContentsFunction() = default;
 
+    /**
+     * @brief 添加内容物条目
+     * @param entry 掉落条目
+     */
+    void addEntry(std::unique_ptr<LootEntry> entry);
+
+    /**
+     * @brief 获取所有内容物条目
+     */
+    [[nodiscard]] const std::vector<std::unique_ptr<LootEntry>>& getEntries() const { return m_entries; }
+
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
     [[nodiscard]] std::string getType() const override { return "set_contents"; }
+
+private:
+    std::vector<std::unique_ptr<LootEntry>> m_entries;
 };
 
 /**

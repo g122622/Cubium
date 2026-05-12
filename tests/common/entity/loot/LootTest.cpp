@@ -587,6 +587,204 @@ TEST_F(LootTest, SetAttributesFunction_AllOperations) {
 TEST_F(LootTest, SetContentsFunction_Creation) {
     SetContentsFunction func;
     EXPECT_EQ("set_contents", func.getType());
+    EXPECT_TRUE(func.getEntries().empty());
+}
+
+TEST_F(LootTest, SetContentsFunction_AddEntry) {
+    SetContentsFunction func;
+
+    auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f, 3.0f), 10, 0);
+    func.addEntry(std::move(entry));
+
+    EXPECT_EQ(1, func.getEntries().size());
+}
+
+TEST_F(LootTest, SetContentsFunction_Clone) {
+    SetContentsFunction func;
+    func.addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0));
+    func.addEntry(std::make_unique<ItemLootEntry>("minecraft:iron_ingot", RandomValueRange(2.0f, 5.0f), 2, 0));
+
+    auto cloned = func.clone();
+    ASSERT_NE(cloned, nullptr);
+
+    auto* clonedFunc = dynamic_cast<SetContentsFunction*>(cloned.get());
+    ASSERT_NE(clonedFunc, nullptr);
+    EXPECT_EQ(2, clonedFunc->getEntries().size());
+}
+
+TEST_F(LootTest, SetContentsFunction_EmptyStack) {
+    SetContentsFunction func;
+    func.addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0));
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    ItemStack emptyStack;
+    ItemStack result = func.apply(std::move(emptyStack), *context);
+
+    EXPECT_TRUE(result.isEmpty());
+}
+
+TEST_F(LootTest, SetContentsFunction_EmptyEntries) {
+    SetContentsFunction func;  // No entries
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    ItemStack result = func.apply(stack, *context);
+
+    // 应该返回原堆，没有 BlockEntityTag
+    EXPECT_FALSE(result.isEmpty());
+    EXPECT_FALSE(result.hasTag());
+}
+
+TEST_F(LootTest, SetContentsFunction_SingleItem) {
+    SetContentsFunction func;
+    func.addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(5.0f), 1, 0));
+
+    // 使用钻石作为容器物品（测试函数逻辑，任何物品都可以）
+    const Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(item, nullptr);
+    ItemStack stack(*item, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    ItemStack result = func.apply(stack, *context);
+
+    EXPECT_FALSE(result.isEmpty());
+    EXPECT_TRUE(result.hasTag());
+
+    // 检查 BlockEntityTag.Items
+    const nlohmann::json* blockEntityTag = result.getChildTag("BlockEntityTag");
+    ASSERT_NE(blockEntityTag, nullptr);
+    ASSERT_TRUE(blockEntityTag->contains("Items"));
+    EXPECT_TRUE((*blockEntityTag)["Items"].is_array());
+
+    // 应该有一个物品（5个钻石）
+    const auto& items = (*blockEntityTag)["Items"];
+    EXPECT_EQ(1, items.size());
+    EXPECT_EQ("minecraft:diamond", items[0]["id"].get<std::string>());
+    EXPECT_EQ(5, items[0]["Count"].get<int>());
+}
+
+TEST_F(LootTest, SetContentsFunction_MultipleItems) {
+    SetContentsFunction func;
+    func.addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0));
+    func.addEntry(std::make_unique<ItemLootEntry>("minecraft:iron_ingot", RandomValueRange(2.0f), 1, 0));
+    func.addEntry(std::make_unique<ItemLootEntry>("minecraft:gold_ingot", RandomValueRange(3.0f), 1, 0));
+
+    const Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(item, nullptr);
+    ItemStack stack(*item, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    ItemStack result = func.apply(stack, *context);
+
+    EXPECT_FALSE(result.isEmpty());
+    EXPECT_TRUE(result.hasTag());
+
+    const nlohmann::json* blockEntityTag = result.getChildTag("BlockEntityTag");
+    ASSERT_NE(blockEntityTag, nullptr);
+    ASSERT_TRUE(blockEntityTag->contains("Items"));
+
+    const auto& items = (*blockEntityTag)["Items"];
+    EXPECT_EQ(3, items.size());
+
+    // 验证所有物品都有 Slot 字段
+    for (const auto& itemJson : items) {
+        EXPECT_TRUE(itemJson.contains("Slot"));
+        EXPECT_TRUE(itemJson.contains("id"));
+        EXPECT_TRUE(itemJson.contains("Count"));
+    }
+}
+
+TEST_F(LootTest, SetContentsFunction_MergesWithExistingTag) {
+    SetContentsFunction func;
+    func.addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0));
+
+    const Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(item, nullptr);
+    ItemStack stack(*item, 1);
+
+    // 预设一个 BlockEntityTag（模拟已有数据）
+    nlohmann::json& existingTag = stack.getOrCreateChildTag("BlockEntityTag");
+    existingTag["CustomName"] = "Test Container";
+    existingTag["Lock"] = "secret";
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    ItemStack result = func.apply(stack, *context);
+
+    EXPECT_FALSE(result.isEmpty());
+
+    const nlohmann::json* blockEntityTag = result.getChildTag("BlockEntityTag");
+    ASSERT_NE(blockEntityTag, nullptr);
+
+    // Items 应该被添加
+    EXPECT_TRUE(blockEntityTag->contains("Items"));
+
+    // 原有的数据应该被保留
+    EXPECT_TRUE(blockEntityTag->contains("CustomName"));
+    EXPECT_EQ("Test Container", (*blockEntityTag)["CustomName"].get<std::string>());
+    EXPECT_TRUE(blockEntityTag->contains("Lock"));
+    EXPECT_EQ("secret", (*blockEntityTag)["Lock"].get<std::string>());
+}
+
+TEST_F(LootTest, SetContentsFunction_StackSplitting) {
+    SetContentsFunction func;
+    // 生成 128 个钻石，超过最大堆叠数 64
+    func.addEntry(std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(128.0f), 1, 0));
+
+    const Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(item, nullptr);
+    ItemStack stack(*item, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    ItemStack result = func.apply(stack, *context);
+
+    const nlohmann::json* blockEntityTag = result.getChildTag("BlockEntityTag");
+    ASSERT_NE(blockEntityTag, nullptr);
+
+    const auto& items = (*blockEntityTag)["Items"];
+    // 应该被拆分成两个堆：64 + 64
+    EXPECT_EQ(2, items.size());
+    EXPECT_EQ(64, items[0]["Count"].get<int>());
+    EXPECT_EQ(64, items[1]["Count"].get<int>());
+}
+
+TEST_F(LootTest, SetContentsFunction_WithCondition) {
+    SetContentsFunction func;
+
+    auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond", RandomValueRange(1.0f), 1, 0);
+    entry->addCondition(std::make_unique<RandomChanceCondition>(0.0f));  // 永远不满足
+    func.addEntry(std::move(entry));
+
+    const Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(item, nullptr);
+    ItemStack stack(*item, 1);
+
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    ItemStack result = func.apply(stack, *context);
+
+    // 条件不满足，不会生成物品
+    EXPECT_FALSE(result.isEmpty());
+    // 没有 BlockEntityTag 或者没有 Items
+    const nlohmann::json* blockEntityTag = result.getChildTag("BlockEntityTag");
+    if (blockEntityTag != nullptr) {
+        EXPECT_FALSE(blockEntityTag->contains("Items") && (*blockEntityTag)["Items"].size() > 0);
+    }
 }
 
 TEST_F(LootTest, SetLootTableFunction_Creation) {
