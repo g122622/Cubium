@@ -94,6 +94,20 @@ public:
      */
     void updateState(IWorld& world, const BlockPos& pos);
 
+    /**
+     * @brief 检查是否应该连接到指定方向的方块
+     *
+     * 参考 MC 1.16.5: TripWireBlock.shouldConnectTo
+     * - 如果相邻方块是绊线钩，检查其 FACING 是否朝向当前方向
+     * - 如果相邻方块是绊线，返回 true
+     * - 其他情况返回 false
+     *
+     * @param neighborState 相邻方块的状态
+     * @param direction 当前检测的方向（从当前方块指向相邻方块）
+     * @return true 如果应该连接
+     */
+    [[nodiscard]] bool shouldConnectTo(const BlockState& neighborState, Direction direction) const;
+
 private:
     /**
      * @brief 检测实体碰撞

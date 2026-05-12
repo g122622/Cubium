@@ -542,6 +542,278 @@ TEST_F(TripWireTest, TripWireHook_AttachedProperty) {
     EXPECT_TRUE(attachedState.get(BlockStateProperties::ATTACHED()));
 }
 
+// ========== shouldConnectTo 测试 ==========
+
+/**
+ * @brief 测试 shouldConnectTo - 连接到另一个绊线
+ */
+TEST_F(TripWireTest, ShouldConnectTo_ConnectsToTripWire) {
+    const TripWireBlock* tripwire = dynamic_cast<const TripWireBlock*>(VanillaBlocks::TRIPWIRE);
+    ASSERT_NE(tripwire, nullptr);
+
+    const BlockState& tripwireState = VanillaBlocks::TRIPWIRE->defaultState();
+
+    // 绊线应该连接到另一个绊线
+    EXPECT_TRUE(tripwire->shouldConnectTo(tripwireState, Direction::North));
+    EXPECT_TRUE(tripwire->shouldConnectTo(tripwireState, Direction::East));
+    EXPECT_TRUE(tripwire->shouldConnectTo(tripwireState, Direction::South));
+    EXPECT_TRUE(tripwire->shouldConnectTo(tripwireState, Direction::West));
+}
+
+/**
+ * @brief 测试 shouldConnectTo - 连接到面向它的绊线钩
+ *
+ * 参考 MC 1.16.5: 绊线钩的 FACING 必须与检测方向相反才能连接
+ * 例如：检测北边的方块时，北边的绊线钩 FACING 必须是 SOUTH（朝南，即面向当前绊线）
+ */
+TEST_F(TripWireTest, ShouldConnectTo_ConnectsToHookFacingTripwire) {
+    const TripWireBlock* tripwire = dynamic_cast<const TripWireBlock*>(VanillaBlocks::TRIPWIRE);
+    ASSERT_NE(tripwire, nullptr);
+
+    // 创建朝南的绊线钩（面向南边，即面向北边的绊线）
+    // 当绊线检测北边时，direction = North，opposite = South
+    // 绊线钩 FACING = South，与 opposite 相等，所以连接
+    BlockState hookFacingSouth = VanillaBlocks::TRIPWIRE_HOOK->defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
+
+    // 北边有个朝南的绊线钩，应该连接
+    EXPECT_TRUE(tripwire->shouldConnectTo(hookFacingSouth, Direction::North));
+
+    // 东边有个朝西的绊线钩，应该连接
+    BlockState hookFacingWest = VanillaBlocks::TRIPWIRE_HOOK->defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
+    EXPECT_TRUE(tripwire->shouldConnectTo(hookFacingWest, Direction::East));
+
+    // 南边有个朝北的绊线钩，应该连接
+    BlockState hookFacingNorth = VanillaBlocks::TRIPWIRE_HOOK->defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+    EXPECT_TRUE(tripwire->shouldConnectTo(hookFacingNorth, Direction::South));
+
+    // 西边有个朝东的绊线钩，应该连接
+    BlockState hookFacingEast = VanillaBlocks::TRIPWIRE_HOOK->defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+    EXPECT_TRUE(tripwire->shouldConnectTo(hookFacingEast, Direction::West));
+}
+
+/**
+ * @brief 测试 shouldConnectTo - 不连接到背对的绊线钩
+ *
+ * 如果绊线钩的 FACING 与检测方向相同，则不连接
+ */
+TEST_F(TripWireTest, ShouldConnectTo_NotConnectToHookFacingAway) {
+    const TripWireBlock* tripwire = dynamic_cast<const TripWireBlock*>(VanillaBlocks::TRIPWIRE);
+    ASSERT_NE(tripwire, nullptr);
+
+    // 北边有个朝北的绊线钩（背对绊线），不应该连接
+    BlockState hookFacingNorth = VanillaBlocks::TRIPWIRE_HOOK->defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+    EXPECT_FALSE(tripwire->shouldConnectTo(hookFacingNorth, Direction::North));
+
+    // 东边有个朝东的绊线钩（背对绊线），不应该连接
+    BlockState hookFacingEast = VanillaBlocks::TRIPWIRE_HOOK->defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+    EXPECT_FALSE(tripwire->shouldConnectTo(hookFacingEast, Direction::East));
+
+    // 南边有个朝南的绊线钩（背对绊线），不应该连接
+    BlockState hookFacingSouth = VanillaBlocks::TRIPWIRE_HOOK->defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
+    EXPECT_FALSE(tripwire->shouldConnectTo(hookFacingSouth, Direction::South));
+
+    // 西边有个朝西的绊线钩（背对绊线），不应该连接
+    BlockState hookFacingWest = VanillaBlocks::TRIPWIRE_HOOK->defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
+    EXPECT_FALSE(tripwire->shouldConnectTo(hookFacingWest, Direction::West));
+}
+
+/**
+ * @brief 测试 shouldConnectTo - 不连接到其他方块
+ */
+TEST_F(TripWireTest, ShouldConnectTo_NotConnectsToOtherBlocks) {
+    const TripWireBlock* tripwire = dynamic_cast<const TripWireBlock*>(VanillaBlocks::TRIPWIRE);
+    ASSERT_NE(tripwire, nullptr);
+
+    // 空气方块不应该连接
+    const BlockState& airState = VanillaBlocks::AIR->defaultState();
+    EXPECT_FALSE(tripwire->shouldConnectTo(airState, Direction::North));
+
+    // 石头方块不应该连接
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    EXPECT_FALSE(tripwire->shouldConnectTo(stoneState, Direction::North));
+}
+
+// ========== updatePostPlacement 测试 ==========
+
+/**
+ * @brief 测试 updatePostPlacement - 绊线连接到相邻绊线
+ */
+TEST_F(TripWireTest, UpdatePostPlacement_ConnectsToTripWire) {
+    TripWireBlock* tripwire = const_cast<TripWireBlock*>(dynamic_cast<const TripWireBlock*>(VanillaBlocks::TRIPWIRE));
+    ASSERT_NE(tripwire, nullptr);
+
+    // 设置绊线在 (0, 0, 0)
+    const BlockState& tripwireState = VanillaBlocks::TRIPWIRE->defaultState();
+    m_world.setBlockAt(BlockPos(0, 0, 0), &tripwireState);
+
+    // 设置绊线在 (1, 0, 0) 东边
+    m_world.setBlockAt(BlockPos(1, 0, 0), &tripwireState);
+
+    // 获取 (0, 0, 0) 的状态并测试更新
+    const BlockState* state = m_world.getBlockAt(BlockPos(0, 0, 0));
+    ASSERT_NE(state, nullptr);
+
+    // 模拟东边邻居更新
+    const BlockState* eastState = m_world.getBlockAt(BlockPos(1, 0, 0));
+    BlockState updatedState = tripwire->updatePostPlacement(
+        *state, Direction::East, *eastState, m_world,
+        BlockPos(0, 0, 0), BlockPos(1, 0, 0));
+
+    // 东边应该连接
+    EXPECT_TRUE(updatedState.get(BlockStateProperties::EAST()));
+}
+
+/**
+ * @brief 测试 updatePostPlacement - 绊线连接到面向它的绊线钩
+ */
+TEST_F(TripWireTest, UpdatePostPlacement_ConnectsToHook) {
+    TripWireBlock* tripwire = const_cast<TripWireBlock*>(dynamic_cast<const TripWireBlock*>(VanillaBlocks::TRIPWIRE));
+    ASSERT_NE(tripwire, nullptr);
+
+    // 设置绊线在 (0, 0, 0)
+    const BlockState& tripwireState = VanillaBlocks::TRIPWIRE->defaultState();
+    m_world.setBlockAt(BlockPos(0, 0, 0), &tripwireState);
+
+    // 设置朝西的绊线钩在 (1, 0, 0) 东边（面向西边的绊线）
+    BlockState hookState = VanillaBlocks::TRIPWIRE_HOOK->defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
+    m_world.setBlockAt(BlockPos(1, 0, 0), &hookState);
+
+    // 获取 (0, 0, 0) 的状态并测试更新
+    const BlockState* state = m_world.getBlockAt(BlockPos(0, 0, 0));
+    ASSERT_NE(state, nullptr);
+
+    // 模拟东边邻居更新
+    const BlockState* eastState = m_world.getBlockAt(BlockPos(1, 0, 0));
+    BlockState updatedState = tripwire->updatePostPlacement(
+        *state, Direction::East, *eastState, m_world,
+        BlockPos(0, 0, 0), BlockPos(1, 0, 0));
+
+    // 东边应该连接（绊线钩面向绊线）
+    EXPECT_TRUE(updatedState.get(BlockStateProperties::EAST()));
+}
+
+/**
+ * @brief 测试 updatePostPlacement - 绊线不连接到背对的绊线钩
+ */
+TEST_F(TripWireTest, UpdatePostPlacement_NotConnectsToHookFacingAway) {
+    TripWireBlock* tripwire = const_cast<TripWireBlock*>(dynamic_cast<const TripWireBlock*>(VanillaBlocks::TRIPWIRE));
+    ASSERT_NE(tripwire, nullptr);
+
+    // 设置绊线在 (0, 0, 0)
+    const BlockState& tripwireState = VanillaBlocks::TRIPWIRE->defaultState();
+    m_world.setBlockAt(BlockPos(0, 0, 0), &tripwireState);
+
+    // 设置朝东的绊线钩在 (1, 0, 0) 东边（背对西边的绊线）
+    BlockState hookState = VanillaBlocks::TRIPWIRE_HOOK->defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+    m_world.setBlockAt(BlockPos(1, 0, 0), &hookState);
+
+    // 获取 (0, 0, 0) 的状态并测试更新
+    const BlockState* state = m_world.getBlockAt(BlockPos(0, 0, 0));
+    ASSERT_NE(state, nullptr);
+
+    // 模拟东边邻居更新
+    const BlockState* eastState = m_world.getBlockAt(BlockPos(1, 0, 0));
+    BlockState updatedState = tripwire->updatePostPlacement(
+        *state, Direction::East, *eastState, m_world,
+        BlockPos(0, 0, 0), BlockPos(1, 0, 0));
+
+    // 东边不应该连接（绊线钩背对绊线）
+    EXPECT_FALSE(updatedState.get(BlockStateProperties::EAST()));
+}
+
+/**
+ * @brief 测试 updatePostPlacement - 垂直方向不更新连接状态
+ */
+TEST_F(TripWireTest, UpdatePostPlacement_IgnoresVerticalDirections) {
+    TripWireBlock* tripwire = const_cast<TripWireBlock*>(dynamic_cast<const TripWireBlock*>(VanillaBlocks::TRIPWIRE));
+    ASSERT_NE(tripwire, nullptr);
+
+    const BlockState& tripwireState = VanillaBlocks::TRIPWIRE->defaultState();
+
+    // 垂直方向的更新不应该改变连接状态
+    BlockState upUpdatedState = tripwire->updatePostPlacement(
+        tripwireState, Direction::Up, tripwireState, m_world,
+        BlockPos(0, 0, 0), BlockPos(0, 1, 0));
+    EXPECT_EQ(tripwireState.get(BlockStateProperties::NORTH()), upUpdatedState.get(BlockStateProperties::NORTH()));
+    EXPECT_EQ(tripwireState.get(BlockStateProperties::EAST()), upUpdatedState.get(BlockStateProperties::EAST()));
+    EXPECT_EQ(tripwireState.get(BlockStateProperties::SOUTH()), upUpdatedState.get(BlockStateProperties::SOUTH()));
+    EXPECT_EQ(tripwireState.get(BlockStateProperties::WEST()), upUpdatedState.get(BlockStateProperties::WEST()));
+
+    BlockState downUpdatedState = tripwire->updatePostPlacement(
+        tripwireState, Direction::Down, tripwireState, m_world,
+        BlockPos(0, 0, 0), BlockPos(0, -1, 0));
+    EXPECT_EQ(tripwireState.get(BlockStateProperties::NORTH()), downUpdatedState.get(BlockStateProperties::NORTH()));
+    EXPECT_EQ(tripwireState.get(BlockStateProperties::EAST()), downUpdatedState.get(BlockStateProperties::EAST()));
+    EXPECT_EQ(tripwireState.get(BlockStateProperties::SOUTH()), downUpdatedState.get(BlockStateProperties::SOUTH()));
+    EXPECT_EQ(tripwireState.get(BlockStateProperties::WEST()), downUpdatedState.get(BlockStateProperties::WEST()));
+}
+
+/**
+ * @brief 测试 updatePostPlacement - 多方向连接
+ */
+TEST_F(TripWireTest, UpdatePostPlacement_MultipleDirections) {
+    TripWireBlock* tripwire = const_cast<TripWireBlock*>(dynamic_cast<const TripWireBlock*>(VanillaBlocks::TRIPWIRE));
+    ASSERT_NE(tripwire, nullptr);
+
+    // 设置绊线在 (0, 0, 0)
+    const BlockState& tripwireState = VanillaBlocks::TRIPWIRE->defaultState();
+    m_world.setBlockAt(BlockPos(0, 0, 0), &tripwireState);
+
+    // 设置四个方向的绊线
+    m_world.setBlockAt(BlockPos(0, 0, -1), &tripwireState); // 北
+    m_world.setBlockAt(BlockPos(1, 0, 0), &tripwireState);  // 东
+    m_world.setBlockAt(BlockPos(0, 0, 1), &tripwireState);  // 南
+    m_world.setBlockAt(BlockPos(-1, 0, 0), &tripwireState); // 西
+
+    // 逐个更新四个方向
+    const BlockState* state = m_world.getBlockAt(BlockPos(0, 0, 0));
+    ASSERT_NE(state, nullptr);
+
+    // 更新北边
+    const BlockState* northState = m_world.getBlockAt(BlockPos(0, 0, -1));
+    BlockState updatedState = tripwire->updatePostPlacement(
+        *state, Direction::North, *northState, m_world,
+        BlockPos(0, 0, 0), BlockPos(0, 0, -1));
+    EXPECT_TRUE(updatedState.get(BlockStateProperties::NORTH()));
+
+    // 更新东边
+    const BlockState* eastState = m_world.getBlockAt(BlockPos(1, 0, 0));
+    updatedState = tripwire->updatePostPlacement(
+        updatedState, Direction::East, *eastState, m_world,
+        BlockPos(0, 0, 0), BlockPos(1, 0, 0));
+    EXPECT_TRUE(updatedState.get(BlockStateProperties::EAST()));
+
+    // 更新南边
+    const BlockState* southState = m_world.getBlockAt(BlockPos(0, 0, 1));
+    updatedState = tripwire->updatePostPlacement(
+        updatedState, Direction::South, *southState, m_world,
+        BlockPos(0, 0, 0), BlockPos(0, 0, 1));
+    EXPECT_TRUE(updatedState.get(BlockStateProperties::SOUTH()));
+
+    // 更新西边
+    const BlockState* westState = m_world.getBlockAt(BlockPos(-1, 0, 0));
+    updatedState = tripwire->updatePostPlacement(
+        updatedState, Direction::West, *westState, m_world,
+        BlockPos(0, 0, 0), BlockPos(-1, 0, 0));
+    EXPECT_TRUE(updatedState.get(BlockStateProperties::WEST()));
+
+    // 所有四个方向都应连接
+    EXPECT_TRUE(updatedState.get(BlockStateProperties::NORTH()));
+    EXPECT_TRUE(updatedState.get(BlockStateProperties::EAST()));
+    EXPECT_TRUE(updatedState.get(BlockStateProperties::SOUTH()));
+    EXPECT_TRUE(updatedState.get(BlockStateProperties::WEST()));
+}
+
 } // namespace test
 } // namespace blocks
 } // namespace mc

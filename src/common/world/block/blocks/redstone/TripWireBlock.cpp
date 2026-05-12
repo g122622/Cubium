@@ -1,4 +1,5 @@
 #include "TripWireBlock.hpp"
+#include "TripWireHookBlock.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../IWorld.hpp"
@@ -68,6 +69,27 @@ bool TripWireBlock::isActivated(const BlockState& state) {
     return state.get(BlockStateProperties::POWERED());
 }
 
+bool TripWireBlock::shouldConnectTo(const BlockState& neighborState, Direction direction) const {
+    // MC 1.16.5: TripWireBlock.shouldConnectTo
+    const Block& neighborBlock = neighborState.getBlock();
+
+    // 检查相邻方块是否是绊线钩
+    if (&neighborBlock == VanillaBlocks::TRIPWIRE_HOOK) {
+        // 绊线钩必须面向绊线才能连接
+        // 即钩的 FACING 必须与当前检测方向相反
+        Direction hookFacing = TripWireHookBlock::getFacing(neighborState);
+        return hookFacing == Directions::opposite(direction);
+    }
+
+    // 检查相邻方块是否是绊线
+    if (&neighborBlock == VanillaBlocks::TRIPWIRE) {
+        return true;
+    }
+
+    // 其他情况不连接
+    return false;
+}
+
 void TripWireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -127,15 +149,31 @@ BlockState TripWireBlock::updatePostPlacement(
     const BlockState& state, Direction facing,
     const BlockState& facingState, IWorld& world,
     const BlockPos& currentPos, const BlockPos& facingPos) {
-    MC_UNUSED(facingState);
     MC_UNUSED(world);
     MC_UNUSED(currentPos);
     MC_UNUSED(facingPos);
 
-    // 更新连接状态
-    // TODO: 检查相邻是否是绊线或绊线钩
+    // MC 1.16.5: 只处理水平方向的更新
+    if (!Directions::isHorizontal(facing)) {
+        return state;
+    }
 
-    return state;
+    // 检查是否应该连接到相邻方块
+    bool shouldConnect = shouldConnectTo(facingState, facing);
+
+    // 根据方向设置对应的连接属性
+    switch (facing) {
+        case Direction::North:
+            return state.with(BlockStateProperties::NORTH(), shouldConnect);
+        case Direction::East:
+            return state.with(BlockStateProperties::EAST(), shouldConnect);
+        case Direction::South:
+            return state.with(BlockStateProperties::SOUTH(), shouldConnect);
+        case Direction::West:
+            return state.with(BlockStateProperties::WEST(), shouldConnect);
+        default:
+            return state;
+    }
 }
 
 i32 TripWireBlock::getWeakPower(const BlockState& state, IWorld& world,
