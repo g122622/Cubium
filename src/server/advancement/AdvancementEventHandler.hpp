@@ -5,10 +5,12 @@
 #include "server/event/events/ServerEvents.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
+#include "server/core/ServerPlayerData.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
 #include "common/advancement/trigger/impl/PlayerKilledEntityTrigger.hpp"
 #include "common/advancement/trigger/impl/BlockTriggers.hpp"
+#include "common/advancement/trigger/impl/EntityTriggers.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -103,6 +105,14 @@ public:
                 }
             );
 
+        // 订阅僵尸村民治愈事件
+        m_curedZombieVillagerSubscription =
+            event::ServerEventBus::instance().makeSubscription<event::CuredZombieVillagerEvent>(
+                [this](const event::CuredZombieVillagerEvent& e) {
+                    onCuredZombieVillager(e);
+                }
+            );
+
         initialized_ = true;
     }
 
@@ -116,6 +126,7 @@ public:
         m_playerKillSubscription.unsubscribe();
         m_playerLoginSubscription.unsubscribe();
         m_blockPlaceSubscription.unsubscribe();
+        m_curedZombieVillagerSubscription.unsubscribe();
         initialized_ = false;
     }
 
@@ -286,6 +297,64 @@ private:
     }
 
     /**
+     * @brief 处理僵尸村民治愈事件
+     *
+     * 触发 CuredZombieVillagerTrigger。
+     * 参考 MC 1.16.5: CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger()
+     */
+    void onCuredZombieVillager(const event::CuredZombieVillagerEvent& e) {
+        // 检查治愈发起者UUID是否有效
+        if (e.starterUuid.empty()) {
+            return;
+        }
+
+        // 通过 UUID 获取 PlayerId
+        if (m_playerManager == nullptr) {
+            return;
+        }
+
+        const core::ServerPlayerData* playerData = m_playerManager->findByUuid(e.starterUuid);
+        if (playerData == nullptr) {
+            return;
+        }
+
+        PlayerId playerId = playerData->playerId;
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = getServerPlayer(playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 获取触发器
+        auto* trigger = mc::advancement::CriterionTriggers::instance()
+            .getTrigger<mc::advancement::CuredZombieVillagerTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 检查僵尸和村民实体是否有效
+        if (e.zombie == nullptr || e.villager == nullptr) {
+            return;
+        }
+
+        // 触发检测 - 使用基类模板方法
+        trigger->AbstractCriterionTrigger<mc::advancement::CuredZombieVillagerTriggerInstance>::trigger(
+            *advancements,
+            [&e](const mc::advancement::CuredZombieVillagerTriggerInstance& instance) {
+                return instance.test(*e.zombie, *e.villager);
+            }
+        );
+    }
+
+    /**
      * @brief 从 PlayerId 获取 ServerPlayer
      * @param playerId 玩家ID
      * @return ServerPlayer 指针，如果未找到返回 nullptr
@@ -319,6 +388,7 @@ private:
     event::ServerEventBus::Subscription<event::PlayerKillEntityEvent> m_playerKillSubscription;
     event::ServerEventBus::Subscription<event::PlayerLoginEvent> m_playerLoginSubscription;
     event::ServerEventBus::Subscription<event::BlockPlaceEvent> m_blockPlaceSubscription;
+    event::ServerEventBus::Subscription<event::CuredZombieVillagerEvent> m_curedZombieVillagerSubscription;
 
     // 服务器接口（用于获取 ServerPlayerEntityManager 和 ServerWorld）
     IServer* m_server = nullptr;

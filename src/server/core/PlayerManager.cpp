@@ -231,4 +231,24 @@ const ServerPlayerData* PlayerManager::findByUsername(const std::string& usernam
     return nullptr;
 }
 
+ServerPlayerData* PlayerManager::findByUuid(const std::string& uuid) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    for (auto& [id, player] : m_players) {
+        if (player.uuid == uuid) {
+            return &player;
+        }
+    }
+    return nullptr;
+}
+
+const ServerPlayerData* PlayerManager::findByUuid(const std::string& uuid) const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    for (const auto& [id, player] : m_players) {
+        if (player.uuid == uuid) {
+            return &player;
+        }
+    }
+    return nullptr;
+}
+
 } // namespace mc::server::core

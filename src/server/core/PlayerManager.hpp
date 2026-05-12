@@ -275,6 +275,22 @@ public:
      */
     [[nodiscard]] const ServerPlayerData* findByUsername(const std::string& username) const;
 
+    /**
+     * @brief 通过 UUID 查找玩家
+     * @param uuid 玩家 UUID（持久化标识符）
+     * @return 玩家数据指针，如果未找到返回 nullptr
+     * @note 线程安全
+     */
+    [[nodiscard]] ServerPlayerData* findByUuid(const std::string& uuid);
+
+    /**
+     * @brief 通过 UUID 查找玩家（const版本）
+     * @param uuid 玩家 UUID（持久化标识符）
+     * @return 玩家数据指针，如果未找到返回 nullptr
+     * @note 线程安全
+     */
+    [[nodiscard]] const ServerPlayerData* findByUuid(const std::string& uuid) const;
+
 private:
     mutable std::recursive_mutex m_mutex;
     std::unordered_map<PlayerId, ServerPlayerData> m_players;

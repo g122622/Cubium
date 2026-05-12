@@ -903,6 +903,26 @@ public:
         // 默认空实现
     }
 
+    /**
+     * @brief 通知世界僵尸村民被治愈
+     *
+     * 当僵尸村民被治愈时调用，用于触发进度检测和村庄声望更新。
+     * ServerWorld 重写此方法来发布 CuredZombieVillagerEvent。
+     * ClientWorld 和其他实现返回空实现。
+     *
+     * 参考 MC 1.16.5: CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger()
+     *
+     * @param starterUuid 治愈发起者玩家UUID（可能为空）
+     * @param zombie 治愈前的僵尸村民实体
+     * @param villager 治愈后的村民实体
+     */
+    virtual void onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager) {
+        (void)starterUuid;
+        (void)zombie;
+        (void)villager;
+        // 默认空实现
+    }
+
 protected:
     IWorld() = default;
 };

@@ -671,6 +671,18 @@ public:
                        const BlockState* state, const ItemStack* item) override;
 
     /**
+     * @brief 通知世界僵尸村民被治愈
+     *
+     * 重写 IWorld::onZombieVillagerCured()，发布 CuredZombieVillagerEvent 用于进度触发。
+     * 参考 MC 1.16.5: CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger()
+     *
+     * @param starterUuid 治愈发起者玩家UUID（可能为空）
+     * @param zombie 治愈前的僵尸村民实体
+     * @param villager 治愈后的村民实体
+     */
+    void onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager) override;
+
+    /**
      * @brief 检查并处理全员睡眠
      *
      * 在 tick() 中调用，检查是否所有玩家都完全入睡，

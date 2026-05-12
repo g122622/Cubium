@@ -1646,4 +1646,16 @@ void ServerWorld::onBlockPlaced(PlayerId playerId, const BlockPos& pos,
     event::ServerEventBus::instance().publish(event);
 }
 
+void ServerWorld::onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager) {
+    // 发布 CuredZombieVillagerEvent 用于进度触发
+    // 参考 MC 1.16.5: CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger()
+    event::CuredZombieVillagerEvent event{
+        currentTick(),
+        starterUuid,
+        zombie,
+        villager
+    };
+    event::ServerEventBus::instance().publish(event);
+}
+
 } // namespace mc::server

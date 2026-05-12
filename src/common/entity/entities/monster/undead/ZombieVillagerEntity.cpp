@@ -303,7 +303,12 @@ void ZombieVillagerEntity::finishConverting() {
     // 广播治愈事件（1027 = 僵尸村民治愈）
     // m_world->broadcastEntityStatus(m_id, 1027);
 
-    // TODO: 触发成就 CriteriaTriggers.CURED_ZOMBIE_VILLAGER
+    // 触发成就 CriteriaTriggers.CURED_ZOMBIE_VILLAGER
+    // 参考 MC 1.16.5: ZombieVillagerEntity.finishConverting()
+    if (m_world && !m_conversionStarterUuid.empty()) {
+        m_world->onZombieVillagerCured(m_conversionStarterUuid, this, villager);
+    }
+
     // TODO: 更新村庄声望 (MajorPositive)
 
     // 移除僵尸村民

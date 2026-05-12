@@ -396,13 +396,17 @@ struct VillagerTradeEvent : ServerEvent {
 
 /**
  * @brief 治愈僵尸村民事件
+ *
+ * 当玩家治愈僵尸村民时触发。
+ * 参考 MC 1.16.5: CriteriaTriggers.CURED_ZOMBIE_VILLAGER
  */
 struct CuredZombieVillagerEvent : ServerEvent {
-    PlayerId playerId;           ///< 玩家ID
-    Entity* villager;            ///< 治愈的村民
+    std::string starterUuid;      ///< 治愈发起者玩家UUID（可能为空）
+    Entity* zombie;               ///< 治愈前的僵尸村民实体
+    Entity* villager;             ///< 治愈后的村民实体
 
-    CuredZombieVillagerEvent(u64 tick, PlayerId pid, Entity* v)
-        : ServerEvent(tick), playerId(pid), villager(v) {}
+    CuredZombieVillagerEvent(u64 tick, const std::string& uuid, Entity* z, Entity* v)
+        : ServerEvent(tick), starterUuid(uuid), zombie(z), villager(v) {}
 };
 
 // ============================================================================
