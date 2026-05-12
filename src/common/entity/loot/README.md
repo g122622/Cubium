@@ -790,6 +790,7 @@ entry.generate(consumer, context);  // 条件在这里检查
 | SetLootTableFunction | 创建、克隆 |
 | ExplorationMapFunction | 创建、目的地类型 |
 | SetStewEffectFunction | 创建、效果添加 |
+| SetNbtFunction | 空物品堆、空字符串、简单标签、嵌套标签、标签合并、嵌套对象合并、无效NBT、类型后缀、克隆、构建器 |
 | LootFunctionBuilder | 所有新函数工厂方法 |
 | LootSerializers | RandomValueRange/IRandomRange 解析、条件解析、函数解析、条目解析、池解析、掉落表解析、序列化、往返测试、BlockStateCondition JSON解析（含properties字段） |
 
