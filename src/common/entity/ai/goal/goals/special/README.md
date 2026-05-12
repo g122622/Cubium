@@ -143,19 +143,46 @@ void CreeperEntity::registerGoals() {
 
 **职责**: 控制守卫者使用激光攻击目标。
 
-**MC 1.16.5 参考**: `net.minecraft.entity.monster.GuardianEntity.GuardianAttackGoal`
+**MC 1.16.5 参考**: `net.minecraft.entity.monster.GuardianEntity.AttackGoal`
+
+**攻击阶段**:
+1. **准备阶段**: tickCounter 从 -10 计数到 0
+2. **充能动画**: tickCounter 从 0 计数到 80，在 tickCounter == 0 时发送 EntityStatus::GuardianAttack (21) 触发客户端音效
+3. **发射阶段**: tickCounter >= 80 时造成伤害
 
 **执行条件**:
 - 有攻击目标
 - 目标存活
-- 目标在攻击范围内
+- 目标在视线范围内
 
-**特点**:
-- 使用激光攻击
-- 有充能时间
-- 可以穿墙攻击（守卫者特性）
+**攻击机制**:
+- 魔法伤害 (4.0) + 物理伤害 (基于 ATTACK_DAMAGE 属性)
+- 远古守卫者额外 +2.0 伤害
+- 困难模式额外 +2.0 伤害 (TODO)
+- 使用 `broadcastEntityStatus()` 发送状态21触发客户端攻击音效
+
+**目标选择**:
+- 玩家或鱿鱼
+- 距离 > 3 格（距离平方 > 9.0）
+- 非创造模式/观察者模式的玩家
+
+**常量**:
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| ATTACK_DURATION | 80 | 攻击周期 (ticks) |
+| ATTACK_RANGE | 15.0 | 攻击范围 |
+| LASER_DAMAGE | 4.0 | 激光基础伤害 |
+| ELDER_BONUS_DAMAGE | 2.0 | 远古守卫者额外伤害 |
 
 **互斥标志**: `Move`, `Look`
+
+**使用示例**:
+```cpp
+void GuardianEntity::registerGoals() {
+    // 优先级 4: 激光攻击
+    m_goalSelector.addGoal(4, std::make_unique<GuardianAttackGoal>(this));
+}
+```
 
 ---
 

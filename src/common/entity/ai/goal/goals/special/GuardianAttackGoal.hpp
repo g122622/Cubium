@@ -15,9 +15,9 @@ namespace entity::ai::goal {
  * @brief 守卫者激光攻击目标
  *
  * 守卫者特有的激光攻击行为：
- * - 充能阶段：持续 60 tick（3秒）
- * - 发射阶段：造成伤害
- * - 冷却阶段：短暂冷却后可再次攻击
+ * - 准备阶段：前 10 tick（tickCounter 从 -10 到 0）
+ * - 充能动画：tickCounter 从 0 到 80（此时发送状态21触发音效）
+ * - 发射阶段：80 tick 时造成伤害
  *
  * 参考 MC 1.16.5 GuardianEntity.AttackGoal
  */
@@ -52,27 +52,16 @@ private:
      */
     [[nodiscard]] bool isTargetValid(LivingEntity* target) const;
 
-    /**
-     * @brief 更新激光攻击
-     */
-    void updateLaserAttack();
-
-    /**
-     * @brief 执行激光攻击
-     * @param target 目标实体
-     */
-    void performLaserAttack(LivingEntity* target);
-
     GuardianEntity* m_guardian;
     LivingEntity* m_target = nullptr;
-    i32 m_attackTime = 0;          // 攻击计时器
-    bool m_isCharging = false;     // 是否正在充能
+    i32 m_tickCounter = 0;          // MC 1.16.5: tickCounter
+    bool m_isElder = false;         // 是否为远古守卫者
 
     // MC 1.16.5 常量
-    static constexpr i32 CHARGE_DURATION = 60;  // 充能时间（ticks）
-    static constexpr i32 COOLDOWN_DURATION = 20; // 冷却时间（ticks）
+    static constexpr i32 ATTACK_DURATION = 80;  // 攻击周期（ticks）
     static constexpr f32 ATTACK_RANGE = 15.0f;   // 攻击范围
     static constexpr f32 LASER_DAMAGE = 4.0f;    // 激光伤害（普通守卫者）
+    static constexpr f32 ELDER_BONUS_DAMAGE = 2.0f;  // 远古守卫者额外伤害
 };
 
 } // namespace entity::ai::goal

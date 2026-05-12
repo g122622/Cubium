@@ -6,17 +6,20 @@
 #include "../../../../entities/player/Player.hpp"
 #include "../../../../attribute/Attributes.hpp"
 #include "../../../controller/LookController.hpp"
+#include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../damage/DamageSource.hpp"
 #include "../../../../../util/assert/AssertAll.hpp"
 #include "../../../../../core/Types.hpp"
+#include "../../../../../network/packet/EntityPackets.hpp"
 
 namespace mc::entity::ai::goal {
 
 GuardianAttackGoal::GuardianAttackGoal(GuardianEntity* guardian)
     : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
     , m_guardian(guardian)
+    , m_isElder(false)  // 将在 startExecuting 中检测
 {
     MC_ASSERT_RELEASE(guardian != nullptr);
 }
@@ -62,13 +65,15 @@ bool GuardianAttackGoal::shouldContinueExecuting() {
     }
 
     // 检查目标是否在范围内
+    // MC 1.16.5: 远古守卫者没有距离限制
     f64 distSq = m_guardian->distanceSqTo(*m_target);
-    if (distSq > static_cast<f64>(ATTACK_RANGE * ATTACK_RANGE)) {
-        // 目标太远，但可以继续追踪一小段时间
-        return m_attackTime < COOLDOWN_DURATION * 2;
+    if (!m_isElder && distSq <= 9.0) {  // 3.0 * 3.0 = 9.0
+        // 目标太近，停止攻击
+        return false;
     }
 
-    return true;
+    // 检查是否能看到目标
+    return m_guardian->canSee(*m_target);
 }
 
 void GuardianAttackGoal::startExecuting() {
@@ -76,35 +81,38 @@ void GuardianAttackGoal::startExecuting() {
         return;
     }
 
-    m_attackTime = 0;
-    m_isCharging = true;
-    m_guardian->setLaserCharging(true);
-    m_guardian->setLaserChargeTime(0);
+    // MC 1.16.5: tickCounter = -10
+    m_tickCounter = -10;
 
-    // 设置目标实体ID
-    if (m_target != nullptr) {
-        m_guardian->setTargetEntity(m_target->id());
+    // 检测是否为远古守卫者
+    m_isElder = (m_guardian->legacyType() == LegacyEntityType::ElderGuardian);
+
+    // 清除路径
+    if (m_guardian->navigator() != nullptr) {
+        m_guardian->navigator()->clearPath();
     }
 
-    // 广播实体状态事件 (状态21 = GuardianAttack)
-    // MC 1.16.5: 在开始充能时发送状态21触发客户端声音
-    // TODO: 实现 broadcastEntityStatus 方法
-    // if (m_guardian->world()) {
-    //     m_guardian->world()->broadcastEntityStatus(
-    //         m_guardian->id(),
-    //         static_cast<u8>(network::EntityStatusPacket::Status::GuardianAttack));
-    // }
+    // 看向目标
+    if (m_target != nullptr) {
+        m_guardian->lookController()->setLookPosition(
+            m_target->x(),
+            m_target->y() + m_target->eyeHeight(),
+            m_target->z(),
+            90.0f,  // 头部最大转动角度
+            90.0f   // 身体最大转动角度
+        );
+    }
 }
 
 void GuardianAttackGoal::resetTask() {
     m_target = nullptr;
-    m_attackTime = 0;
-    m_isCharging = false;
+    m_tickCounter = 0;
 
     if (m_guardian != nullptr) {
-        m_guardian->setLaserCharging(false);
-        m_guardian->setLaserChargeTime(0);
+        // 清除目标实体ID
         m_guardian->setTargetEntity(0);
+        // 清除攻击目标
+        m_guardian->setAttackTarget(nullptr);
     }
 }
 
@@ -113,19 +121,74 @@ void GuardianAttackGoal::tick() {
         return;
     }
 
+    // 清除路径
+    if (m_guardian->navigator() != nullptr) {
+        m_guardian->navigator()->clearPath();
+    }
+
     // 看向目标
     m_guardian->lookController()->setLookPosition(
         m_target->x(),
         m_target->y() + m_target->eyeHeight(),
         m_target->z(),
-        30.0f,  // 头部最大转动角度
-        30.0f   // 身体最大转动角度
+        90.0f,  // 头部最大转动角度
+        90.0f   // 身体最大转动角度
     );
 
-    m_attackTime++;
+    // 检查是否能看到目标
+    if (!m_guardian->canSee(*m_target)) {
+        // 失去目标，停止攻击
+        m_guardian->setAttackTarget(nullptr);
+        return;
+    }
 
-    // 更新激光攻击
-    updateLaserAttack();
+    // MC 1.16.5: ++this.tickCounter
+    ++m_tickCounter;
+
+    // MC 1.16.5: 当 tickCounter == 0 时，设置目标实体ID并发送状态21
+    if (m_tickCounter == 0) {
+        // 设置目标实体ID
+        m_guardian->setTargetEntity(m_target->id());
+
+        // 广播实体状态事件（状态21 = GuardianAttack）
+        // 触发客户端播放守卫者攻击音效
+        if (!m_guardian->isSilent() && m_guardian->world() != nullptr) {
+            m_guardian->world()->broadcastEntityStatus(
+                m_guardian->id(),
+                static_cast<u8>(network::EntityStatusPacket::Status::GuardianAttack));
+        }
+    } else if (m_tickCounter >= ATTACK_DURATION) {
+        // MC 1.16.5: 攻击完成，造成伤害
+        f32 damage = LASER_DAMAGE;
+
+        // 困难模式额外伤害
+        // TODO: 从世界获取难度
+        // if (m_guardian->world()->difficulty() == Difficulty::Hard) {
+        //     damage += 2.0f;
+        // }
+
+        // 远古守卫者额外伤害
+        if (m_isElder) {
+            damage += ELDER_BONUS_DAMAGE;
+        }
+
+        // MC 1.16.5: 使用魔法伤害 + 物理伤害
+        // livingentity.attackEntityFrom(DamageSource.causeIndirectMagicDamage(this.guardian, this.guardian), f);
+        // livingentity.attackEntityFrom(DamageSource.causeMobDamage(this.guardian), (float)this.guardian.getAttributeValue(Attributes.ATTACK_DAMAGE));
+        auto magicDamage = DamageSources::magic();
+        m_target->hurt(magicDamage, damage);
+
+        // 使用攻击伤害属性
+        f32 attackDamage = static_cast<f32>(m_guardian->getAttributeValue(
+            entity::attribute::Attributes::ATTACK_DAMAGE, 0.0));
+        if (attackDamage > 0.0f) {
+            auto physicalDamage = DamageSources::mobAttack(m_guardian);
+            m_target->hurt(physicalDamage, attackDamage);
+        }
+
+        // 清除攻击目标
+        m_guardian->setAttackTarget(nullptr);
+    }
 }
 
 LivingEntity* GuardianAttackGoal::selectTarget() const {
@@ -211,55 +274,6 @@ bool GuardianAttackGoal::isTargetValid(LivingEntity* target) const {
     }
 
     return true;
-}
-
-void GuardianAttackGoal::updateLaserAttack() {
-    if (m_guardian == nullptr || m_target == nullptr) {
-        return;
-    }
-
-    // 计算距离
-    f64 distSq = m_guardian->distanceSqTo(*m_target);
-    f32 attackRangeSqr = ATTACK_RANGE * ATTACK_RANGE;
-
-    // 更新充能时间
-    if (m_isCharging) {
-        m_guardian->setLaserChargeTime(m_attackTime);
-
-        // 充能完成
-        if (m_attackTime >= CHARGE_DURATION) {
-            // 检查目标是否仍在范围内
-            if (distSq <= static_cast<f64>(attackRangeSqr)) {
-                // 发射激光
-                performLaserAttack(m_target);
-            }
-
-            // 重置充能状态
-            m_isCharging = false;
-            m_guardian->setLaserCharging(false);
-            m_attackTime = 0;
-        }
-    } else {
-        // 冷却阶段
-        if (m_attackTime >= COOLDOWN_DURATION) {
-            // 重新开始充能
-            m_isCharging = true;
-            m_guardian->setLaserCharging(true);
-            m_guardian->setLaserChargeTime(0);
-            m_attackTime = 0;
-        }
-    }
-}
-
-void GuardianAttackGoal::performLaserAttack(LivingEntity* target) {
-    if (target == nullptr || m_guardian == nullptr) {
-        return;
-    }
-
-    // 造成魔法伤害
-    // MC 1.16.5: DamageSource.causeIndirectMagicDamage
-    auto source = DamageSources::magic();
-    target->hurt(source, LASER_DAMAGE);
 }
 
 } // namespace mc::entity::ai::goal
