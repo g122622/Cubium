@@ -377,16 +377,211 @@ TEST_F(LootTest, SetAttributesFunction_Creation) {
 
 TEST_F(LootTest, SetAttributesFunction_AddModifier) {
     SetAttributesFunction func;
-    SetAttributesFunction::AttributeModifier mod;
-    mod.name = "generic.attack_damage";
-    mod.attributeId = "minecraft:generic.attack_damage";
-    mod.value = 5.0f;
-    mod.operation = 0;
-    mod.slot = "mainhand";
+    SetAttributesFunction::Modifier mod(
+        "generic.attack_damage",                        // name
+        "minecraft:generic.attack_damage",              // attributeId
+        math::RandomValueRange(5.0f),                   // amount (fixed)
+        0,                                              // operation (Addition)
+        std::vector<std::string>{"mainhand"},          // slots
+        ""                                              // uuid (auto-generated)
+    );
 
     func.addModifier(mod);
     EXPECT_EQ(1, func.getModifiers().size());
     EXPECT_EQ("generic.attack_damage", func.getModifiers()[0].name);
+    EXPECT_EQ("minecraft:generic.attack_damage", func.getModifiers()[0].attributeId);
+    EXPECT_TRUE(func.getModifiers()[0].amount.isFixed());
+    EXPECT_FLOAT_EQ(5.0f, func.getModifiers()[0].amount.getMin());
+}
+
+TEST_F(LootTest, SetAttributesFunction_Apply) {
+    // 测试 SetAttributesFunction::apply() 方法
+    SetAttributesFunction func;
+    SetAttributesFunction::Modifier mod(
+        "generic.attack_damage",                        // name
+        "minecraft:generic.attack_damage",              // attributeId
+        math::RandomValueRange(5.0f, 10.0f),           // amount (range)
+        0,                                              // operation (Addition)
+        std::vector<std::string>{"mainhand", "offhand"}, // slots (multiple)
+        "d4d5c2a0-6b1c-4e3d-8f2a-1b2c3d4e5f6g"         // uuid
+    );
+    func.addModifier(mod);
+
+    // 创建物品栈（使用钻石，任何物品都可以）
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    if (diamond == nullptr) {
+        // 如果物品未注册，使用空测试验证 apply 逻辑不会崩溃
+        ItemStack emptyStack;
+        math::Random rng(12345);
+        LootContext context(m_world, rng);
+        // 对空栈应用函数应该返回空栈
+        ItemStack result = func.apply(emptyStack, context);
+        EXPECT_TRUE(result.isEmpty());
+        return;
+    }
+    ItemStack stack(*diamond, 1);
+
+    // 创建掉落上下文
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 应用函数
+    ItemStack result = func.apply(stack, context);
+    EXPECT_FALSE(result.isEmpty());
+
+    // 验证 AttributeModifiers 标签
+    const nlohmann::json* tag = result.getTag();
+    ASSERT_NE(tag, nullptr);
+    ASSERT_TRUE(tag->contains("AttributeModifiers"));
+    const nlohmann::json& attrModifiers = (*tag)["AttributeModifiers"];
+    ASSERT_TRUE(attrModifiers.is_array());
+    EXPECT_EQ(1, attrModifiers.size());
+
+    // 验证属性修饰符内容
+    const auto& entry = attrModifiers[0];
+    EXPECT_EQ("minecraft:generic.attack_damage", entry["AttributeName"]);
+    EXPECT_EQ("generic.attack_damage", entry["Name"]);
+    EXPECT_EQ(0, entry["Operation"]);
+    EXPECT_EQ("d4d5c2a0-6b1c-4e3d-8f2a-1b2c3d4e5f6g", entry["UUID"]);
+    // 金额应该在范围内
+    double amount = entry["Amount"].get<double>();
+    EXPECT_GE(amount, 5.0);
+    EXPECT_LE(amount, 10.0);
+    // 槽位应该是 mainhand 或 offhand 中的一个
+    int slot = entry["Slot"].get<int>();
+    EXPECT_TRUE(slot == static_cast<int>(EquipmentSlot::MainHand) ||
+                slot == static_cast<int>(EquipmentSlot::OffHand));
+}
+
+TEST_F(LootTest, SetAttributesFunction_MultipleModifiers) {
+    SetAttributesFunction func;
+
+    // 添加攻击伤害修饰符
+    func.addModifier(SetAttributesFunction::Modifier(
+        "generic.attack_damage",
+        "minecraft:generic.attack_damage",
+        math::RandomValueRange(4.0f),
+        0,
+        std::vector<std::string>{"mainhand"}
+    ));
+
+    // 添加攻击速度修饰符
+    func.addModifier(SetAttributesFunction::Modifier(
+        "generic.attack_speed",
+        "minecraft:generic.attack_speed",
+        math::RandomValueRange(-2.4f),
+        0,
+        std::vector<std::string>{"mainhand"}
+    ));
+
+    EXPECT_EQ(2, func.getModifiers().size());
+
+    // 创建物品栈
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    if (diamond == nullptr) {
+        GTEST_SKIP() << "Item not registered, skipping test";
+    }
+    ItemStack stack(*diamond, 1);
+
+    // 应用函数
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+    ItemStack result = func.apply(stack, context);
+
+    // 验证两个修饰符都被添加
+    const nlohmann::json* tag = result.getTag();
+    ASSERT_NE(tag, nullptr);
+    ASSERT_TRUE(tag->contains("AttributeModifiers"));
+    const nlohmann::json& attrModifiers = (*tag)["AttributeModifiers"];
+    EXPECT_EQ(2, attrModifiers.size());
+}
+
+TEST_F(LootTest, SetAttributesFunction_EmptyStack) {
+    SetAttributesFunction func;
+    func.addModifier(SetAttributesFunction::Modifier(
+        "generic.attack_damage",
+        "minecraft:generic.attack_damage",
+        math::RandomValueRange(5.0f),
+        0,
+        std::vector<std::string>{"mainhand"}
+    ));
+
+    ItemStack emptyStack;
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    ItemStack result = func.apply(emptyStack, context);
+    EXPECT_TRUE(result.isEmpty());
+}
+
+TEST_F(LootTest, SetAttributesFunction_NoModifiers) {
+    SetAttributesFunction func;
+
+    const Item* sword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
+    ASSERT_NE(sword, nullptr);
+    ItemStack stack(*sword, 1);
+
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    ItemStack result = func.apply(stack, context);
+    EXPECT_FALSE(result.isEmpty());
+    // 没有修饰符时不应创建 AttributeModifiers 标签
+    const nlohmann::json* attrModifiers = result.getChildTag("AttributeModifiers");
+    EXPECT_EQ(attrModifiers, nullptr);
+}
+
+TEST_F(LootTest, SetAttributesFunction_AllOperations) {
+    // 测试所有操作类型
+    SetAttributesFunction func;
+
+    // Addition (0)
+    func.addModifier(SetAttributesFunction::Modifier(
+        "addition_test",
+        "minecraft:generic.attack_damage",
+        math::RandomValueRange(10.0f),
+        0,  // Addition
+        std::vector<std::string>{"mainhand"}
+    ));
+
+    // MultiplyBase (1)
+    func.addModifier(SetAttributesFunction::Modifier(
+        "multiply_base_test",
+        "minecraft:generic.attack_damage",
+        math::RandomValueRange(0.5f),
+        1,  // MultiplyBase
+        std::vector<std::string>{"mainhand"}
+    ));
+
+    // MultiplyTotal (2)
+    func.addModifier(SetAttributesFunction::Modifier(
+        "multiply_total_test",
+        "minecraft:generic.attack_damage",
+        math::RandomValueRange(0.2f),
+        2,  // MultiplyTotal
+        std::vector<std::string>{"mainhand"}
+    ));
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    if (diamond == nullptr) {
+        GTEST_SKIP() << "Diamond item not registered, skipping test";
+    }
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+    ItemStack result = func.apply(stack, context);
+
+    const nlohmann::json* tag = result.getTag();
+    ASSERT_NE(tag, nullptr);
+    ASSERT_TRUE(tag->contains("AttributeModifiers"));
+    const nlohmann::json& attrModifiers = (*tag)["AttributeModifiers"];
+    EXPECT_EQ(3, attrModifiers.size());
+
+    // 验证操作类型
+    EXPECT_EQ(0, attrModifiers[0]["Operation"].get<int>());
+    EXPECT_EQ(1, attrModifiers[1]["Operation"].get<int>());
+    EXPECT_EQ(2, attrModifiers[2]["Operation"].get<int>());
 }
 
 TEST_F(LootTest, SetContentsFunction_Creation) {

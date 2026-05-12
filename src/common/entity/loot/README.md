@@ -125,7 +125,7 @@ MC 1.16.5 时运公式:
 | `CopyBlockStateFunction` | `copy_block_state` | 复制方块状态函数 |
 | `CopyNbtFunction` | `copy_nbt` | 复制NBT函数 |
 | `FillPlayerHeadFunction` | `fill_player_head` | 填充玩家头颅函数 |
-| `SetAttributesFunction` | `set_attributes` | 设置属性函数 |
+| `SetAttributesFunction` | `set_attributes` | 设置属性函数 ✅ |
 | `SetContentsFunction` | `set_contents` | 设置内容物函数 |
 | `SetLootTableFunction` | `set_loot_table` | 设置掉落表函数 |
 | `ExplorationMapFunction` | `exploration_map` | 探险地图函数 |
@@ -873,7 +873,7 @@ entry.generate(consumer, context);  // 条件在这里检查
    - ~~SetNbtFunction~~ ✅ 已完成（使用 Mojangson 格式解析 NBT 字符串并合并到 ItemStack）
    - CopyNbtFunction（需要 NBT 路径解析）
    - FillPlayerHeadFunction（需要玩家皮肤系统）
-   - SetAttributesFunction（需要属性系统）
+   - ~~SetAttributesFunction~~ ✅ 已完成（为物品添加属性修饰符，支持随机数值、多槽位、UUID生成）
    - SetContentsFunction（需要容器物品支持）
    - ExplorationMapFunction（需要地图数据系统）
    - ~~SetStewEffectFunction~~ ✅ 已完成（为谜之炖菜添加状态效果，支持随机选择和持续时间）

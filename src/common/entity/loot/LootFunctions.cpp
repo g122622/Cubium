@@ -14,6 +14,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -22,6 +23,7 @@
 #include <algorithm>
 #include <cmath>
 #include <sstream>
+#include <random>
 
 namespace mc {
 namespace loot {
@@ -991,7 +993,7 @@ std::unique_ptr<LootFunction> FillPlayerHeadFunction::clone() const {
 // SetAttributesFunction
 // ============================================================================
 
-void SetAttributesFunction::addModifier(const AttributeModifier& modifier) {
+void SetAttributesFunction::addModifier(const Modifier& modifier) {
     m_modifiers.push_back(modifier);
 }
 
@@ -1000,11 +1002,47 @@ ItemStack SetAttributesFunction::apply(ItemStack stack, LootContext& context) co
         return stack;
     }
 
-    // TODO: 实现属性设置
-    // 参考: net.minecraft.loot.functions.SetAttributes
-    // 需要属性系统支持
+    // 参考 MC 1.16.5: net.minecraft.loot.functions.SetAttributes.doApply()
+    // 将属性修饰符写入 ItemStack 的 AttributeModifiers 标签
 
-    MC_UNUSED(context);
+    math::Random& random = context.getRandom();
+
+    // 直接获取或创建标签（注意：getTag() 对空对象返回 nullptr，所以必须用 getOrCreateTag）
+    nlohmann::json& attrModifiers = stack.getOrCreateTag();
+
+    // 确保 AttributeModifiers 是数组
+    if (!attrModifiers.contains("AttributeModifiers") || !attrModifiers["AttributeModifiers"].is_array()) {
+        attrModifiers["AttributeModifiers"] = nlohmann::json::array();
+    }
+    nlohmann::json& attrArray = attrModifiers["AttributeModifiers"];
+
+    for (const auto& modifier : m_modifiers) {
+        // 生成或使用 UUID
+        std::string uuid = modifier.uuid.empty() ? generateUUID() : modifier.uuid;
+
+        // 随机选择槽位
+        i32 equipmentSlot = static_cast<i32>(EquipmentSlot::MainHand);  // 默认主手
+        if (!modifier.slots.empty()) {
+            size_t slotIndex = static_cast<size_t>(random.nextInt(static_cast<i32>(modifier.slots.size())));
+            equipmentSlot = parseSlotName(modifier.slots[slotIndex]);
+        }
+
+        // 生成随机值
+        f64 amount = static_cast<f64>(modifier.amount.generateFloat(random));
+
+        // 构建 AttributeModifiers 条目（参考 MC 1.16.5 NBT 格式）
+        nlohmann::json attrEntry = nlohmann::json::object();
+        attrEntry["AttributeName"] = modifier.attributeId;
+        attrEntry["Name"] = modifier.name;
+        attrEntry["Amount"] = amount;
+        attrEntry["Operation"] = modifier.operation;
+        attrEntry["UUID"] = uuid;
+        attrEntry["Slot"] = equipmentSlot;
+
+        // 添加到修饰符数组
+        attrArray.push_back(std::move(attrEntry));
+    }
+
     return stack;
 }
 
@@ -1015,6 +1053,44 @@ std::unique_ptr<LootFunction> SetAttributesFunction::clone() const {
         func->addCondition(cond->clone());
     }
     return func;
+}
+
+i32 SetAttributesFunction::parseSlotName(const std::string& slotName) {
+    // 参考 MC 1.16.5 EquipmentSlotType.byName()
+    if (slotName == "mainhand") {
+        return static_cast<i32>(EquipmentSlot::MainHand);
+    } else if (slotName == "offhand") {
+        return static_cast<i32>(EquipmentSlot::OffHand);
+    } else if (slotName == "feet") {
+        return static_cast<i32>(EquipmentSlot::Feet);
+    } else if (slotName == "legs") {
+        return static_cast<i32>(EquipmentSlot::Legs);
+    } else if (slotName == "chest") {
+        return static_cast<i32>(EquipmentSlot::Chest);
+    } else if (slotName == "head") {
+        return static_cast<i32>(EquipmentSlot::Head);
+    }
+    // 默认主手
+    return static_cast<i32>(EquipmentSlot::MainHand);
+}
+
+std::string SetAttributesFunction::generateUUID() {
+    // 生成随机 UUID（格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
+    // 使用 std::mt19937_64 生成 64 位随机数
+    static std::mt19937_64 gen(static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+
+    u64 part1 = gen();
+    u64 part2 = gen();
+
+    // 格式化为 UUID v4 格式
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "%08x-%04x-%04x-%04x-%012llx",
+        static_cast<u32>(part1 >> 32),                           // 8 hex digits
+        static_cast<u16>((part1 >> 16) & 0xFFFF),                 // 4 hex digits
+        static_cast<u16>((part1 & 0x0FFF) | 0x4000),             // 4 hex digits (version 4 UUID)
+        static_cast<u16>((part2 >> 48) & 0x3FFF | 0x8000),       // 4 hex digits (variant 1)
+        static_cast<unsigned long long>(part2 & 0xFFFFFFFFFFFF)); // 12 hex digits
+    return std::string(buf);
 }
 
 // ============================================================================

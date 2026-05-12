@@ -633,19 +633,24 @@ private:
  * 参考: net.minecraft.loot.functions.SetAttributes
  *
  * 用于生成带有特定属性的装备。
- * 注意：需要属性系统支持，当前为桩实现。
+ * 属性修饰符存储在物品的 AttributeModifiers NBT 标签中。
  */
 class SetAttributesFunction : public LootFunction {
 public:
     /**
      * @brief 属性修饰符定义
      */
-    struct AttributeModifier {
-        std::string name;            // 修饰符名称
-        std::string attributeId;     // 属性ID
-        f32 value;              // 修饰值
-        u8 operation;           // 操作类型
-        std::string slot;            // 装备槽位
+    struct Modifier {
+        std::string name;                 // 修饰符名称
+        std::string attributeId;          // 属性ID（如 "minecraft:generic.attack_damage"）
+        math::RandomValueRange amount;    // 数值范围（支持随机）
+        u8 operation;                     // 操作类型（0=Addition, 1=MultiplyBase, 2=MultiplyTotal）
+        std::vector<std::string> slots;   // 装备槽位列表（随机选择一个）
+        std::string uuid;                 // 可选UUID，如果为空则在运行时随机生成
+
+        Modifier() = default;
+        Modifier(const std::string& n, const std::string& attr, const math::RandomValueRange& amt, u8 op, const std::vector<std::string>& s, const std::string& u = "")
+            : name(n), attributeId(attr), amount(amt), operation(op), slots(s), uuid(u) {}
     };
 
     /**
@@ -656,16 +661,29 @@ public:
     /**
      * @brief 添加属性修饰符
      */
-    void addModifier(const AttributeModifier& modifier);
+    void addModifier(const Modifier& modifier);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
     [[nodiscard]] std::string getType() const override { return "set_attributes"; }
 
-    [[nodiscard]] const std::vector<AttributeModifier>& getModifiers() const { return m_modifiers; }
+    [[nodiscard]] const std::vector<Modifier>& getModifiers() const { return m_modifiers; }
 
 private:
-    std::vector<AttributeModifier> m_modifiers;
+    std::vector<Modifier> m_modifiers;
+
+    /**
+     * @brief 解析槽位名称到 EquipmentSlot 枚举
+     * @param slotName 槽位名称（如 "mainhand", "offhand", "feet", "legs", "chest", "head"）
+     * @return EquipmentSlot 枚举值，无效名称返回 MainHand
+     */
+    static i32 parseSlotName(const std::string& slotName);
+
+    /**
+     * @brief 生成随机 UUID
+     * @return UUID 字符串（格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
+     */
+    static std::string generateUUID();
 };
 
 /**

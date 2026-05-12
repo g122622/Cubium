@@ -973,42 +973,71 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseSetAttributesFunctio
                 continue;
             }
 
-            SetAttributesFunction::AttributeModifier modifier;
-            modifier.name = mod["name"].get<std::string>();
-            modifier.attributeId = mod["attribute"].get<std::string>();
+            std::string name = mod["name"].get<std::string>();
+            std::string attributeId = mod["attribute"].get<std::string>();
 
-            if (mod["amount"].is_number_float()) {
-                modifier.value = mod["amount"].get<f32>();
+            // 解析 amount（支持固定值或范围）
+            math::RandomValueRange amount(0.0f, 0.0f);
+            auto amountResult = parseRandomValueRange(mod["amount"]);
+            if (amountResult.success()) {
+                amount = amountResult.value();
+            } else if (mod["amount"].is_number_float()) {
+                f32 val = mod["amount"].get<f32>();
+                amount = math::RandomValueRange(val, val);
             } else if (mod["amount"].is_number_integer()) {
-                modifier.value = static_cast<f32>(mod["amount"].get<i32>());
+                f32 val = static_cast<f32>(mod["amount"].get<i32>());
+                amount = math::RandomValueRange(val, val);
             }
 
             // 解析操作类型
-            modifier.operation = 0;
+            u8 operation = 0;
             if (mod.contains("operation") && mod["operation"].is_string()) {
                 std::string opStr = mod["operation"].get<std::string>();
-                if (opStr == "addition" || opStr == "add") {
-                    modifier.operation = 0;
+                if (opStr == "addition" || opStr == "minecraft:addition") {
+                    operation = 0;
                 }
-                else if (opStr == "multiply_base") {
-                    modifier.operation = 1;
+                else if (opStr == "multiply_base" || opStr == "minecraft:multiply_base") {
+                    operation = 1;
                 }
-                else if (opStr == "multiply_total") {
-                    modifier.operation = 2;
-                }
-            }
-
-            // 解析槽位
-            modifier.slot = "mainhand";
-            if (mod.contains("slot") && mod["slot"].is_string()) {
-                modifier.slot = mod["slot"].get<std::string>();
-            }
-            else if (mod.contains("slots") && mod["slots"].is_array() && !mod["slots"].empty()) {
-                if (mod["slots"][0].is_string()) {
-                    modifier.slot = mod["slots"][0].get<std::string>();
+                else if (opStr == "multiply_total" || opStr == "minecraft:multiply_total") {
+                    operation = 2;
                 }
             }
 
+            // 解析槽位（支持单个槽位或多个槽位）
+            std::vector<std::string> slots;
+            if (mod.contains("slot")) {
+                if (mod["slot"].is_string()) {
+                    slots.push_back(mod["slot"].get<std::string>());
+                } else if (mod["slot"].is_array()) {
+                    for (const auto& s : mod["slot"]) {
+                        if (s.is_string()) {
+                            slots.push_back(s.get<std::string>());
+                        }
+                    }
+                }
+            } else if (mod.contains("slots")) {
+                if (mod["slots"].is_string()) {
+                    slots.push_back(mod["slots"].get<std::string>());
+                } else if (mod["slots"].is_array()) {
+                    for (const auto& s : mod["slots"]) {
+                        if (s.is_string()) {
+                            slots.push_back(s.get<std::string>());
+                        }
+                    }
+                }
+            }
+            if (slots.empty()) {
+                slots.push_back("mainhand");  // 默认主手
+            }
+
+            // 解析 UUID（可选）
+            std::string uuid;
+            if (mod.contains("id") && mod["id"].is_string()) {
+                uuid = mod["id"].get<std::string>();
+            }
+
+            SetAttributesFunction::Modifier modifier(name, attributeId, amount, operation, slots, uuid);
             function->addModifier(modifier);
         }
     }
