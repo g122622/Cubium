@@ -36,10 +36,14 @@ src/server/menu/
 | 37-45 | 玩家快捷栏 (1x9) | (8, 142) 起始 |
 
 **关键方法**：
-- `updateResult()` - 查找匹配配方并更新结果槽位
+- `updateResult()` - 查找匹配配方并更新结果槽位，同时存储当前配方到 `m_currentRecipe`
+- `getCurrentRecipeId()` - 获取当前匹配的配方ID，用于网络同步（继承自 `AbstractContainerMenu`）
 - `handleResultSlotClick()` - 处理结果槽位点击，返回合成物品
 - `consumeIngredients()` - 消耗合成原料
 - `quickMoveStack()` - Shift+点击物品移动逻辑
+
+**成员变量**：
+- `m_currentRecipe` - 当前匹配的配方指针，在 `updateResult()` 中更新，用于获取配方ID
 
 #### InventoryCraftingMenu 类
 
@@ -66,6 +70,13 @@ src/server/menu/
 | 45 | 副手 | (77, 62) |
 
 **GUI 尺寸**：176 x 166 像素
+
+**关键方法**：
+- `updateResult()` - 查找匹配配方并更新结果槽位，同时存储当前配方到 `m_currentRecipe`
+- `getCurrentRecipeId()` - 获取当前匹配的配方ID，用于网络同步（继承自 `AbstractContainerMenu`）
+
+**成员变量**：
+- `m_currentRecipe` - 当前匹配的配方指针，在 `updateResult()` 中更新，用于获取配方ID
 
 ### CraftingMenu.cpp
 

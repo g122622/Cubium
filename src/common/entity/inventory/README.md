@@ -262,6 +262,9 @@ inventory/
 - 事件通知：`addListener()`, `removeListener()`, `broadcastChanges()`, `slotsChanged()`
 - 生命周期：`stillValid()`, `removed()`
 - 事务ID：`incrementTransactionId()`, `getTransactionId()`, `setTransactionId()` 用于网络防重放
+- 合成结果获取：
+  - `getResultSlotIndex()`: 获取结果槽位索引，默认返回-1（子类重写返回实际索引）
+  - `getCurrentRecipeId()`: 获取当前匹配的配方ID，默认返回空（子类重写返回配方ID）
 - **Slot 回调触发**（MC 1.16.5 对齐）：
   - `handleClickPick()`: 在拾取和交换场景中调用 `slot->onTake()` 回调
   - `handleQuickMove()`: 在快速移动完成后调用 `slot->onTake()` 回调

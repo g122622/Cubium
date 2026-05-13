@@ -364,7 +364,12 @@ if (result.success()) {
 - `createSlotPacket()`: 创建槽位更新包
 - `createOpenContainerPacket()`: 创建打开容器包
 - `createRecipeListPacket()`: 创建配方列表同步包
+  - 使用 `RecipeNetworkSerializer::serialize()` 序列化配方数据
+  - 将 `PacketSerializer` 的字节数组转换为字符串存入 `RecipeSyncPacket.recipeData`
+  - 支持有序合成、无序合成等所有配方类型
 - `createCraftResultPreview()`: 创建合成结果预览包
+  - 从 `AbstractContainerMenu::getCurrentRecipeId()` 获取当前匹配的配方ID
+  - 配合 `CraftingMenu` 和 `InventoryCraftingMenu` 实现配方ID追踪
 
 - `ContainerTypes` 工具命名空间
   - `getSlotCount()`: 获取容器类型的槽位数
