@@ -424,6 +424,10 @@ const fluid::FluidState* getFluidState(const BlockState& state) const {
 - **自然方块扩展**：CLAY, MYCELIUM, GRASS_PATH, PACKED_ICE, SLIME_BLOCK, CACTUS, DEAD_BUSH, LILY_PAD, VINE, COBWEB, SUGAR_CANE
 - **海洋方块扩展**：SEA_PICKLE, KELP, KELP_PLANT, SEAGRASS, TALL_SEAGRASS，并补齐 BUBBLE_COLUMN、TURTLE_EGG
 - **珊瑚方块扩展**：TUBE/BRAIN/BUBBLE/FIRE/HORN 的 coral_block、coral_fan、coral_wall_fan，并补齐 dead_* 对应 block/fan/wall_fan
+- **南瓜和西瓜系列**：MELON, PUMPKIN, CARVED_PUMPKIN, MELON_STEM, PUMPKIN_STEM, ATTACHED_MELON_STEM, ATTACHED_PUMPKIN_STEM
+  - 西瓜/南瓜方块（StemGrownBlock）通过 `getStem()` 和 `getAttachedStem()` 关联到对应的茎方块
+  - 茎方块（StemBlock）通过 `getCrop()` 关联到对应的果实方块，通过 `getSeedItem()` 返回种子物品 ID
+  - 连接茎方块（AttachedStemBlock）拥有 HORIZONTAL_FACING 属性，指向果实方向
 - **火焰方块**：FIRE（普通火）, SOUL_FIRE（灵魂火）
 
 **使用方法**：
