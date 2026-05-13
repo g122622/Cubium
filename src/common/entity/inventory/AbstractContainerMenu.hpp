@@ -196,6 +196,15 @@ public:
     [[nodiscard]] virtual i32 getResultSlotIndex() const { return -1; }
 
     /**
+     * @brief 获取当前匹配的配方ID
+     * @return 当前配方的资源位置ID，如果没有匹配配方则返回空
+     *
+     * 用于合成容器获取当前匹配的配方ID，以便同步到客户端。
+     * 子类（如 CraftingMenu、InventoryCraftingMenu）应重写此方法。
+     */
+    [[nodiscard]] virtual ResourceLocation getCurrentRecipeId() const { return ResourceLocation(); }
+
+    /**
      * @brief 关闭容器
      * @param player 玩家
      *

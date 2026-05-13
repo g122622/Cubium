@@ -211,11 +211,10 @@ void CraftingMenu::removed(Player& player) {
 }
 
 void CraftingMenu::updateResult() {
-    const crafting::CraftingRecipe* recipe =
-        crafting::RecipeManager::instance().findMatchingRecipe(m_craftingGrid);
+    m_currentRecipe = crafting::RecipeManager::instance().findMatchingRecipe(m_craftingGrid);
 
-    if (recipe != nullptr) {
-        m_result.setResultItem(recipe->assemble(m_craftingGrid));
+    if (m_currentRecipe != nullptr) {
+        m_result.setResultItem(m_currentRecipe->assemble(m_craftingGrid));
     } else {
         m_result.clear();
     }
@@ -415,11 +414,10 @@ ItemStack InventoryCraftingMenu::quickMoveStack(i32 slotIndex, Player& player) {
 }
 
 void InventoryCraftingMenu::updateResult() {
-    const crafting::CraftingRecipe* recipe =
-        crafting::RecipeManager::instance().findMatchingRecipe(m_craftingGrid);
+    m_currentRecipe = crafting::RecipeManager::instance().findMatchingRecipe(m_craftingGrid);
 
-    if (recipe != nullptr) {
-        m_result.setResultItem(recipe->assemble(m_craftingGrid));
+    if (m_currentRecipe != nullptr) {
+        m_result.setResultItem(m_currentRecipe->assemble(m_craftingGrid));
     } else {
         m_result.clear();
     }

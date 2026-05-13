@@ -4,6 +4,7 @@
 #include "../../entity/inventory/Slot.hpp"
 #include "../../entity/inventory/AbstractContainerMenu.hpp"
 #include "../../entity/inventory/ContainerTypes.hpp"
+#include "item/crafting/RecipeNetworkSerializer.hpp"
 
 namespace mc {
 
@@ -68,7 +69,7 @@ OpenContainerPacket ContainerPacketHandler::createOpenContainerPacket(ContainerI
 RecipeListSyncPacket ContainerPacketHandler::createRecipeListPacket() {
     std::vector<RecipeSyncPacket> recipes;
 
-    // 从 RecipeManager 获取所有配方
+    // 从 RecipeManager 获取所有合成配方
     const auto allRecipes = crafting::RecipeManager::instance().getAllRecipes();
     recipes.reserve(allRecipes.size());
 
@@ -78,14 +79,14 @@ RecipeListSyncPacket ContainerPacketHandler::createRecipeListPacket() {
             ResourceLocation id = recipe->getId();
             std::string typeStr = recipeTypeToString(recipe->getType());
 
-            // TODO: 实现配方序列化
-            // std::string recipeData = recipe->serialize();
+            // 序列化配方数据到 PacketSerializer
+            network::PacketSerializer ser;
+            crafting::RecipeNetworkSerializer::serialize(*recipe, ser);
 
-            recipes.emplace_back(
-                id,
-                typeStr,
-                ""  // 暂时为空，等待配方序列化实现
-            );
+            // 将字节数组转换为字符串
+            std::string recipeData(reinterpret_cast<const char*>(ser.data()), ser.size());
+
+            recipes.emplace_back(id, typeStr, std::move(recipeData));
         }
     }
 
@@ -103,9 +104,8 @@ CraftResultPreviewPacket ContainerPacketHandler::createCraftResultPreview(Contai
     const Slot* resultSlot = (resultSlotIndex >= 0) ? menu.getSlot(resultSlotIndex) : nullptr;
     ItemStack resultItem = (resultSlot != nullptr) ? resultSlot->getItem() : ItemStack::EMPTY;
 
-    // 尝试获取匹配的配方ID
-    ResourceLocation recipeId;
-    // TODO: 从结果槽位获取配方ID
+    // 获取当前匹配的配方ID
+    ResourceLocation recipeId = menu.getCurrentRecipeId();
 
     return CraftResultPreviewPacket(containerId, resultItem, recipeId);
 }

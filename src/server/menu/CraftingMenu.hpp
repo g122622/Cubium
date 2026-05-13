@@ -109,6 +109,14 @@ public:
     [[nodiscard]] i32 getResultSlotIndex() const override { return RESULT_SLOT; }
 
     /**
+     * @brief 获取当前匹配的配方ID
+     * @return 当前配方的资源位置ID，如果没有匹配配方则返回空
+     */
+    [[nodiscard]] ResourceLocation getCurrentRecipeId() const override {
+        return m_currentRecipe != nullptr ? m_currentRecipe->getId() : ResourceLocation();
+    }
+
+    /**
      * @brief 槽位索引常量
      */
     static constexpr i32 GRID_SLOT_START = 0;
@@ -155,6 +163,7 @@ private:
     CraftResultInventory m_result;
     CraftingTableEntity* m_blockEntity;
     ScreenType m_screenType;
+    const crafting::CraftingRecipe* m_currentRecipe = nullptr;  ///< 当前匹配的配方
 };
 
 /**
@@ -229,6 +238,14 @@ public:
     [[nodiscard]] i32 getResultSlotIndex() const override { return RESULT_SLOT; }
 
     /**
+     * @brief 获取当前匹配的配方ID
+     * @return 当前配方的资源位置ID，如果没有匹配配方则返回空
+     */
+    [[nodiscard]] ResourceLocation getCurrentRecipeId() const override {
+        return m_currentRecipe != nullptr ? m_currentRecipe->getId() : ResourceLocation();
+    }
+
+    /**
      * @brief 槽位索引常量
      *
      * 布局顺序（参考 MC 1.16.5 PlayerContainer）：
@@ -273,6 +290,7 @@ private:
 
     CraftingInventory m_craftingGrid;
     CraftResultInventory m_result;
+    const crafting::CraftingRecipe* m_currentRecipe = nullptr;  ///< 当前匹配的配方
 };
 
 } // namespace mc
