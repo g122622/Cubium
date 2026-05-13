@@ -15,13 +15,7 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
-
-// 前向声明
-namespace mc::server {
-namespace core {
-class PlayerManager;
-}
-}
+#include "server/core/PlayerManager.hpp"
 
 namespace mc::server::advancement {
 

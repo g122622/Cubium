@@ -252,6 +252,8 @@ add_executable(mc_tests
     client/renderer/entity/test_entity_renderer_manager.cpp
     client/renderer/entity/ShadowRendererTest.cpp
     client/renderer/entity/WorldTextRendererTest.cpp
+    # HeldBlockLayer 末影人手持方块渲染层测试
+    client/renderer/trident/entity/layer/entity/HeldBlockLayerTest.cpp
     client/renderer/test_gui_item_color.cpp
     client/resource/test_entity_texture_loader.cpp
     client/resource/ItemTextureAtlasTest.cpp
@@ -742,6 +744,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/player/SleepManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/core/Entity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/utils/EntityUtils.cpp
+        # EndermanEntity 用于 HeldBlockLayer 测试
+        ${CMAKE_SOURCE_DIR}/src/common/entity/entities/monster/end/EndermanEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/sensor/Sensors.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/memory/MemoryModuleType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/schedule/Schedule.cpp
@@ -869,6 +873,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/QuadrupedModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/AnimalModels.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/pipeline/EntityTextureAtlas.cpp
+        # HeldBlockLayer 测试只测试 EndermanEntity 的方法，不需要 Vulkan 渲染层代码
         # 方块实体模型
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/blockentity/model/BlockEntityModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/blockentity/model/ChestModel.cpp

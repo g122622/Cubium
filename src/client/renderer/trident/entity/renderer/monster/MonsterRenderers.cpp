@@ -163,7 +163,8 @@ void EndermanRenderer::setupLayers() {
     // 末影人有以下层渲染器：
     // - HeldBlockLayer（手持方块）
     // - EyesLayer（发光眼睛）
-    addLayer<layer::entity::HeldBlockLayer<::mc::EndermanEntity>>();
+    // 注意：HeldBlockLayer<LivingEntity> 使用 if constexpr 在运行时检查 EndermanEntity
+    addLayer<layer::entity::HeldBlockLayer<LivingEntity>>();
     addLayer<layer_effect::EyesLayer<LivingEntity, model::monster::EndermanModel>>(*this);
 }
 
