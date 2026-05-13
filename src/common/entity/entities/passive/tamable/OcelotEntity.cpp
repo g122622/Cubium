@@ -1,5 +1,6 @@
 #include "OcelotEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
@@ -46,20 +47,27 @@ void OcelotEntity::setTrusting(bool trusting) {
 }
 
 bool OcelotEntity::isBreedingItem(const ItemStack& itemStack) const {
-    // TODO: 检查是否是生鱼
-    // return itemStack.getItem() == Items::COD ||
-    //        itemStack.getItem() == Items::SALMON;
-    (void)itemStack;
-    return false;
+    // MC 1.16.5: 豹猫使用生鳕鱼和生鲑鱼繁殖
+    // BREEDING_ITEMS = Ingredient.fromItems(Items.COD, Items.SALMON)
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+    return item == Items::COD || item == Items::SALMON;
 }
 
-std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& partner) {
-    // TODO: 创建小豹猫
-    // auto baby = std::make_unique<OcelotEntity>(LegacyEntityType::Unknown, 0);
-    // baby->setChild(true);
-    // return baby;
-    (void)partner;
-    return nullptr;
+std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& /*partner*/) {
+    // MC 1.16.5: OcelotEntity.func_241840_a (createChild)
+    // 创建一个新的豹猫实体，不需要继承父母特征
+    auto baby = std::make_unique<OcelotEntity>(LegacyEntityType::Unknown, 0);
+
+    // 设置为幼体
+    baby->setChild(true);
+
+    // 设置位置（在父体位置附近）
+    baby->setPosition(x(), y(), z());
+
+    return baby;
 }
 
 void OcelotEntity::tick() {
