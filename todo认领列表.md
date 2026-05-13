@@ -11,7 +11,6 @@
 
 | 文件路径 | 行号 | TODO内容摘要 | 认领时间 | 状态 | 认领者 |
 |---------|------|-------------|---------|------|-------|
-| src/common/world/block/VanillaBlocks.cpp | 2365-2383 | 南瓜/西瓜茎方块注册：PUMPKIN和MELON方块传入nullptr作为stem和attachedStem参数，需要实现茎方块并更新参数 | 2026-05-13 | 进行中 | Claude |
 
 ## 已完成
 

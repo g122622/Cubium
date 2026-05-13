@@ -3,7 +3,11 @@
 #include "common/item/Items.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/block/blocks/agricultural/CropBlocks.hpp"
+#include "common/world/block/blocks/agricultural/CropBlock.hpp"
+#include "common/world/block/blocks/agricultural/WheatBlock.hpp"
+#include "common/world/block/blocks/agricultural/CarrotBlock.hpp"
+#include "common/world/block/blocks/agricultural/PotatoBlock.hpp"
+#include "common/world/block/blocks/agricultural/BeetrootBlock.hpp"
 
 using namespace mc;
 using namespace mc::blocks;

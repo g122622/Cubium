@@ -15,9 +15,9 @@ agricultural/
 ├── PotatoBlock.hpp/cpp        # 马铃薯作物
 ├── BeetrootBlock.hpp/cpp      # 甜菜根作物
 ├── FarmlandBlock.hpp/cpp      # 耕地方块
-├── StemBlock.hpp/cpp          # 茎类作物（西瓜茎、南瓜茎）
+├── StemBlock.hpp/cpp          # 茎类作物基类（西瓜茎、南瓜茎）
 ├── CocoaBlock.hpp/cpp         # 可可豆方块（丛林原木附着）
-├── MelonPumpkinBlocks.hpp/cpp # 瓜果类方块（西瓜、南瓜、雕刻南瓜、南瓜灯）
+├── MelonPumpkinBlocks.hpp/cpp # 瓜果类方块（西瓜、南瓜、雕刻南瓜、南瓜灯、茎方块）
 └── README.md                  # 本文档
 ```
 
@@ -27,8 +27,12 @@ agricultural/
 Block
 ├── BushBlock              # 植物基类
 │   ├── CropBlock          # 农作物（小麦、胡萝卜、马铃薯）
-│   ├── StemBlock          # 茎类作物（西瓜茎、南瓜茎）
-│   └── AttachedStemBlock  # 连接茎（西瓜连接茎、南瓜连接茎）
+│   ├── StemBlock          # 茎类作物基类（抽象）
+│   │   ├── MelonStemBlock      # 西瓜茎
+│   │   └── PumpkinStemBlock    # 南瓜茎
+│   └── AttachedStemBlock  # 连接茎基类（抽象）
+│       ├── MelonAttachedStemBlock   # 连接西瓜茎
+│       └── PumpkinAttachedStemBlock # 连接南瓜茎
 ├── HorizontalBlock        # 水平方向方块基类
 │   ├── CocoaBlock         # 可可豆（附着丛林原木）
 │   ├── CarvedPumpkinBlock # 雕刻南瓜（可生成傀儡）
@@ -129,6 +133,22 @@ auto melonStemBlock = std::make_unique<StemBlock>(melonBlock, stemProps);
 | PotatoBlock | POTATO | POTATO | 马铃薯的作物和种子是同一个物品 |
 | BeetrootBlock | BEETROOT | BEETROOT_SEEDS | 甜菜根和种子是不同的物品 |
 
+### 茎类作物方块
+
+茎类作物已完整实现，包括生长、果实在成和茎变形功能：
+
+| 方块 | 种子物品 | 关联果实 | 说明 |
+|------|---------|---------|------|
+| MelonStemBlock | MELON_SEEDS | MELON | 西瓜茎，成熟后生在西瓜 |
+| PumpkinStemBlock | PUMPKIN_SEEDS | PUMPKIN | 南瓜茎，成熟后生在南瓜 |
+| MelonAttachedStemBlock | MELON_SEEDS | MELON | 连接西瓜茎，指向西瓜方向 |
+| PumpkinAttachedStemBlock | PUMPKIN_SEEDS | PUMPKIN | 连接南瓜茎，指向南瓜方向 |
+
+### 茎-果实双向关联
+
+果实方块（MelonBlock、PumpkinBlock）通过 `getStem()` 和 `getAttachedStem()` 方法返回对应的茎方块。
+茎方块通过 `getCrop()` 方法返回对应的果实方块。
+
 ## 待实现
 
 - [x] 小麦作物（WheatBlock）
@@ -139,6 +159,10 @@ auto melonStemBlock = std::make_unique<StemBlock>(melonBlock, stemProps);
 - [x] 西瓜/南瓜果实块（MelonBlock, PumpkinBlock, CarvedPumpkinBlock, JackOLanternBlock）
 - [x] 雕刻南瓜/南瓜灯傀儡生成功能（CarvedPumpkinBlock::trySpawnGolem）
 - [x] 南瓜雕刻功能（PumpkinBlock::onBlockActivated - 使用剪刀雕刻）
+- [x] 西瓜茎（MelonStemBlock）
+- [x] 南瓜茎（PumpkinStemBlock）
+- [x] 连接西瓜茎（MelonAttachedStemBlock）
+- [x] 连接南瓜茎（PumpkinAttachedStemBlock）
 - [ ] 甘蔗（SugarCaneBlock）
 - [ ] 仙人掌（CactusBlock）
 - [ ] 竹子（BambooBlock）
