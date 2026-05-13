@@ -1,7 +1,9 @@
 #include "MonsterRenderers.hpp"
 #include "../../layer/equipment/HeldItemLayer.hpp"
+#include "../../layer/entity/HeldBlockLayer.hpp"
 #include "../../layer/effect/EyesLayer.hpp"
 #include "../../layer/effect/EnergyGlintLayer.hpp"
+#include "common/entity/entities/monster/end/EndermanEntity.hpp"
 
 namespace mc::client::renderer::entity::renderer::monster {
 
@@ -141,17 +143,27 @@ void EndermanRenderer::render(Entity& entity, f64 partialTicks) {
 }
 
 void EndermanRenderer::updateEndermanState(LivingEntity& entity) {
-    m_model.setCarrying(false);
-    m_model.setAttacking(false);
-    (void)entity;
+    // 参考 MC 1.16.5 EndermanRenderer.render()
+    // model.isCarrying = blockstate != null;
+    // model.isAttacking = entityIn.isScreaming();
+
+    // 使用 dynamic_cast 安全地转换为 EndermanEntity
+    auto* enderman = dynamic_cast<::mc::EndermanEntity*>(&entity);
+    if (enderman != nullptr) {
+        m_model.setCarrying(enderman->isHoldingBlock());
+        m_model.setAttacking(enderman->isScreaming());
+    } else {
+        m_model.setCarrying(false);
+        m_model.setAttacking(false);
+    }
 }
 
 void EndermanRenderer::setupLayers() {
     // 参考 MC 1.16.5 EndermanRenderer 构造函数
     // 末影人有以下层渲染器：
-    // - HeldItemLayer（手持方块）
+    // - HeldBlockLayer（手持方块）
     // - EyesLayer（发光眼睛）
-    addLayer<layer_equipment::HeldItemLayer<LivingEntity>>();
+    addLayer<layer::entity::HeldBlockLayer<::mc::EndermanEntity>>();
     addLayer<layer_effect::EyesLayer<LivingEntity, model::monster::EndermanModel>>(*this);
 }
 

@@ -26,6 +26,12 @@ namespace mc::client::renderer::entity::layer::entity {
  *
  * 渲染末影人手持的方块。
  *
+ * 类型安全的实现：
+ * - 使用 `if constexpr` + `std::is_base_of_v` 进行编译时类型检查
+ * - 只有 `EndermanEntity` 有手持方块功能
+ * - 从 `EndermanEntity::getHeldBlockState()` 获取方块状态
+ * - 从 `EndermanEntity::isHoldingBlock()` 判断是否渲染
+ *
  * 参考 MC 1.16.5 HeldBlockLayer (for Enderman)
  *
  * @tparam TEntity 实体类型

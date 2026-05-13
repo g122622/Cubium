@@ -4,7 +4,9 @@
 #include "../../model/core/ModelRenderer.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/monster/end/EndermanEntity.hpp"
 #include <cmath>
+#include <type_traits>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::layer::entity {
@@ -53,16 +55,20 @@ void HeldBlockLayer<TEntity>::render(
 
 template<typename TEntity>
 bool HeldBlockLayer<TEntity>::shouldRender(const TEntity& entity) const {
-    const ::mc::BlockState* blockState = getHeldBlock(entity);
-    return blockState != nullptr;
+    // 使用编译时类型检查
+    if constexpr (std::is_base_of_v<::mc::EndermanEntity, TEntity>) {
+        return entity.isHoldingBlock();
+    }
+    return false;
 }
 
 template<typename TEntity>
 const ::mc::BlockState* HeldBlockLayer<TEntity>::getHeldBlock(const TEntity& entity) const {
-    // TODO: 从实体获取持有的方块状态
-    // 对于末影人，需要访问 entity.getCarriedBlock()
-    // 目前返回 nullptr，待实体类实现后完善
-    (void)entity;
+    // 使用编译时类型检查：只有 EndermanEntity 有手持方块功能
+    // 参考 MC 1.16.5: EndermanEntity.getHeldBlockState()
+    if constexpr (std::is_base_of_v<::mc::EndermanEntity, TEntity>) {
+        return entity.getHeldBlockState();
+    }
     return nullptr;
 }
 
@@ -213,5 +219,6 @@ pipeline::EntityMesh* HeldBlockLayer<TEntity>::getOrCreateBlockMesh(pipeline::En
 
 // 显式实例化
 template class HeldBlockLayer<::mc::LivingEntity>;
+template class HeldBlockLayer<::mc::EndermanEntity>;
 
 } // namespace mc::client::renderer::entity::layer::entity

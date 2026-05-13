@@ -80,8 +80,40 @@ Vector3f WolfCollarLayer::getCollarColor(const ::mc::WolfEntity& entity) {
 ## HeldBlockLayer
 
 渲染末影人持有的方块：
-- 方块位于末影人头部附近
+- 使用编译时类型检查 (`if constexpr` + `std::is_base_of_v`) 检测 `EndermanEntity`
+- 从 `EndermanEntity::getHeldBlockState()` 获取持有的方块状态
+- 从 `EndermanEntity::isHoldingBlock()` 判断是否应该渲染
+- 方块位于末影人头部附近（Y偏移 0.6875）
 - 方块大小为 0.5x
+
+### 类型安全的实现
+
+```cpp
+template<typename TEntity>
+const ::mc::BlockState* HeldBlockLayer<TEntity>::getHeldBlock(const TEntity& entity) const {
+    // 使用编译时类型检查：只有 EndermanEntity 有手持方块功能
+    // 参考 MC 1.16.5: EndermanEntity.getHeldBlockState()
+    if constexpr (std::is_base_of_v<::mc::EndermanEntity, TEntity>) {
+        return entity.getHeldBlockState();
+    }
+    return nullptr;
+}
+
+template<typename TEntity>
+bool HeldBlockLayer<TEntity>::shouldRender(const TEntity& entity) const {
+    if constexpr (std::is_base_of_v<::mc::EndermanEntity, TEntity>) {
+        return entity.isHoldingBlock();
+    }
+    return false;
+}
+```
+
+### 显式实例化
+
+```cpp
+template class HeldBlockLayer<::mc::LivingEntity>;
+template class HeldBlockLayer<::mc::EndermanEntity>;
+```
 
 ## 参考
 

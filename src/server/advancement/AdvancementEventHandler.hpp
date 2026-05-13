@@ -314,7 +314,7 @@ private:
             return;
         }
 
-        const core::ServerPlayerData* playerData = m_playerManager->findByUuid(e.starterUuid);
+        const ServerPlayerData* playerData = m_playerManager->findByUuid(e.starterUuid);
         if (playerData == nullptr) {
             return;
         }
