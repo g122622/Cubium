@@ -1913,10 +1913,12 @@ void Player::attack(Entity& target) {
             }
         }
 
-        // 16. 横扫攻击（MC 1.16.5: 仅当使用剑、冷却>90%、非暴击、非疾跑、在地面、且几乎静止时触发）
-        // TODO: 添加 distanceWalkedModified 跟踪以检测玩家是否静止
+        // 16. 横扫攻击（MC 1.16.5: 仅当使用剑、冷却>90%、非暴击、非疾跑击退、在地面、且几乎静止时触发）
         // MC 1.16.5 条件: distanceWalkedModified - prevDistanceWalkedModified < getAIMoveSpeed()
-        bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround();
+        // 用于检测玩家是否几乎静止（站立不动才能触发横扫攻击）
+        f64 distanceWalkedDelta = static_cast<f64>(m_moveDistanceWalked - m_prevMoveDistanceWalked);
+        bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround()
+                        && (distanceWalkedDelta < static_cast<f64>(aiMoveSpeed()));
         if (canSweep) {
             // 检查主手是否持有剑
             const item::tool::SwordItem* sword = dynamic_cast<const item::tool::SwordItem*>(mainHand.getItem());
