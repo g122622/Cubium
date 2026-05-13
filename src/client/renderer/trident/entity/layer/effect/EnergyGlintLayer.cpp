@@ -4,6 +4,7 @@
 #include "../../model/core/ModelRenderer.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
 
@@ -100,16 +101,47 @@ void EnergyGlintLayer<TEntity>::render(
 template<typename TEntity>
 bool EnergyGlintLayer<TEntity>::shouldRender(const TEntity& entity) const {
     // 检查实体是否有附魔物品
-    // 完整实现需要检查实体的装备槽
+    // 参考 MC 1.16.5: ItemStack.hasEffect() -> ItemStack.isEnchanted()
+    // 检查所有装备槽位是否有附魔物品
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
-        // 检查主手和副手是否持有附魔物品
-        const auto& mainHand = entity.getEquipment(::mc::EquipmentSlot::MainHand);
-        const auto& offHand = entity.getEquipment(::mc::EquipmentSlot::OffHand);
+        using ::mc::EquipmentSlot;
+        using ::mc::item::enchant::EnchantmentHelper;
 
-        // TODO: 检查物品是否有附魔
-        // 目前暂时返回 false，待附魔系统实现后再完善
-        (void)mainHand;
-        (void)offHand;
+        // 检查主手物品
+        const auto& mainHand = entity.getEquipment(EquipmentSlot::MainHand);
+        if (!mainHand.isEmpty() && EnchantmentHelper::hasEnchantments(mainHand)) {
+            return true;
+        }
+
+        // 检查副手物品
+        const auto& offHand = entity.getEquipment(EquipmentSlot::OffHand);
+        if (!offHand.isEmpty() && EnchantmentHelper::hasEnchantments(offHand)) {
+            return true;
+        }
+
+        // 检查头盔
+        const auto& head = entity.getEquipment(EquipmentSlot::Head);
+        if (!head.isEmpty() && EnchantmentHelper::hasEnchantments(head)) {
+            return true;
+        }
+
+        // 检查胸甲
+        const auto& chest = entity.getEquipment(EquipmentSlot::Chest);
+        if (!chest.isEmpty() && EnchantmentHelper::hasEnchantments(chest)) {
+            return true;
+        }
+
+        // 检查护腿
+        const auto& legs = entity.getEquipment(EquipmentSlot::Legs);
+        if (!legs.isEmpty() && EnchantmentHelper::hasEnchantments(legs)) {
+            return true;
+        }
+
+        // 检查靴子
+        const auto& feet = entity.getEquipment(EquipmentSlot::Feet);
+        if (!feet.isEmpty() && EnchantmentHelper::hasEnchantments(feet)) {
+            return true;
+        }
     }
     return false;
 }

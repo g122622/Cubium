@@ -12,8 +12,30 @@
 ## EnergyGlintLayer
 
 渲染附魔物品的紫色光效：
-- 滚动动画
+- 检查实体所有装备槽位（主手、副手、头盔、胸甲、护腿、靴子）是否有附魔物品
+- 使用 `EnchantmentHelper::hasEnchantments()` 检测附魔
+- 滚动动画效果
 - 叠加混合模式
+
+### shouldRender 逻辑
+
+```cpp
+// 检查所有装备槽位
+if constexpr (std::is_base_of_v<LivingEntity, TEntity>) {
+    // 检查主手物品
+    if (!mainHand.isEmpty() && EnchantmentHelper::hasEnchantments(mainHand)) {
+        return true;
+    }
+    // 检查副手、头盔、胸甲、护腿、靴子...
+}
+return false;
+```
+
+### 参考
+
+- MC 1.16.5 `ItemStack.hasEffect()` -> `ItemStack.isEnchanted()`
+- MC 1.16.5 `BipedArmorLayer` - 盔甲附魔光效
+- MC 1.16.5 `ElytraLayer` - 鞘翅附魔光效
 
 ## EyesLayer
 
