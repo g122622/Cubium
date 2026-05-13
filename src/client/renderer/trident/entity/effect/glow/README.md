@@ -18,6 +18,28 @@
 - 发光药水效果（Glowing Effect）
 - 团队发光颜色
 
+**发光效果来源检测**：
+
+```cpp
+bool GlowEffect::hasGlowEffect(Entity& entity) {
+    // 1. 检查 Entity 的发光标志
+    if (entity.isGlowing()) return true;
+
+    // 2. 检查发光药水效果（仅 LivingEntity）
+    if (auto* living = dynamic_cast<LivingEntity*>(&entity)) {
+        if (living->hasEffect(::mc::entity::effect::EffectType::Glowing)) return true;
+    }
+
+    return false;
+}
+```
+
+**发光效果来源**：
+1. `Entity::setGlowing(true)` - 直接设置发光标志
+2. 发光药水效果（`EffectType::Glowing`）
+3. 发光鱿鱼实体类型（未实现）
+4. 团队发光规则（未实现）
+
 **使用方法**：
 
 ```cpp

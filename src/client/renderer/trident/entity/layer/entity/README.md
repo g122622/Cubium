@@ -74,8 +74,33 @@ Vector3f WolfCollarLayer::getCollarColor(const ::mc::WolfEntity& entity) {
 ## ArrowLayer
 
 渲染生物身上附着的箭矢：
-- 根据箭矢数量和位置渲染
+- 根据 `LivingEntity::getArrowCount()` 获取箭矢数量
+- 最多渲染 10 支箭矢，随机分布在实体身上
+- 箭矢位置和旋转基于实体 ID 确定性随机
 - 支持不同角度
+
+### 实现细节
+
+```cpp
+template<typename TEntity, typename TModel>
+void ArrowLayer<TEntity, TModel>::render(TEntity& entity, ...):
+    // 从 LivingEntity 获取箭矢数量
+    i32 arrowCount = 0;
+    if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
+        arrowCount = entity.getArrowCount();
+    }
+
+    // 最多渲染 10 支箭矢
+    arrowCount = std::min(arrowCount, 10);
+
+    // 确定性随机分布
+    math::Random rng(entity.id());
+    for (i32 i = 0; i < arrowCount; ++i) {
+        // 基于实体 ID 的确定性随机位置和旋转
+        // ...
+    }
+}
+```
 
 ## HeldBlockLayer
 

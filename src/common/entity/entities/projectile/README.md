@@ -223,6 +223,27 @@ auto damageSource = std::make_unique<IndirectEntityDamageSource>(
 );
 ```
 
+### 箭矢计数系统（MC 1.16.5）
+
+箭矢命中生物实体时会增加目标身上的箭矢计数：
+
+```cpp
+// AbstractArrowEntity::onEntityHit() 中
+LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
+if (livingTarget != nullptr) {
+    bool hurt = livingTarget->hurt(*damageSource, static_cast<f32>(damage));
+    // 只有非穿透箭在造成伤害后才增加箭矢计数
+    if (hurt && m_pierceLevel <= 0) {
+        livingTarget->setArrowCountInEntity(livingTarget->getArrowCount() + 1);
+    }
+}
+```
+
+**计数规则**：
+- 只有非穿透箭（`pierceLevel <= 0`）才增加计数
+- 穿透箭会记录已穿透的实体 ID，避免重复命中
+- 箭矢计数用于渲染层 `ArrowLayer` 显示插在身上的箭矢
+
 ## 注意事项
 
 1. **发射者追踪**：投掷物同时存储发射者的UUID和Entity ID，用于跨区块追踪

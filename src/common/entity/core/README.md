@@ -169,6 +169,92 @@ MC 1.16.5 `net.minecraft.entity.SpawnReason`
 - 每 tick 自动递减持续时间，归零时自动停止
 - `Player::updatePose()` 中激流攻击姿态优先级仅次于鞘翅飞行
 
+### 箭矢计数系统（MC 1.16.5）
+
+生物实体的箭矢计数系统，用于渲染插在身上的箭矢。
+
+**核心方法**：
+
+```cpp
+class LivingEntity {
+public:
+    // 获取插在身上的箭矢数量
+    [[nodiscard]] i32 getArrowCount() const;
+    
+    // 设置箭矢数量（网络同步）
+    void setArrowCountInEntity(i32 count);
+    
+    // 更新箭矢自动脱落逻辑（每 tick 调用）
+    void tickArrows();
+};
+```
+
+**箭矢计数规则**：
+- 箭矢命中生物时增加计数（仅非穿透箭）
+- 箭矢数量越多，脱落越快
+- 脱落计时器公式：`20 * (30 - arrowCount)` ticks
+  - 1 支箭：580 ticks（约 29 秒）
+  - 15 支箭：300 ticks（15 秒）
+
+**数据参数**：
+- `ARROW_COUNT_PARAM`（DataParameter ID 13）用于网络同步
+
+**使用示例**：
+
+```cpp
+// 箭矢命中时增加计数
+if (livingTarget != nullptr) {
+    bool hurt = livingTarget->hurt(*damageSource, damage);
+    if (hurt && m_pierceLevel <= 0) {
+        livingTarget->setArrowCountInEntity(livingTarget->getArrowCount() + 1);
+    }
+}
+```
+
+**ArrowLayer 渲染**：
+- 渲染层通过 `getArrowCount()` 获取箭矢数量
+- 最多渲染 10 支箭矢，随机分布在实体身上
+- 箭矢位置和旋转基于实体 ID 确定性随机
+
+### 发光效果系统（MC 1.16.5）
+
+实体的发光状态系统，用于发光药水效果和团队发光规则。
+
+**核心方法**：
+
+```cpp
+class Entity {
+public:
+    // 检查实体是否发光
+    // 客户端检查数据参数标志位，服务端检查 m_glowing 字段
+    [[nodiscard]] bool isGlowing() const;
+    
+    // 设置发光状态（服务端设置字段并同步标志位）
+    void setGlowing(bool glowing);
+};
+```
+
+**发光效果来源**：
+1. 发光药水效果（`EffectType::Glowing`）
+2. Entity 的发光标志（由 `setGlowing()` 设置）
+3. 发光鱿鱼实体类型（未实现）
+4. 团队发光规则（未实现）
+
+**使用示例**：
+
+```cpp
+// GlowEffect 中检查发光状态
+bool hasGlowEffect = entity.isGlowing();
+if (auto* living = dynamic_cast<LivingEntity*>(&entity)) {
+    if (living->hasEffect(entity::effect::EffectType::Glowing)) {
+        hasGlowEffect = true;
+    }
+}
+```
+
+**数据参数**：
+- `EntityFlags::Glowing`（第 6 位）用于网络同步发光状态
+
 ## 尺寸与碰撞箱
 
 - `EntitySize` 现在同时保存宽度、高度和眼睛高度，并提供碰撞箱构造帮助。

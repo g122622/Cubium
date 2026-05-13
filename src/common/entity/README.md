@@ -314,6 +314,7 @@ src/common/entity/
 - **传送系统**：安全传送、随机传送、位置验证
 - **运动速度乘数**：甜浆果丛、蜘蛛网等减速效果
 - **实体标签**：命令系统和数据包谓词使用的标签系统
+- **发光效果**：`isGlowing()` / `setGlowing()` 发光状态管理
 
 ```cpp
 // 创建实体
@@ -1105,6 +1106,7 @@ if (m_world != nullptr && !isSpectator() && !m_abilities.invulnerable) {
 |---------|---------|
 | `EntityCoreTests.cpp` | Entity 基类核心功能 |
 | `LivingEntityTests.cpp` | LivingEntity 生命值、属性、装备、受伤、死亡、环境声发声链路 |
+| `LivingEntityArrowCountTest.cpp` | LivingEntity 箭矢计数系统、Entity 发光效果系统 |
 | `AttributeTests.cpp` | 属性系统、修饰符计算 |
 | `GoalTests.cpp` | AI 目标选择器、优先级、互斥标志 |
 | `PathfindingTests.cpp` | A* 寻路算法、路径导航 |
