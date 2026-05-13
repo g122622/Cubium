@@ -742,7 +742,7 @@ MC_TRACE_INSTANT("client.input.mining", "startBreaking", ...);
 
 ```powershell
 # 配置项目
-cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake -B build -G "Visual Studio 18" -A x64 -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
 
 # 构建（推荐 Release 构建）
 cmake --build build --config RelWithDebInfo

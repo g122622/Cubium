@@ -114,3 +114,6 @@ ops.json
 banned-players.json
 banned-ips.json
 whitelist.json
+
+build-clang-client/
+build-clang/

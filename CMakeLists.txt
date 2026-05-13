@@ -30,7 +30,7 @@ option(MC_BUILD_SERVER "Build server application" ON)
 option(MC_BUILD_TESTS "Build unit tests" ON)
 option(MC_ENABLE_SANITIZERS "Enable sanitizers for debug builds" OFF)
 option(MC_ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" OFF)
-option(MC_ENABLE_TRACING "Enable Perfetto tracing (default OFF)" OFF)
+option(MC_ENABLE_TRACING "Enable Perfetto tracing (default OFF)" ON)
 option(MC_ENABLE_CCACHE "Enable ccache for faster rebuilds" ON)
 
 # ccache 配置（仅 Unix 平台：Linux/macOS）
@@ -72,26 +72,14 @@ find_package(EnTT CONFIG REQUIRED)
 find_package(unofficial-perfetto CONFIG REQUIRED)
 
 # 全局编译选项
-if(MSVC)
-    add_compile_options(/MP /utf-8)
-    # 强制串行化 PDB 写入，解决多编译器实例同时写入同一 PDB 文件的问题
-    add_compile_options(/FS)
-    # 架构专用优化：启用 AVX2 指令集，加速向量运算
-    add_compile_options(/arch:AVX2)
-    # 启用快速浮点数
-    add_compile_options(/fp:fast)
-    # 禁用浮点异常
-    add_compile_options(/fp:except-)
-    # 使用编译器内置的、更高效的函数版本替换某些标准库函数或操作
-    add_compile_options(/Oi)
-    # 链接器选项，移除所有未引用的函数和数据
-    add_link_options(/OPT:REF)
-    # 链接器选项，合并相同的常量折叠（COMDAT folding），进一步减小代码体积
-    add_link_options(/OPT:ICF)
-    # 全程序优化
-    add_link_options(/LTCG)
-    # 自动向量化 会与 GL 冲突
-    # add_compile_options(/Qvec-report:2)
+if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    add_compile_options(-O3)
+    add_compile_options(-fcolor-diagnostics)
+    add_compile_options(-march=native -mtune=native)
+    add_compile_options(-ffast-math)
+    add_compile_options(-fno-trapping-math)
+    add_compile_options(-mavx2)
+    add_link_options(-fuse-ld=lld)
 else()
     # O3
     add_compile_options(-O3)
@@ -103,8 +91,11 @@ else()
     # 禁用浮点异常
     add_compile_options(-fno-trapping-math)
     # 链接器选项，移除所有未引用的函数和数据
-    add_link_options(-Wl)
+    add_link_options(-Wl,--gc-sections)
+endif()
 
+if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    message(STATUS "Configuring Windows build with Clang: ${CMAKE_CXX_COMPILER}")
 endif()
 
 if(WIN32)
@@ -150,6 +141,8 @@ message(STATUS "")
 message(STATUS "=== Minecraft Reborn Configuration ===")
 message(STATUS "  Version:        ${PROJECT_VERSION}")
 message(STATUS "  Build Type:     ${CMAKE_BUILD_TYPE}")
+message(STATUS "  C Compiler:     ${CMAKE_C_COMPILER_ID} (${CMAKE_C_COMPILER})")
+message(STATUS "  CXX Compiler:   ${CMAKE_CXX_COMPILER_ID} (${CMAKE_CXX_COMPILER})")
 message(STATUS "  Build Client:   ${MC_BUILD_CLIENT}")
 message(STATUS "  Build Server:   ${MC_BUILD_SERVER}")
 message(STATUS "  Build Tests:    ${MC_BUILD_TESTS}")

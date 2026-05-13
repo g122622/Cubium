@@ -8,11 +8,11 @@
       "binaryDir": "${sourceDir}/build",
       "installDir": "${sourceDir}/dist",
       "cacheVariables": {
-        "CMAKE_CXX_STANDARD": "17"
+        "CMAKE_CXX_STANDARD": "20"
       }
     },
     {
-      "name": "windows-base",
+      "name": "windows-clang-base",
       "hidden": true,
       "inherits": "base",
       "condition": {
@@ -21,6 +21,10 @@
         "rhs": "Windows"
       },
       "cacheVariables": {
+        "CMAKE_C_COMPILER": "D:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/Llvm/x64/bin/clang.exe",
+        "CMAKE_CXX_COMPILER": "D:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/Llvm/x64/bin/clang++.exe",
+        "CMAKE_MAKE_PROGRAM": "D:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe",
+        "CMAKE_RC_COMPILER": "D:/Windows Kits/10/bin/10.0.26100.0/x64/rc.exe",
         "VCPKG_TARGET_TRIPLET": "x64-windows"
       }
     },
@@ -38,9 +42,11 @@
       }
     },
     {
-      "name": "windows-debug",
-      "displayName": "Windows Debug",
-      "inherits": "windows-base",
+      "name": "windows-clang-debug",
+      "displayName": "Windows Clang Debug",
+      "inherits": "windows-clang-base",
+      "binaryDir": "${sourceDir}/build",
+      "installDir": "${sourceDir}/dist",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "MC_BUILD_CLIENT": "ON",
@@ -50,9 +56,25 @@
       }
     },
     {
-      "name": "windows-release",
-      "displayName": "Windows Release",
-      "inherits": "windows-base",
+      "name": "windows-clang-relwithdebinfo",
+      "displayName": "Windows Clang RelWithDebInfo",
+      "inherits": "windows-clang-base",
+      "binaryDir": "${sourceDir}/build",
+      "installDir": "${sourceDir}/dist",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "MC_BUILD_CLIENT": "ON",
+        "MC_BUILD_SERVER": "ON",
+        "MC_BUILD_TESTS": "ON",
+        "MC_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
+      "name": "windows-clang-release",
+      "displayName": "Windows Clang Release",
+      "inherits": "windows-clang-base",
+      "binaryDir": "${sourceDir}/build",
+      "installDir": "${sourceDir}/dist",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "MC_BUILD_CLIENT": "ON",
@@ -88,7 +110,9 @@
     {
       "name": "server-only",
       "displayName": "Server Only",
-      "inherits": "windows-base",
+      "inherits": "windows-clang-base",
+      "binaryDir": "${sourceDir}/build",
+      "installDir": "${sourceDir}/dist",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "MC_BUILD_CLIENT": "OFF",
@@ -99,7 +123,9 @@
     {
       "name": "client-only",
       "displayName": "Client Only",
-      "inherits": "windows-base",
+      "inherits": "windows-clang-base",
+      "binaryDir": "${sourceDir}/build",
+      "installDir": "${sourceDir}/dist",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "MC_BUILD_CLIENT": "ON",
@@ -110,13 +136,18 @@
   ],
   "buildPresets": [
     {
-      "name": "windows-debug",
-      "configurePreset": "windows-debug",
+      "name": "windows-clang-debug",
+      "configurePreset": "windows-clang-debug",
       "configuration": "Debug"
     },
     {
-      "name": "windows-release",
-      "configurePreset": "windows-release",
+      "name": "windows-clang-relwithdebinfo",
+      "configurePreset": "windows-clang-relwithdebinfo",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "windows-clang-release",
+      "configurePreset": "windows-clang-release",
       "configuration": "Release"
     },
     {
@@ -132,8 +163,8 @@
   ],
   "testPresets": [
     {
-      "name": "windows-debug",
-      "configurePreset": "windows-debug",
+      "name": "windows-clang-debug",
+      "configurePreset": "windows-clang-debug",
       "output": {
         "outputOnFailure": true
       }

@@ -28,21 +28,19 @@
 $env:VCPKG_ROOT = "D:\tools\vcpkg" #  改成你自己的 vcpkg 路径
 
 # 配置项目
-cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake # Windows
-cmake -S . -B build # MacOS / Linux
+# Windows
+cmake --preset windows-clang-relwithdebinfo
 
-# 若想启用perfetto性能分析：
-cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake -DMC_ENABLE_TRACING=ON
-cmake -S . -B build -DMC_ENABLE_TRACING=ON # MacOS / Linux
+# MacOS / Linux
+cmake -S . -B build
 
 # 编译
-chcp 65001 # 务必记得先执行这一行，避免中文乱码
+ cmake --build build-clang --config RelWithDebInfo
 
 # 注：即使在开发过程中，也要尽量使用RelWithDebInfo构建，因为Debug运行非常慢，除非必要否则不要用。
 # 这行命令除了编译cpp代码之外，还会编译着色器
 # 对于macos这类系统，默认只会启动一个核心构建，导致很慢，建议加上 -j6，并耐心等待10分钟左右以完成构建
 # 对于Windows，不用加 -j6 这类后缀，系统会自动吃满全部核心
-cmake --build build --config RelWithDebInfo
 # 构建过程可能出现“cl : 命令行  error D8040: 创建子进程或与子进程通讯时出错”这种错误，此时只需要重新跑一遍构建命令就行，不用清理构建目录、不用重新生成构建脚本。
 
 # 运行测试
@@ -84,7 +82,7 @@ glslc shaders/debug.frag -o build/shaders/debug.frag.spv
 
 ```powershell
 # 重新配置并编译
-cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake -B build -G "Visual Studio 18" -A x64 -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build build --config RelWithDebInfo
 ```
 

@@ -19,8 +19,12 @@ if(MC_ENABLE_TRACING)
 
     # Windows 平台特殊配置
     if(WIN32)
-        # Perfetto SDK 生成大量符号，需要 /bigobj 选项
-        target_compile_options(mc_perfetto PRIVATE "/bigobj")
+        # Perfetto SDK 生成大量符号，按 Clang 前端类型选择大对象选项
+        if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+            target_compile_options(mc_perfetto PRIVATE "/bigobj")
+        else()
+            target_compile_options(mc_perfetto PRIVATE "-Wa,-mbig-obj")
+        endif()
 
         # 禁用 Windows 遗留定义，避免与 Perfetto 冲突
         target_compile_definitions(mc_perfetto PRIVATE
