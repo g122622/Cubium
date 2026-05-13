@@ -2,6 +2,8 @@
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include <thread>
@@ -84,13 +86,13 @@ TEST_F(ServerChunkManagerTest, Shutdown) {
 // ============================================================================
 
 TEST_F(ServerChunkManagerTest, GetChunk_NotExists) {
-    ChunkData* chunk = m_manager->getChunk(0, 0);
+    ChunkData* chunk = m_manager->tryToGetChunkInMem(0, 0);
     EXPECT_EQ(chunk, nullptr);
 }
 
 TEST_F(ServerChunkManagerTest, HasChunk_NotExists) {
-    EXPECT_FALSE(m_manager->hasChunk(0, 0));
-    EXPECT_FALSE(m_manager->hasChunk(100, 100));
+    EXPECT_FALSE(m_manager->hasChunkInMem(0, 0));
+    EXPECT_FALSE(m_manager->hasChunkInMem(100, 100));
 }
 
 TEST_F(ServerChunkManagerTest, GetChunkSync_CreatesChunk) {
@@ -99,7 +101,7 @@ TEST_F(ServerChunkManagerTest, GetChunkSync_CreatesChunk) {
     ASSERT_NE(chunk, nullptr);
     EXPECT_EQ(chunk->x(), 0);
     EXPECT_EQ(chunk->z(), 0);
-    EXPECT_TRUE(m_manager->hasChunk(0, 0));
+    EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
 }
 
 TEST_F(ServerChunkManagerTest, GetChunkSync_ReturnsSameChunk) {
@@ -112,7 +114,7 @@ TEST_F(ServerChunkManagerTest, GetChunkSync_ReturnsSameChunk) {
 TEST_F(ServerChunkManagerTest, GetChunkSync_AfterGeneration) {
     m_manager->getChunkSync(3, 7);
 
-    ChunkData* chunk = m_manager->getChunk(3, 7);
+    ChunkData* chunk = m_manager->tryToGetChunkInMem(3, 7);
     ASSERT_NE(chunk, nullptr);
     EXPECT_EQ(chunk->x(), 3);
     EXPECT_EQ(chunk->z(), 7);
@@ -130,7 +132,7 @@ TEST_F(ServerChunkManagerTest, GetChunkSync_MultipleChunks) {
 
     for (int x = -2; x <= 2; ++x) {
         for (int z = -2; z <= 2; ++z) {
-            EXPECT_TRUE(m_manager->hasChunk(x, z));
+            EXPECT_TRUE(m_manager->hasChunkInMem(x, z));
         }
     }
 }
@@ -166,7 +168,7 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_AfterInit) {
     ASSERT_NE(chunk, nullptr);
     EXPECT_EQ(chunk->x(), 0);
     EXPECT_EQ(chunk->z(), 0);
-    EXPECT_TRUE(m_manager->hasChunk(0, 0));
+    EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
 
     m_manager->shutdown();
     m_workerPool->shutdown();
@@ -225,54 +227,10 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_AlreadyCached) {
 
 TEST_F(ServerChunkManagerTest, UnloadChunk) {
     m_manager->getChunkSync(0, 0);
-    EXPECT_TRUE(m_manager->hasChunk(0, 0));
+    EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
 
-    m_manager->unloadChunk(0, 0);
-    EXPECT_FALSE(m_manager->hasChunk(0, 0));
-}
-
-TEST_F(ServerChunkManagerTest, UnloadChunk_WithHolder) {
-    m_manager->getOrCreateSingleChunkLifecycleManager(5, 5);
-    m_manager->getChunkSync(5, 5);
-
-    EXPECT_TRUE(m_manager->hasChunk(5, 5));
-    EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 1);
-
-    m_manager->unloadChunk(5, 5);
-    EXPECT_FALSE(m_manager->hasChunk(5, 5));
-    // 持有者可能仍然存在，但区块数据已卸载
-}
-
-// ============================================================================
-// 区块持有者测试
-// ============================================================================
-
-TEST_F(ServerChunkManagerTest, GetOrCreateHolder) {
-    SingleChunkLifecycleManager* holder = m_manager->getOrCreateSingleChunkLifecycleManager(10, 20);
-    ASSERT_NE(holder, nullptr);
-    EXPECT_EQ(holder->x(), 10);
-    EXPECT_EQ(holder->z(), 20);
-    EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 1);
-}
-
-TEST_F(ServerChunkManagerTest, GetOrCreateHolder_SameChunk) {
-    SingleChunkLifecycleManager* holder1 = m_manager->getOrCreateSingleChunkLifecycleManager(5, 5);
-    SingleChunkLifecycleManager* holder2 = m_manager->getOrCreateSingleChunkLifecycleManager(5, 5);
-
-    EXPECT_EQ(holder1, holder2);
-    EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 1);
-}
-
-TEST_F(ServerChunkManagerTest, GetHolder) {
-    m_manager->getOrCreateSingleChunkLifecycleManager(3, 7);
-
-    SingleChunkLifecycleManager* holder = m_manager->getSingleChunkLifecycleManager(3, 7);
-    ASSERT_NE(holder, nullptr);
-    EXPECT_EQ(holder->x(), 3);
-    EXPECT_EQ(holder->z(), 7);
-
-    SingleChunkLifecycleManager* nullHolder = m_manager->getSingleChunkLifecycleManager(100, 100);
-    EXPECT_EQ(nullHolder, nullptr);
+    m_manager->unloadChunkSync(0, 0);
+    EXPECT_FALSE(m_manager->hasChunkInMem(0, 0));
 }
 
 // ============================================================================

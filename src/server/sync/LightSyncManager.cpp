@@ -31,7 +31,7 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
                    "Chunk", fmt::format("({}, {})", x, z));
 
     MC_TRACE_EVENT("server.lighting", "GetChunkData");
-    auto chunk = m_chunkManager.getChunkShared(x, z);
+    auto chunk = m_chunkManager.tryToGetChunkSharedInMem(x, z);
     if (!chunk) {
         return;
     }
@@ -119,7 +119,7 @@ void LightSyncManager::markLightChanged(LightType type, const SectionPos& pos)
                    "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z));
 
     // 标记区块为脏
-    auto chunk = m_chunkManager.getChunkShared(pos.x, pos.z);
+    auto chunk = m_chunkManager.tryToGetChunkSharedInMem(pos.x, pos.z);
     if (chunk) {
         chunk->setDirty(true);
     }
@@ -134,7 +134,7 @@ void LightSyncManager::markLightChanged(LightType type, const SectionPos& pos)
 
 void LightSyncManager::syncLightDataToChunk(LightType type, const SectionPos& pos)
 {
-    auto chunk = m_chunkManager.getChunkShared(pos.x, pos.z);
+    auto chunk = m_chunkManager.tryToGetChunkSharedInMem(pos.x, pos.z);
     if (!chunk) {
         return;
     }

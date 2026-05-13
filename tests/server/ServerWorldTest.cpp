@@ -151,7 +151,7 @@ TEST_F(ServerWorldTest, UnloadChunk) {
     world->chunkManager()->getChunkSync(0, 0);
     EXPECT_TRUE(world->hasChunk(0, 0));
 
-    world->chunkManager()->unloadChunk(0, 0);
+    world->chunkManager()->unloadChunkSync(0, 0);
     EXPECT_FALSE(world->hasChunk(0, 0));
 }
 
@@ -165,7 +165,7 @@ TEST_F(ServerWorldTest, ChunkCount) {
     world->chunkManager()->getChunkSync(0, 1);
     EXPECT_EQ(world->chunkCount(), 3);
 
-    world->chunkManager()->unloadChunk(1, 0);
+    world->chunkManager()->unloadChunkSync(1, 0);
     EXPECT_EQ(world->chunkCount(), 2);
 }
 

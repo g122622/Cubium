@@ -294,10 +294,10 @@ void ServerWorld::initializeWorldSpawn()
 
     // 直接使用 m_chunkManager->getChunkSync()，确保出生点区块已加载
     ChunkPos spawnChunk(0, 0);
-    ChunkData* chunk = m_chunkManager->getChunkSync(spawnChunk.x, spawnChunk.z);
+    ChunkData* chunk = m_chunkManager->requestFullChunkSync(spawnChunk.x, spawnChunk.z);
 
     if (chunk == nullptr) {
-        spdlog::warn("ServerWorld: Failed to load spawn chunk, using default spawn point (0, {}, 0)", world::SEA_LEVEL + 1);
+        spdlog::error("ServerWorld: Failed to load spawn chunk, using default spawn point (0, {}, 0)", world::SEA_LEVEL + 1);
         m_worldSpawnPoint = Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
         return;
     }
@@ -317,7 +317,7 @@ void ServerWorld::initializeWorldSpawn()
     } else {
         // 使用默认位置
         m_worldSpawnPoint = Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
-        spdlog::warn("ServerWorld: No valid spawn found in spawn chunk, using default (0, {}, 0)", world::SEA_LEVEL + 1);
+        spdlog::error("ServerWorld: No valid spawn found in spawn chunk, using default (0, {}, 0)", world::SEA_LEVEL + 1);
     }
 }
 
@@ -330,7 +330,7 @@ void ServerWorld::initializeWorldSpawn()
 ChunkData* ServerWorld::getChunk(ChunkCoord x, ChunkCoord z)
 {
     if (m_chunkManager) {
-        return m_chunkManager->getChunk(x, z);
+        return m_chunkManager->tryToGetChunkInMem(x, z);
     }
     return nullptr;
 }
@@ -338,7 +338,7 @@ ChunkData* ServerWorld::getChunk(ChunkCoord x, ChunkCoord z)
 const ChunkData* ServerWorld::getChunk(ChunkCoord x, ChunkCoord z) const
 {
     if (m_chunkManager) {
-        return m_chunkManager->getChunk(x, z);
+        return m_chunkManager->tryToGetChunkInMem(x, z);
     }
     return nullptr;
 }
@@ -346,7 +346,7 @@ const ChunkData* ServerWorld::getChunk(ChunkCoord x, ChunkCoord z) const
 bool ServerWorld::hasChunk(ChunkCoord x, ChunkCoord z) const
 {
     if (m_chunkManager) {
-        return m_chunkManager->hasChunk(x, z);
+        return m_chunkManager->hasChunkInMem(x, z);
     }
     return false;
 }
@@ -1332,12 +1332,12 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
 
 IChunk* ServerWorld::getChunkForLight(ChunkCoord x, ChunkCoord z)
 {
-    return m_chunkManager ? m_chunkManager->getChunk(x, z) : nullptr;
+    return m_chunkManager ? m_chunkManager->tryToGetChunkInMem(x, z) : nullptr;
 }
 
 const IChunk* ServerWorld::getChunkForLight(ChunkCoord x, ChunkCoord z) const
 {
-    return m_chunkManager ? m_chunkManager->getChunk(x, z) : nullptr;
+    return m_chunkManager ? m_chunkManager->tryToGetChunkInMem(x, z) : nullptr;
 }
 
 const BlockState* ServerWorld::getBlockStateForLight(const BlockPos& pos) const
@@ -1362,7 +1362,7 @@ void ServerWorld::markLightChanged(LightType type, const SectionPos& pos)
                "Section", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z));
 
     if (m_chunkManager) {
-        ChunkData* chunk = m_chunkManager->getChunk(pos.x, pos.z);
+        ChunkData* chunk = m_chunkManager->tryToGetChunkInMem(pos.x, pos.z);
         if (chunk) {
             chunk->setDirty(true);
         }
@@ -1416,7 +1416,7 @@ void ServerWorld::syncLightDataToChunk(LightType type, const SectionPos& pos)
         return;
     }
 
-    ChunkData* chunk = m_chunkManager->getChunk(pos.x, pos.z);
+    ChunkData* chunk = m_chunkManager->tryToGetChunkInMem(pos.x, pos.z);
     if (!chunk) {
         return;
     }
