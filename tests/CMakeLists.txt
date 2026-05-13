@@ -79,6 +79,8 @@ add_executable(mc_tests
     common/entity/entities/boss/WitherEntityTest.cpp
     # BoostHelper NBT 序列化测试
     common/entity/core/BoostHelperTest.cpp
+    # LivingEntity 箭矢计数和发光效果测试
+    common/entity/core/LivingEntityArrowCountTest.cpp
     # 成就系统测试
     advancement/AdvancementTest.cpp
     # PlayerKilledEntityTrigger 触发器测试

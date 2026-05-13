@@ -506,6 +506,32 @@ public:
         return hasFlag(EntityFlags::FallFlying);
     }
 
+    /**
+     * @brief 检查实体是否发光
+     *
+     * 参考 MC 1.16.5: Entity.isGlowing()
+     * 发光效果来源：
+     * 1. 发光药水效果 (StatusEffectType::GLOWING)
+     * 2. 发光鱿鱼实体类型
+     * 3. 团队发光规则
+     *
+     * 客户端检查数据参数中的 Glowing 标志位，
+     * 服务端检查 m_glowing 字段。
+     *
+     * @return 如果实体发光返回 true
+     */
+    [[nodiscard]] bool isGlowing() const;
+
+    /**
+     * @brief 设置实体发光状态
+     *
+     * 参考 MC 1.16.5: Entity.setGlowing()
+     * 在服务端设置 m_glowing 字段并同步 Glowing 标志位。
+     *
+     * @param glowing 是否发光
+     */
+    void setGlowing(bool glowing);
+
     // ========== 尺寸 ==========
 
     /**
@@ -1789,6 +1815,7 @@ protected:
     bool m_onGround = false;
     bool m_removed = false;
     bool m_noClip = false;       // 是否无视碰撞（用于三叉戟返回等）
+    bool m_glowing = false;      // 发光状态（服务端使用）
     EntityPose m_pose = EntityPose::Standing;
     EntityFlags m_flags = EntityFlags::None;
     entity::EntitySize m_dimensions = entity::EntitySize::flexible(0.6f, 1.8f);

@@ -836,6 +836,40 @@ public:
      */
     [[nodiscard]] i32 deathTime() const { return m_deathTime; }
 
+    // ========== 箭矢计数 ==========
+
+    /**
+     * @brief 获取插在身上的箭矢数量
+     *
+     * 参考 MC 1.16.5 LivingEntity.getArrowCountInEntity()
+     * 用于渲染层（ArrowLayer）渲染插在实体身上的箭矢。
+     *
+     * @return 箭矢数量
+     */
+    [[nodiscard]] i32 getArrowCount() const {
+        return m_arrowCount;
+    }
+
+    /**
+     * @brief 设置插在身上的箭矢数量
+     *
+     * 参考 MC 1.16.5 LivingEntity.setArrowCountInEntity()
+     * 当箭矢命中实体时调用以增加计数。
+     *
+     * @param count 箭矢数量
+     */
+    void setArrowCountInEntity(i32 count);
+
+    /**
+     * @brief 更新箭矢自动脱落逻辑
+     *
+     * 参考 MC 1.16.5 LivingEntity.livingTick() 中的箭矢脱落逻辑
+     * 箭矢数量越多，脱落间隔越短：
+     * - 1 支箭约 29 秒脱落
+     * - 15 支箭约 15 秒脱落
+     */
+    void tickArrows();
+
     // ========== 方块交互 ==========
 
     /**
@@ -1081,6 +1115,10 @@ protected:
 
     // 三叉戟激流攻击状态
     i32 m_spinAttackDuration = 0;        // 激流攻击剩余持续时间（ticks）
+
+    // 箭矢计数
+    i32 m_arrowCount = 0;                // 插在身上的箭矢数量
+    i32 m_arrowHitTimer = 0;             // 箭矢脱落计时器
 };
 
 } // namespace mc

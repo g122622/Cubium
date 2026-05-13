@@ -123,6 +123,29 @@ void Entity::removeFlag(EntityFlags flag) {
     m_dataManager.set(FLAGS_PARAM, static_cast<i8>(static_cast<u8>(m_flags)));
 }
 
+bool Entity::isGlowing() const {
+    // 参考 MC 1.16.5: Entity.isGlowing()
+    // 客户端检查数据参数中的 Glowing 标志位
+    // 服务端检查 m_glowing 字段
+    if (m_world != nullptr && m_world->isClientSide()) {
+        return hasFlag(EntityFlags::Glowing);
+    }
+    return m_glowing;
+}
+
+void Entity::setGlowing(bool glowing) {
+    // 参考 MC 1.16.5: Entity.setGlowing()
+    // 在服务端设置字段并同步标志位
+    m_glowing = glowing;
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        if (glowing) {
+            addFlag(EntityFlags::Glowing);
+        } else {
+            removeFlag(EntityFlags::Glowing);
+        }
+    }
+}
+
 void Entity::setAir(i32 air) {
     m_air = air;
     m_dataManager.set(AIR_PARAM, m_air);

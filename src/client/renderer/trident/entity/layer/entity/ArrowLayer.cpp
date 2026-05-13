@@ -21,12 +21,10 @@ void ArrowLayer<TEntity>::renderPipeline(
     pipeline::EntityPipeline& pipeline)
 {
     // 获取箭矢数量
-    // 完整实现需要从实体获取 arrowsInEntity 字段
+    // 参考 MC 1.16.5 ArrowLayer.func_225631_a_()
     i32 arrowCount = 0;
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
-        // TODO: 获取实体上的箭矢数量
-        // arrowCount = entity.getArrowCount();
-        (void)entity;
+        arrowCount = entity.getArrowCount();
     }
 
     if (arrowCount <= 0) {
@@ -83,10 +81,9 @@ void ArrowLayer<TEntity>::render(
 template<typename TEntity>
 bool ArrowLayer<TEntity>::shouldRender(const TEntity& entity) const {
     // 检查实体是否被箭射中
+    // 参考 MC 1.16.5 StuckArrowsLayer.shouldRender()
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
-        // TODO: 检查 arrowsInEntity 字段
-        // return entity.getArrowCount() > 0;
-        (void)entity;
+        return entity.getArrowCount() > 0;
     }
     return false;
 }

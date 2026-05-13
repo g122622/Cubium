@@ -254,17 +254,16 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result) {
             DamageType::Arrow, this, this, false);
     }
 
-    // 应用伤害
-    // TODO: 接入 LivingEntity::hurt
-    // LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
-    // bool hurt = false;
-    // if (livingTarget) {
-    //     hurt = livingTarget->hurt(*damageSource, static_cast<f32>(damage));
-    //     if (hurt && m_pierceLevel <= 0) {
-    //         livingTarget->setArrowCountInEntity(livingTarget->getArrowCountInEntity() + 1);
-    //     }
-    // }
-    (void)damage;
+    // 应用伤害并增加箭矢计数
+    // 参考 MC 1.16.5 AbstractArrowEntity.onEntityHit() 第351-352行
+    LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
+    if (livingTarget != nullptr) {
+        bool hurt = livingTarget->hurt(*damageSource, static_cast<f32>(damage));
+        // 只有非穿透箭在造成伤害后才增加箭矢计数
+        if (hurt && m_pierceLevel <= 0) {
+            livingTarget->setArrowCountInEntity(livingTarget->getArrowCount() + 1);
+        }
+    }
 
     // 击退效果 - 参考 MC 1.16.5 第355-360行
     if (m_knockbackStrength > 0) {

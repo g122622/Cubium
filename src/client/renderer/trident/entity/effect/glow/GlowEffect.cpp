@@ -1,5 +1,7 @@
 #include "GlowEffect.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/effect/EffectType.hpp"
 
 namespace mc::client::renderer::entity::effect::glow {
 
@@ -38,16 +40,25 @@ void GlowEffect::cleanup() {
 bool GlowEffect::hasGlowEffect(Entity& entity) {
     // 参考 MC 1.16.5 发光效果判定
     // 检查实体是否有以下状态：
-    // 1. 发光药水效果 (GlowingEffect) - StatusEffectType::GLOWING
-    // 2. 发光鱿鱼实体类型 - 通过实体类型检查
-    // 3. 团队发光规则
+    // 1. 发光药水效果 (EffectType::Glowing) - LivingEntity 专用
+    // 2. Entity 的发光标志（可能由其他来源设置，如团队规则）
+    // 3. 发光鱿鱼实体类型 - 通过实体类型检查（未实现）
 
-    // TODO: 从实体获取发光状态
-    // 当前需要Entity类提供以下方法：
-    // - hasStatusEffect(StatusEffectType::GLOWING)
-    // - isGlowing() (综合检查所有发光条件)
+    // 1. 检查 Entity 的发光标志（适用于所有实体）
+    if (entity.isGlowing()) {
+        return true;
+    }
 
-    (void)entity;
+    // 2. 如果是 LivingEntity，检查发光药水效果
+    if (auto* living = dynamic_cast<LivingEntity*>(&entity)) {
+        if (living->hasEffect(::mc::entity::effect::EffectType::Glowing)) {
+            return true;
+        }
+    }
+
+    // TODO: 3. 发光鱿鱼实体类型检查
+    // TODO: 4. 团队发光规则检查
+
     return false;
 }
 

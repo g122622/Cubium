@@ -456,6 +456,9 @@ void LivingEntity::tick() {
     // 更新空气供应和溺水
     updateAirSupply();
 
+    // 更新箭矢自动脱落
+    tickArrows();
+
     // 更新死亡
     if (isDead()) {
         tickDeath();
@@ -475,6 +478,7 @@ void LivingEntity::syncMetadataFromDataManager() {
     Entity::syncMetadataFromDataManager();
     m_health = m_dataManager.get<f32>(HEALTH_PARAM);
     m_lastHealth = m_health;
+    m_arrowCount = m_dataManager.get<i32>(ARROW_COUNT_PARAM);
 }
 
 void LivingEntity::updateAnimation() {
@@ -942,6 +946,39 @@ const entity::effect::EffectInstance* LivingEntity::getEffect(entity::effect::Ef
 
 i32 LivingEntity::getEffectLevel(entity::effect::EffectType type) const {
     return m_effectManager.getEffectLevel(type);
+}
+
+// ============================================================================
+// 箭矢计数
+// ============================================================================
+
+void LivingEntity::setArrowCountInEntity(i32 count) {
+    // MC 1.16.5: LivingEntity.setArrowCountInEntity()
+    m_arrowCount = std::max(0, count);
+    m_dataManager.set(ARROW_COUNT_PARAM, m_arrowCount);
+}
+
+void LivingEntity::tickArrows() {
+    // MC 1.16.5: LivingEntity.livingTick() 中的箭矢脱落逻辑
+    // 仅在服务端执行
+    if (world() == nullptr || world()->isClientSide()) {
+        return;
+    }
+
+    if (m_arrowCount > 0) {
+        // 如果计时器未启动，初始化计时器
+        // 公式: 20 * (30 - arrowCount) ticks
+        // 箭矢越多，脱落越快
+        if (m_arrowHitTimer <= 0) {
+            m_arrowHitTimer = 20 * (30 - m_arrowCount);
+        }
+
+        --m_arrowHitTimer;
+        if (m_arrowHitTimer <= 0) {
+            // 计时器归零，减少一支箭
+            setArrowCountInEntity(m_arrowCount - 1);
+        }
+    }
 }
 
 // ============================================================================
