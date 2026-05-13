@@ -97,12 +97,6 @@ bool TargetGoal::checkSight() const {
 
 // ==================== NearestAttackableTargetGoal ====================
 
-// 显式实例化模板类
-// T必须是LivingEntity的子类
-template class NearestAttackableTargetGoal<LivingEntity>;
-template class NearestAttackableTargetGoal<MobEntity>;
-template class NearestAttackableTargetGoal<Player>;
-
 template<typename T>
 NearestAttackableTargetGoal<T>::NearestAttackableTargetGoal(MobEntity* mob, bool checkSight, i32 chance)
     : TargetGoal(mob, checkSight)
@@ -182,6 +176,12 @@ template<typename T>
 void NearestAttackableTargetGoal<T>::startExecuting() {
     TargetGoal::startExecuting();
 }
+
+// 显式实例化模板类
+// T必须是LivingEntity的子类
+template class NearestAttackableTargetGoal<LivingEntity>;
+template class NearestAttackableTargetGoal<MobEntity>;
+template class NearestAttackableTargetGoal<Player>;
 
 // ==================== HurtByTargetGoal ====================
 

@@ -182,7 +182,7 @@ public:
      *
      * @param player 碰撞的玩家
      */
-    void onCollideWithPlayer(Player& player);
+    void onCollideWithPlayer(Player& player) override;
 
     // ========== 静态工具方法 ==========
 

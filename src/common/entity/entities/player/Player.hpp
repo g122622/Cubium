@@ -751,7 +751,7 @@ public:
      * 在行走距离累计超过阈值时触发。
      * 根据脚下方块类型选择不同的脚步声。
      */
-    void playStepSound();
+    void playStepSound(const BlockPos& pos, const BlockState* blockState) override;
 
     /**
      * @brief 播放游泳声
@@ -837,7 +837,7 @@ protected:
      * @param fallHeight 摔落高度（格数）
      * @return 摔落音效，高空摔落返回 ENTITY_PLAYER_BIG_FALL，否则 ENTITY_PLAYER_SMALL_FALL
      */
-    [[nodiscard]] std::optional<ResourceLocation> getFallSound(i32 fallHeight) const;
+    [[nodiscard]] std::optional<ResourceLocation> getFallSound(i32 fallHeight) const override;
 
 public:
 

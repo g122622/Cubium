@@ -357,7 +357,7 @@ MC_TRACE_SET_THREAD_NAME_FOR(tid, name)
 ```powershell
 # CMake 配置时启用追踪
 cmake -B build -DMC_ENABLE_TRACING=ON -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
-cmake --build build --config RelWithDebInfo
+cmake --build --preset windows-clang-relwithdebinfo
 ```
 
 ### 初始化
@@ -618,7 +618,7 @@ tests/common/perfetto/
 
 ```powershell
 # 构建并运行测试
-cmake --build build --config RelWithDebInfo
+cmake --build --preset windows-clang-relwithdebinfo
 ./build/bin/Release/mc_tests.exe --gtest_filter="Perfetto*"
 ```
 

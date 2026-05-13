@@ -78,7 +78,7 @@ public:
     /**
      * @brief 是否免疫溺水
      */
-    [[nodiscard]] bool canBreatheUnderwater() const { return true; }
+    [[nodiscard]] bool canBreatheUnderwater() const override { return true; }
 
     /**
      * @brief 是否应该燃烧（阳光）

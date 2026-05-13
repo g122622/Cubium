@@ -82,7 +82,7 @@
  * @endcode
  */
 #define MC_TRACE_EVENT(category, name, ...) \
-    TRACE_EVENT(category, name, ##__VA_ARGS__)
+    TRACE_EVENT(category, name __VA_OPT__(,) __VA_ARGS__)
 
 /**
  * @brief 记录计数器值
@@ -122,7 +122,7 @@
  * @endcode
  */
 #define MC_TRACE_EVENT_BEGIN(category, name, ...) \
-    TRACE_EVENT_BEGIN(category, name, ##__VA_ARGS__)
+    TRACE_EVENT_BEGIN(category, name __VA_OPT__(,) __VA_ARGS__)
 
 /**
  * @brief 手动结束一个事件
@@ -143,7 +143,7 @@
  * @param name 事件名称
  */
 #define MC_TRACE_INSTANT(category, name, ...) \
-    TRACE_EVENT_INSTANT(category, name, ##__VA_ARGS__)
+    TRACE_EVENT_INSTANT(category, name __VA_OPT__(,) __VA_ARGS__)
 
 /**
  * @brief 检查分类是否启用
@@ -179,7 +179,7 @@
 #define MC_TRACE_EVENT_IF(condition, category, name, ...) \
     do { \
         if (condition) { \
-            MC_TRACE_EVENT(category, name, ##__VA_ARGS__); \
+            MC_TRACE_EVENT(category, name __VA_OPT__(,) __VA_ARGS__); \
         } \
     } while (0)
 
@@ -204,21 +204,21 @@
 // ============================================================================
 
 #if MC_TRACE_RENDERING
-#define MC_TRACE_RENDERING_EVENT(name, ...) MC_TRACE_EVENT("rendering.frame", name, ##__VA_ARGS__)
+#define MC_TRACE_RENDERING_EVENT(name, ...) MC_TRACE_EVENT("rendering.frame", name __VA_OPT__(,) __VA_ARGS__)
 #define MC_TRACE_RENDERING_COUNTER(name, value) MC_TRACE_COUNTER("rendering.frame", name, value)
-#define MC_TRACE_VULKAN_EVENT(name, ...) MC_TRACE_EVENT("rendering.vulkan", name, ##__VA_ARGS__)
-#define MC_TRACE_CHUNK_MESH_EVENT(name, ...) MC_TRACE_EVENT("rendering.chunk_mesh", name, ##__VA_ARGS__)
+#define MC_TRACE_VULKAN_EVENT(name, ...) MC_TRACE_EVENT("rendering.vulkan", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_CHUNK_MESH_EVENT(name, ...) MC_TRACE_EVENT("rendering.chunk_mesh", name __VA_OPT__(,) __VA_ARGS__)
 // 细粒度渲染追踪
-#define MC_TRACE_BEGIN_FRAME(name, ...) MC_TRACE_EVENT("rendering.begin_frame", name, ##__VA_ARGS__)
-#define MC_TRACE_UNIFORM_UPDATE(name, ...) MC_TRACE_EVENT("rendering.uniform_update", name, ##__VA_ARGS__)
-#define MC_TRACE_SKY(name, ...) MC_TRACE_EVENT("rendering.sky", name, ##__VA_ARGS__)
-#define MC_TRACE_CHUNK_DRAW(name, ...) MC_TRACE_EVENT("rendering.chunk_draw", name, ##__VA_ARGS__)
-#define MC_TRACE_GUI(name, ...) MC_TRACE_EVENT("rendering.gui", name, ##__VA_ARGS__)
-#define MC_TRACE_END_FRAME(name, ...) MC_TRACE_EVENT("rendering.end_frame", name, ##__VA_ARGS__)
-#define MC_TRACE_VIEWPORT(name, ...) MC_TRACE_EVENT("rendering.viewport", name, ##__VA_ARGS__)
-#define MC_TRACE_DESCRIPTOR_BIND(name, ...) MC_TRACE_EVENT("rendering.descriptor_bind", name, ##__VA_ARGS__)
-#define MC_TRACE_PUSH_CONSTANTS(name, ...) MC_TRACE_EVENT("rendering.push_constants", name, ##__VA_ARGS__)
-#define MC_TRACE_CMD_BUFFER(name, ...) MC_TRACE_EVENT("rendering.command_buffer", name, ##__VA_ARGS__)
+#define MC_TRACE_BEGIN_FRAME(name, ...) MC_TRACE_EVENT("rendering.begin_frame", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_UNIFORM_UPDATE(name, ...) MC_TRACE_EVENT("rendering.uniform_update", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_SKY(name, ...) MC_TRACE_EVENT("rendering.sky", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_CHUNK_DRAW(name, ...) MC_TRACE_EVENT("rendering.chunk_draw", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_GUI(name, ...) MC_TRACE_EVENT("rendering.gui", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_END_FRAME(name, ...) MC_TRACE_EVENT("rendering.end_frame", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_VIEWPORT(name, ...) MC_TRACE_EVENT("rendering.viewport", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_DESCRIPTOR_BIND(name, ...) MC_TRACE_EVENT("rendering.descriptor_bind", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_PUSH_CONSTANTS(name, ...) MC_TRACE_EVENT("rendering.push_constants", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_CMD_BUFFER(name, ...) MC_TRACE_EVENT("rendering.command_buffer", name __VA_OPT__(,) __VA_ARGS__)
 #else
 #define MC_TRACE_RENDERING_EVENT(name, ...) ((void)0)
 #define MC_TRACE_RENDERING_COUNTER(name, value) ((void)0)
@@ -237,10 +237,10 @@
 #endif
 
 #if MC_TRACE_GAME_TICK
-#define MC_TRACE_TICK_EVENT(name, ...) MC_TRACE_EVENT("game.tick", name, ##__VA_ARGS__)
+#define MC_TRACE_TICK_EVENT(name, ...) MC_TRACE_EVENT("game.tick", name __VA_OPT__(,) __VA_ARGS__)
 #define MC_TRACE_TICK_COUNTER(name, value) MC_TRACE_COUNTER("game.tick", name, value)
-#define MC_TRACE_ENTITY_EVENT(name, ...) MC_TRACE_EVENT("game.entity", name, ##__VA_ARGS__)
-#define MC_TRACE_AI_EVENT(name, ...) MC_TRACE_EVENT("game.ai", name, ##__VA_ARGS__)
+#define MC_TRACE_ENTITY_EVENT(name, ...) MC_TRACE_EVENT("game.entity", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_AI_EVENT(name, ...) MC_TRACE_EVENT("game.ai", name __VA_OPT__(,) __VA_ARGS__)
 #else
 #define MC_TRACE_TICK_EVENT(name, ...) ((void)0)
 #define MC_TRACE_TICK_COUNTER(name, value) ((void)0)
@@ -249,19 +249,19 @@
 #endif
 
 #if MC_TRACE_CHUNK_GENERATION
-#define MC_TRACE_CHUNK_GEN_EVENT(name, ...) MC_TRACE_EVENT("world.chunk_gen", name, ##__VA_ARGS__)
+#define MC_TRACE_CHUNK_GEN_EVENT(name, ...) MC_TRACE_EVENT("world.chunk_gen", name __VA_OPT__(,) __VA_ARGS__)
 #else
 #define MC_TRACE_CHUNK_GEN_EVENT(name, ...) ((void)0)
 #endif
 
 #if MC_TRACE_CHUNK_LOAD
-#define MC_TRACE_CHUNK_LOAD_EVENT(name, ...) MC_TRACE_EVENT("world.chunk_load", name, ##__VA_ARGS__)
+#define MC_TRACE_CHUNK_LOAD_EVENT(name, ...) MC_TRACE_EVENT("world.chunk_load", name __VA_OPT__(,) __VA_ARGS__)
 #else
 #define MC_TRACE_CHUNK_LOAD_EVENT(name, ...) ((void)0)
 #endif
 
 #if MC_TRACE_NETWORK
-#define MC_TRACE_NETWORK_EVENT(name, ...) MC_TRACE_EVENT("network.packet", name, ##__VA_ARGS__)
+#define MC_TRACE_NETWORK_EVENT(name, ...) MC_TRACE_EVENT("network.packet", name __VA_OPT__(,) __VA_ARGS__)
 #else
 #define MC_TRACE_NETWORK_EVENT(name, ...) ((void)0)
 #endif
@@ -349,12 +349,12 @@
 // ============================================================================
 
 #if MC_ENABLE_TRACING
-#define MC_TRACE_SERVER_TICK_EVENT(name, ...)     MC_TRACE_EVENT("server.tick", name, ##__VA_ARGS__)
-#define MC_TRACE_SERVER_NETWORK_EVENT(name, ...)  MC_TRACE_EVENT("server.network", name, ##__VA_ARGS__)
-#define MC_TRACE_SERVER_PLAYER_EVENT(name, ...)   MC_TRACE_EVENT("server.player", name, ##__VA_ARGS__)
-#define MC_TRACE_SERVER_WORLD_EVENT(name, ...)    MC_TRACE_EVENT("server.world", name, ##__VA_ARGS__)
-#define MC_TRACE_SERVER_CHUNK_EVENT(name, ...)    MC_TRACE_EVENT("server.chunk", name, ##__VA_ARGS__)
-#define MC_TRACE_SERVER_ENTITY_EVENT(name, ...)   MC_TRACE_EVENT("server.entity", name, ##__VA_ARGS__)
+#define MC_TRACE_SERVER_TICK_EVENT(name, ...)     MC_TRACE_EVENT("server.tick", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_SERVER_NETWORK_EVENT(name, ...)  MC_TRACE_EVENT("server.network", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_SERVER_PLAYER_EVENT(name, ...)   MC_TRACE_EVENT("server.player", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_SERVER_WORLD_EVENT(name, ...)    MC_TRACE_EVENT("server.world", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_SERVER_CHUNK_EVENT(name, ...)    MC_TRACE_EVENT("server.chunk", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_SERVER_ENTITY_EVENT(name, ...)   MC_TRACE_EVENT("server.entity", name __VA_OPT__(,) __VA_ARGS__)
 #define MC_TRACE_SERVER_TICK_COUNTER(name, value) MC_TRACE_COUNTER("server.tick", name, value)
 #else
 #define MC_TRACE_SERVER_TICK_EVENT(name, ...)     ((void)0)
@@ -371,8 +371,8 @@
 // ============================================================================
 
 #if MC_ENABLE_TRACING
-#define MC_TRACE_SERVER_SOUND_EVENT(name, ...)    MC_TRACE_EVENT("server.sound", name, ##__VA_ARGS__)
-#define MC_TRACE_CLIENT_SOUND_EVENT(name, ...)    MC_TRACE_EVENT("client.sound", name, ##__VA_ARGS__)
+#define MC_TRACE_SERVER_SOUND_EVENT(name, ...)    MC_TRACE_EVENT("server.sound", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_CLIENT_SOUND_EVENT(name, ...)    MC_TRACE_EVENT("client.sound", name __VA_OPT__(,) __VA_ARGS__)
 #else
 #define MC_TRACE_SERVER_SOUND_EVENT(name, ...)    ((void)0)
 #define MC_TRACE_CLIENT_SOUND_EVENT(name, ...)    ((void)0)
@@ -383,12 +383,12 @@
 // ============================================================================
 
 #if MC_ENABLE_TRACING
-#define MC_TRACE_WORKER_POOL_EVENT(name, ...)     MC_TRACE_EVENT("worker_pool", name, ##__VA_ARGS__)
+#define MC_TRACE_WORKER_POOL_EVENT(name, ...)     MC_TRACE_EVENT("worker_pool", name __VA_OPT__(,) __VA_ARGS__)
 #define MC_TRACE_WORKER_POOL_COUNTER(name, value) MC_TRACE_COUNTER("worker_pool", name, value)
-#define MC_TRACE_CHUNK_GEN_TASK(name, ...)        MC_TRACE_EVENT("worker_pool.chunk_gen", name, ##__VA_ARGS__)
-#define MC_TRACE_CHUNK_IO_TASK(name, ...)         MC_TRACE_EVENT("worker_pool.chunk_io", name, ##__VA_ARGS__)
-#define MC_TRACE_SNAPSHOT_TASK(name, ...)         MC_TRACE_EVENT("worker_pool.snapshot", name, ##__VA_ARGS__)
-#define MC_TRACE_DB_TASK(name, ...)               MC_TRACE_EVENT("worker_pool.db", name, ##__VA_ARGS__)
+#define MC_TRACE_CHUNK_GEN_TASK(name, ...)        MC_TRACE_EVENT("worker_pool.chunk_gen", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_CHUNK_IO_TASK(name, ...)         MC_TRACE_EVENT("worker_pool.chunk_io", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_SNAPSHOT_TASK(name, ...)         MC_TRACE_EVENT("worker_pool.snapshot", name __VA_OPT__(,) __VA_ARGS__)
+#define MC_TRACE_DB_TASK(name, ...)               MC_TRACE_EVENT("worker_pool.db", name __VA_OPT__(,) __VA_ARGS__)
 #else
 #define MC_TRACE_WORKER_POOL_EVENT(name, ...)     ((void)0)
 #define MC_TRACE_WORKER_POOL_COUNTER(name, value) ((void)0)

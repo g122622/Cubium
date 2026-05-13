@@ -705,6 +705,7 @@ private:
 class SetContentsFunction : public LootFunction {
 public:
     SetContentsFunction() = default;
+    ~SetContentsFunction() override;
 
     /**
      * @brief 添加内容物条目

@@ -2,6 +2,7 @@
 #include "../../../../core/Types.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/Items.hpp"
+#include "../../../../world/IWorld.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
@@ -89,7 +90,13 @@ void WolfEntity::tick() {
         m_stepSoundDistance += horizontalDistance * 0.6f;
         if (m_stepSoundDistance > m_nextStepSoundDistance && onGround() && !isInWater()) {
             m_nextStepSoundDistance = std::floor(m_stepSoundDistance) + 1.0f;
-            playStepSound();
+            const BlockPos stepPos(
+                static_cast<i32>(std::floor(x())),
+                static_cast<i32>(std::floor(y() - 0.2f)),
+                static_cast<i32>(std::floor(z()))
+            );
+            const BlockState* blockState = m_world != nullptr ? m_world->getBlockState(stepPos) : nullptr;
+            playStepSound(stepPos, blockState);
         }
     }
 
@@ -126,13 +133,23 @@ std::optional<ResourceLocation> WolfEntity::getDeathSound() const {
     return makeSoundEventId("death");
 }
 
-void WolfEntity::playStepSound() {
+void WolfEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/) {
     auto soundEvent = makeSoundEventId("step");
     if (!soundEvent.has_value()) {
         return;
     }
 
     playSound(*soundEvent, 0.15f, 1.0f);
+}
+
+void WolfEntity::playStepSound() {
+    const BlockPos stepPos(
+        static_cast<i32>(std::floor(x())),
+        static_cast<i32>(std::floor(y() - 0.2f)),
+        static_cast<i32>(std::floor(z()))
+    );
+    const BlockState* blockState = m_world != nullptr ? m_world->getBlockState(stepPos) : nullptr;
+    playStepSound(stepPos, blockState);
 }
 
 void WolfEntity::playShakingSound() {

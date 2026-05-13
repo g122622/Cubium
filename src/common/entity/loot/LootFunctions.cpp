@@ -1098,6 +1098,8 @@ std::string SetAttributesFunction::generateUUID() {
 // SetContentsFunction
 // ============================================================================
 
+SetContentsFunction::~SetContentsFunction() = default;
+
 void SetContentsFunction::addEntry(std::unique_ptr<LootEntry> entry) {
     if (entry) {
         m_entries.push_back(std::move(entry));

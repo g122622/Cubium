@@ -745,7 +745,7 @@ MC_TRACE_INSTANT("client.input.mining", "startBreaking", ...);
 cmake -B build -G "Visual Studio 18" -A x64 -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
 
 # 构建（推荐 Release 构建）
-cmake --build build --config RelWithDebInfo
+cmake --build --preset windows-clang-relwithdebinfo
 
 # 运行客户端
 ./build/bin/Release/minecraft-client.exe

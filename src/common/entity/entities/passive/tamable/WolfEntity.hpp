@@ -177,6 +177,7 @@ protected:
     /**
      * @brief 播放脚步声音
      */
+    void playStepSound(const BlockPos& pos, const BlockState* blockState) override;
     void playStepSound();
 
     /**

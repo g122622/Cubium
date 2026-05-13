@@ -108,7 +108,7 @@ public:
      *
      * MC 1.16.5: 返回 120 ticks
      */
-    [[nodiscard]] i32 getTalkInterval() const { return 120; }
+    [[nodiscard]] i32 getTalkInterval() const override { return 120; }
 
     /**
      * @brief 是否可以消失

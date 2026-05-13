@@ -128,7 +128,7 @@ public:
 
     [[nodiscard]] f32 getGravity() const override { return 0.05f; }
     [[nodiscard]] f32 getAirDrag() const override { return 0.99f; }
-    [[nodiscard]] virtual f32 getWaterDrag() const { return 0.6f; }
+    [[nodiscard]] virtual f32 getWaterDrag() const override { return 0.6f; }
 
     // ========== 箭矢特有方法 ==========
 

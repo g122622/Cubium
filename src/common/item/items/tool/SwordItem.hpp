@@ -79,7 +79,7 @@ public:
      */
     bool hitEntity(ItemStack& stack,
                    LivingEntity& target,
-                   LivingEntity& attacker);
+                   LivingEntity& attacker) override;
 
     /**
      * @brief 破坏方块时调用
@@ -97,7 +97,7 @@ public:
                           IWorld& world,
                           const BlockState& state,
                           const BlockPos& pos,
-                          LivingEntity& entity);
+                          LivingEntity& entity) override;
 
     /**
      * @brief 获取总攻击伤害

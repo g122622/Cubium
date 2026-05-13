@@ -129,7 +129,7 @@ public:
 
     void setAction(TitleAction action) { m_action = action; }
     void setText(const std::string& text) { m_text = text; }
-    void setText(std::optional<std::string>&& text) { m_text = std::move(text); }
+    void setOptionalText(std::optional<std::string> text) { m_text = std::move(text); }
     void setTimes(i32 fadeIn, i32 stay, i32 fadeOut);
 
 private:

@@ -31,32 +31,6 @@ namespace {
 }
 
 /**
- * @brief 计算潜影盒打开时的碰撞盒。
- *
- * 参考: ShulkerBoxTileEntity.getBoundingBox(Direction)
- */
-[[nodiscard]] AxisAlignedBB getShulkerBoundingBox(const BlockPos& pos, Direction facing, f32 progress) {
-    // 基础碰撞盒为方块本身
-    f32 minX = static_cast<f32>(pos.x);
-    f32 minY = static_cast<f32>(pos.y);
-    f32 minZ = static_cast<f32>(pos.z);
-    f32 maxX = static_cast<f32>(pos.x + 1);
-    f32 maxY = static_cast<f32>(pos.y + 1);
-    f32 maxZ = static_cast<f32>(pos.z + 1);
-
-    // 根据朝向和进度扩展碰撞盒
-    f32 expand = 0.5f * progress;
-    minX += static_cast<f32>(Directions::xOffset(facing)) * expand;
-    minY += static_cast<f32>(Directions::yOffset(facing)) * expand;
-    minZ += static_cast<f32>(Directions::zOffset(facing)) * expand;
-    maxX += static_cast<f32>(Directions::xOffset(facing)) * expand;
-    maxY += static_cast<f32>(Directions::yOffset(facing)) * expand;
-    maxZ += static_cast<f32>(Directions::zOffset(facing)) * expand;
-
-    return AxisAlignedBB(minX, minY, minZ, maxX, maxY, maxZ);
-}
-
-/**
  * @brief 计算实体推动区域。
  *
  * 参考: ShulkerBoxTileEntity.getTopBoundingBox(Direction)

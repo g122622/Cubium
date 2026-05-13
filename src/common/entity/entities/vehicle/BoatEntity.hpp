@@ -67,13 +67,13 @@ public:
      * MC 1.16.5: BoatEntity.attackEntityFrom()
      * @note 船不继承LivingEntity，所以不重写hurt方法
      */
-    bool hurt(DamageSource& source, f32 amount);
+    bool hurt(DamageSource& source, f32 amount) override;
 
     /**
      * @brief 检查是否可以被碰撞
      * MC 1.16.5: canBeCollidedWith()
      */
-    [[nodiscard]] bool canBeCollidedWith() const { return isAlive(); }
+    [[nodiscard]] bool canBeCollidedWith() const override { return isAlive(); }
 
     /**
      * @brief 检查是否可以被推动
@@ -235,7 +235,7 @@ public:
     /**
      * @brief 是否可以添加乘客
      */
-    [[nodiscard]] bool canFitPassenger() const {
+    [[nodiscard]] bool canFitPassenger() const override {
         return static_cast<i32>(m_passengers.size()) < MAX_PASSENGERS && m_status != BoatStatus::UnderWater;
     }
 
@@ -298,7 +298,7 @@ protected:
      * @brief 将船的朝向应用到乘客
      * MC 1.16.5: applyYawToEntity()
      */
-    void applyOrientationToEntity(Entity& passenger);
+    void applyOrientationToEntity(Entity& passenger) override;
 
     /**
      * @brief 更新摇晃（气泡柱）

@@ -302,7 +302,7 @@ public:
      * @brief 检查是否可以被控制方向
      * MC 1.16.5: 马需要鞍才能被控制
      */
-    [[nodiscard]] bool canBeSteered() const { return m_saddled; }
+    [[nodiscard]] bool canBeSteered() const override { return m_saddled; }
 
     // ========== 生命周期 ==========
 
@@ -315,6 +315,9 @@ public:
     void travel(f32 strafing, f32 vertical, f32 forward) override;
 
 protected:
+    using LivingEntity::getEquipment;
+    using LivingEntity::setEquipment;
+
     void registerGoals() override;
     void registerAttributes() override;
     void registerData() override;

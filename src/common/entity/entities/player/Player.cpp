@@ -1725,7 +1725,7 @@ void Player::updateCameraYaw() {
     m_cameraYaw += (targetCameraYaw - m_cameraYaw) * 0.4f;
 }
 
-void Player::playStepSound() {
+void Player::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/) {
     // MC 1.16.5: Entity.playStepSound(BlockPos, BlockState)
     // 由客户端在 updateMoveDistance() 检测到 m_shouldPlayStepSound 后调用
 

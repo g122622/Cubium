@@ -9,7 +9,7 @@ namespace mc {
 CraftingInventory::CraftingInventory(i32 width, i32 height)
     : m_width(width)
     , m_height(height) {
-    m_items.resize(width * height);
+    m_items.resize(static_cast<size_t>(width * height));
 }
 
 bool CraftingInventory::isEmpty() const {
@@ -25,14 +25,14 @@ ItemStack CraftingInventory::getItem(i32 slot) const {
     if (slot < 0 || slot >= static_cast<i32>(m_items.size())) {
         return ItemStack();
     }
-    return m_items[slot];
+    return m_items[static_cast<size_t>(slot)];
 }
 
 void CraftingInventory::setItem(i32 slot, const ItemStack& stack) {
     if (slot < 0 || slot >= static_cast<i32>(m_items.size())) {
         return;
     }
-    m_items[slot] = stack;
+    m_items[static_cast<size_t>(slot)] = stack;
     setChanged();
 }
 
@@ -41,7 +41,7 @@ ItemStack CraftingInventory::removeItem(i32 slot, i32 count) {
         return ItemStack();
     }
 
-    ItemStack& stack = m_items[slot];
+    ItemStack& stack = m_items[static_cast<size_t>(slot)];
     if (stack.isEmpty()) {
         return ItemStack();
     }
@@ -58,8 +58,8 @@ ItemStack CraftingInventory::removeItemNoUpdate(i32 slot) {
         return ItemStack();
     }
 
-    ItemStack result = std::move(m_items[slot]);
-    m_items[slot] = ItemStack();
+    ItemStack result = std::move(m_items[static_cast<size_t>(slot)]);
+    m_items[static_cast<size_t>(slot)] = ItemStack();
     return result;
 }
 
@@ -89,7 +89,7 @@ ItemStack CraftingInventory::getItemAt(i32 x, i32 y) const {
     if (slot < 0) {
         return ItemStack();
     }
-    return m_items[slot];
+    return m_items[static_cast<size_t>(slot)];
 }
 
 void CraftingInventory::setItemAt(i32 x, i32 y, const ItemStack& stack) {
@@ -97,7 +97,7 @@ void CraftingInventory::setItemAt(i32 x, i32 y, const ItemStack& stack) {
     if (slot < 0) {
         return;
     }
-    m_items[slot] = stack;
+    m_items[static_cast<size_t>(slot)] = stack;
     setChanged();
 }
 

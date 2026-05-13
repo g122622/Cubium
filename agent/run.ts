@@ -241,7 +241,7 @@ ${STOP_HOOK_PROMPT}
 
   /**
    * PreToolUse hook: 拦截 cmake 相关的终端调用
-   * 只允许使用 cmake --build build --config RelWithDebInfo 进行构建
+   * 只允许使用 cmake --build --preset windows-clang-relwithdebinfo 进行构建
    */
   const cmakeGuardHook: HookCallback = async (input, toolUseID, { signal }) => {
     const preInput = input as PreToolUseHookInput;
@@ -260,7 +260,7 @@ ${STOP_HOOK_PROMPT}
     }
 
     // 允许的正确构建命令
-    const allowedCommand = "cmake --build build --config RelWithDebInfo";
+    const allowedCommand = "cmake --build --preset windows-clang-relwithdebinfo";
 
     // 检查是否是允许的命令（允许一些合理的变体，如额外的空格）
     const normalizedCommand = command.trim().replace(/\s+/g, " ");
@@ -383,7 +383,7 @@ ${STOP_HOOK_PROMPT}
         for (let k = 0; k < innerLoops; k++) {
           await runTask(tasklist[j], i, j, true);
           await runTask(
-            `请你检查当前代码能否编译通过（cmake --build build --config RelWithDebInfo），
+            `请你检查当前代码能否编译通过（cmake --build --preset windows-clang-relwithdebinfo），
 编译时间可能会非常长（若当前为macos系统，则该命令带上-j6后缀；若为Windows系统，则不带上任何表示构建并行度的后缀）
 等待时间必须10分钟以上，若编译失败则必须修复直到能通过。注意build目录存在于项目根目录，你需要先切换到项目根目录执行构建`,
             i, j, false);

@@ -77,7 +77,7 @@ public:
      * 参考 MC 1.16.5 MonsterEntity.getFallSound()
      * @param fallHeight 摔落高度（格数）
      */
-    [[nodiscard]] std::optional<ResourceLocation> getFallSound(i32 fallHeight) const;
+    [[nodiscard]] std::optional<ResourceLocation> getFallSound(i32 fallHeight) const override;
 
     // ========== 伤害处理 ==========
 
@@ -130,7 +130,7 @@ public:
      * @brief 是否在和平模式下消失
      * 参考 MC 1.16.5 MonsterEntity.isDespawnPeaceful()
      */
-    [[nodiscard]] bool isDespawnPeaceful() const { return true; }
+    [[nodiscard]] bool isDespawnPeaceful() const override { return true; }
 
     /**
      * @brief 是否可以掉落战利品

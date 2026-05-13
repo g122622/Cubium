@@ -221,7 +221,7 @@ std::vector<ItemStack> getDefaultRemainingItems(const C& inventory) {
     for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
         ItemStack stack = inventory.getItem(i);
         if (stack.hasContainerItem()) {
-            remaining[i] = stack.getContainerItem();
+            remaining[static_cast<size_t>(i)] = stack.getContainerItem();
         }
         // 否则 remaining[i] 保持为空堆
     }

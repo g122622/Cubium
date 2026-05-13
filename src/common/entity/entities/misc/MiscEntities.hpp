@@ -31,7 +31,7 @@ public:
     [[nodiscard]] f32 width() const override { return 0.98f; }
     [[nodiscard]] f32 height() const override { return 0.98f; }
     [[nodiscard]] bool isPushable() const { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
 
     /**
      * @brief 设置方块ID
@@ -92,7 +92,7 @@ public:
     [[nodiscard]] f32 width() const override { return 0.98f; }
     [[nodiscard]] f32 height() const override { return 0.98f; }
     [[nodiscard]] bool isPushable() const { return false; }
-    [[nodiscard]] bool canBeCollidedWith() const { return false; }
+    [[nodiscard]] bool canBeCollidedWith() const override { return false; }
 
     /**
      * @brief 获取爆炸倒计时

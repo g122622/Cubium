@@ -13,7 +13,7 @@ void BiomeContainer::setBiome(i32 x, i32 y, i32 z, BiomeId biome)
 {
     if (x >= 0 && x < BIOME_WIDTH && y >= 0 && y < BIOME_HEIGHT && z >= 0 && z < BIOME_DEPTH) {
         const i32 index = y * BIOME_WIDTH * BIOME_DEPTH + z * BIOME_WIDTH + x;
-        m_biomes[index] = biome;
+        m_biomes[static_cast<size_t>(index)] = biome;
     }
 }
 
@@ -21,7 +21,7 @@ BiomeId BiomeContainer::getBiome(i32 x, i32 y, i32 z) const
 {
     if (x >= 0 && x < BIOME_WIDTH && y >= 0 && y < BIOME_HEIGHT && z >= 0 && z < BIOME_DEPTH) {
         const i32 index = y * BIOME_WIDTH * BIOME_DEPTH + z * BIOME_WIDTH + x;
-        return m_biomes[index];
+        return m_biomes[static_cast<size_t>(index)];
     }
     return 0; // 默认生物群系
 }
@@ -80,11 +80,11 @@ bool Heightmap::update(BlockCoord x, BlockCoord y, BlockCoord z, const BlockStat
     }
 
     const i32 index = z * 16 + x;
-    const BlockCoord currentHeight = m_heights[index];
+    const BlockCoord currentHeight = m_heights[static_cast<size_t>(index)];
 
     // 只有当新方块高于当前高度且是阻挡方块时才更新
     if (y >= currentHeight && isOpaque(state)) {
-        m_heights[index] = y + 1;  // 高度图存储的是 Y+1（即上方空气方块的位置）
+        m_heights[static_cast<size_t>(index)] = y + 1;  // 高度图存储的是 Y+1（即上方空气方块的位置）
         return true;
     }
 
@@ -97,7 +97,7 @@ BlockCoord Heightmap::getHeight(BlockCoord x, BlockCoord z) const
         return 0;
     }
     const i32 index = z * 16 + x;
-    return m_heights[index];
+    return m_heights[static_cast<size_t>(index)];
 }
 
 void Heightmap::setData(const std::array<BlockCoord, SIZE>& data)

@@ -78,7 +78,7 @@ public:
 
     // ========== 火焰免疫 ==========
 
-    [[nodiscard]] bool isImmuneToFire() const { return m_immuneToFire; }
+    [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
     void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
 
     // ========== 生命周期 ==========
@@ -106,7 +106,7 @@ public:
 
     // ========== 猪灵状态 ==========
 
-    [[nodiscard]] bool isImmuneToFire() const { return m_immuneToFire; }
+    [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
     void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
 
     [[nodiscard]] bool isConverting() const { return m_converting; }
@@ -210,7 +210,7 @@ public:
     ZombifiedPiglinEntity(LegacyEntityType type, EntityId id);
     ~ZombifiedPiglinEntity() override = default;
 
-    [[nodiscard]] bool isImmuneToFire() const { return m_immuneToFire; }
+    [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
     void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
 
     [[nodiscard]] bool isAngry() const { return m_angry; }
@@ -248,7 +248,7 @@ public:
     HoglinEntity(LegacyEntityType type, EntityId id);
     ~HoglinEntity() override = default;
 
-    [[nodiscard]] bool isImmuneToFire() const { return m_immuneToFire; }
+    [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
     void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }

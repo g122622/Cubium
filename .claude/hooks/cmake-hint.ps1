@@ -15,7 +15,7 @@ if ($command -and $command -match 'cmake') {
         hookSpecificOutput = @{
             hookEventName = "PreToolUse"
             permissionDecision = "allow"
-            additionalContext = "【构建规范提示】检测到 CMake 命令。请注意：本项目只能使用 `cmake --build build --config RelWithDebInfo` 进行构建，请勿使用其他参数或路径。"
+            additionalContext = "【构建规范提示】检测到 CMake 命令。请注意：本项目只能使用 `cmake --build --preset windows-clang-relwithdebinfo` 进行构建，请勿使用其他参数或路径。"
         }
     }
     # 压缩输出避免换行干扰 JSON 解析

@@ -28,19 +28,19 @@ void ImprovedNoiseGenerator::initPermutation(math::IRandom& rng)
 {
     // 初始化排列数组
     for (i32 i = 0; i < 256; ++i) {
-        m_permutation[i] = static_cast<u8>(i);
+        m_permutation[static_cast<size_t>(i)] = static_cast<u8>(i);
     }
 
     // Fisher-Yates 洗牌
     for (i32 i = 0; i < 256; ++i) {
         const u32 j = static_cast<u32>(i) + static_cast<u32>(rng.nextInt(256 - i));
-        std::swap(m_permutation[i], m_permutation[j]);
+        std::swap(m_permutation[static_cast<size_t>(i)], m_permutation[static_cast<size_t>(j)]);
     }
 
     // 复制到工作数组
     for (i32 i = 0; i < 256; ++i) {
-        m_p[i] = m_permutation[i];
-        m_p[i + 256] = m_permutation[i];
+        m_p[static_cast<size_t>(i)] = m_permutation[static_cast<size_t>(i)];
+        m_p[static_cast<size_t>(i + 256)] = m_permutation[static_cast<size_t>(i)];
     }
 
     // 设置随机偏移（参考 MC）

@@ -31,6 +31,8 @@ namespace item::items {
  */
 class ArmorItem : public Item {
 public:
+    using Item::getAttributeModifiers;
+
     /**
      * @brief 构造盔甲物品
      * @param material 盔甲材质

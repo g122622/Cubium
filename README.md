@@ -83,7 +83,7 @@ glslc shaders/debug.frag -o build/shaders/debug.frag.spv
 ```powershell
 # 重新配置并编译
 cmake -B build -G "Visual Studio 18" -A x64 -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
-cmake --build build --config RelWithDebInfo
+cmake --build --preset windows-clang-relwithdebinfo
 ```
 
 ## 依赖

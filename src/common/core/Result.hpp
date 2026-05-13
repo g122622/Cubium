@@ -243,8 +243,8 @@ public:
     }
 
     Result(Error error) // NOLINT: 允许隐式转换
-        : m_success(false)
-        , m_error(std::move(error))
+        : m_error(std::move(error))
+        , m_success(false)
     {
     }
 
@@ -332,8 +332,8 @@ public:
     }
 
 private:
-    std::optional<T> m_value;
     Error m_error;
+    std::optional<T> m_value;
     bool m_success = false;
     static inline Error m_successError{ErrorCode::Success};
 };
@@ -351,8 +351,8 @@ public:
     }
 
     Result(Error error) // NOLINT: 允许隐式转换
-        : m_success(false)
-        , m_error(std::move(error))
+        : m_error(std::move(error))
+        , m_success(false)
     {
     }
 
@@ -374,8 +374,8 @@ public:
     static Result ok() { return Result(); }
 
 private:
-    bool m_success;
     Error m_error;
+    bool m_success;
 };
 
 // ============================================================================
@@ -395,8 +395,8 @@ public:
     }
 
     Result(Error error) // NOLINT: 允许隐式转换
-        : m_success(false)
-        , m_error(std::move(error))
+        : m_error(std::move(error))
+        , m_success(false)
     {
     }
 
@@ -446,9 +446,9 @@ private:
         return std::unique_ptr<T, Deleter>(value, m_deleter);
     }
 
+    Error m_error;
     T* m_value = nullptr;
     Deleter m_deleter{};
-    Error m_error;
     bool m_success = false;
     static inline Error m_successError{ErrorCode::Success};
 };

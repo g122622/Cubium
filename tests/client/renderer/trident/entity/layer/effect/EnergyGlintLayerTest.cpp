@@ -8,12 +8,14 @@
 #include <gtest/gtest.h>
 #include <type_traits>
 #include "client/renderer/trident/entity/layer/effect/EnergyGlintLayer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/item/core/Items.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
-#include "common/world/block/Blocks.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc::client::renderer::entity::layer::effect::test {
 
@@ -33,9 +35,12 @@ public:
     }
 
     void tick() override {}
-    std::unique_ptr<Entity> clone() const override {
-        return std::make_unique<TestLivingEntity>(*this);
-    }
+};
+
+class TestEnergyGlintLayer : public EnergyGlintLayer<LivingEntity> {
+public:
+    using EnergyGlintLayer<LivingEntity>::buildGlintMesh;
+    using EnergyGlintLayer<LivingEntity>::calculateGlintOffset;
 };
 
 /**
@@ -49,11 +54,11 @@ protected:
         // 初始化物品注册表
         mc::Items::initialize();
         // 初始化方块注册表
-        mc::blocks::VanillaBlocks::initialize();
+        mc::VanillaBlocks::initialize();
         // 创建测试实体
         entity_ = std::make_unique<TestLivingEntity>();
         // 创建测试层
-        layer_ = std::make_unique<EnergyGlintLayer<LivingEntity>>();
+        layer_ = std::make_unique<TestEnergyGlintLayer>();
     }
 
     void TearDown() override {
@@ -63,7 +68,7 @@ protected:
     }
 
     std::unique_ptr<TestLivingEntity> entity_;
-    std::unique_ptr<EnergyGlintLayer<LivingEntity>> layer_;
+    std::unique_ptr<TestEnergyGlintLayer> layer_;
 };
 
 // ============================================================================

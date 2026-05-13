@@ -202,8 +202,8 @@ public:
         // Y 坐标掩码：假设世界高度范围在 0 到 MAX_BUILD_HEIGHT-1
         constexpr u32 Y_MASK = static_cast<u32>(world::MAX_BUILD_HEIGHT - 1);
         u32 hash = static_cast<u32>(m_y) & Y_MASK;
-        hash |= (m_x & 32767) << 8;
-        hash |= (m_z & 32767) << 24;
+        hash |= static_cast<u32>(m_x & 32767) << 8;
+        hash |= static_cast<u32>(m_z & 32767) << 24;
         // 处理负数的符号位
         if (m_x < 0) hash |= 0x80000000;
         if (m_z < 0) hash |= 0x00008000;

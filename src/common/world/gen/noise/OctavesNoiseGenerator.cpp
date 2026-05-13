@@ -28,7 +28,7 @@ OctavesNoiseGenerator::OctavesNoiseGenerator(math::IRandom& rng, i32 minOctave, 
 void OctavesNoiseGenerator::initOctaves(math::IRandom& rng)
 {
     const i32 octaveCount = m_maxOctave - m_minOctave + 1;
-    m_octaves.resize(octaveCount);
+    m_octaves.resize(static_cast<size_t>(octaveCount));
 
     // 参考 MC 的实现
     // 创建第一个噪声生成器
@@ -38,7 +38,7 @@ void OctavesNoiseGenerator::initOctaves(math::IRandom& rng)
     for (i32 i = 1; i < octaveCount; ++i) {
         // 跳过一些随机数来确保不同的噪声
         rng.skip(262);
-        m_octaves[i] = std::make_unique<ImprovedNoiseGenerator>(rng);
+        m_octaves[static_cast<size_t>(i)] = std::make_unique<ImprovedNoiseGenerator>(rng);
     }
 
     // 计算振幅
@@ -95,7 +95,7 @@ ImprovedNoiseGenerator* OctavesNoiseGenerator::getOctave(i32 octave)
 {
     const i32 index = static_cast<i32>(m_octaves.size()) - 1 - octave;
     if (index >= 0 && index < static_cast<i32>(m_octaves.size())) {
-        return m_octaves[index].get();
+        return m_octaves[static_cast<size_t>(index)].get();
     }
     return nullptr;
 }
@@ -104,7 +104,7 @@ const ImprovedNoiseGenerator* OctavesNoiseGenerator::getOctave(i32 octave) const
 {
     const i32 index = static_cast<i32>(m_octaves.size()) - 1 - octave;
     if (index >= 0 && index < static_cast<i32>(m_octaves.size())) {
-        return m_octaves[index].get();
+        return m_octaves[static_cast<size_t>(index)].get();
     }
     return nullptr;
 }
@@ -278,19 +278,19 @@ void SimplexNoiseGenerator::initPermutation(math::IRandom& rng)
 {
     // 初始化排列数组
     for (i32 i = 0; i < 256; ++i) {
-        m_permutation[i] = static_cast<u8>(i);
+        m_permutation[static_cast<size_t>(i)] = static_cast<u8>(i);
     }
 
     // Fisher-Yates 洗牌
     for (i32 i = 0; i < 256; ++i) {
         const u32 j = static_cast<u32>(i) + static_cast<u32>(rng.nextInt(256 - i));
-        std::swap(m_permutation[i], m_permutation[j]);
+        std::swap(m_permutation[static_cast<size_t>(i)], m_permutation[static_cast<size_t>(j)]);
     }
 
     // 复制到工作数组
     for (i32 i = 0; i < 256; ++i) {
-        m_p[i] = m_permutation[i];
-        m_p[i + 256] = m_permutation[i];
+        m_p[static_cast<size_t>(i)] = m_permutation[static_cast<size_t>(i)];
+        m_p[static_cast<size_t>(i + 256)] = m_permutation[static_cast<size_t>(i)];
     }
 
     // 设置随机偏移
@@ -374,28 +374,28 @@ f32 SimplexNoiseGenerator::noise(f32 x, f32 y, f32 z) const
     f32 t0 = 0.6f - x0 * x0 - y0 * y0 - z0 * z0;
     if (t0 >= 0.0f) {
         t0 *= t0;
-        const i32 gi0 = m_p[ii + m_p[jj + m_p[kk]]] % 12;
+        const i32 gi0 = m_p[static_cast<size_t>(ii + m_p[static_cast<size_t>(jj + m_p[static_cast<size_t>(kk)])])] % 12;
         n0 = t0 * t0 * (SIMPLEX_GRAD[gi0][0] * x0 + SIMPLEX_GRAD[gi0][1] * y0 + SIMPLEX_GRAD[gi0][2] * z0);
     }
 
     f32 t1 = 0.6f - x1 * x1 - y1 * y1 - z1 * z1;
     if (t1 >= 0.0f) {
         t1 *= t1;
-        const i32 gi1 = m_p[ii + i1 + m_p[jj + j1 + m_p[kk + k1]]] % 12;
+        const i32 gi1 = m_p[static_cast<size_t>(ii + i1 + m_p[static_cast<size_t>(jj + j1 + m_p[static_cast<size_t>(kk + k1)])])] % 12;
         n1 = t1 * t1 * (SIMPLEX_GRAD[gi1][0] * x1 + SIMPLEX_GRAD[gi1][1] * y1 + SIMPLEX_GRAD[gi1][2] * z1);
     }
 
     f32 t2 = 0.6f - x2 * x2 - y2 * y2 - z2 * z2;
     if (t2 >= 0.0f) {
         t2 *= t2;
-        const i32 gi2 = m_p[ii + i2 + m_p[jj + j2 + m_p[kk + k2]]] % 12;
+        const i32 gi2 = m_p[static_cast<size_t>(ii + i2 + m_p[static_cast<size_t>(jj + j2 + m_p[static_cast<size_t>(kk + k2)])])] % 12;
         n2 = t2 * t2 * (SIMPLEX_GRAD[gi2][0] * x2 + SIMPLEX_GRAD[gi2][1] * y2 + SIMPLEX_GRAD[gi2][2] * z2);
     }
 
     f32 t3 = 0.6f - x3 * x3 - y3 * y3 - z3 * z3;
     if (t3 >= 0.0f) {
         t3 *= t3;
-        const i32 gi3 = m_p[ii + 1 + m_p[jj + 1 + m_p[kk + 1]]] % 12;
+        const i32 gi3 = m_p[static_cast<size_t>(ii + 1 + m_p[static_cast<size_t>(jj + 1 + m_p[static_cast<size_t>(kk + 1)])])] % 12;
         n3 = t3 * t3 * (SIMPLEX_GRAD[gi3][0] * x3 + SIMPLEX_GRAD[gi3][1] * y3 + SIMPLEX_GRAD[gi3][2] * z3);
     }
 
@@ -447,21 +447,21 @@ f64 SimplexNoiseGenerator::getValue(f64 x, f64 z) const
     f64 t0 = 0.5 - x0 * x0 - z0 * z0;
     if (t0 >= 0.0) {
         t0 *= t0;
-        const i32 gi0 = m_p[ii + m_p[jj]] & 7;
+        const i32 gi0 = m_p[static_cast<size_t>(ii + m_p[static_cast<size_t>(jj)])] & 7;
         n0 = t0 * t0 * (SIMPLEX_GRAD2D[gi0][0] * x0 + SIMPLEX_GRAD2D[gi0][1] * z0);
     }
 
     f64 t1 = 0.5 - x1 * x1 - z1 * z1;
     if (t1 >= 0.0) {
         t1 *= t1;
-        const i32 gi1 = m_p[ii + i1 + m_p[jj + j1]] & 7;
+        const i32 gi1 = m_p[static_cast<size_t>(ii + i1 + m_p[static_cast<size_t>(jj + j1)])] & 7;
         n1 = t1 * t1 * (SIMPLEX_GRAD2D[gi1][0] * x1 + SIMPLEX_GRAD2D[gi1][1] * z1);
     }
 
     f64 t2 = 0.5 - x2 * x2 - z2 * z2;
     if (t2 >= 0.0) {
         t2 *= t2;
-        const i32 gi2 = m_p[ii + 1 + m_p[jj + 1]] & 7;
+        const i32 gi2 = m_p[static_cast<size_t>(ii + 1 + m_p[static_cast<size_t>(jj + 1)])] & 7;
         n2 = t2 * t2 * (SIMPLEX_GRAD2D[gi2][0] * x2 + SIMPLEX_GRAD2D[gi2][1] * z2);
     }
 

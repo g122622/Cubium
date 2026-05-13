@@ -885,6 +885,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/ChunkMesher.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/AmbientOcclusionCalculator.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/MeshTypes.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/pipeline/EntityPipeline.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/core/ModelRenderer.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/core/EntityModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/core/AgeableModel.cpp
@@ -1066,8 +1067,20 @@ mc_set_compiler_warnings(mc_resource_tests)
 
 # 鍙戠幇娴嬭瘯
 include(GoogleTest)
-gtest_discover_tests(mc_tests)
-gtest_discover_tests(mc_resource_tests)
+
+function(mc_register_gtests targetName)
+    if(WIN32)
+        # Windows + clang 当前环境下 applocal.ps1 无法解析 DLL 依赖，
+        # 会导致 gtest_discover_tests 在构建阶段直接失败。
+        # 改为仅注册到 CTest，不在构建时探测测试列表，先保证整体可编译。
+        add_test(NAME ${targetName} COMMAND $<TARGET_FILE:${targetName}>)
+    else()
+        gtest_discover_tests(${targetName})
+    endif()
+endfunction()
+
+mc_register_gtests(mc_tests)
+mc_register_gtests(mc_resource_tests)
 
 # 输出测试可执行文件位置
 set_target_properties(mc_tests PROPERTIES
@@ -1162,7 +1175,7 @@ if(MC_BUILD_CLIENT)
 
     mc_set_compiler_warnings(mc_trident_tests)
 
-    gtest_discover_tests(mc_trident_tests)
+    mc_register_gtests(mc_trident_tests)
 
     set_target_properties(mc_trident_tests PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
@@ -1331,7 +1344,7 @@ target_include_directories(mc_command_tests
 
 mc_set_compiler_warnings(mc_command_tests)
 
-gtest_discover_tests(mc_command_tests)
+mc_register_gtests(mc_command_tests)
 
 set_target_properties(mc_command_tests PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
@@ -1407,10 +1420,8 @@ target_include_directories(mc_village_tests
 
 mc_set_compiler_warnings(mc_village_tests)
 
-gtest_discover_tests(mc_village_tests)
+mc_register_gtests(mc_village_tests)
 
 set_target_properties(mc_village_tests PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
-
-

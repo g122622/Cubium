@@ -34,15 +34,15 @@ ItemStack PlayerInventory::getItem(i32 slot) const {
     if (slot < 0 || slot >= TOTAL_SIZE) {
         return ItemStack::EMPTY;
     }
-    return m_items[slot];
+    return m_items[static_cast<size_t>(slot)];
 }
 
 void PlayerInventory::setItem(i32 slot, const ItemStack& stack) {
     if (slot < 0 || slot >= TOTAL_SIZE) {
         return;
     }
-    ItemStack oldItem = m_items[slot];
-    m_items[slot] = stack;
+    ItemStack oldItem = m_items[static_cast<size_t>(slot)];
+    m_items[static_cast<size_t>(slot)] = stack;
     m_timesChanged++;
 
     // 触发变更回调
@@ -56,7 +56,7 @@ ItemStack PlayerInventory::removeItem(i32 slot, i32 count) {
         return ItemStack::EMPTY;
     }
 
-    ItemStack& stack = m_items[slot];
+    ItemStack& stack = m_items[static_cast<size_t>(slot)];
     if (stack.isEmpty()) {
         return ItemStack::EMPTY;
     }
@@ -64,7 +64,7 @@ ItemStack PlayerInventory::removeItem(i32 slot, i32 count) {
     if (count >= stack.getCount()) {
         // 移除整个堆
         ItemStack result = stack;
-        m_items[slot] = ItemStack::EMPTY;
+        m_items[static_cast<size_t>(slot)] = ItemStack::EMPTY;
         m_timesChanged++;
         return result;
     }
@@ -80,8 +80,8 @@ ItemStack PlayerInventory::removeItemNoUpdate(i32 slot) {
         return ItemStack::EMPTY;
     }
 
-    ItemStack result = m_items[slot];
-    m_items[slot] = ItemStack::EMPTY;
+    ItemStack result = m_items[static_cast<size_t>(slot)];
+    m_items[static_cast<size_t>(slot)] = ItemStack::EMPTY;
     return result;
 }
 
@@ -111,9 +111,9 @@ void PlayerInventory::serialize(network::PacketSerializer& ser) const {
 
     // 写入非空物品
     for (i32 i = 0; i < TOTAL_SIZE; ++i) {
-        if (!m_items[i].isEmpty()) {
+        if (!m_items[static_cast<size_t>(i)].isEmpty()) {
             ser.writeI32(i);  // 槽位索引
-            m_items[i].serialize(ser);
+            m_items[static_cast<size_t>(i)].serialize(ser);
         }
     }
 }
@@ -151,7 +151,7 @@ Result<PlayerInventory> PlayerInventory::deserialize(network::PacketDeserializer
         if (stackResult.failed()) {
             return stackResult.error();
         }
-        inventory.m_items[slot] = stackResult.value();
+        inventory.m_items[static_cast<size_t>(slot)] = stackResult.value();
     }
 
     return inventory;
@@ -169,7 +169,7 @@ ItemStack PlayerInventory::getSelectedStack() const {
     if (m_selectedSlot < 0 || m_selectedSlot >= HOTBAR_SIZE) {
         return ItemStack::EMPTY;
     }
-    return m_items[m_selectedSlot];
+    return m_items[static_cast<size_t>(m_selectedSlot)];
 }
 
 i32 PlayerInventory::getBestHotbarSlot() const {
@@ -177,7 +177,7 @@ i32 PlayerInventory::getBestHotbarSlot() const {
     // 首先寻找空槽位
     for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
         i32 slot = (m_selectedSlot + i) % HOTBAR_SIZE;
-        if (m_items[slot].isEmpty()) {
+        if (m_items[static_cast<size_t>(slot)].isEmpty()) {
             return slot;
         }
     }
@@ -185,7 +185,7 @@ i32 PlayerInventory::getBestHotbarSlot() const {
     // 如果没有空槽，找非附魔物品槽位
     for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
         i32 slot = (m_selectedSlot + i) % HOTBAR_SIZE;
-        if (!m_items[slot].isEmpty() && !m_items[slot].hasEnchantments()) {
+        if (!m_items[static_cast<size_t>(slot)].isEmpty() && !m_items[static_cast<size_t>(slot)].hasEnchantments()) {
             return slot;
         }
     }
@@ -210,11 +210,11 @@ i32 PlayerInventory::add(ItemStack& stack) {
     // 顺序: 当前选中槽位 → 副手槽 → 快捷栏 → 主背包
 
     // 1. 首先尝试合并到当前选中槽位
-    if (canMergeStacks(m_items[m_selectedSlot], stack)) {
-        i32 maxStack = std::min(m_items[m_selectedSlot].getMaxStackSize(), getMaxStackSize());
-        i32 space = maxStack - m_items[m_selectedSlot].getCount();
+    if (canMergeStacks(m_items[static_cast<size_t>(m_selectedSlot)], stack)) {
+        i32 maxStack = std::min(m_items[static_cast<size_t>(m_selectedSlot)].getMaxStackSize(), getMaxStackSize());
+        i32 space = maxStack - m_items[static_cast<size_t>(m_selectedSlot)].getCount();
         i32 toAdd = std::min(space, stack.getCount());
-        m_items[m_selectedSlot].grow(toAdd);
+        m_items[static_cast<size_t>(m_selectedSlot)].grow(toAdd);
         stack.shrink(toAdd);
         if (stack.isEmpty()) {
             return originalCount;
@@ -222,11 +222,11 @@ i32 PlayerInventory::add(ItemStack& stack) {
     }
 
     // 2. 尝试合并到副手槽
-    if (canMergeStacks(m_items[InventorySlots::OFFHAND], stack)) {
-        i32 maxStack = std::min(m_items[InventorySlots::OFFHAND].getMaxStackSize(), getMaxStackSize());
-        i32 space = maxStack - m_items[InventorySlots::OFFHAND].getCount();
+    if (canMergeStacks(m_items[static_cast<size_t>(InventorySlots::OFFHAND)], stack)) {
+        i32 maxStack = std::min(m_items[static_cast<size_t>(InventorySlots::OFFHAND)].getMaxStackSize(), getMaxStackSize());
+        i32 space = maxStack - m_items[static_cast<size_t>(InventorySlots::OFFHAND)].getCount();
         i32 toAdd = std::min(space, stack.getCount());
-        m_items[InventorySlots::OFFHAND].grow(toAdd);
+        m_items[static_cast<size_t>(InventorySlots::OFFHAND)].grow(toAdd);
         stack.shrink(toAdd);
         if (stack.isEmpty()) {
             return originalCount;
@@ -236,11 +236,11 @@ i32 PlayerInventory::add(ItemStack& stack) {
     // 3. 尝试合并到快捷栏（排除当前选中槽位）
     for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
         if (i == m_selectedSlot) continue;
-        if (canMergeStacks(m_items[i], stack)) {
-            i32 maxStack = std::min(m_items[i].getMaxStackSize(), getMaxStackSize());
-            i32 space = maxStack - m_items[i].getCount();
+        if (canMergeStacks(m_items[static_cast<size_t>(i)], stack)) {
+            i32 maxStack = std::min(m_items[static_cast<size_t>(i)].getMaxStackSize(), getMaxStackSize());
+            i32 space = maxStack - m_items[static_cast<size_t>(i)].getCount();
             i32 toAdd = std::min(space, stack.getCount());
-            m_items[i].grow(toAdd);
+            m_items[static_cast<size_t>(i)].grow(toAdd);
             stack.shrink(toAdd);
             if (stack.isEmpty()) {
                 return originalCount;
@@ -250,11 +250,11 @@ i32 PlayerInventory::add(ItemStack& stack) {
 
     // 4. 尝试合并到主背包
     for (i32 i = InventorySlots::MAIN_START; i <= InventorySlots::MAIN_END; ++i) {
-        if (canMergeStacks(m_items[i], stack)) {
-            i32 maxStack = std::min(m_items[i].getMaxStackSize(), getMaxStackSize());
-            i32 space = maxStack - m_items[i].getCount();
+        if (canMergeStacks(m_items[static_cast<size_t>(i)], stack)) {
+            i32 maxStack = std::min(m_items[static_cast<size_t>(i)].getMaxStackSize(), getMaxStackSize());
+            i32 space = maxStack - m_items[static_cast<size_t>(i)].getCount();
             i32 toAdd = std::min(space, stack.getCount());
-            m_items[i].grow(toAdd);
+            m_items[static_cast<size_t>(i)].grow(toAdd);
             stack.shrink(toAdd);
             if (stack.isEmpty()) {
                 return originalCount;
@@ -266,19 +266,19 @@ i32 PlayerInventory::add(ItemStack& stack) {
     i32 emptySlot = -1;
 
     // 当前选中槽位
-    if (m_items[m_selectedSlot].isEmpty()) {
+    if (m_items[static_cast<size_t>(m_selectedSlot)].isEmpty()) {
         emptySlot = m_selectedSlot;
     }
 
     // 副手槽
-    if (emptySlot == -1 && m_items[InventorySlots::OFFHAND].isEmpty()) {
+    if (emptySlot == -1 && m_items[static_cast<size_t>(InventorySlots::OFFHAND)].isEmpty()) {
         emptySlot = InventorySlots::OFFHAND;
     }
 
     // 快捷栏（排除当前选中槽位）
     if (emptySlot == -1) {
         for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
-            if (i != m_selectedSlot && m_items[i].isEmpty()) {
+            if (i != m_selectedSlot && m_items[static_cast<size_t>(i)].isEmpty()) {
                 emptySlot = i;
                 break;
             }
@@ -288,7 +288,7 @@ i32 PlayerInventory::add(ItemStack& stack) {
     // 主背包
     if (emptySlot == -1) {
         for (i32 i = InventorySlots::MAIN_START; i <= InventorySlots::MAIN_END; ++i) {
-            if (m_items[i].isEmpty()) {
+            if (m_items[static_cast<size_t>(i)].isEmpty()) {
                 emptySlot = i;
                 break;
             }
@@ -296,7 +296,7 @@ i32 PlayerInventory::add(ItemStack& stack) {
     }
 
     if (emptySlot != -1) {
-        m_items[emptySlot] = stack;
+        m_items[static_cast<size_t>(emptySlot)] = stack;
         stack = ItemStack::EMPTY;
         return originalCount;
     }
@@ -314,11 +314,11 @@ i32 PlayerInventory::addInRange(ItemStack& stack, i32 start, i32 end) {
 
     // 先尝试合并
     for (i32 i = start; i <= end; ++i) {
-        if (canMergeStacks(m_items[i], stack)) {
-            i32 maxStack = std::min(m_items[i].getMaxStackSize(), getMaxStackSize());
-            i32 space = maxStack - m_items[i].getCount();
+        if (canMergeStacks(m_items[static_cast<size_t>(i)], stack)) {
+            i32 maxStack = std::min(m_items[static_cast<size_t>(i)].getMaxStackSize(), getMaxStackSize());
+            i32 space = maxStack - m_items[static_cast<size_t>(i)].getCount();
             i32 toAdd = std::min(space, stack.getCount());
-            m_items[i].grow(toAdd);
+            m_items[static_cast<size_t>(i)].grow(toAdd);
             stack.shrink(toAdd);
             if (stack.isEmpty()) {
                 return originalCount;
@@ -328,8 +328,8 @@ i32 PlayerInventory::addInRange(ItemStack& stack, i32 start, i32 end) {
 
     // 再找空槽位
     for (i32 i = start; i <= end; ++i) {
-        if (m_items[i].isEmpty()) {
-            m_items[i] = stack;
+        if (m_items[static_cast<size_t>(i)].isEmpty()) {
+            m_items[static_cast<size_t>(i)] = stack;
             stack = ItemStack::EMPTY;
             return originalCount;
         }
@@ -341,7 +341,7 @@ i32 PlayerInventory::addInRange(ItemStack& stack, i32 start, i32 end) {
 ItemStack PlayerInventory::addItemCopy(const ItemStack& stack) const {
     PlayerInventory tempCopy(nullptr);
     for (i32 i = 0; i < TOTAL_SIZE; ++i) {
-        tempCopy.m_items[i] = m_items[i];
+        tempCopy.m_items[static_cast<size_t>(i)] = m_items[static_cast<size_t>(i)];
     }
 
     ItemStack copy = stack.copy();
@@ -356,14 +356,14 @@ ItemStack PlayerInventory::addItemCopy(const ItemStack& stack) const {
 i32 PlayerInventory::getFirstEmptySlot() const {
     // 先检查快捷栏
     for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
-        if (m_items[i].isEmpty()) {
+        if (m_items[static_cast<size_t>(i)].isEmpty()) {
             return i;
         }
     }
 
     // 再检查主背包
     for (i32 i = InventorySlots::MAIN_START; i <= InventorySlots::MAIN_END; ++i) {
-        if (m_items[i].isEmpty()) {
+        if (m_items[static_cast<size_t>(i)].isEmpty()) {
             return i;
         }
     }
@@ -373,7 +373,7 @@ i32 PlayerInventory::getFirstEmptySlot() const {
 
 i32 PlayerInventory::findSlot(const Item& item) const {
     for (i32 i = 0; i < TOTAL_SIZE; ++i) {
-        if (m_items[i].getItem() == &item) {
+        if (m_items[static_cast<size_t>(i)].getItem() == &item) {
             return i;
         }
     }
@@ -386,7 +386,7 @@ i32 PlayerInventory::findSlotMatching(const ItemStack& stack) const {
     }
 
     for (i32 i = 0; i < TOTAL_SIZE; ++i) {
-        if (!m_items[i].isEmpty() && stacksEqualExact(stack, m_items[i])) {
+        if (!m_items[static_cast<size_t>(i)].isEmpty() && stacksEqualExact(stack, m_items[static_cast<size_t>(i)])) {
             return i;
         }
     }
@@ -399,7 +399,7 @@ i32 PlayerInventory::findSlotMatchingInRange(const ItemStack& stack, i32 start, 
     }
 
     for (i32 i = start; i <= end; ++i) {
-        if (i >= 0 && i < TOTAL_SIZE && !m_items[i].isEmpty() && stacksEqualExact(stack, m_items[i])) {
+        if (i >= 0 && i < TOTAL_SIZE && !m_items[static_cast<size_t>(i)].isEmpty() && stacksEqualExact(stack, m_items[static_cast<size_t>(i)])) {
             return i;
         }
     }
@@ -415,9 +415,9 @@ void PlayerInventory::swapSlots(i32 slot1, i32 slot2) {
         return;
     }
 
-    ItemStack temp = m_items[slot1];
-    m_items[slot1] = m_items[slot2];
-    m_items[slot2] = temp;
+    ItemStack temp = m_items[static_cast<size_t>(slot1)];
+    m_items[static_cast<size_t>(slot1)] = m_items[static_cast<size_t>(slot2)];
+    m_items[static_cast<size_t>(slot2)] = temp;
     m_timesChanged++;
 }
 
@@ -426,11 +426,11 @@ ItemStack PlayerInventory::placeItem(i32 slot, ItemStack stack) {
         return stack;
     }
 
-    ItemStack& existing = m_items[slot];
+    ItemStack& existing = m_items[static_cast<size_t>(slot)];
 
     if (existing.isEmpty()) {
         // 槽位为空，直接放入
-        m_items[slot] = stack;
+        m_items[static_cast<size_t>(slot)] = stack;
         return ItemStack::EMPTY;
     }
 
@@ -454,7 +454,7 @@ ItemStack PlayerInventory::placeItem(i32 slot, ItemStack stack) {
 
     // 不同物品，交换
     ItemStack result = existing;
-    m_items[slot] = stack;
+    m_items[static_cast<size_t>(slot)] = stack;
     m_timesChanged++;
     return result;
 }
@@ -590,15 +590,15 @@ void PlayerInventory::tick() {
 
     // MC 1.16.5: 调用所有物品的 inventoryTick
     for (i32 i = 0; i < TOTAL_SIZE; ++i) {
-        if (!m_items[i].isEmpty()) {
-            m_items[i].inventoryTick(*world, *m_player, i, i == m_selectedSlot);
+        if (!m_items[static_cast<size_t>(i)].isEmpty()) {
+            m_items[static_cast<size_t>(i)].inventoryTick(*world, *m_player, i, i == m_selectedSlot);
         }
     }
 
     // MC 1.16.5: 调用护甲的 onArmorTick
     for (i32 i = InventorySlots::ARMOR_START; i <= InventorySlots::ARMOR_END; ++i) {
-        if (!m_items[i].isEmpty()) {
-            m_items[i].onArmorTick(*world, *m_player);
+        if (!m_items[static_cast<size_t>(i)].isEmpty()) {
+            m_items[static_cast<size_t>(i)].onArmorTick(*world, *m_player);
         }
     }
 }
@@ -641,7 +641,7 @@ bool PlayerInventory::placeItemBackInInventory(ItemStack& stack,
         // 首先尝试合并到现有槽位
         i32 slot = findSlotMatching(stack);
         if (slot != -1) {
-            ItemStack& existing = m_items[slot];
+            ItemStack& existing = m_items[static_cast<size_t>(slot)];
             i32 maxStack = std::min(existing.getMaxStackSize(), getMaxStackSize());
             i32 space = maxStack - existing.getCount();
             if (space > 0) {
@@ -656,7 +656,7 @@ bool PlayerInventory::placeItemBackInInventory(ItemStack& stack,
         // 然后找空槽位
         i32 emptySlot = getFirstEmptySlot();
         if (emptySlot != -1) {
-            m_items[emptySlot] = stack;
+            m_items[static_cast<size_t>(emptySlot)] = stack;
             stack = ItemStack::EMPTY;
             m_timesChanged++;
             return true;
@@ -690,7 +690,7 @@ void PlayerInventory::damageArmor(DamageSource& source, f32 damage) {
     }
 
     for (i32 i = InventorySlots::ARMOR_START; i <= InventorySlots::ARMOR_END; ++i) {
-        ItemStack& armor = m_items[i];
+        ItemStack& armor = m_items[static_cast<size_t>(i)];
         if (armor.isEmpty()) {
             continue;
         }
@@ -722,7 +722,7 @@ void PlayerInventory::damageArmor(DamageSource& source, f32 damage) {
 
 void PlayerInventory::copyInventory(const PlayerInventory& other) {
     for (i32 i = 0; i < TOTAL_SIZE; ++i) {
-        m_items[i] = other.m_items[i];
+        m_items[static_cast<size_t>(i)] = other.m_items[static_cast<size_t>(i)];
     }
     m_selectedSlot = other.m_selectedSlot;
     m_timesChanged++;

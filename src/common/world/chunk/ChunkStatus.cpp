@@ -196,7 +196,7 @@ std::vector<i32> computeRangeByStatus() {
                j <= STATUS_BY_RANGE[rangeIndex + 1]->ordinal()) {
             ++rangeIndex;
         }
-        rangeByStatus[j] = rangeIndex;
+        rangeByStatus[static_cast<size_t>(j)] = rangeIndex;
     }
 
     return rangeByStatus;
@@ -264,7 +264,7 @@ const ChunkStatus* ChunkStatus::byOrdinal(i32 ordinal)
 {
     const auto& all = getAll();
     if (ordinal >= 0 && ordinal < static_cast<i32>(all.size())) {
-        return &all[ordinal];
+        return &all[static_cast<size_t>(ordinal)];
     }
     return nullptr;
 }
@@ -277,7 +277,7 @@ const ChunkStatus& ChunkStatus::getStatus(i32 distance)
     if (distance < 0) {
         return ChunkStatuses::FULL;
     }
-    return *STATUS_BY_RANGE[distance];
+    return *STATUS_BY_RANGE[static_cast<size_t>(distance)];
 }
 
 i32 ChunkStatus::getDistance(const ChunkStatus& status)
@@ -285,7 +285,7 @@ i32 ChunkStatus::getDistance(const ChunkStatus& status)
     static const std::vector<i32> rangeByStatus = computeRangeByStatus();
     const i32 ordinal = status.ordinal();
     if (ordinal >= 0 && ordinal < static_cast<i32>(rangeByStatus.size())) {
-        return rangeByStatus[ordinal];
+        return rangeByStatus[static_cast<size_t>(ordinal)];
     }
     return 0;
 }

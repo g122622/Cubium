@@ -135,7 +135,7 @@ public:
      * @param amount 伤害量
      * @return 是否成功造成伤害
      */
-    virtual bool hurt(DamageSource& source, f32 amount);
+    virtual bool hurt(DamageSource& source, f32 amount) override;
 
     /**
      * @brief 实际受伤处理
@@ -376,7 +376,7 @@ public:
     /**
      * @brief 是否处于受伤无敌状态
      */
-    [[nodiscard]] bool isInvulnerableTo(DamageSource& source) const;
+    [[nodiscard]] bool isInvulnerableTo(DamageSource& source) const override;
 
     /**
      * @brief 获取最近受伤来源

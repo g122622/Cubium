@@ -399,7 +399,8 @@ template <typename F>
 void scan_sequence_text(std::istream& input, F element_action) {
     for (;;) {
         skip_space(input);
-        char c = cheof(input);
+        int nextChar = cheof(input);
+        char c = static_cast<char>(nextChar);
         if (c == ']') {
             break;
         }
@@ -410,7 +411,7 @@ void scan_sequence_text(std::istream& input, F element_action) {
         switch (next) {
             case ',': continue;
             case ']': return;
-            default: throw std::runtime_error(std::string("unexpected character: ") + char(next));
+            default: throw std::runtime_error(std::string("unexpected character: ") + static_cast<char>(next));
         }
     }
 }
@@ -1207,13 +1208,13 @@ template <typename number_t>
 std::vector<number_t> load_array_text_impl(std::istream& input) {
     std::vector<number_t> result;
     skip_space(input);
-    char a = cheof(input);
+    char a = static_cast<char>(cheof(input));
     if (a != '[')
         throw std::runtime_error("failed to open array tag");
-    a = cheof(input);
+    a = static_cast<char>(cheof(input));
     if (a != tags::tag_of<std::vector<number_t>>::prefix)
         throw std::runtime_error("wrong array tag type");
-    a = cheof(input);
+    a = static_cast<char>(cheof(input));
     if (a != ';')
         throw std::runtime_error("unexpected symbol in array tag");
     scan_sequence_text(input, [&] {

@@ -55,7 +55,7 @@ public:
     };
 
     CooldownTracker() = default;
-    ~CooldownTracker() = default;
+    virtual ~CooldownTracker() = default;
 
     // 禁止拷贝
     CooldownTracker(const CooldownTracker&) = delete;
