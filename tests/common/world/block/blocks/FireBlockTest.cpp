@@ -3,6 +3,7 @@
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
+#include "world/block/blocks/nether/SoulFireBlock.hpp"
 #include "world/block/FireInfoRegistry.hpp"
 #include "world/IWorld.hpp"
 #include "world/tick/manager/TickManager.hpp"

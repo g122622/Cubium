@@ -443,7 +443,9 @@ add_library(mc_common STATIC
     world/block/blocks/CauldronBlock.cpp
     world/block/blocks/EnchantingTableBlock.cpp
     world/block/blocks/AbstractFurnaceBlock.cpp
-    world/block/blocks/FurnaceBlocks.cpp
+    world/block/blocks/FurnaceBlock.cpp
+    world/block/blocks/BlastFurnaceBlock.cpp
+    world/block/blocks/SmokerBlock.cpp
     world/block/blocks/ChestBlock.cpp
     world/block/blocks/TrappedChestBlock.cpp
     world/block/blocks/HopperBlock.cpp
@@ -464,7 +466,10 @@ add_library(mc_common STATIC
     world/block/blocks/agricultural/BushBlock.cpp
     world/block/blocks/agricultural/CocoaBlock.cpp
     world/block/blocks/agricultural/CropBlock.cpp
-    world/block/blocks/agricultural/CropBlocks.cpp
+    world/block/blocks/agricultural/WheatBlock.cpp
+    world/block/blocks/agricultural/CarrotBlock.cpp
+    world/block/blocks/agricultural/PotatoBlock.cpp
+    world/block/blocks/agricultural/BeetrootBlock.cpp
     world/block/blocks/agricultural/FarmlandBlock.cpp
     world/block/blocks/agricultural/MelonPumpkinBlocks.cpp
     world/block/blocks/agricultural/StemBlock.cpp
@@ -534,6 +539,10 @@ add_library(mc_common STATIC
 
     # World - Block - Nether
     world/block/blocks/nether/FireBlock.cpp
+    world/block/blocks/nether/SoulFireBlock.cpp
+    world/block/blocks/nether/NetherPortalBlock.cpp
+    world/block/blocks/nether/NetherWartBlock.cpp
+    world/block/blocks/nether/MagmaBlock.cpp
     world/block/blocks/nether/NyliumBlock.cpp
 
     # World - Block - End
@@ -543,7 +552,11 @@ add_library(mc_common STATIC
     world/block/blocks/special/SpecialBlocks.cpp
 
     # World - Block - Mob
-    world/block/blocks/mob/MobBlocks.cpp
+    world/block/blocks/mob/BeehiveBlock.cpp
+    world/block/blocks/mob/TurtleEggBlock.cpp
+    world/block/blocks/mob/InfestedBlock.cpp
+    world/block/blocks/mob/SpawnerBlock.cpp
+    world/block/blocks/mob/DragonBreathBlock.cpp
 
     # World - Block - Redstone
     world/block/blocks/redstone/RedstoneBlock.cpp

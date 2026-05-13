@@ -1,11 +1,8 @@
-#include "MobBlocks.hpp"
+#include "TurtleEggBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../BlockRegistry.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "../../../../entity/entities/passive/special/TurtleEntity.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../core/BlockRaycastResult.hpp"
 #include "../../../../sound/SoundEvents.hpp"
@@ -14,97 +11,6 @@
 
 namespace mc {
 namespace blocks {
-
-// ========== BeehiveBlock ==========
-
-BeehiveBlock::BeehiveBlock(const BlockProperties& properties)
-    : Block(properties) {
-
-    // 创建状态容器
-    // MC 1.16.5: BeehiveBlock 有 FACING 和 HONEY_LEVEL 两个属性
-    // HONEY_LEVEL 范围 0-5，表示蜂巢中的蜂蜜量
-    auto container = StateContainer<Block, BlockState>::Builder(*this)
-        .add(BlockStateProperties::HORIZONTAL_FACING())
-        .add(BlockStateProperties::HONEY_LEVEL_0_5())
-        .create([](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
-            return std::make_unique<BlockState>(block, std::move(values), id);
-        });
-    createBlockState(std::move(container));
-
-    // 设置默认状态
-    setDefaultState(defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-        .with(BlockStateProperties::HONEY_LEVEL_0_5(), 0));
-}
-
-i32 BeehiveBlock::getHoneyLevel(const BlockState& state) const {
-    return state.get(BlockStateProperties::HONEY_LEVEL_0_5());
-}
-
-BlockState BeehiveBlock::withHoneyLevel(i32 level) const {
-    return defaultState().with(BlockStateProperties::HONEY_LEVEL_0_5(), std::clamp(level, 0, 5));
-}
-
-BlockState BeehiveBlock::getStateForPlacement(BlockItemUseContext& context) {
-    Direction facing = context.horizontalDirection();
-    return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
-}
-
-const BlockState& BeehiveBlock::rotate(const BlockState& state, Rotation rotation) const {
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    Direction newFacing = Directions::rotateDirection(facing, rotation);
-    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
-}
-
-const BlockState& BeehiveBlock::mirror(const BlockState& state, Mirror mirror) const {
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    Direction newFacing = facing;
-
-    switch (mirror) {
-        case Mirror::LeftRight:
-            // 左右镜像：东西互换
-            if (facing == Direction::East) {
-                newFacing = Direction::West;
-            } else if (facing == Direction::West) {
-                newFacing = Direction::East;
-            }
-            break;
-        case Mirror::FrontBack:
-            // 前后镜像：南北互换
-            if (facing == Direction::North) {
-                newFacing = Direction::South;
-            } else if (facing == Direction::South) {
-                newFacing = Direction::North;
-            }
-            break;
-        case Mirror::None:
-        default:
-            break;
-    }
-
-    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
-}
-
-ActionResultType BeehiveBlock::onBlockActivated(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit) {
-
-    MC_UNUSED(state);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(player);
-    MC_UNUSED(hand);
-    MC_UNUSED(hit);
-
-    // TODO: 收集蜂蜜或打开蜂巢界面
-    return ActionResultType::Pass;
-}
-
-// ========== TurtleEggBlock ==========
 
 TurtleEggBlock::TurtleEggBlock(const BlockProperties& properties)
     : Block(properties) {
@@ -423,101 +329,6 @@ bool TurtleEggBlock::isZombieType(Entity& entity) const {
 const CollisionShape& TurtleEggBlock::getShape(const BlockState& state) const {
     i32 eggs = getEggs(state);
     return m_shapesByEggCount[static_cast<std::size_t>(std::min(eggs - 1, 3))];
-}
-
-// ========== InfestedBlock ==========
-
-InfestedBlock::InfestedBlock(u32 hostBlock, const BlockProperties& properties)
-    : Block(properties)
-    , m_hostBlock(hostBlock) {
-    // 被感染方块没有特殊状态
-}
-
-void InfestedBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) {
-    // MC 1.16.5: InfestedBlock.spawnAdditionalDrops()
-    // 当被破坏时，有概率生成蠹虫
-    // 注意：实际生成条件需要检查游戏规则 doTileDrops 和精准采集附魔
-    // 这些检查在 onBlockHarvested 或 spawnAdditionalDrops 中进行
-    // 这里简化处理：直接生成蠹虫
-
-    MC_UNUSED(state);
-
-    // 只在服务端生成
-    if (world.isClientSide()) {
-        return;
-    }
-
-    // MC 1.16.5: 创建蠹虫实体
-    // SilverfishEntity silverfishentity = EntityType.SILVERFISH.create(world);
-    // silverfishentity.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
-    // world.addEntity(silverfishentity);
-    // silverfishentity.spawnExplosionParticle();
-
-    auto silverfish = std::make_unique<SilverfishEntity>(LegacyEntityType::Silverfish, EntityId(0));
-    if (silverfish) {
-        // 设置位置（方块中心）
-        silverfish->setPosition(
-            static_cast<f32>(pos.x) + 0.5f,
-            static_cast<f32>(pos.y),
-            static_cast<f32>(pos.z) + 0.5f
-        );
-        silverfish->setRotation(0.0f, 0.0f);
-
-        // 生成到世界
-        world.spawnEntity(std::move(silverfish));
-    }
-}
-
-// ========== SpawnerBlock ==========
-
-SpawnerBlock::SpawnerBlock(const BlockProperties& properties)
-    : Block(properties) {
-    // 刷怪笼没有特殊状态
-}
-
-ActionResultType SpawnerBlock::onBlockActivated(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit) {
-
-    MC_UNUSED(state);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(player);
-    MC_UNUSED(hand);
-    MC_UNUSED(hit);
-
-    // 只有创造模式可以打开刷怪笼界面
-    return ActionResultType::Pass;
-}
-
-// ========== DragonBreathBlock ==========
-
-DragonBreathBlock::DragonBreathBlock(const BlockProperties& properties)
-    : Block(properties) {
-}
-
-void DragonBreathBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
-    MC_UNUSED(state);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(entity);
-    // TODO: 造成伤害
-}
-
-const CollisionShape& DragonBreathBlock::getShape(const BlockState& state) const {
-    MC_UNUSED(state);
-    static CollisionShape emptyShape = CollisionShape::empty();
-    return emptyShape;
-}
-
-const CollisionShape& DragonBreathBlock::getCollisionShape(const BlockState& state) const {
-    MC_UNUSED(state);
-    static CollisionShape emptyShape = CollisionShape::empty();
-    return emptyShape;
 }
 
 } // namespace blocks

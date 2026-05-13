@@ -6,8 +6,12 @@
 
 ```
 mob/
-├── README.md           # 本文档
-├── MobBlocks.hpp/cpp   # 所有生物相关方块
+├── README.md              # 本文档
+├── BeehiveBlock.hpp/cpp   # 蜂巢/蜂箱方块
+├── TurtleEggBlock.hpp/cpp # 海龟蛋方块
+├── InfestedBlock.hpp/cpp  # 被感染方块（蠹虫方块）
+├── SpawnerBlock.hpp/cpp   # 刷怪笼方块
+└── DragonBreathBlock.hpp/cpp # 龙息方块
 ```
 
 ## 方块类型

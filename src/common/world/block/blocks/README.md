@@ -23,8 +23,12 @@ blocks/
 ├── HopperBlock.hpp          # 漏斗方块头文件
 ├── HopperBlock.cpp          # 漏斗方块实现
 ├── AbstractFurnaceBlock.hpp # 熔炉方块基类头文件
-├── FurnaceBlocks.hpp        # 熔炉方块实现（熔炉/高炉/烟熏炉）
-├── FurnaceBlocks.cpp        # 熔炉方块实现
+├── FurnaceBlock.hpp         # 普通熔炉方块头文件
+├── FurnaceBlock.cpp         # 普通熔炉方块实现
+├── BlastFurnaceBlock.hpp    # 高炉方块头文件
+├── BlastFurnaceBlock.cpp    # 高炉方块实现
+├── SmokerBlock.hpp          # 烟熏炉方块头文件
+├── SmokerBlock.cpp          # 烟熏炉方块实现
 ├── DoorBlock.hpp            # 门方块头文件
 ├── DoorBlock.cpp            # 门方块实现
 ├── FenceGateBlock.hpp       # 栅栏门方块头文件
@@ -402,7 +406,7 @@ auto waterBlock = std::make_unique<LiquidBlock>(
 
 ---
 
-### AbstractFurnaceBlock.hpp / FurnaceBlocks.hpp/cpp
+### AbstractFurnaceBlock.hpp / FurnaceBlock.hpp/cpp / BlastFurnaceBlock.hpp/cpp / SmokerBlock.hpp/cpp
 
 **职责**: 熔炉方块基类及实现（普通熔炉、高炉、烟熏炉）。
 

@@ -10,6 +10,10 @@
 agricultural/
 ├── BushBlock.hpp/cpp          # 灌木/植物基类
 ├── CropBlock.hpp/cpp          # 农作物基类（小麦、胡萝卜、马铃薯）
+├── WheatBlock.hpp/cpp         # 小麦作物
+├── CarrotBlock.hpp/cpp        # 胡萝卜作物
+├── PotatoBlock.hpp/cpp        # 马铃薯作物
+├── BeetrootBlock.hpp/cpp      # 甜菜根作物
 ├── FarmlandBlock.hpp/cpp      # 耕地方块
 ├── StemBlock.hpp/cpp          # 茎类作物（西瓜茎、南瓜茎）
 ├── CocoaBlock.hpp/cpp         # 可可豆方块（丛林原木附着）
@@ -114,7 +118,7 @@ auto melonStemBlock = std::make_unique<StemBlock>(melonBlock, stemProps);
 
 ## 已实现功能
 
-### 农作物方块（CropBlocks）
+### 农作物方块
 
 所有作物方块的 `getCropItem()` 和 `getSeedItem()` 方法已完整实现：
 
@@ -127,7 +131,7 @@ auto melonStemBlock = std::make_unique<StemBlock>(melonBlock, stemProps);
 
 ## 待实现
 
-- [x] 小麦作物（WheatBlock）- 已创建 CropBlocks.hpp/cpp
+- [x] 小麦作物（WheatBlock）
 - [x] 胡萝卜作物（CarrotBlock）
 - [x] 马铃薯作物（PotatoBlock）
 - [x] 甜菜根作物（BeetrootBlock）
