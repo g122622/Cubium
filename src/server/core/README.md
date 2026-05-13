@@ -101,6 +101,7 @@ struct ServerCoreConfig {
 | `getPlayer(playerId)` | 获取玩家数据 |
 | `findBySessionId(sessionId)` | 根据会话ID查找玩家 |
 | `findByUsername(username)` | 根据用户名查找玩家（大小写不敏感） |
+| `findByUuid(uuid)` | 根据 UUID 字符串查找玩家 |
 | `getPlayerIdsByAddress(ipAddress)` | 根据IP地址获取所有玩家ID |
 | `hasPlayer(playerId)` | 检查玩家是否存在 |
 | `playerCount()` | 获取玩家数量 |
@@ -114,6 +115,24 @@ struct ServerCoreConfig {
 **线程安全：**
 - 使用 `std::recursive_mutex` 保护内部数据
 - `forEachPlayer` 允许在回调中嵌套调用其他方法
+
+**UUID 查找：**
+`findByUuid(uuid)` 方法用于根据玩家 UUID 字符串查找玩家数据。这在成就系统中特别有用，当事件携带 UUID 而非 PlayerId 时（如 `CuredZombieVillagerEvent`），需要通过 UUID 查找玩家：
+
+```cpp
+// 成就事件处理器中的 UUID 查找示例
+void AdvancementEventHandler::onCuredZombieVillager(const CuredZombieVillagerEvent& e) {
+    // 通过 UUID 查找玩家数据
+    auto* playerData = m_playerManager->findByUuid(e.starterUuid);
+    if (!playerData) {
+        return;  // 玩家不在线
+    }
+
+    // 获取 PlayerId 后继续处理
+    PlayerId playerId = playerData->playerId;
+    // ...
+}
+```
 
 ---
 

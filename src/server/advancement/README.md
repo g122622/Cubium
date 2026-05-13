@@ -61,7 +61,7 @@ auto instance = InventoryChangedTrigger::hasItems(
 class AdvancementEventHandler {
 public:
     void setServer(IServer* server);     // 设置服务器接口（必须）
-    void setPlayerManager(core::PlayerManager* pm); // 已废弃
+    void setPlayerManager(core::PlayerManager* pm); // 用于通过 UUID 查找玩家
     void initialize();  // 订阅事件
     void shutdown();    // 取消订阅
 
@@ -70,6 +70,8 @@ private:
     void onInventoryChanged(const InventoryChangedEvent& e);
     void onPlayerKillEntity(const PlayerKillEntityEvent& e);
     void onPlayerLogin(const PlayerLoginEvent& e);
+    void onBlockPlaced(const BlockPlaceEvent& e);
+    void onCuredZombieVillager(const CuredZombieVillagerEvent& e);
 };
 ```
 
@@ -122,7 +124,23 @@ m_advancementEventHandler.initialize();
 |------|--------|------|
 | `InventoryChangedEvent` | `InventoryChangedTrigger` | ✅ 已完成 |
 | `PlayerKillEntityEvent` | `PlayerKilledEntityTrigger` | ✅ 已完成 |
+| `BlockPlaceEvent` | `PlacedBlockTrigger` | ✅ 已完成 |
+| `CuredZombieVillagerEvent` | `CuredZombieVillagerTrigger` | ✅ 已完成 |
 | `PlayerLoginEvent` | 玩家成就初始化 | 预留 |
+
+### 事件处理器架构
+
+AdvancementEventHandler 使用两种方式获取玩家：
+
+1. **通过 PlayerId（事件携带）**：用于 `InventoryChangedEvent`、`PlayerKillEntityEvent`、`BlockPlaceEvent`
+   - 使用 `IServer::playerEntityManager()` 获取 `ServerPlayerEntityManager`
+   - 通过 `getPlayerEntity(playerId, world)` 获取 `Player*`
+   - 转换为 `ServerPlayer*`
+
+2. **通过 UUID（事件携带）**：用于 `CuredZombieVillagerEvent`
+   - 使用 `PlayerManager::findByUuid(uuid)` 获取 `ServerPlayerData*`
+   - 从 `ServerPlayerData::playerId` 获取 `PlayerId`
+   - 再通过 `getServerPlayer(playerId)` 获取 `ServerPlayer*`
 
 ### 事件流程
 

@@ -6,7 +6,9 @@
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
+#include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/world/ServerWorld.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
 #include "common/advancement/trigger/impl/PlayerKilledEntityTrigger.hpp"
@@ -15,7 +17,6 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
-#include "server/core/PlayerManager.hpp"
 
 namespace mc::server::advancement {
 
@@ -53,12 +54,11 @@ public:
     /**
      * @brief 设置玩家管理器
      * @param playerManager 玩家管理器指针
-     * @deprecated 使用 setServer() 替代，PlayerManager 无法获取 ServerPlayer
      *
-     * 此方法保留用于向后兼容，但不再用于获取 ServerPlayer。
-     * 获取 ServerPlayer 应使用 setServer() + getServerPlayer()。
+     * 用于通过 UUID 查找玩家数据。CuredZombieVillagerEvent 携带 UUID 而非 PlayerId，
+     * 需要通过 PlayerManager::findByUuid() 转换为 PlayerId。
      */
-    void setPlayerManager(core::PlayerManager* playerManager) {
+    void setPlayerManager(mc::server::core::PlayerManager* playerManager) {
         m_playerManager = playerManager;
     }
 
@@ -308,7 +308,7 @@ private:
             return;
         }
 
-        const ServerPlayerData* playerData = m_playerManager->findByUuid(e.starterUuid);
+        const mc::server::ServerPlayerData* playerData = m_playerManager->findByUuid(e.starterUuid);
         if (playerData == nullptr) {
             return;
         }
@@ -388,8 +388,8 @@ private:
     // 服务器接口（用于获取 ServerPlayerEntityManager 和 ServerWorld）
     IServer* m_server = nullptr;
 
-    // 玩家管理器（保留用于向后兼容，但不再用于获取 ServerPlayer）
-    core::PlayerManager* m_playerManager = nullptr;
+    // 玩家管理器（用于 UUID 查找）
+    mc::server::core::PlayerManager* m_playerManager = nullptr;
 
     bool initialized_ = false;
 };

@@ -12,7 +12,7 @@
 namespace mc {
 namespace nbt {
 namespace tags {
-class compound_tag;
+struct compound_tag;
 }
 }
 

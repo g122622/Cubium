@@ -83,6 +83,10 @@ add_executable(mc_tests
     advancement/AdvancementTest.cpp
     # PlayerKilledEntityTrigger 触发器测试
     advancement/PlayerKilledEntityTriggerTest.cpp
+    # PlacedBlockTrigger 触发器测试
+    advancement/PlacedBlockTriggerTest.cpp
+    # CuredZombieVillagerTrigger 触发器测试
+    advancement/CuredZombieVillagerTriggerTest.cpp
     # AdvancementEventHandler 测试（getServerPlayer 架构验证）
     server/advancement/AdvancementEventHandlerTest.cpp
     # ItemDropHelper 测试

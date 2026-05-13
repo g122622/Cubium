@@ -13,8 +13,8 @@
 // 前向声明
 namespace mc {
     class Player;
-    struct BlockState;
-    struct DamageSource;
+    class BlockState;
+    class DamageSource;
     class PlayerInventory;
     class EffectInstance;
 }

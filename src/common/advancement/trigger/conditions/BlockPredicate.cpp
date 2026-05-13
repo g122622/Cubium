@@ -69,6 +69,13 @@ Result<BlockPredicate> BlockPredicate::fromJson(const nlohmann::json& json) {
     std::optional<ResourceLocation> tag;
     StatePropertiesPredicate state;
 
+    // 支持简写格式：直接传字符串表示方块ID
+    // 参考 MC 1.16.5: JSONUtils.getJsonObject(json, "block") 会将字符串转为 {"block": "xxx"}
+    if (json.is_string()) {
+        block = ResourceLocation(json.get<std::string>());
+        return BlockPredicate(std::move(block), std::move(tag), std::move(state));
+    }
+
     if (json.contains("block")) {
         block = ResourceLocation(json["block"].get<std::string>());
     }

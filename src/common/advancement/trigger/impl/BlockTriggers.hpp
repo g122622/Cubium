@@ -11,6 +11,7 @@ namespace mc {
     class BlockState;
     class IWorld;
     class BlockPos;
+    class ItemStack;
 }
 
 namespace mc::advancement {
@@ -92,10 +93,10 @@ public:
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(
-        class ServerPlayer& player,
+        ServerPlayer& player,
         const BlockState& state,
         const BlockPos& pos,
-        const class ItemStack& item
+        const ItemStack& item
     );
 };
 
@@ -182,9 +183,9 @@ public:
     [[nodiscard]] Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
 
     void trigger(
-        class ServerPlayer& player,
+        ServerPlayer& player,
         const BlockState& state,
-        const class ItemStack& tool,
+        const ItemStack& tool,
         i32 numBeesInside
     );
 };
@@ -201,7 +202,7 @@ public:
 
     [[nodiscard]] bool test(
         const BlockState& state,
-        const class ItemStack& tool,
+        const ItemStack& tool,
         i32 numBeesInside
     ) const;
 

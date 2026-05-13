@@ -214,6 +214,11 @@ public:
     virtual const BlockEntity* getBlockEntity(const BlockPos& pos) const;
     virtual void setBlockEntity(const BlockPos& pos, BlockEntity* entity);
     virtual void removeBlockEntity(const BlockPos& pos);
+
+    // 成就事件通知（默认空实现，ServerWorld 重写）
+    virtual void onBlockPlaced(PlayerId playerId, const BlockPos& pos,
+                               const BlockState* state, const ItemStack* item);
+    virtual void onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager);
 };```
 
 `IWorld` 现在还提供一组面向方块位置语义的 `BlockPos` 便捷重载，适合已经持有位置对象的调用点直接使用：
