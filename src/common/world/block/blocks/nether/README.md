@@ -6,8 +6,13 @@
 
 ```
 nether/
-├── README.md           # 本文档
-├── FireBlock.hpp/cpp   # 火、灵魂火、下界传送门、下界疣
+├── README.md              # 本文档
+├── FireBlock.hpp/cpp      # 普通火焰方块
+├── SoulFireBlock.hpp/cpp  # 灵魂火焰方块（蓝色火焰）
+├── NetherPortalBlock.hpp/cpp  # 下界传送门方块
+├── NetherWartBlock.hpp/cpp    # 下界疣方块
+├── NyliumBlock.hpp/cpp    # 绯红/诡异菌岩方块
+└── MagmaBlock.hpp/cpp     # 岩浆块方块
 ```
 
 ## 方块类型
@@ -18,6 +23,8 @@ nether/
 | `SoulFireBlock` | 灵魂火焰（蓝色，更高伤害） | 同 FireBlock |
 | `NetherPortalBlock` | 下界传送门 | HORIZONTAL_AXIS |
 | `NetherWartBlock` | 下界疣（可生长） | AGE_0_3 |
+| `NyliumBlock` | 绯红/诡异菌岩 | 无 |
+| `MagmaBlock` | 岩浆块 | 无 |
 
 ## 核心机制
 
@@ -162,15 +169,48 @@ BlockState SoulFireBlock::updatePostPlacement(...);
 ```
 
 ### 下界传送门
+
 1. 由黑曜石框架组成
 2. 通过点火激活
 3. 实体碰撞后传送
 4. 水平轴向（X 或 Z）
 
 ### 下界疣生长
+
 1. 只能种在灵魂沙上
 2. 4个生长阶段（AGE_0_3）
 3. 随机 tick 生长
+
+### 菌岩退化
+
+绯红菌岩和诡异菌岩在光照过亮时会退化为下界岩：
+
+```cpp
+void NyliumBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    if (!isDarkEnough(world, pos, state)) {
+        world.setBlockState(pos, &VanillaBlocks::NETHERRACK->defaultState());
+    }
+}
+```
+
+### 岩浆块
+
+岩浆块在水中会产生气泡柱：
+
+```cpp
+void MagmaBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
+    if (aboveState != nullptr) {
+        const fluid::FluidState* fluidState = aboveState->getFluidState();
+        if (fluidState != nullptr && !fluidState->isEmpty() &&
+            fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
+            // 生成气泡柱
+            // BubbleColumnBlock.placeBubbleColumn(world, abovePos, true);
+        }
+    }
+}
+```
 
 ## 使用方法
 
