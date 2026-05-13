@@ -141,6 +141,7 @@ add_executable(mc_tests
     common/world/block/blocks/SpreadableSnowyDirtBlockTest.cpp
     common/world/block/blocks/SoulFireBlockTest.cpp
     common/world/block/blocks/FireBlockCollisionTest.cpp
+    common/world/block/blocks/FireBlockTest.cpp
     common/world/block/blocks/FallingBlockTest.cpp
     common/world/block/blocks/VegetationBlockTest.cpp
     common/world/block/blocks/SweetBerryBushBlockTest.cpp
@@ -767,6 +768,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/AirBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/FireInfoRegistry.cpp
         # 鏃堕棿绯荤粺
         ${CMAKE_SOURCE_DIR}/src/common/world/time/GameTime.cpp
         # 鐗╁搧绯荤粺
