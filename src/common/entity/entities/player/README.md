@@ -237,6 +237,12 @@ flowchart TD
   - `ServerPlayer::tryStartSleeping()` - 重写为调用完整验证逻辑 `trySleep()`
   - `ServerWorld::onPlayerSleepingChanged()` - 重写为调用 `updateAllPlayersSleepingFlag()`
   - 参考 MC 1.16.5 `PlayerEntity.trySleep(BlockPos)` 和 `ServerWorld.updateAllPlayersSleepingFlag()`
+- **已完善横扫攻击条件**（2026-05-13）：
+  - 实现完整的横扫攻击静止检测条件
+  - MC 1.16.5 条件：`distanceWalkedModified - prevDistanceWalkedModified < aiMoveSpeed()`
+  - 使用 `m_moveDistanceWalked` 和 `m_prevMoveDistanceWalked` 检测玩家是否静止
+  - 横扫攻击完整条件：冷却>90%、非暴击、非疾跑击退、在地面、且几乎静止
+  - 参考 MC 1.16.5 `PlayerEntity.attackTargetEntityWithCurrentItem()` 行 1147-1148
 
 ## 挖掘系统
 

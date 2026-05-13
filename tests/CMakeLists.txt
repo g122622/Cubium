@@ -103,6 +103,8 @@ add_executable(mc_tests
     common/entity/combat/CombatTrackerTest.cpp
     # CombatRules EPF 测试
     common/entity/combat/CombatRulesEPFTest.cpp
+    # 横扫攻击静止检测条件测试
+    common/entity/combat/SweepAttackConditionTest.cpp
     common/world/blockentity/BlockEntityTest.cpp
     common/world/blockentity/ChestEntityTest.cpp
     common/world/blockentity/FurnaceEntityTest.cpp
