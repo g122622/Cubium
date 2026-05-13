@@ -1,4 +1,9 @@
 #include "BlockTriggers.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::advancement {
 
@@ -9,7 +14,7 @@ EnterBlockTriggerInstance::EnterBlockTriggerInstance(BlockPredicate block, Locat
     , m_location(std::move(location)) {
 }
 
-bool EnterBlockTriggerInstance::test(const BlockState& state, const World& world, const BlockPos& pos) const {
+bool EnterBlockTriggerInstance::test(const BlockState& state, const IWorld& world, const BlockPos& pos) const {
     if (!m_block.test(state)) {
         return false;
     }
@@ -93,7 +98,7 @@ PlacedBlockTriggerInstance::PlacedBlockTriggerInstance(
 
 bool PlacedBlockTriggerInstance::test(
     const BlockState& state,
-    const World& world,
+    const IWorld& world,
     const BlockPos& pos,
     const ItemStack& item
 ) const {

@@ -964,7 +964,7 @@ add_library(mc_common STATIC
     advancement/trigger/impl/EffectTriggers.cpp
     # advancement/trigger/impl/LocationTrigger.cpp
     advancement/trigger/impl/PlayerKilledEntityTrigger.cpp
-    # advancement/trigger/impl/BlockTriggers.cpp
+    advancement/trigger/impl/BlockTriggers.cpp
     # advancement/trigger/impl/ItemTriggers.cpp
     advancement/trigger/impl/EntityTriggers.cpp
 

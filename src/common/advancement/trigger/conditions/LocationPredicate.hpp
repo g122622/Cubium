@@ -12,8 +12,8 @@
 namespace mc {
 class IWorld;
 class Biome;
-struct BlockPos;
-struct BlockState;
+class BlockPos;
+class BlockState;
 }
 
 namespace mc::advancement {

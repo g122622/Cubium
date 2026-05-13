@@ -3,13 +3,14 @@
 #include "../CriterionTrigger.hpp"
 #include "../conditions/BlockPredicate.hpp"
 #include "../conditions/LocationPredicate.hpp"
+#include "../conditions/ItemPredicate.hpp"
 #include <memory>
 
 // 前向声明
 namespace mc {
-    struct BlockState;
-    class World;
-    struct BlockPos;
+    class BlockState;
+    class IWorld;
+    class BlockPos;
 }
 
 namespace mc::advancement {
@@ -64,7 +65,7 @@ public:
      * @param pos 方块位置
      * @return 是否满足
      */
-    [[nodiscard]] bool test(const BlockState& state, const World& world, const BlockPos& pos) const;
+    [[nodiscard]] bool test(const BlockState& state, const IWorld& world, const BlockPos& pos) const;
 
     Result<void> fromJson(const nlohmann::json& json);
     [[nodiscard]] nlohmann::json conditionsToJson() const;
@@ -114,9 +115,9 @@ public:
 
     [[nodiscard]] bool test(
         const BlockState& state,
-        const World& world,
+        const IWorld& world,
         const BlockPos& pos,
-        const class ItemStack& item
+        const ItemStack& item
     ) const;
 
     Result<void> fromJson(const nlohmann::json& json);

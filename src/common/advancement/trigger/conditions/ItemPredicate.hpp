@@ -10,7 +10,7 @@
 
 // 前向声明
 namespace mc {
-    struct BlockState;
+    class BlockState;
     class ItemStack;
     namespace nbt {
         namespace tags {

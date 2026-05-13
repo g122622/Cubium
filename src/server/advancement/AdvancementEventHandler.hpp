@@ -4,6 +4,7 @@
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/world/ServerWorld.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
@@ -279,7 +280,7 @@ private:
         }
 
         // 获取世界引用（用于 LocationPredicate 检测）
-        mc::ServerWorld* world = serverPlayer->getWorld();
+        mc::server::ServerWorld* world = serverPlayer->getWorld();
         if (world == nullptr) {
             return;
         }

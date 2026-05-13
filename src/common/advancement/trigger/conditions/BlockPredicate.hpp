@@ -11,7 +11,7 @@
 
 // 前向声明
 namespace mc {
-    struct BlockState;
+    class BlockState;
 }
 
 namespace mc::advancement {
