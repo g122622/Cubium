@@ -1,6 +1,7 @@
 #include "ParrotEntity.hpp"
 
 #include "../../../attribute/Attributes.hpp"
+#include "../../../../item/Items.hpp"
 #include "../../../../util/math/random/Random.hpp"
 
 namespace mc {
@@ -26,9 +27,16 @@ void ParrotEntity::randomizeVariant()
 
 bool ParrotEntity::isTameItem(const ItemStack& itemStack) const
 {
-    // TODO: 对齐 1.16.5 的种子驯服标签判断。
-    (void)itemStack;
-    return false;
+    // MC 1.16.5: 鹦鹉用种子驯服
+    // 参考: net.minecraft.entity.passive.ParrotEntity.TAME_ITEMS
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+    return item == Items::WHEAT_SEEDS
+        || item == Items::PUMPKIN_SEEDS
+        || item == Items::MELON_SEEDS
+        || item == Items::BEETROOT_SEEDS;
 }
 
 void ParrotEntity::tick()

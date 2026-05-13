@@ -7,7 +7,11 @@
 | 文件 | 说明 |
 |------|------|
 | TameableEntity.hpp/cpp | 可驯服实体基类 |
+| ShoulderRidingEntity.hpp/cpp | 肩膀乘坐实体基类 |
 | WolfEntity.hpp/cpp | 狼实体 |
+| CatEntity.hpp/cpp | 猫实体 |
+| OcelotEntity.hpp/cpp | 豹猫实体 |
+| ParrotEntity.hpp/cpp | 鹦鹉实体 |
 
 ## 继承
 
@@ -114,6 +118,55 @@ bool WolfEntity::isFoodItem(const ItemStack& itemStack) const {
 ```
 
 **参考**: `net.minecraft.entity.passive.WolfEntity.isBreedingItem()`
+
+## 鹦鹉驯服系统（ParrotEntity）
+
+鹦鹉是唯一可以停在玩家肩膀上的可驯服动物，也是唯一不能繁殖的可驯服动物。
+
+### 驯服物品
+
+鹦鹉使用**种子**驯服，符合 MC 1.16.5 原版行为：
+
+| 物品 | 说明 |
+|------|------|
+| 小麦种子 (`WHEAT_SEEDS`) | 可驯服 |
+| 南瓜种子 (`PUMPKIN_SEEDS`) | 可驯服 |
+| 西瓜种子 (`MELON_SEEDS`) | 可驯服 |
+| 甜菜种子 (`BEETROOT_SEEDS`) | 可驯服 |
+
+### 繁殖
+
+鹦鹉**不能繁殖**，这是 MC 1.16.5 原版行为：
+- `isBreedingItem()` 始终返回 `false`
+- `spawnBaby()` 始终返回 `nullptr`
+
+### 特殊能力
+
+| 特性 | 说明 |
+|------|------|
+| 飞行 | 可以飞行 (`IFlyingAnimal` 接口) |
+| 肩膀乘坐 | 可以停在玩家肩膀上 (`ShoulderRidingEntity`) |
+| 声音模仿 | 可以模仿附近敌对生物的声音 |
+| 变种 | 5 种颜色变种（红蓝、蓝、绿、黄蓝、灰） |
+
+### 代码实现
+
+```cpp
+bool ParrotEntity::isTameItem(const ItemStack& itemStack) const {
+    // MC 1.16.5: 鹦鹉用种子驯服
+    // 参考: net.minecraft.entity.passive.ParrotEntity.TAME_ITEMS
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+    return item == Items::WHEAT_SEEDS
+        || item == Items::PUMPKIN_SEEDS
+        || item == Items::MELON_SEEDS
+        || item == Items::BEETROOT_SEEDS;
+}
+```
+
+**参考**: `net.minecraft.entity.passive.ParrotEntity`
 
 ## AI目标
 
