@@ -91,12 +91,27 @@ public:
 
 protected:
     /**
-     * @brief 检查是否可以燃烧
+     * @brief 检查位置是否可以燃烧（有可燃方块）
+     *
+     * 检查指定位置周围是否有可燃方块。
+     * 参考 MC 1.16.5: FireBlock.canBurn()
+     *
+     * @param world 世界读取器
+     * @param pos 要检查的位置
+     * @return 如果位置可以燃烧返回 true
      */
     [[nodiscard]] virtual bool canBurn(IBlockReader& world, const BlockPos& pos) const;
 
     /**
-     * @brief 尝试蔓延到周围
+     * @brief 尝试火焰蔓延
+     *
+     * 在火焰 tick 时调用，尝试将火焰蔓延到周围方块。
+     * 参考 MC 1.16.5: FireBlock.tick() 中的蔓延逻辑
+     *
+     * @param world 世界引用
+     * @param pos 火焰位置
+     * @param age 火焰年龄 (0-15)
+     * @param random 随机数生成器
      */
     void trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRandom& random);
 
@@ -118,6 +133,76 @@ protected:
      * @brief 检查方块是否可燃
      */
     [[nodiscard]] bool isFlammable(const BlockState& state) const;
+
+    /**
+     * @brief 检查火焰是否会被雨淋灭
+     *
+     * 参考 MC 1.16.5: FireBlock.canDie()
+     *
+     * @param world 世界引用
+     * @param pos 火焰位置
+     * @return 如果火焰会被雨淋灭返回 true
+     */
+    [[nodiscard]] bool canDie(IWorld& world, const BlockPos& pos) const;
+
+    /**
+     * @brief 检查指定位置是否会被雨淋灭
+     *
+     * 同 canDie，用于远距离蔓延检查。
+     *
+     * @param world 世界引用
+     * @param pos 位置
+     * @return 如果位置会被雨淋灭返回 true
+     */
+    [[nodiscard]] bool canDieAt(IWorld& world, const BlockPos& pos) const;
+
+    /**
+     * @brief 获取目标位置周围的火焰蔓延鼓励值
+     *
+     * 参考 MC 1.16.5: FireBlock.getNeighborEncouragement()
+     *
+     * @param world 世界引用
+     * @param pos 目标位置
+     * @return 最大火焰蔓延速度
+     */
+    [[nodiscard]] i32 getNeighborEncouragement(IWorld& world, const BlockPos& pos) const;
+
+    /**
+     * @brief 尝试点燃指定位置
+     *
+     * 参考 MC 1.16.5: FireBlock.tryCatchFire()
+     *
+     * @param world 世界引用
+     * @param pos 目标位置
+     * @param chance 基础点燃概率分母
+     * @param random 随机数生成器
+     * @param age 火焰年龄
+     * @param face 点燃面
+     */
+    void tryCatchFire(IWorld& world, const BlockPos& pos, i32 chance, math::IRandom& random, i32 age, Direction face);
+
+    /**
+     * @brief 检查周围是否有可燃方块
+     *
+     * 参考 MC 1.16.5: FireBlock.areNeighborsFlammable()
+     *
+     * @param world 世界读取器
+     * @param pos 位置
+     * @return 如果周围有可燃方块返回 true
+     */
+    [[nodiscard]] bool areNeighborsFlammable(IBlockReader& world, const BlockPos& pos) const;
+
+    /**
+     * @brief 检查位置是否可以被点燃
+     *
+     * 参考 MC 1.16.5: FireBlock.canCatchFire() / IForgeBlock.canCatchFire()
+     *
+     * @param world 世界引用
+     * @param pos 目标位置
+     * @param face 点燃面
+     * @return 如果位置可以被点燃返回 true
+     */
+    [[nodiscard]] bool canCatchFire(IWorld& world, const BlockPos& pos, Direction face) const;
 
     /// 火焰伤害
     i32 m_fireDamage;

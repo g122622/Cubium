@@ -57,10 +57,80 @@ void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const 
 ```
 
 ### 火焰蔓延
-1. 火焰有年龄（AGE_0_15）
-2. 年龄越大越稳定，越不容易熄灭
-3. 可以蔓延到周围可燃方块
-4. 检查周围是否有可燃物
+
+火焰蔓延机制已完整实现，参考 MC 1.16.5 `FireBlock.tick()` 和 `FireBlock.trySpread()`。
+
+#### 火焰年龄
+
+- 火焰有年龄（AGE_0_15），范围 0-15
+- 年龄越大越稳定，越不容易熄灭
+- 每次 randomTick 有概率增加年龄
+
+#### 火焰 Tick 逻辑
+
+```cpp
+void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
+    // 1. 检查位置有效性
+    // 2. 检查游戏规则 doFireTick
+    // 3. 检查是否为无限火源（如下界岩）
+    // 4. 下雨熄灭检查
+    // 5. 火焰年龄增长
+    // 6. 无可燃邻居时检查支撑
+    // 7. 尝试蔓延
+}
+```
+
+#### 蔓延算法
+
+**直接相邻燃烧**（6个方向）：
+- 垂直方向：chance = 250 + humidityPenalty
+- 水平方向：chance = 300 + humidityPenalty
+- 点燃概率：`(flammability / chance) * (5 / (age + 10))`
+
+**远距离蔓延**（3x6 区域）：
+- 范围：x: -1~1, z: -1~1, y: -1~4
+- 蔓延概率：`(encouragement + 40 + difficulty * 7) / (age + 30)`
+- 高度惩罚：每向上一层 +100
+
+**环境因素**：
+- 下雨：增加熄灭概率，降低蔓延概率 50%
+- 难度：影响蔓延速度（Peaceful=0, Easy=7, Normal=14, Hard=21）
+- 高湿度：蔓延概率减半
+
+#### 核心方法
+
+| 方法 | 功能 |
+|------|------|
+| `canBurn()` | 检查周围是否有可燃方块 |
+| `trySpread()` | 尝试蔓延到周围方块 |
+| `canDie()` | 检查是否会被雨淋灭 |
+| `canCatchFire()` | 检查指定位置是否可被点燃 |
+| `tryCatchFire()` | 尝试点燃指定位置 |
+| `getNeighborEncouragement()` | 获取周围火焰蔓延加速值 |
+| `areNeighborsFlammable()` | 检查周围是否有可燃方块 |
+
+#### 火焰信息注册表
+
+`FireInfoRegistry` 管理所有方块的燃烧参数：
+
+```cpp
+struct FireInfo {
+    i32 encouragement;  // 火焰蔓延速度
+    i32 flammability;   // 可燃性 (0-300)
+};
+```
+
+部分方块燃烧参数：
+
+| 方块 | encouragement | flammability |
+|------|--------------|--------------|
+| 木板/栅栏/楼梯 | 5 | 20 |
+| 原木 | 5 | 5 |
+| 树叶 | 30 | 60 |
+| 羊毛 | 30 | 60 |
+| TNT | 15 | 100 |
+| 藤蔓 | 15 | 100 |
+| 草/花 | 60 | 100 |
 
 ### 灵魂火系统
 

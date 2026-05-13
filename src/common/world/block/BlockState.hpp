@@ -337,6 +337,72 @@ public:
      */
     [[nodiscard]] bool canStickTo(const BlockState& other) const;
 
+    // ========================================================================
+    // 火焰相关
+    // ========================================================================
+
+    /**
+     * @brief 获取方块的可燃性值
+     *
+     * 委托到方块的 getFlammability 方法。
+     * 参考: net.minecraft.block.FireBlock.getFlammability()
+     *
+     * @param world 世界（可选）
+     * @param pos 方块位置（可选）
+     * @param face 点燃面（可选）
+     * @return 可燃性值 (0-300)
+     */
+    [[nodiscard]] i32 getFlammability(
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr,
+        Direction face = static_cast<Direction>(255)) const;
+
+    /**
+     * @brief 获取方块的火焰蔓延速度
+     *
+     * 委托到方块的 getFireSpreadSpeed 方法。
+     * 参考: net.minecraft.block.FireBlock.getFireSpreadSpeed()
+     *
+     * @param world 世界（可选）
+     * @param pos 方块位置（可选）
+     * @param face 蔓延面（可选）
+     * @return 火焰蔓延速度
+     */
+    [[nodiscard]] i32 getFireSpreadSpeed(
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr,
+        Direction face = static_cast<Direction>(255)) const;
+
+    /**
+     * @brief 检查方块是否为火焰源
+     *
+     * 委托到方块的 isFireSource 方法。
+     * 参考: Forge IForgeBlock.isFireSource()
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param side 火焰所在面
+     * @return 如果是火源返回 true
+     */
+    [[nodiscard]] bool isFireSource(IWorld& world, const BlockPos& pos, Direction side) const;
+
+    /**
+     * @brief 方块被点燃时的回调
+     *
+     * 委托到方块的 catchFire 方法。
+     * 参考: Forge IForgeBlock.catchFire()
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param face 点燃面
+     * @param igniter 点燃者（可能为空）
+     */
+    void catchFire(
+        IWorld& world,
+        const BlockPos& pos,
+        Direction face = static_cast<Direction>(255),
+        Entity* igniter = nullptr) const;
+
     /**
      * @brief 转换为模型键（用于查找模型变体）
      * @return 格式: "axis=y,facing=north" 或 "" (无属性时)

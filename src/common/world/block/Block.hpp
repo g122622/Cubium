@@ -1262,6 +1262,125 @@ public:
     }
 
     // ========================================================================
+    // 火焰相关
+    // ========================================================================
+
+    /**
+     * @brief 获取方块的可燃性值
+     *
+     * 返回值范围 0-300，表示方块被点燃和烧毁的概率。
+     * - 0: 不可燃
+     * - 越高越容易被点燃
+     * - >= 100 时可能直接烧毁而非点燃
+     *
+     * 默认实现返回 0（不可燃）。
+     * 可燃方块应重写此方法或通过 FireInfoRegistry 注册。
+     *
+     * 参考: net.minecraft.block.FireBlock.getFlammability()
+     * Forge: IForgeBlock.getFlammability()
+     *
+     * @param state 方块状态
+     * @param world 世界（可选，用于上下文相关可燃性）
+     * @param pos 方块位置（可选）
+     * @param face 点燃面（可选）
+     * @return 可燃性值 (0-300)
+     */
+    [[nodiscard]] virtual i32 getFlammability(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr,
+        Direction face = static_cast<Direction>(255)) const {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(face);
+        return 0;
+    }
+
+    /**
+     * @brief 获取方块的火焰蔓延速度
+     *
+     * 返回值用于计算火焰蔓延到此方块的速度。
+     * 值越高，火焰蔓延越快。
+     *
+     * 默认实现返回 0（不加速蔓延）。
+     * 可燃方块应重写此方法或通过 FireInfoRegistry 注册。
+     *
+     * 参考: net.minecraft.block.FireBlock.getFireSpreadSpeed()
+     * Forge: IForgeBlock.getFireSpreadSpeed()
+     *
+     * @param state 方块状态
+     * @param world 世界（可选）
+     * @param pos 方块位置（可选）
+     * @param face 蔓延面（可选）
+     * @return 火焰蔓延速度
+     */
+    [[nodiscard]] virtual i32 getFireSpreadSpeed(
+        const BlockState& state,
+        IWorld* world = nullptr,
+        const BlockPos* pos = nullptr,
+        Direction face = static_cast<Direction>(255)) const {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(face);
+        return 0;
+    }
+
+    /**
+     * @brief 检查方块是否为火焰源
+     *
+     * 返回 true 时火焰不会熄灭。
+     * 如下界岩、岩浆等方块应重写此方法返回 true。
+     *
+     * 参考: Forge IForgeBlock.isFireSource()
+     *
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @param side 火焰所在面
+     * @return 如果是火源返回 true
+     */
+    [[nodiscard]] virtual bool isFireSource(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Direction side) const {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(side);
+        return false;
+    }
+
+    /**
+     * @brief 方块被点燃时的回调
+     *
+     * 当方块被火焰点燃时调用，用于执行特殊逻辑（如 TNT 爆炸）。
+     * 默认实现为空。
+     *
+     * 参考: Forge IForgeBlock.catchFire()
+     *
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @param face 点燃面
+     * @param igniter 点燃者（可能为空）
+     */
+    virtual void catchFire(
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Direction face = static_cast<Direction>(255),
+        Entity* igniter = nullptr) const {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(face);
+        MC_UNUSED(igniter);
+    }
+
+    // ========================================================================
     // 信标光束颜色
     // ========================================================================
 

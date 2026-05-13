@@ -167,4 +167,24 @@ bool BlockState::canStickTo(const BlockState& other) const {
     return m_owner->canStickTo(*this, other);
 }
 
+// ============================================================================
+// 火焰相关
+// ============================================================================
+
+i32 BlockState::getFlammability(IWorld* world, const BlockPos* pos, Direction face) const {
+    return m_owner->getFlammability(*this, world, pos, face);
+}
+
+i32 BlockState::getFireSpreadSpeed(IWorld* world, const BlockPos* pos, Direction face) const {
+    return m_owner->getFireSpreadSpeed(*this, world, pos, face);
+}
+
+bool BlockState::isFireSource(IWorld& world, const BlockPos& pos, Direction side) const {
+    return m_owner->isFireSource(*this, world, pos, side);
+}
+
+void BlockState::catchFire(IWorld& world, const BlockPos& pos, Direction face, Entity* igniter) const {
+    m_owner->catchFire(*this, world, pos, face, igniter);
+}
+
 } // namespace mc
