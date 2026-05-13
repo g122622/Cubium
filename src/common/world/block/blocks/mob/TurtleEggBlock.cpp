@@ -1,6 +1,7 @@
 #include "TurtleEggBlock.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../gamerule/GameRules.hpp"
+#include "../../../lighting/InternalLightUtils.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../../../entity/entities/passive/special/TurtleEntity.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
@@ -92,11 +93,31 @@ bool TurtleEggBlock::isValidPosition(
 }
 
 bool TurtleEggBlock::canGrow(IWorld& world, math::IRandom& random) const {
-    // MC 1.16.5: 在日光下有更高的孵化概率
-    // 白天 (skyLight >= 0.65) 或 1/500 随机概率
-    // TODO: 实现天空光照检查
-    // 暂时使用简化的随机概率
-    return random.nextFloat() < 0.002f || random.nextInt(500) == 0;
+    // MC 1.16.5 TurtleEggBlock.canGrow():
+    // float f = world.func_242415_f(1.0F);  // getCelestialAngle
+    // if ((double)f < 0.69D && (double)f > 0.65D) {
+    //     return true;  // 黎明时分（天体角度 0.65-0.69）
+    // } else {
+    //     return world.rand.nextInt(500) == 0;  // 其他时间 1/500 概率
+    // }
+    //
+    // MC 原版天体角度：
+    // - 0.0 = 正午
+    // - 0.25 = 日落
+    // - 0.5 = 午夜
+    // - 0.75 = 日出
+    //
+    // 天体角度 0.65-0.69 对应黎明时分（约 dayTime 22000-22600）
+    // 这是海龟蛋孵化的最佳时间
+    f32 celestialAngle = InternalLightUtils::getCelestialAngleMC(world.dayTime());
+
+    if (celestialAngle < 0.69 && celestialAngle > 0.65) {
+        // 黎明时分，100% 孵化
+        return true;
+    } else {
+        // 其他时间，1/500 随机概率
+        return random.nextInt(500) == 0;
+    }
 }
 
 void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {

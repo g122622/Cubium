@@ -111,6 +111,7 @@ add_executable(mc_tests
     common/entity/combat/SweepAttackConditionTest.cpp
     # GameRules 游戏规则测试
     common/world/gamerule/GameRulesTest.cpp
+    common/world/lighting/InternalLightUtilsTest.cpp
     common/world/blockentity/BlockEntityTest.cpp
     common/world/blockentity/ChestEntityTest.cpp
     common/world/blockentity/FurnaceEntityTest.cpp

@@ -267,10 +267,47 @@ u8 blockLight = chunkData->getBlockLight(x, y, z);
 
 | 测试文件 | 测试内容 |
 |----------|----------|
-| `tests/common/world/lighting/` | 光照引擎单元测试 |
+| `tests/common/world/lighting/InternalLightUtilsTest.cpp` | 内部光照工具测试（天体角度、天空减暗、月相等） |
 | `LightEngineTest.cpp` | 光照传播基础测试 |
 | `SkyLightTest.cpp` | 天空光传播测试 |
 | `BlockLightTest.cpp` | 方块光传播测试 |
+
+---
+
+## 天体角度计算
+
+### 两种天体角度函数
+
+项目中提供了两种天体角度计算函数，用于不同的场景：
+
+#### 1. `getCelestialAngle()` - 简化版本
+
+线性映射，用于光照计算：
+- `dayTime = 0` (日出) → `angle = 0.0`
+- `dayTime = 6000` (正午) → `angle = 0.25`
+- `dayTime = 12000` (日落) → `angle = 0.5`
+- `dayTime = 18000` (午夜) → `angle = 0.75`
+
+#### 2. `getCelestialAngleMC()` - MC 1.16.5 原版公式
+
+使用原版公式，用于游戏机制：
+- `dayTime = 0` (日出) → `angle ≈ 0.75`
+- `dayTime = 6000` (正午) → `angle = 0.0`
+- `dayTime = 12000` (日落) → `angle ≈ 0.25`
+- `dayTime = 18000` (午夜) → `angle = 0.5`
+- `dayTime = 22000-22600` (黎明) → `angle ≈ 0.65-0.69`
+
+**MC 1.16.5 公式** (参考 `DimensionType.func_236032_b_()`):
+```
+d0 = frac(dayTime / 24000.0 - 0.25)
+d1 = 0.5 - cos(d0 * π) / 2.0
+result = (d0 * 2.0 + d1) / 3.0
+```
+
+**使用场景**：
+- 海龟蛋孵化 (`TurtleEggBlock::canGrow()`)：检查天体角度是否在 0.65-0.69 范围内（黎明时分）
+- 村庄围攻 (`VillageSiege::isMidnight()`)：检查 `dayTime == 18000`（午夜）
+- 日光探测器 (`DaylightDetectorBlock`)：使用天体角度计算输出信号
 
 ---
 

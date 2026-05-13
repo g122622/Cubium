@@ -114,6 +114,45 @@ f32 getCelestialAngle(i64 dayTime) {
     return static_cast<f32>(timeOfDay) / 24000.0f;
 }
 
+f32 getCelestialAngleMC(i64 dayTime) {
+    // MC 1.16.5 原版天体角度计算
+    // 参考: net.minecraft.world.DimensionType.func_236032_b_()
+    //
+    // 公式:
+    //   d0 = frac(dayTime / 24000.0 - 0.25)
+    //   d1 = 0.5 - cos(d0 * π) / 2.0
+    //   result = (d0 * 2.0 + d1) / 3.0
+    //
+    // 这个公式使得：
+    // - 正午 (dayTime = 6000)  时 celestialAngle = 0.0
+    // - 日落 (dayTime = 12000) 时 celestialAngle ≈ 0.25
+    // - 午夜 (dayTime = 18000) 时 celestialAngle = 0.5
+    // - 日出 (dayTime = 0)     时 celestialAngle ≈ 0.75
+    //
+    // 黎明时分 (dayTime ≈ 22000-22600) 时 celestialAngle ≈ 0.65-0.69
+    // 这是海龟蛋孵化的最佳时间
+
+    constexpr f64 TICKS_PER_DAY = 24000.0;
+    constexpr f64 PI = 3.14159265358979323846;
+
+    f64 normalizedTime = static_cast<f64>(dayTime % 24000);
+    f64 d0 = normalizedTime / TICKS_PER_DAY - 0.25;
+
+    // 确保 d0 在 [0, 1) 范围内 (frac 函数)
+    if (d0 < 0.0) {
+        d0 += 1.0;
+    }
+
+    // d1 = 0.5 - cos(d0 * π) / 2.0
+    // 这是一个平滑曲线，在 d0=0 时 d1=0，在 d0=0.5 时 d1=1
+    f64 d1 = 0.5 - std::cos(d0 * PI) / 2.0;
+
+    // result = (d0 * 2.0 + d1) / 3.0
+    f64 celestialAngle = (d0 * 2.0 + d1) / 3.0;
+
+    return static_cast<f32>(celestialAngle);
+}
+
 f32 getSunAngle(f32 celestialAngle) {
     // 太阳高度角
     // 0 = 地平线，正值 = 白天，负值 = 夜晚

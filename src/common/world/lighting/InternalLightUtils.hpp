@@ -107,11 +107,37 @@ namespace InternalLightUtils {
  * @brief 获取天体角度
  *
  * 将世界时间转换为天体角度。
+ * 这是简化的线性映射版本，用于光照计算。
  *
  * @param dayTime 世界时间 (0-23999)
  * @return 天体角度 (0.0-1.0)
+ *         0.0 = 日出, 0.25 = 正午, 0.5 = 日落, 0.75 = 午夜
  */
 [[nodiscard]] f32 getCelestialAngle(i64 dayTime);
+
+/**
+ * @brief 获取 MC 1.16.5 原版天体角度
+ *
+ * 使用 MC 1.16.5 原版公式计算天体角度。
+ * 参考: net.minecraft.world.DimensionType.func_236032_b_()
+ *
+ * 公式:
+ *   d0 = frac(dayTime / 24000.0 - 0.25)
+ *   d1 = 0.5 - cos(d0 * π) / 2.0
+ *   result = (d0 * 2.0 + d1) / 3.0
+ *
+ * @param dayTime 世界时间 (0-23999)
+ * @return 天体角度 (0.0-1.0)
+ *         0.0 = 正午, 0.25 = 日落, 0.5 = 午夜, 0.75 = 日出
+ *
+ * 关键值:
+ *   - dayTime = 0     (日出) → celestialAngle ≈ 0.75
+ *   - dayTime = 6000  (正午) → celestialAngle = 0.0
+ *   - dayTime = 12000 (日落) → celestialAngle ≈ 0.25
+ *   - dayTime = 18000 (午夜) → celestialAngle = 0.5
+ *   - dayTime = 22000-22600 (黎明) → celestialAngle ≈ 0.65-0.69
+ */
+[[nodiscard]] f32 getCelestialAngleMC(i64 dayTime);
 
 /**
  * @brief 获取太阳高度角
