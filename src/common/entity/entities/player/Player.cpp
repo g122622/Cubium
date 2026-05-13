@@ -1624,7 +1624,9 @@ void Player::updateAirSupply() {
 
     // 入水溅水效果（玩家特有效果）
     // MC 1.16.5: PlayerEntity.doWaterSplashEffect() 检查观察者模式后调用父类方法
-    if (justEnteredWater) {
+    // 客户端本地玩家当前没有 IWorld 适配层，不能直接走实体世界特效出口。
+    // 保留空气逻辑，等客户端世界统一接入 IWorld 或专门的客户端特效桥接后再补全本地入水特效。
+    if (justEnteredWater && m_world != nullptr) {
         doWaterSplashEffect();
     }
 

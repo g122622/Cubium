@@ -98,9 +98,9 @@ int main(int argc, char* argv[])
         if (arg == "--quick-play" && i + 1 < argc) {
             params.quickPlayLevelId = argv[++i];
         }
-        if (arg == "--quick-play-new") {
+        // if (arg == "--quick-play-new") {
             params.quickPlayNew = true;
-        }
+        // }
     }
 
     try {

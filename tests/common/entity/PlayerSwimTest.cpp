@@ -16,6 +16,7 @@
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/sound/SoundEvents.hpp"
 
 using namespace mc;
 using namespace mc::physics;
@@ -179,6 +180,13 @@ TEST_F(PlayerSwimTest, ConduitPowerPreventsAirConsumption) {
 
     // 有潮涌能量效果时，空气不应该消耗
     EXPECT_EQ(player->air(), initialAir);
+}
+
+TEST_F(PlayerSwimTest, EnteringWaterWithoutWorldDoesNotCrash) {
+    player->setInWater(true);
+
+    player->updateAirSupply();
+    EXPECT_LT(player->air(), DEFAULT_MAX_AIR);
 }
 
 // ============================================================================
