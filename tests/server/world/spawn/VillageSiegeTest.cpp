@@ -120,11 +120,12 @@ TEST_F(VillageSiegeTest, Tick_DaytimeResetsState) {
 // ========== 午夜检测测试 ==========
 
 TEST_F(VillageSiegeTest, Midnight_DetectionRange) {
-    // 午夜时间范围：18000-18200 tick
-    // 参考 MC 1.16.5 天体角度计算
-    // 天体角度 0.5 对应游戏时间约 18000
+    // 午夜精确时间：18000 tick
+    // 参考 MC 1.16.5 VillageSiege.func_230253_a_
+    // 天体角度 celestialAngle == 0.5 精确对应 dayTime == 18000
+    // 数学推导：d0 = frac(18000/24000 - 0.25) = 0.5, result = 0.5
     EXPECT_GE(18000, 0);
-    EXPECT_LE(18200, game::DAY_LENGTH_TICKS);
+    EXPECT_LT(18000, game::DAY_LENGTH_TICKS);
 }
 
 // ========== 常量验证测试 ==========
