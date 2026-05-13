@@ -366,6 +366,10 @@ public:
     static Block* MELON;               // 西瓜方块
     static Block* PUMPKIN;             // 南瓜方块（可被剪刀雕刻）
     static Block* CARVED_PUMPKIN;      // 雕刻南瓜（可生成傀儡）
+    static Block* MELON_STEM;          // 西瓜茎
+    static Block* PUMPKIN_STEM;        // 南瓜茎
+    static Block* ATTACHED_MELON_STEM; // 连接西瓜茎（西瓜生成后茎变成的方块）
+    static Block* ATTACHED_PUMPKIN_STEM; // 连接南瓜茎（南瓜生成后茎变成的方块）
     // 注意：JACK_O_LANTERN 在其他方块部分定义
 
     static Block* NETHERRACK;

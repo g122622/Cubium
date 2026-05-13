@@ -344,6 +344,10 @@ Block* VanillaBlocks::GLASS = nullptr;
 Block* VanillaBlocks::MELON = nullptr;
 Block* VanillaBlocks::PUMPKIN = nullptr;
 Block* VanillaBlocks::CARVED_PUMPKIN = nullptr;
+Block* VanillaBlocks::MELON_STEM = nullptr;
+Block* VanillaBlocks::PUMPKIN_STEM = nullptr;
+Block* VanillaBlocks::ATTACHED_MELON_STEM = nullptr;
+Block* VanillaBlocks::ATTACHED_PUMPKIN_STEM = nullptr;
 
 Block* VanillaBlocks::NETHERRACK = nullptr;
 Block* VanillaBlocks::GLOWSTONE = nullptr;
@@ -2362,11 +2366,11 @@ void VanillaBlocks::registerPumpkinMelonBlocks() {
     // 南瓜 - 可用剪刀雕刻成雕刻南瓜
     // 参考: net.minecraft.block.PumpkinBlock
     // MC 1.16.5: Material.GOURD, hardness 1.0
-    // 注意：暂时传入 nullptr 作为茎和连接茎，后续需要更新
+    // 注意：茎指针暂时为 nullptr，在茎注册后更新
     PUMPKIN = &registry.registerBlock<blocks::PumpkinBlock>(
         ResourceLocation("minecraft:pumpkin"),
-        nullptr,  // stem - 暂时为 nullptr
-        nullptr,  // attachedStem - 暂时为 nullptr
+        nullptr,  // stem - 暂时为 nullptr，稍后更新
+        nullptr,  // attachedStem - 暂时为 nullptr，稍后更新
         CARVED_PUMPKIN,  // carvedPumpkin - 已注册的雕刻南瓜
         BlockProperties(Material::EARTH).hardness(1.0f)
     );
@@ -2374,13 +2378,67 @@ void VanillaBlocks::registerPumpkinMelonBlocks() {
     // 西瓜方块
     // 参考: net.minecraft.block.MelonBlock
     // MC 1.16.5: Material.GOURD, hardness 1.0
-    // 注意：暂时传入 nullptr 作为茎和连接茎
+    // 注意：茎指针暂时为 nullptr，在茎注册后更新
     MELON = &registry.registerBlock<blocks::MelonBlock>(
         ResourceLocation("minecraft:melon"),
-        nullptr,  // stem - 暂时为 nullptr
-        nullptr,  // attachedStem - 暂时为 nullptr
+        nullptr,  // stem - 暂时为 nullptr，稍后更新
+        nullptr,  // attachedStem - 暂时为 nullptr，稍后更新
         BlockProperties(Material::EARTH).hardness(1.0f)
     );
+
+    // 注册茎方块（可以引用已注册的果实方块）
+    // MC 1.16.5 茎方块属性：Material.PLANTS, 不稳固, 无碰撞, hardness 0.0
+
+    // 南瓜茎
+    // 参考: net.minecraft.block.StemBlock (PUMPKIN_STEM)
+    PUMPKIN_STEM = &registry.registerBlock<blocks::PumpkinStemBlock>(
+        ResourceLocation("minecraft:pumpkin_stem"),
+        static_cast<const blocks::StemGrownBlock*>(PUMPKIN),  // 果实已注册
+        BlockProperties(Material::PLANT)
+            .hardness(0.0f)
+            .noCollision()
+            .notSolid()
+    );
+
+    // 连接南瓜茎（南瓜生成后茎变成的方块）
+    // 参考: net.minecraft.block.AttachedStemBlock (ATTACHED_PUMPKIN_STEM)
+    ATTACHED_PUMPKIN_STEM = &registry.registerBlock<blocks::PumpkinAttachedStemBlock>(
+        ResourceLocation("minecraft:attached_pumpkin_stem"),
+        static_cast<const blocks::StemGrownBlock*>(PUMPKIN),  // 果实已注册
+        BlockProperties(Material::PLANT)
+            .hardness(0.0f)
+            .noCollision()
+            .notSolid()
+    );
+
+    // 西瓜茎
+    // 参考: net.minecraft.block.StemBlock (MELON_STEM)
+    MELON_STEM = &registry.registerBlock<blocks::MelonStemBlock>(
+        ResourceLocation("minecraft:melon_stem"),
+        static_cast<const blocks::StemGrownBlock*>(MELON),  // 果实已注册
+        BlockProperties(Material::PLANT)
+            .hardness(0.0f)
+            .noCollision()
+            .notSolid()
+    );
+
+    // 连接西瓜茎（西瓜生成后茎变成的方块）
+    // 参考: net.minecraft.block.AttachedStemBlock (ATTACHED_MELON_STEM)
+    ATTACHED_MELON_STEM = &registry.registerBlock<blocks::MelonAttachedStemBlock>(
+        ResourceLocation("minecraft:attached_melon_stem"),
+        static_cast<const blocks::StemGrownBlock*>(MELON),  // 果实已注册
+        BlockProperties(Material::PLANT)
+            .hardness(0.0f)
+            .noCollision()
+            .notSolid()
+    );
+
+    // 更新果实方块的茎指针（解决循环依赖）
+    // MC 1.16.5: 果实方块需要知道对应的茎和连接茎
+    static_cast<blocks::PumpkinBlock*>(PUMPKIN)->setStem(PUMPKIN_STEM);
+    static_cast<blocks::PumpkinBlock*>(PUMPKIN)->setAttachedStem(ATTACHED_PUMPKIN_STEM);
+    static_cast<blocks::MelonBlock*>(MELON)->setStem(MELON_STEM);
+    static_cast<blocks::MelonBlock*>(MELON)->setAttachedStem(ATTACHED_MELON_STEM);
 }
 
 // ============================================================================

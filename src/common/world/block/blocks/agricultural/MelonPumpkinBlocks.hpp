@@ -34,6 +34,20 @@ public:
     [[nodiscard]] const Block* getStem() const override { return m_stem; }
     [[nodiscard]] const Block* getAttachedStem() const override { return m_attachedStem; }
 
+    // ========== 茎指针设置（用于解决循环依赖） ==========
+
+    /**
+     * @brief 设置茎方块指针
+     * @param stem 茎方块指针
+     */
+    void setStem(const Block* stem) { m_stem = stem; }
+
+    /**
+     * @brief 设置连接茎方块指针
+     * @param attachedStem 连接茎方块指针
+     */
+    void setAttachedStem(const Block* attachedStem) { m_attachedStem = attachedStem; }
+
 private:
     const Block* m_stem;
     const Block* m_attachedStem;
@@ -63,6 +77,20 @@ public:
 
     [[nodiscard]] const Block* getStem() const override { return m_stem; }
     [[nodiscard]] const Block* getAttachedStem() const override { return m_attachedStem; }
+
+    // ========== 茎指针设置（用于解决循环依赖） ==========
+
+    /**
+     * @brief 设置茎方块指针
+     * @param stem 茎方块指针
+     */
+    void setStem(const Block* stem) { m_stem = stem; }
+
+    /**
+     * @brief 设置连接茎方块指针
+     * @param attachedStem 连接茎方块指针
+     */
+    void setAttachedStem(const Block* attachedStem) { m_attachedStem = attachedStem; }
 
     // ========== 交互接口 ==========
 
@@ -224,6 +252,110 @@ private:
      * @return 是否成功生成傀儡
      */
     bool trySpawnGolem(IWorld& world, const BlockPos& pos);
+};
+
+// ============================================================================
+// 茎类方块具体实现
+// ============================================================================
+
+/**
+ * @brief 西瓜茎方块
+ *
+ * 西瓜的茎类作物，生长成熟后在相邻位置生成西瓜方块。
+ *
+ * 参考: net.minecraft.block.StemBlock (西瓜茎变体)
+ */
+class MelonStemBlock : public StemBlock {
+public:
+    /**
+     * @brief 构造函数
+     * @param crop 对应的果实方块（西瓜）
+     * @param properties 方块属性
+     */
+    MelonStemBlock(const StemGrownBlock* crop, const BlockProperties& properties);
+
+    ~MelonStemBlock() override = default;
+
+    /**
+     * @brief 获取种子物品ID
+     * @return 西瓜种子物品ID
+     */
+    [[nodiscard]] u32 getSeedItem() const override;
+};
+
+/**
+ * @brief 南瓜茎方块
+ *
+ * 南瓜的茎类作物，生长成熟后在相邻位置生成南瓜方块。
+ *
+ * 参考: net.minecraft.block.StemBlock (南瓜茎变体)
+ */
+class PumpkinStemBlock : public StemBlock {
+public:
+    /**
+     * @brief 构造函数
+     * @param crop 对应的果实方块（南瓜）
+     * @param properties 方块属性
+     */
+    PumpkinStemBlock(const StemGrownBlock* crop, const BlockProperties& properties);
+
+    ~PumpkinStemBlock() override = default;
+
+    /**
+     * @brief 获取种子物品ID
+     * @return 南瓜种子物品ID
+     */
+    [[nodiscard]] u32 getSeedItem() const override;
+};
+
+/**
+ * @brief 连接西瓜茎方块
+ *
+ * 西瓜生成后茎变成的方块，朝向西瓜方向。
+ *
+ * 参考: net.minecraft.block.AttachedStemBlock (西瓜变体)
+ */
+class MelonAttachedStemBlock : public AttachedStemBlock {
+public:
+    /**
+     * @brief 构造函数
+     * @param crop 对应的果实方块（西瓜）
+     * @param properties 方块属性
+     */
+    MelonAttachedStemBlock(const StemGrownBlock* crop, const BlockProperties& properties);
+
+    ~MelonAttachedStemBlock() override = default;
+
+    /**
+     * @brief 获取种子物品ID
+     * @return 西瓜种子物品ID
+     */
+    [[nodiscard]] u32 getSeedItem() const override;
+};
+
+/**
+ * @brief 连接南瓜茎方块
+ *
+ * 南瓜生成后茎变成的方块，朝向南瓜方向。
+ *
+ * 参考: net.minecraft.block.AttachedStemBlock (南瓜变体)
+ */
+class PumpkinAttachedStemBlock : public AttachedStemBlock {
+public:
+    /**
+     * @brief 构造函数
+     * @param crop 对应的果实方块（南瓜）
+     * @param properties 方块属性
+     */
+    PumpkinAttachedStemBlock(const StemGrownBlock* crop, const BlockProperties& properties);
+
+    ~PumpkinAttachedStemBlock() override = default;
+
+    /**
+     * @brief 获取种子物品ID
+     * @return 南瓜种子物品ID
+     */
+    [[nodiscard]] u32 getSeedItem() const override;
 };
 
 } // namespace blocks

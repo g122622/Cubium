@@ -679,5 +679,69 @@ bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos) {
     return false;
 }
 
+// ============================================================================
+// MelonStemBlock - 西瓜茎
+// ============================================================================
+
+MelonStemBlock::MelonStemBlock(const StemGrownBlock* crop, const BlockProperties& properties)
+    : StemBlock(crop, properties) {
+}
+
+u32 MelonStemBlock::getSeedItem() const {
+    // 返回西瓜种子物品ID
+    if (Items::MELON_SEEDS != nullptr) {
+        return Items::MELON_SEEDS->itemId();
+    }
+    return 0;
+}
+
+// ============================================================================
+// PumpkinStemBlock - 南瓜茎
+// ============================================================================
+
+PumpkinStemBlock::PumpkinStemBlock(const StemGrownBlock* crop, const BlockProperties& properties)
+    : StemBlock(crop, properties) {
+}
+
+u32 PumpkinStemBlock::getSeedItem() const {
+    // 返回南瓜种子物品ID
+    if (Items::PUMPKIN_SEEDS != nullptr) {
+        return Items::PUMPKIN_SEEDS->itemId();
+    }
+    return 0;
+}
+
+// ============================================================================
+// MelonAttachedStemBlock - 连接西瓜茎
+// ============================================================================
+
+MelonAttachedStemBlock::MelonAttachedStemBlock(const StemGrownBlock* crop, const BlockProperties& properties)
+    : AttachedStemBlock(crop, properties) {
+}
+
+u32 MelonAttachedStemBlock::getSeedItem() const {
+    // 返回西瓜种子物品ID
+    if (Items::MELON_SEEDS != nullptr) {
+        return Items::MELON_SEEDS->itemId();
+    }
+    return 0;
+}
+
+// ============================================================================
+// PumpkinAttachedStemBlock - 连接南瓜茎
+// ============================================================================
+
+PumpkinAttachedStemBlock::PumpkinAttachedStemBlock(const StemGrownBlock* crop, const BlockProperties& properties)
+    : AttachedStemBlock(crop, properties) {
+}
+
+u32 PumpkinAttachedStemBlock::getSeedItem() const {
+    // 返回南瓜种子物品ID
+    if (Items::PUMPKIN_SEEDS != nullptr) {
+        return Items::PUMPKIN_SEEDS->itemId();
+    }
+    return 0;
+}
+
 } // namespace blocks
 } // namespace mc
