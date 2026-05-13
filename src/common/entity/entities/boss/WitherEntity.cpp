@@ -1,5 +1,6 @@
 #include "WitherEntity.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/gamerule/GameRules.hpp"
 #include "../../attribute/Attributes.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../../sound/SoundEvents.hpp"
@@ -368,7 +369,11 @@ f32 WitherEntity::getHeadZ(i32 head) const {
 
 void WitherEntity::breakNearbyBlocks() {
     // MC 1.16.5: 破坏凋灵周围的方块
-    // TODO: 检查 mobGriefing 游戏规则
+    // 检查 mobGriefing 游戏规则
+    IWorld* worldPtr = world();
+    if (!worldPtr || !worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+        return;
+    }
     // TODO: 破坏 1x2x1 范围内的方块（凋灵免疫标签除外）
 }
 

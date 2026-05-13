@@ -13,6 +13,7 @@
 #include "../../inventory/CreativeInventory.hpp"
 #include "../../experience/ExperienceDropHandler.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/gamerule/GameRules.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockSoundType.hpp"
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
@@ -449,8 +450,9 @@ void Player::tick() {
     // 饥饿系统 tick
     // 只有生存模式和冒险模式才处理饥饿
     if (m_gameMode == GameMode::Survival || m_gameMode == GameMode::Adventure) {
-        // TODO: 从世界获取游戏规则 naturalRegeneration
-        bool naturalRegeneration = true;  // 默认启用自然恢复
+        // 从世界获取游戏规则 naturalRegeneration
+        bool naturalRegeneration = m_world ? m_world->getGameRules().getBoolean(
+            world::gamerule::GameRuleKeys::NATURAL_REGENERATION) : true;
         // 从世界获取难度，如果没有世界则默认为 Normal
         Difficulty difficulty = m_world ? m_world->difficulty() : Difficulty::Normal;
         m_foodStats.tick(*this, difficulty, naturalRegeneration);

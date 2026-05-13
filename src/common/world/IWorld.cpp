@@ -5,8 +5,18 @@
 #include "entity/core/Entity.hpp"
 #include "redstone/RedstoneSystem.hpp"
 #include "util/Direction.hpp"
+#include "gamerule/GameRules.hpp"
 
 namespace mc {
+
+// 静态默认 GameRules 实例，用于 IWorld 默认实现
+// 这避免了每个调用 getGameRules() 的地方都需要处理返回值问题
+namespace {
+world::gamerule::GameRules& getDefaultGameRules() {
+    static world::gamerule::GameRules s_defaultRules;
+    return s_defaultRules;
+}
+} // namespace
 
 bool IWorld::hasFluid(i32 x, i32 y, i32 z) const {
     const fluid::FluidState* fluidState = getFluidState(x, y, z);
@@ -67,6 +77,17 @@ void IWorld::updateNeighborsExcept(const BlockPos& pos, Block& sourceBlock, Dire
     // MC 1.16.5: notifyNeighborsOfStateExcept
     // 委托给 RedstoneSystem 实现
     world::redstone::RedstoneSystem::instance().updateNeighborsExcept(*this, pos, sourceBlock, except);
+}
+
+const world::gamerule::GameRules& IWorld::getGameRules() const {
+    // 默认实现返回静态默认规则
+    // ServerWorld 会重写此方法返回实际的游戏规则
+    return getDefaultGameRules();
+}
+
+world::gamerule::GameRules& IWorld::getGameRules() {
+    // 默认实现返回静态默认规则
+    return getDefaultGameRules();
 }
 
 } // namespace mc

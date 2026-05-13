@@ -32,6 +32,7 @@
 #include "common/world/storage/core/WorldStoragePaths.hpp"
 #include "common/world/storage/db/ConsistencyMode.hpp"
 #include "common/world/storage/save/SaveManager.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/util/Direction.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -856,7 +857,9 @@ void ServerWorld::tick()
     // 调试世界不执行随机刻
     if (!isDebugWorld()) {
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::EnvironmentTick");
-        tickEnvironment(m_randomTickSpeed);
+        // 从游戏规则获取随机刻速度
+        i32 randomTickSpeed = m_gameRules.getInt(world::gamerule::GameRuleKeys::RANDOM_TICK_SPEED);
+        tickEnvironment(randomTickSpeed);
     }
 
     // 调试世界不执行红石清理

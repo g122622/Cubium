@@ -412,6 +412,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopSoundCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/EnchantCommand.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameRuleCommand.cpp
     # P3 命令
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/AdvancementCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/BossBarCommand.cpp

@@ -1,0 +1,145 @@
+/**
+ * @file GameRuleCommand.cpp
+ * @brief /gamerule 命令实现
+ *
+ * 参考 MC 1.16.5: net.minecraft.server.command.GameRuleCommand
+ */
+
+#include "GameRuleCommand.hpp"
+#include "common/command/CommandContext.hpp"
+#include "common/command/arguments/ArgumentType.hpp"
+#include "common/world/gamerule/GameRules.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "spdlog/spdlog.h"
+
+namespace mc::command {
+
+void GameRuleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher) {
+    // /gamerule <rule> - 查询规则值
+    auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("gamerule");
+    queryNode->setRequirement([](const ServerCommandSource& source) {
+        // 需要 OP 权限等级 2 或更高
+        return source.hasPermission(2);
+    });
+
+    // /gamerule <rule> <value> - 设置规则值
+    auto ruleArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "rule",
+        StringArgumentType::string()
+    );
+
+    auto valueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "value",
+        StringArgumentType::greedyString()
+    );
+
+    // 构建命令树
+    // /gamerule <rule> -> 查询
+    ruleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return executeQuery(ctx);
+    });
+
+    // /gamerule <rule> <value> -> 设置
+    valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return executeSet(ctx);
+    });
+
+    // 连接节点
+    queryNode->addChild(ruleArg);
+    ruleArg->addChild(valueArg);
+
+    dispatcher.registerCommand(queryNode);
+}
+
+i32 GameRuleCommand::executeQuery(CommandContext<ServerCommandSource>& context) {
+    auto& source = context.getSource();
+    std::string ruleName = context.getArgument<std::string>("rule");
+
+    // 获取世界
+    server::ServerWorld* world = source.world();
+    if (!world) {
+        source.sendError("No world available");
+        return 0;
+    }
+
+    const auto& gameRules = world->getGameRules();
+
+    // 检查规则是否存在
+    if (!world::gamerule::GameRules::hasRule(ruleName)) {
+        source.sendError("Unknown game rule: " + ruleName);
+        return 0;
+    }
+
+    // 获取规则类型并返回值
+    auto ruleType = world::gamerule::GameRules::getRuleType(ruleName);
+    if (!ruleType) {
+        source.sendError("Unknown game rule: " + ruleName);
+        return 0;
+    }
+
+    std::string valueStr;
+    if (*ruleType == world::gamerule::GameRuleValueType::Boolean) {
+        // 创建临时键来获取值
+        world::gamerule::BooleanGameRuleKey key(ruleName, world::gamerule::GameRuleCategory::Misc);
+        bool value = gameRules.getBoolean(key);
+        valueStr = value ? "true" : "false";
+    } else {
+        // 创建临时键来获取值
+        world::gamerule::IntegerGameRuleKey key(ruleName, world::gamerule::GameRuleCategory::Misc);
+        i32 value = gameRules.getInt(key);
+        valueStr = std::to_string(value);
+    }
+
+    source.sendMessage("Game rule " + ruleName + " is currently: " + valueStr);
+    return 1;
+}
+
+i32 GameRuleCommand::executeSet(CommandContext<ServerCommandSource>& context) {
+    auto& source = context.getSource();
+    std::string ruleName = context.getArgument<std::string>("rule");
+    std::string valueStr = context.getArgument<std::string>("value");
+
+    // 获取世界
+    server::ServerWorld* world = source.world();
+    if (!world) {
+        source.sendError("No world available");
+        return 0;
+    }
+
+    auto& gameRules = world->getGameRules();
+
+    // 检查规则是否存在
+    if (!world::gamerule::GameRules::hasRule(ruleName)) {
+        source.sendError("Unknown game rule: " + ruleName);
+        return 0;
+    }
+
+    // 尝试设置规则值
+    if (gameRules.setFromString(ruleName, valueStr, nullptr)) {
+        // 获取设置后的值用于反馈
+        auto ruleType = world::gamerule::GameRules::getRuleType(ruleName);
+        std::string displayValue = valueStr;
+
+        // 格式化显示值
+        if (ruleType == world::gamerule::GameRuleValueType::Boolean) {
+            // 转换为标准 true/false 格式
+            std::transform(valueStr.begin(), valueStr.end(), valueStr.begin(),
+                           [](unsigned char c) { return std::tolower(c); });
+            displayValue = (valueStr == "true" || valueStr == "1") ? "true" : "false";
+        }
+
+        source.sendMessage("Game rule " + ruleName + " has been updated to " + displayValue);
+        spdlog::info("Game rule '{}' changed to '{}' by {}",
+                     ruleName, displayValue, source.name());
+        return 1;
+    } else {
+        source.sendError("Invalid value for game rule " + ruleName + ": " + valueStr);
+        return 0;
+    }
+}
+
+std::vector<std::string> GameRuleCommand::getAllRuleNames() {
+    return world::gamerule::GameRules::getRuleNames();
+}
+
+} // namespace mc::command

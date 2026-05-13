@@ -1,5 +1,6 @@
 #include "TurtleEggBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../gamerule/GameRules.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../../../entity/entities/passive/special/TurtleEntity.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
@@ -217,7 +218,7 @@ bool TurtleEggBlock::hasProperHabitat(IBlockReader& world, const BlockPos& pos) 
     return belowState != nullptr && BlockTags::SAND().contains(*belowState);
 }
 
-bool TurtleEggBlock::canTrample(IWorld& /*world*/, Entity& entity) const {
+bool TurtleEggBlock::canTrample(IWorld& world, Entity& entity) const {
     // MC 1.16.5: 只有玩家或满足 mobGriefing 的生物才能踩破蛋
     // 海龟和蝙蝠不能踩破蛋
 
@@ -254,10 +255,8 @@ bool TurtleEggBlock::canTrample(IWorld& /*world*/, Entity& entity) const {
         return true;
     }
 
-    // TODO: 检查 mobGriefing 游戏规则
-    // return world.getGameRules().getBoolean(GameRule::MOB_GRIEFING);
-    // 暂时返回 true（其他生物可以踩破）
-    return true;
+    // 检查 mobGriefing 游戏规则
+    return world.getGameRules().getBoolean(mc::world::gamerule::GameRuleKeys::MOB_GRIEFING);
 }
 
 void TurtleEggBlock::tryTrample(IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, i32 chance) const {

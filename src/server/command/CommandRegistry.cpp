@@ -58,6 +58,7 @@
 #include "commands/AdvancementCommand.hpp"
 #include "commands/DataPackCommand.hpp"
 #include "commands/ForceLoadCommand.hpp"
+#include "commands/GameRuleCommand.hpp"
 #include "commands/LootCommand.hpp"
 #include "commands/PublishCommand.hpp"
 #include "commands/RecipeCommand.hpp"
@@ -168,6 +169,7 @@ void CommandRegistry::registerDefaults() {
     ReplaceItemCommand::registerTo(m_dispatcher);
     SpectateCommand::registerTo(m_dispatcher);
     TriggerCommand::registerTo(m_dispatcher);
+    GameRuleCommand::registerTo(m_dispatcher);
     m_defaultsRegistered = true;
 
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());

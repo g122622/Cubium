@@ -15,6 +15,7 @@
 #include "common/world/storage/WorldStorageService.hpp"
 #include "common/world/storage/save/SaveManager.hpp"
 #include "common/world/border/WorldBorder.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/physics/CollisionCache.hpp"
 #include "common/world/WorldConfig.hpp"
@@ -265,6 +266,28 @@ public:
 
     [[nodiscard]] math::Random& getRandom() override { return m_random; }
     [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+    // ========== 游戏规则 ==========
+
+    /**
+     * @brief 获取游戏规则管理器（只读）
+     *
+     * 参考 MC 1.16.5: World.getGameRules()
+     *
+     * @return GameRules 常引用
+     */
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override {
+        return m_gameRules;
+    }
+
+    /**
+     * @brief 获取游戏规则管理器（可变）
+     *
+     * @return GameRules 引用
+     */
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override {
+        return m_gameRules;
+    }
 
     // ========== 类型转换 ==========
 
@@ -739,7 +762,9 @@ private:
     // 随机刻系统
     math::Random m_random;            ///< 世界随机数生成器
     i64 m_updateLCG = 0;              ///< 用于随机刻位置的 LCG 状态
-    i32 m_randomTickSpeed = 3;        ///< 随机刻速度（游戏规则可配置）
+
+    // 游戏规则
+    world::gamerule::GameRules m_gameRules;  ///< 游戏规则管理器
 
     // 世界边界
     world::border::WorldBorder m_worldBorder;  ///< 世界边界

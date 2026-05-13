@@ -109,6 +109,8 @@ add_executable(mc_tests
     common/entity/combat/CombatRulesEPFTest.cpp
     # 横扫攻击静止检测条件测试
     common/entity/combat/SweepAttackConditionTest.cpp
+    # GameRules 游戏规则测试
+    common/world/gamerule/GameRulesTest.cpp
     common/world/blockentity/BlockEntityTest.cpp
     common/world/blockentity/ChestEntityTest.cpp
     common/world/blockentity/FurnaceEntityTest.cpp
@@ -583,6 +585,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopSoundCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/EnchantCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameRuleCommand.cpp
         # P3 命令
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/AdvancementCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/BossBarCommand.cpp
@@ -1273,6 +1276,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopSoundCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/EnchantCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameRuleCommand.cpp
         # P3 命令
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/AdvancementCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/BossBarCommand.cpp

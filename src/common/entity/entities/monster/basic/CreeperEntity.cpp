@@ -9,6 +9,7 @@
 #include "../../../damage/DamageSource.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/explosion/ExplosionMode.hpp"
+#include "../../../../world/gamerule/GameRules.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include <memory>
@@ -84,9 +85,12 @@ void CreeperEntity::explode() {
         radius *= 2.0f;
     }
 
-    // 苦力怕爆炸模式：DESTROY（破坏方块并掉落物品）
-    // TODO: 检查游戏规则 mobGriefing，如果为 false 则使用 NONE
+    // 苦力怕爆炸模式：检查 mobGriefing 游戏规则
+    // 如果 mobGriefing 为 false，则使用 NONE（不破坏方块）
     world::explosion::ExplosionMode mode = world::explosion::ExplosionMode::Destroy;
+    if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+        mode = world::explosion::ExplosionMode::None;
+    }
 
     // 创建爆炸
     worldPtr->createExplosion(

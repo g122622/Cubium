@@ -126,6 +126,7 @@ add_executable(minecraft-server
     command/commands/AdvancementCommand.cpp
     command/commands/DataPackCommand.cpp
     command/commands/ForceLoadCommand.cpp
+    command/commands/GameRuleCommand.cpp
     command/commands/LootCommand.cpp
     command/commands/PublishCommand.cpp
     command/commands/RecipeCommand.cpp

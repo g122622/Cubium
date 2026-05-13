@@ -42,6 +42,10 @@ namespace world::village {
 class VillageManager;  // 前向声明
 }
 
+namespace world::gamerule {
+class GameRules;  // 前向声明
+}
+
 namespace loot {
 class LootTableManager;  // 前向声明
 }
@@ -922,6 +926,28 @@ public:
         (void)villager;
         // 默认空实现
     }
+
+    // ========== 游戏规则 ==========
+
+    /**
+     * @brief 获取游戏规则管理器（只读）
+     *
+     * 游戏规则控制世界行为，如 mobGriefing、naturalRegeneration 等。
+     * ServerWorld 返回有效的 GameRules 实例。
+     * ClientWorld 和其他实现应返回默认规则。
+     *
+     * 参考 MC 1.16.5: World.getGameRules()
+     *
+     * @return GameRules 常引用
+     */
+    [[nodiscard]] virtual const world::gamerule::GameRules& getGameRules() const;
+
+    /**
+     * @brief 获取游戏规则管理器（可变）
+     *
+     * @return GameRules 引用
+     */
+    [[nodiscard]] virtual world::gamerule::GameRules& getGameRules();
 
 protected:
     IWorld() = default;

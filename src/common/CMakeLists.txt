@@ -408,6 +408,10 @@ add_library(mc_common STATIC
     # World - IWorld implementation
     world/IWorld.cpp
 
+    # World - Game Rules
+    world/gamerule/GameRule.cpp
+    world/gamerule/GameRules.cpp
+
     # World - Spawn
     world/spawn/MobSpawnInfo.cpp
 
