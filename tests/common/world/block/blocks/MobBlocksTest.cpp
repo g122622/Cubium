@@ -1,5 +1,9 @@
 #include <gtest/gtest.h>
-#include "world/block/blocks/mob/MobBlocks.hpp"
+#include "world/block/blocks/mob/BeehiveBlock.hpp"
+#include "world/block/blocks/mob/TurtleEggBlock.hpp"
+#include "world/block/blocks/mob/InfestedBlock.hpp"
+#include "world/block/blocks/mob/SpawnerBlock.hpp"
+#include "world/block/blocks/mob/DragonBreathBlock.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/VanillaBlocks.hpp"
 #include "world/IWorld.hpp"

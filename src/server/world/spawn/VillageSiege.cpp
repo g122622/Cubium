@@ -277,10 +277,22 @@ bool VillageSiege::canMonsterSpawnAt(IWorld& world, const BlockPos& pos) {
 
 bool VillageSiege::isMidnight(server::ServerWorld& world) const {
     // MC 1.16.5: celestialAngle == 0.5 表示午夜
-    // 天体角度计算：((dayTime % 24000) / 24000 - 0.25) 经过余弦变换后约为 0.5
-    // 简化检查：游戏时间在 18000-18200 范围内视为午夜
+    // 参考: VillageSiege.func_230253_a_ 第 33-34 行:
+    //   float f = world.func_242415_f(0.0F);  // getCelestialAngle
+    //   if ((double)f == 0.5D) { ... }
+    //
+    // 天体角度计算公式来自 DimensionType.func_236032_b_():
+    // 当 dayTime = 18000 时，精确得到 celestialAngle = 0.5
+    //
+    // 数学推导：
+    // d0 = frac(18000/24000 - 0.25) = frac(0.75 - 0.25) = frac(0.5) = 0.5
+    // d1 = 0.5 - cos(0.5 * PI) / 2 = 0.5 - cos(90°) / 2 = 0.5 - 0 = 0.5
+    // result = (0.5 * 2 + 0.5) / 3 = 1.5 / 3 = 0.5
+    //
+    // 由于浮点精度问题，直接比较 celestialAngle == 0.5 可能不够稳定，
+    // 而 dayTime 是整数，精确检查 dayTime == 18000 更可靠。
     const i64 worldDayTime = world.dayTime() % game::DAY_LENGTH_TICKS;
-    return worldDayTime >= 18000 && worldDayTime <= 18200;
+    return worldDayTime == 18000;
 }
 
 bool VillageSiege::isInValidVillage(server::ServerWorld& world, const BlockPos& playerPos) {

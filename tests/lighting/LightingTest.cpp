@@ -248,42 +248,61 @@ protected:
 };
 
 TEST_F(InternalLightTest, GetCelestialAngle) {
-    // 日出 (dayTime = 0) -> celestialAngle = 0.0
+    // 简单线性天体角度计算
+    // celestialAngle = dayTime % 24000 / 24000.0
+    // 0.0 = 日出, 0.25 = 正午, 0.5 = 日落, 0.75 = 午夜
+
+    // 日出 (dayTime = 0): celestialAngle = 0.0
     EXPECT_NEAR(mc::InternalLightUtils::getCelestialAngle(0), 0.0f, 0.01f);
 
-    // 正午 (dayTime = 6000) -> celestialAngle = 0.25
+    // 正午 (dayTime = 6000): celestialAngle = 0.25
     EXPECT_NEAR(mc::InternalLightUtils::getCelestialAngle(6000), 0.25f, 0.01f);
 
-    // 日落 (dayTime = 12000) -> celestialAngle = 0.5
+    // 日落 (dayTime = 12000): celestialAngle = 0.5
     EXPECT_NEAR(mc::InternalLightUtils::getCelestialAngle(12000), 0.5f, 0.01f);
 
-    // 午夜 (dayTime = 18000) -> celestialAngle = 0.75
+    // 午夜 (dayTime = 18000): celestialAngle = 0.75
     EXPECT_NEAR(mc::InternalLightUtils::getCelestialAngle(18000), 0.75f, 0.01f);
 }
 
 TEST_F(InternalLightTest, CalculateSkyDarkening) {
+    // 天空减暗计算：
+    // sunHeight = sin(celestialAngle * 2π)
+    // brightness = (sunHeight + 1) / 2
+    // darkening = (1 - brightness) * 11
+    //
+    // 使用简单线性天体角度：
+    // - 正午 (dayTime=6000, celestialAngle=0.25): sin(π/2)=1, brightness=1, darkening=0
+    // - 午夜 (dayTime=18000, celestialAngle=0.75): sin(3π/2)=-1, brightness=0, darkening=11
+    // - 日出/日落 (celestialAngle=0/0.5): sin=0, brightness=0.5, darkening≈5
+
     // 正午 (dayTime = 6000) - 最亮，减暗为0
     mc::i32 noonDarkening = mc::InternalLightUtils::calculateSkyDarkening(6000, false, false);
     EXPECT_EQ(noonDarkening, 0);
 
-    // 午夜 (dayTime = 18000) - 最暗，减暗约11
+    // 午夜 (dayTime = 18000) - 最暗，减暗为11
     mc::i32 midnightDarkening = mc::InternalLightUtils::calculateSkyDarkening(18000, false, false);
-    EXPECT_GT(midnightDarkening, 5);
-    EXPECT_LE(midnightDarkening, 11);
+    EXPECT_EQ(midnightDarkening, 11);
 
-    // 日出/日落 - 中等亮度
+    // 日出 (dayTime = 0) - 中等亮度，约5
     mc::i32 sunriseDarkening = mc::InternalLightUtils::calculateSkyDarkening(0, false, false);
+    EXPECT_GT(sunriseDarkening, noonDarkening);   // 比正午暗
+    EXPECT_LT(sunriseDarkening, midnightDarkening); // 比午夜亮
+    EXPECT_NEAR(sunriseDarkening, 5, 1);  // 约等于5
+
+    // 日落 (dayTime = 12000) - 中等亮度，约5
     mc::i32 sunsetDarkening = mc::InternalLightUtils::calculateSkyDarkening(12000, false, false);
-    EXPECT_GT(sunriseDarkening, noonDarkening);
-    EXPECT_GT(sunsetDarkening, noonDarkening);
+    EXPECT_GT(sunsetDarkening, noonDarkening);   // 比正午暗
+    EXPECT_LT(sunsetDarkening, midnightDarkening); // 比午夜亮
+    EXPECT_NEAR(sunsetDarkening, 5, 1);  // 约等于5
 
-    // 下雨 - 天空变暗
+    // 下雨 - 天空变暗（+3，最多到11）
     mc::i32 rainDarkening = mc::InternalLightUtils::calculateSkyDarkening(6000, true, false);
-    EXPECT_GT(rainDarkening, noonDarkening);
+    EXPECT_EQ(rainDarkening, 3);  // 正午 + 3 = 3
 
-    // 雷暴 - 天空更暗
+    // 雷暴 - 天空更暗（+10，最多到11）
     mc::i32 thunderDarkening = mc::InternalLightUtils::calculateSkyDarkening(6000, false, true);
-    EXPECT_GT(thunderDarkening, rainDarkening);
+    EXPECT_EQ(thunderDarkening, 10);  // 正午 + 10 = 10
 }
 
 TEST_F(InternalLightTest, CalculateRawBrightness) {
