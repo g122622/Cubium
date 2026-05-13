@@ -469,6 +469,7 @@ if(WIN32)
 endif()
 
 mc_set_compiler_warnings(minecraft-client)
+mc_copy_runtime_dlls(minecraft-client)
 
 target_compile_features(minecraft-client PRIVATE cxx_std_20)
 

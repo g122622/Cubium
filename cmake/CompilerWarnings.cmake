@@ -35,3 +35,23 @@ function(mc_set_compiler_warnings target)
         endif()
     endif()
 endfunction()
+
+function(mc_copy_runtime_dlls target)
+    if(NOT WIN32)
+        return()
+    endif()
+
+    if(NOT DEFINED VCPKG_TARGET_TRIPLET)
+        return()
+    endif()
+
+    add_custom_command(TARGET ${target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DtargetBinary=$<TARGET_FILE:${target}>
+            -DinstalledDir=${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin
+            -DoutputDir=$<TARGET_FILE_DIR:${target}>
+            -P "${CMAKE_SOURCE_DIR}/cmake/CopyRuntimeDlls.cmake"
+        COMMENT "复制 ${target} 的运行时 DLL"
+        VERBATIM
+    )
+endfunction()

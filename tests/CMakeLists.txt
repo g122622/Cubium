@@ -1014,6 +1014,7 @@ target_compile_definitions(mc_tests
 )
 
 mc_set_compiler_warnings(mc_tests)
+mc_copy_runtime_dlls(mc_tests)
 
 # 资源测试可执行文件
 add_executable(mc_resource_tests
@@ -1064,6 +1065,7 @@ target_include_directories(mc_resource_tests
 
 # stb_image 瀹炵幇鏀惧湪TextureAtlasBuilder.cpp涓?
 mc_set_compiler_warnings(mc_resource_tests)
+mc_copy_runtime_dlls(mc_resource_tests)
 
 # 鍙戠幇娴嬭瘯
 include(GoogleTest)
@@ -1174,6 +1176,7 @@ if(MC_BUILD_CLIENT)
     )
 
     mc_set_compiler_warnings(mc_trident_tests)
+    mc_copy_runtime_dlls(mc_trident_tests)
 
     mc_register_gtests(mc_trident_tests)
 
@@ -1343,6 +1346,7 @@ target_include_directories(mc_command_tests
 )
 
 mc_set_compiler_warnings(mc_command_tests)
+mc_copy_runtime_dlls(mc_command_tests)
 
 mc_register_gtests(mc_command_tests)
 
@@ -1419,6 +1423,7 @@ target_include_directories(mc_village_tests
 )
 
 mc_set_compiler_warnings(mc_village_tests)
+mc_copy_runtime_dlls(mc_village_tests)
 
 mc_register_gtests(mc_village_tests)
 

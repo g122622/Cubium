@@ -149,6 +149,7 @@ if(WIN32)
 endif()
 
 mc_set_compiler_warnings(minecraft-server)
+mc_copy_runtime_dlls(minecraft-server)
 
 target_compile_features(minecraft-server PRIVATE cxx_std_20)
 
