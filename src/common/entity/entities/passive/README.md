@@ -69,13 +69,15 @@ MobEntity
 | MooshroomEntity | 哞菇 | 小麦 | IShearable |
 
 ### tamable/ - 可驯服动物
-| 实体 | 说明 | 驯服物品 | 接口 |
-|------|------|----------|------|
-| TameableEntity | 可驯服基类 | - | IAngerable |
-| WolfEntity | 狼 | 骨头 | - |
-| CatEntity | 猫 | 生鱼 | - |
-| OcelotEntity | 豹猫 | 生鱼 | - |
-| ParrotEntity | 鹦鹉 | 种子 | IFlyingAnimal |
+| 实体 | 说明 | 驯服物品 | 繁殖物品 | 接口 |
+|------|------|----------|----------|------|
+| TameableEntity | 可驯服基类 | - | - | IAngerable |
+| WolfEntity | 狼 | 骨头 | 肉类 | - |
+| CatEntity | 猫 | 生鱼 | 生鱼 | - |
+| OcelotEntity | 豹猫 | 生鱼(信任) | 生鳕鱼/生鲑鱼 | - |
+| ParrotEntity | 鹦鹉 | 种子 | 不可繁殖 | IFlyingAnimal |
+
+**注意**：豹猫使用信任机制而非传统驯服，详见 `tamable/README.md`。
 
 ### special/ - 特殊动物
 | 实体 | 说明 | 特殊行为 | 接口 |

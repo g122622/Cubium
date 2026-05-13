@@ -168,6 +168,83 @@ bool ParrotEntity::isTameItem(const ItemStack& itemStack) const {
 
 **参考**: `net.minecraft.entity.passive.ParrotEntity`
 
+## 豹猫信任与繁殖系统（OcelotEntity）
+
+豹猫是丛林中的害羞动物，具有独特的信任机制而非传统驯服系统。
+
+### 信任系统
+
+豹猫采用信任机制而非完全驯服：
+- `isTrusting()` - 检查是否已建立信任
+- `setTrusting(bool)` - 设置信任状态
+- `trustsPlayer(u64)` - 检查是否信任特定玩家
+- `setPlayerTrust(u64, bool)` - 设置对玩家的信任
+
+### 繁殖物品
+
+豹猫使用**生鱼**繁殖，符合 MC 1.16.5 原版行为：
+
+| 物品 | 说明 |
+|------|------|
+| 生鳕鱼 (`COD`) | 可繁殖 |
+| 生鲑鱼 (`SALMON`) | 可繁殖 |
+
+**注意**：熟鱼（熟鳕鱼、熟鲑鱼）**不能**用于繁殖豹猫。
+
+### 繁殖行为
+
+```cpp
+// OcelotEntity::isBreedingItem - 判断是否可用于繁殖
+bool OcelotEntity::isBreedingItem(const ItemStack& itemStack) const {
+    // MC 1.16.5: 豹猫使用生鳕鱼和生鲑鱼繁殖
+    // BREEDING_ITEMS = Ingredient.fromItems(Items.COD, Items.SALMON)
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+    return item == Items::COD || item == Items::SALMON;
+}
+
+// OcelotEntity::spawnBaby - 生成幼体
+std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& /*partner*/) {
+    // MC 1.16.5: OcelotEntity.func_241840_a (createChild)
+    // 创建一个新的豹猫实体，不需要继承父母特征
+    auto baby = std::make_unique<OcelotEntity>(LegacyEntityType::Unknown, 0);
+    baby->setChild(true);
+    baby->setPosition(x(), y(), z());
+    return baby;
+}
+```
+
+### 特殊属性
+
+| 属性 | 值 | 说明 |
+|------|-----|------|
+| 生命值 | 10.0 | MC 1.16.5 豹猫生命值 |
+| 移动速度 | 0.3 | MC 1.16.5 豹猫移动速度 |
+| 眼睛高度（成体） | 0.6 | 成年豹猫眼睛高度 |
+| 眼睛高度（幼体） | 0.3 | 幼年豹猫眼睛高度 |
+
+### 豹猫类型
+
+豹猫支持多种皮肤类型（MC 1.16.5 中这些类型用于驯服后的猫，豹猫本身只有野生类型）：
+
+| 类型 | 值 | 说明 |
+|------|-----|------|
+| Wild | 0 | 野生豹猫 |
+| Tuxedo | 1 | 黑白猫 |
+| Tabby | 2 | 虎斑猫 |
+| Red | 3 | 红猫 |
+| Siamese | 4 | 暹罗猫 |
+| British | 5 | 英短 |
+| Calico | 6 | 三花猫 |
+| Persian | 7 | 波斯猫 |
+| Ragdoll | 8 | 布偶猫 |
+| White | 9 | 白猫 |
+| Jellie | 10 | Jellie猫 |
+
+**参考**: `net.minecraft.entity.passive.OcelotEntity`
+
 ## AI目标
 
 | Goal | 优先级 | 说明 |
