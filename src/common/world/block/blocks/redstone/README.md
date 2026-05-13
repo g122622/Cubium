@@ -669,7 +669,7 @@ noteBlock.triggerNote(world, pos, state);
 | 骨块 (BONE_BLOCK) | 木琴 (XYLOPHONE) | `block.note_block.xylophone` |
 | 铁块 (IRON_BLOCK) | 铁片琴 (IRON_XYLOPHONE) | `block.note_block.iron_xylophone` |
 | 灵魂沙 (SOUL_SAND) | 牛铃 (COW_BELL) | `block.note_block.cow_bell` |
-| 南瓜灯 (JACK_O_LANTERN) | 迪吉里杜管 (DIDGERIDOO) | `block.note_block.didgeridoo` |
+| 南瓜 (PUMPKIN) | 迪吉里杜管 (DIDGERIDOO) | `block.note_block.didgeridoo` |
 | 绿宝石块 (EMERALD_BLOCK) | 电子音 (BIT) | `block.note_block.bit` |
 | 干草块 (HAY_BLOCK) | 班卓琴 (BANJO) | `block.note_block.banjo` |
 | 荧石 (GLOWSTONE) | 电钢琴 (PLING) | `block.note_block.pling` |

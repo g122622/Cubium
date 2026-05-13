@@ -235,10 +235,9 @@ i32 NoteBlock::getInstrumentType(IWorld& world, const BlockPos& pos) const {
     }
 
     // 南瓜 -> 迪吉里杜管 (DIDGERIDOO)
-    // 注意: MC 中检测的是 CARVED_PUMPKIN (雕刻南瓜)，不是普通南瓜
-    // 但我们的项目中雕刻南瓜可能尚未实现，暂时用 JACK_O_LANTERN 作为替代
-    // TODO: 当 CARVED_PUMPKIN 实现后替换
-    if (isBlock(belowState, VanillaBlocks::JACK_O_LANTERN)) {
+    // 参考 MC 1.16.5: NoteBlockInstrument.byState() 检测的是 PUMPKIN (普通南瓜)
+    // 注意: CARVED_PUMPKIN 和 JACK_O_LANTERN 在 MC 1.16.5 中不会触发此乐器
+    if (isBlock(belowState, VanillaBlocks::PUMPKIN)) {
         return static_cast<i32>(Instrument::Didgeridoo);
     }
 

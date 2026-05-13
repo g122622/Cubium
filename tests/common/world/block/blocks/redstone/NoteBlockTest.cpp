@@ -352,3 +352,184 @@ TEST_F(NoteBlockTest, NoteBlockMaterial) {
     const Material& material = VanillaBlocks::NOTE_BLOCK->material();
     EXPECT_EQ(material, Material::WOOD);
 }
+
+// ============================================================================
+// 乐器类型检测测试 (MC 1.16.5 对齐)
+// ============================================================================
+
+/**
+ * @brief 测试南瓜触发迪吉里杜管乐器
+ *
+ * 参考 MC 1.16.5: NoteBlockInstrument.byState() 检测 PUMPKIN 触发 DIDGERIDOO
+ * 注意: CARVED_PUMPKIN 和 JACK_O_LANTERN 在 MC 1.16.5 中不会触发此乐器
+ */
+TEST_F(NoteBlockTest, InstrumentType_PumpkinTriggersDidgeridoo) {
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(VanillaBlocks::PUMPKIN, nullptr);
+
+    // 在音符盒下方放置南瓜
+    BlockPos noteBlockPos(0, 1, 0);
+    BlockPos pumpkinPos(0, 0, 0);
+
+    m_world->setBlockAt(pumpkinPos, VanillaBlocks::PUMPKIN->defaultState());
+    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
+
+    // 触发音符盒
+    const BlockState* noteBlockState = m_world->getBlockState(noteBlockPos);
+    ASSERT_NE(noteBlockState, nullptr);
+
+    NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
+    ASSERT_NE(noteBlock, nullptr);
+
+    noteBlock->triggerNote(*m_world, noteBlockPos, *noteBlockState);
+
+    // 验证播放了 DIDGERIDOO 声音
+    const auto& sounds = m_world->playedSoundIds();
+    ASSERT_EQ(sounds.size(), 1u);
+    EXPECT_EQ(sounds[0], SoundEvents::BLOCK_NOTE_BLOCK_DIDGERIDOO);
+
+    // 验证产生了粒子效果
+    EXPECT_EQ(m_world->particleCount(), 1);
+}
+
+/**
+ * @brief 测试雕刻南瓜不触发迪吉里杜管乐器
+ *
+ * 验证 CARVED_PUMPKIN 在 MC 1.16.5 中不触发特殊乐器
+ */
+TEST_F(NoteBlockTest, InstrumentType_CarvedPumpkinDoesNotTriggerDidgeridoo) {
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(VanillaBlocks::CARVED_PUMPKIN, nullptr);
+
+    // 在音符盒下方放置雕刻南瓜
+    BlockPos noteBlockPos(0, 1, 0);
+    BlockPos carvedPumpkinPos(0, 0, 0);
+
+    m_world->setBlockAt(carvedPumpkinPos, VanillaBlocks::CARVED_PUMPKIN->defaultState());
+    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
+
+    // 触发音符盒
+    const BlockState* noteBlockState = m_world->getBlockState(noteBlockPos);
+    ASSERT_NE(noteBlockState, nullptr);
+
+    NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
+    ASSERT_NE(noteBlock, nullptr);
+
+    noteBlock->triggerNote(*m_world, noteBlockPos, *noteBlockState);
+
+    // 验证没有播放 DIDGERIDOO，而是播放了材质对应的乐器
+    // 雕刻南瓜使用 Material::EARTH，应该触发 HARP (默认)
+    const auto& sounds = m_world->playedSoundIds();
+    ASSERT_EQ(sounds.size(), 1u);
+    EXPECT_EQ(sounds[0], SoundEvents::BLOCK_NOTE_BLOCK_HARP);
+}
+
+/**
+ * @brief 测试南瓜灯不触发迪吉里杜管乐器
+ *
+ * 验证 JACK_O_LANTERN 在 MC 1.16.5 中不触发特殊乐器
+ */
+TEST_F(NoteBlockTest, InstrumentType_JackOLanternDoesNotTriggerDidgeridoo) {
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(VanillaBlocks::JACK_O_LANTERN, nullptr);
+
+    // 在音符盒下方放置南瓜灯
+    BlockPos noteBlockPos(0, 1, 0);
+    BlockPos jackOLanternPos(0, 0, 0);
+
+    m_world->setBlockAt(jackOLanternPos, VanillaBlocks::JACK_O_LANTERN->defaultState());
+    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
+
+    // 触发音符盒
+    const BlockState* noteBlockState = m_world->getBlockState(noteBlockPos);
+    ASSERT_NE(noteBlockState, nullptr);
+
+    NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
+    ASSERT_NE(noteBlock, nullptr);
+
+    noteBlock->triggerNote(*m_world, noteBlockPos, *noteBlockState);
+
+    // 验证没有播放 DIDGERIDOO，而是播放了材质对应的乐器
+    // 南瓜灯使用 Material::EARTH，应该触发 HARP (默认)
+    const auto& sounds = m_world->playedSoundIds();
+    ASSERT_EQ(sounds.size(), 1u);
+    EXPECT_EQ(sounds[0], SoundEvents::BLOCK_NOTE_BLOCK_HARP);
+}
+
+/**
+ * @brief 测试陶土触发长笛乐器
+ */
+TEST_F(NoteBlockTest, InstrumentType_ClayTriggersFlute) {
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(VanillaBlocks::CLAY, nullptr);
+
+    BlockPos noteBlockPos(0, 1, 0);
+    BlockPos clayPos(0, 0, 0);
+
+    m_world->setBlockAt(clayPos, VanillaBlocks::CLAY->defaultState());
+    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
+
+    const BlockState* noteBlockState = m_world->getBlockState(noteBlockPos);
+    ASSERT_NE(noteBlockState, nullptr);
+
+    NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
+    ASSERT_NE(noteBlock, nullptr);
+
+    noteBlock->triggerNote(*m_world, noteBlockPos, *noteBlockState);
+
+    const auto& sounds = m_world->playedSoundIds();
+    ASSERT_EQ(sounds.size(), 1u);
+    EXPECT_EQ(sounds[0], SoundEvents::BLOCK_NOTE_BLOCK_FLUTE);
+}
+
+/**
+ * @brief 测试金块触发钟乐器
+ */
+TEST_F(NoteBlockTest, InstrumentType_GoldBlockTriggersBell) {
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(VanillaBlocks::GOLD_BLOCK, nullptr);
+
+    BlockPos noteBlockPos(0, 1, 0);
+    BlockPos goldBlockPos(0, 0, 0);
+
+    m_world->setBlockAt(goldBlockPos, VanillaBlocks::GOLD_BLOCK->defaultState());
+    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
+
+    const BlockState* noteBlockState = m_world->getBlockState(noteBlockPos);
+    ASSERT_NE(noteBlockState, nullptr);
+
+    NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
+    ASSERT_NE(noteBlock, nullptr);
+
+    noteBlock->triggerNote(*m_world, noteBlockPos, *noteBlockState);
+
+    const auto& sounds = m_world->playedSoundIds();
+    ASSERT_EQ(sounds.size(), 1u);
+    EXPECT_EQ(sounds[0], SoundEvents::BLOCK_NOTE_BLOCK_BELL);
+}
+
+/**
+ * @brief 测试灵魂沙触发牛铃乐器
+ */
+TEST_F(NoteBlockTest, InstrumentType_SoulSandTriggersCowBell) {
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(VanillaBlocks::SOUL_SAND, nullptr);
+
+    BlockPos noteBlockPos(0, 1, 0);
+    BlockPos soulSandPos(0, 0, 0);
+
+    m_world->setBlockAt(soulSandPos, VanillaBlocks::SOUL_SAND->defaultState());
+    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
+
+    const BlockState* noteBlockState = m_world->getBlockState(noteBlockPos);
+    ASSERT_NE(noteBlockState, nullptr);
+
+    NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
+    ASSERT_NE(noteBlock, nullptr);
+
+    noteBlock->triggerNote(*m_world, noteBlockPos, *noteBlockState);
+
+    const auto& sounds = m_world->playedSoundIds();
+    ASSERT_EQ(sounds.size(), 1u);
+    EXPECT_EQ(sounds[0], SoundEvents::BLOCK_NOTE_BLOCK_COW_BELL);
+}
