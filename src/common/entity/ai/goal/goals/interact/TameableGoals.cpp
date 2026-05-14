@@ -336,12 +336,18 @@ bool BegGoal::isPlayerHoldingFood(const Player* player) const
         return false;
     }
 
-    // MC 1.16.5: 检查玩家主手或副手是否持有食物
-    // 狼等驯服动物使用 isBreedingItem() 检查食物
+    // MC 1.16.5: BegGoal.hasTemptationItemInHand()
+    // 1. 已驯服的狼对骨头乞求（isTamed() && item == BONE）
+    // 2. 所有狼对繁殖物品（肉类）乞求（isBreedingItem()）
 
     // 获取主手物品
     ItemStack mainHandItem = player->getHeldItem(Hand::MainHand);
     if (!mainHandItem.isEmpty()) {
+        // 已驯服的动物对驯服物品乞求
+        if (m_entity->isTamed() && m_entity->isTameItem(mainHandItem)) {
+            return true;
+        }
+        // 所有动物对繁殖物品乞求
         if (m_entity->isBreedingItem(mainHandItem)) {
             return true;
         }
@@ -350,6 +356,11 @@ bool BegGoal::isPlayerHoldingFood(const Player* player) const
     // 获取副手物品
     ItemStack offHandItem = player->getHeldItem(Hand::OffHand);
     if (!offHandItem.isEmpty()) {
+        // 已驯服的动物对驯服物品乞求
+        if (m_entity->isTamed() && m_entity->isTameItem(offHandItem)) {
+            return true;
+        }
+        // 所有动物对繁殖物品乞求
         if (m_entity->isBreedingItem(offHandItem)) {
             return true;
         }

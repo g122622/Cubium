@@ -129,7 +129,7 @@ public:
      * @param itemStack 物品堆
      * @return 如果是生鱼返回true
      */
-    [[nodiscard]] bool isTameItem(const ItemStack& itemStack) const;
+    [[nodiscard]] bool isTameItem(const ItemStack& itemStack) const override;
 
     /**
      * @brief 检查物品是否可用于繁殖

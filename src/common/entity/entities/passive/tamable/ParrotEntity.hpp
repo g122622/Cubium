@@ -119,7 +119,7 @@ public:
     /**
      * @brief 鹦鹉使用种子驯服
      */
-    [[nodiscard]] bool isTameItem(const ItemStack& itemStack) const;
+    [[nodiscard]] bool isTameItem(const ItemStack& itemStack) const override;
 
     /**
      * @brief 鹦鹉不能繁殖

@@ -220,9 +220,12 @@ void WolfEntity::registerGoals()
     // 优先级 3: 跟随主人（驯服后）- 替换FollowParentGoal的行为
     m_goalSelector.addGoal(3, new entity::ai::goal::FollowOwnerGoal(this, 1.0, 3.0f, 10.0f, 32.0f));
 
-    // 优先级 4: 食物诱惑（骨头用于驯服）
-    // TODO: 需要实现骨头诱惑
-    // m_goalSelector.addGoal(4, new entity::ai::goal::TemptGoal(this, 1.2, isTameItemPredicate));
+    // 优先级 9: 乞求目标（看向手持骨头或肉类的玩家）
+    // 参考 MC 1.16.5 WolfEntity.registerGoals() - BegGoal 优先级为 9
+    // 注意：狼使用 BegGoal（乞求，只看不动），而非 TemptGoal（诱惑，会跟随玩家）
+    // 这是因为未驯服的狼不会主动接近玩家，驯服后的狼已跟随主人，不需要 TemptGoal
+    // [COMPLETED] 2026-05-15 - 骨头乞求行为已通过 BegGoal 实现
+    m_goalSelector.addGoal(9, new entity::ai::goal::BegGoal(this, 8.0f));
 
     // TODO: 添加攻击目标
     // 优先级 1: 攻击目标（未驯服时攻击附近生物，驯服后保护主人）

@@ -33,6 +33,7 @@ namespace mc {
 
 // Forward declarations
 class Player;
+class ItemStack;
 
 /**
  * @brief 可驯服实体基类
@@ -82,6 +83,23 @@ public:
      * 驯服后会更新实体的AI行为
      */
     virtual void setTamed(bool tamed);
+
+    /**
+     * @brief 检查物品是否可用于驯服
+     * @param itemStack 物品堆
+     * @return 如果物品可用于驯服返回true
+     *
+     * 子类应重写此方法以定义特定的驯服物品：
+     * - 狼：骨头
+     * - 猫：生鳕鱼、生鲑鱼
+     * - 鹦鹉：种子
+     *
+     * 默认返回 false（不可驯服）。
+     */
+    [[nodiscard]] virtual bool isTameItem(const ItemStack& itemStack) const {
+        MC_UNUSED(itemStack);
+        return false;
+    }
 
     /**
      * @brief 获取主人ID
