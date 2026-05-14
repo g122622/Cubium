@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "PacketHandler.hpp"
@@ -28,6 +28,13 @@
 #include "PositionTracker.hpp"
 #include "TeleportManager.hpp"
 #include "TimeManager.hpp"
+#include "server/application/IServer.hpp"
+#include "server/player/ServerPlayer.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/interfaces/IJumpingMount.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
@@ -227,14 +234,85 @@ PacketHandleResult PacketHandler::handlePlayerInput(u32 sessionId, const u8* dat
     // jumping: 是否跳跃
     // sneaking: 是否潜行（下马）
 
-    // TODO: 将输入传递给玩家骑乘的载具
-    // 这需要通过玩家ID获取玩家实体，然后获取其骑乘的载具
     spdlog::trace("PacketHandler: Player {} input: strafe={:.2f}, forward={:.2f}, jump={}, sneak={}",
         playerId,
         packet.strafeSpeed(),
         packet.forwardSpeed(),
         packet.isJumping(),
         packet.isSneaking());
+
+    // MC 1.16.5: ServerPlayNetHandler.processInput()
+    // 将输入传递给玩家骑乘的载具
+    if (m_server == nullptr) {
+        spdlog::trace("PacketHandler: Server not set, cannot process player input");
+        return PacketHandleResult::Success;
+    }
+
+    // 获取玩家实体
+    ServerWorld& world = m_server->world();
+    ServerPlayerEntityManager& entityManager = m_server->playerEntityManager();
+    Player* player = entityManager.getPlayerEntity(playerId, world);
+
+    if (player == nullptr) {
+        spdlog::trace("PacketHandler: Player {} entity not found", playerId);
+        return PacketHandleResult::Success;
+    }
+
+    // 检查玩家是否正在骑乘
+    if (!player->isRiding()) {
+        return PacketHandleResult::Success;
+    }
+
+    // MC 1.16.5: ServerPlayerEntity.setEntityActionState()
+    // 只有在骑乘时才更新移动状态
+    f32 strafe = packet.strafeSpeed();
+    f32 forward = packet.forwardSpeed();
+
+    // 限制输入范围 [-1.0, 1.0]
+    strafe = std::clamp(strafe, -1.0f, 1.0f);
+    forward = std::clamp(forward, -1.0f, 1.0f);
+
+    // 设置玩家的移动状态（会传递给载具）
+    player->setMoveStrafing(strafe);
+    player->setMoveForward(forward);
+    player->setJumping(packet.isJumping());
+    player->setSneaking(packet.isSneaking());
+
+    // 获取载具实体
+    EntityId vehicleId = player->getVehicle();
+    if (vehicleId == INVALID_ENTITY_ID) {
+        return PacketHandleResult::Success;
+    }
+
+    Entity* vehicle = world.getEntity(vehicleId);
+    if (vehicle == nullptr) {
+        spdlog::trace("PacketHandler: Vehicle entity {} not found for player {}", vehicleId, playerId);
+        return PacketHandleResult::Success;
+    }
+
+    // 检查玩家是否是载具的控制者
+    EntityId controllerId = vehicle->getControllingPassenger();
+    if (controllerId != player->id()) {
+        // 玩家不是控制者，不处理输入
+        return PacketHandleResult::Success;
+    }
+
+    // 处理跳跃（马、猪等跳跃载具）
+    if (packet.isJumping()) {
+        // 检查载具是否实现 IJumpingMount 接口
+        auto* jumpingMount = dynamic_cast<entity::IJumpingMount*>(vehicle);
+        if (jumpingMount != nullptr && jumpingMount->canJump()) {
+            // 开始跳跃蓄力（客户端会在 EntityActionPacket 中发送跳跃力度）
+            spdlog::trace("PacketHandler: Player {} jumping on vehicle {}", playerId, vehicleId);
+        }
+    }
+
+    // 处理潜行（下马）
+    if (packet.isSneaking()) {
+        // MC 1.16.5: 潜行键用于下马
+        // 下马逻辑在 EntityActionPacket 中处理
+        spdlog::trace("PacketHandler: Player {} sneaking on vehicle {}", playerId, vehicleId);
+    }
 
     return PacketHandleResult::Success;
 }
@@ -258,7 +336,6 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
     // MC 1.16.5: MoveVehiclePacket 由客户端发送以同步载具位置
     // 服务端需要验证位置并将更新广播给其他玩家
 
-    // TODO: 验证并更新载具位置
     spdlog::trace("PacketHandler: Player {} move vehicle: ({:.2f}, {:.2f}, {:.2f}) yaw={:.1f} pitch={:.1f}",
         playerId,
         packet.x(),
@@ -266,6 +343,90 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
         packet.z(),
         packet.yaw(),
         packet.pitch());
+
+    // 验证服务器接口
+    if (m_server == nullptr) {
+        spdlog::trace("PacketHandler: Server not set, cannot process vehicle move");
+        return PacketHandleResult::Success;
+    }
+
+    // 获取玩家实体
+    ServerWorld& world = m_server->world();
+    ServerPlayerEntityManager& entityManager = m_server->playerEntityManager();
+    Player* player = entityManager.getPlayerEntity(playerId, world);
+
+    if (player == nullptr) {
+        spdlog::trace("PacketHandler: Player {} entity not found for vehicle move", playerId);
+        return PacketHandleResult::Success;
+    }
+
+    // 检查玩家是否正在骑乘
+    if (!player->isRiding()) {
+        return PacketHandleResult::Success;
+    }
+
+    // 获取最底层载具（支持嵌套骑乘）
+    Entity* vehicle = player->getLowestRidingEntity();
+    if (vehicle == nullptr || vehicle == player) {
+        return PacketHandleResult::Success;
+    }
+
+    // MC 1.16.5: 验证玩家是否是载具的控制者
+    EntityId controllerId = vehicle->getControllingPassenger();
+    if (controllerId != player->id()) {
+        // 玩家不是控制者，忽略移动请求
+        spdlog::trace("PacketHandler: Player {} is not controlling vehicle {}", playerId, vehicle->id());
+        return PacketHandleResult::Success;
+    }
+
+    // MC 1.16.5: 验证数据包有效性（坐标是否为有限数值）
+    if (!std::isfinite(packet.x()) || !std::isfinite(packet.y()) || !std::isfinite(packet.z()) ||
+        !std::isfinite(packet.yaw()) || !std::isfinite(packet.pitch())) {
+        spdlog::warn("PacketHandler: Player {} sent invalid vehicle position (NaN or Inf)", playerId);
+        // 断开连接
+        return PacketHandleResult::Disconnect;
+    }
+
+    // MC 1.16.5: 速度验证 - 防止作弊
+    // 计算载具当前位置与数据包位置的差距
+    Vector3 vehiclePos = vehicle->position();
+    Vector3 packetPos(packet.x(), packet.y(), packet.z());
+
+    Vector3 vehicleVel = vehicle->velocity();
+    f64 vehicleSpeedSq = static_cast<f64>(vehicleVel.x) * vehicleVel.x +
+                         static_cast<f64>(vehicleVel.y) * vehicleVel.y +
+                         static_cast<f64>(vehicleVel.z) * vehicleVel.z;
+
+    f64 dx = packetPos.x - vehiclePos.x;
+    f64 dy = packetPos.y - vehiclePos.y;
+    f64 dz = packetPos.z - vehiclePos.z;
+    f64 deltaSq = dx * dx + dy * dy + dz * dz;
+
+    // MC 1.16.5: 如果移动速度超过阈值（100.0），记录警告并校正
+    // 注意：这里简化实现，实际 MC 还会追踪上一帧位置
+    constexpr f64 MAX_VEHICLE_SPEED_SQ = 100.0;
+    if (deltaSq - vehicleSpeedSq > MAX_VEHICLE_SPEED_SQ) {
+        spdlog::warn("PacketHandler: Player {} vehicle moved too quickly! delta={:.2f}, speed={:.2f}",
+            playerId, std::sqrt(deltaSq), std::sqrt(vehicleSpeedSq));
+        // MC 1.16.5: 发送校正包回客户端，恢复到服务端已知位置
+        // 暂时不实现校正包，只记录警告
+        // 实际应该发送 SMoveVehiclePacket 回客户端
+        return PacketHandleResult::Success;
+    }
+
+    // MC 1.16.5: 更新载具位置
+    // 暂时简化实现：直接设置载具位置
+    // 实际 MC 会进行碰撞检测和位置校正
+    vehicle->setPosition(packetPos.x, packetPos.y, packetPos.z);
+    vehicle->setRotation(packet.yaw(), packet.pitch());
+
+    // 同时更新玩家的位置（玩家跟随载具）
+    player->setPosition(packetPos.x, packetPos.y, packetPos.z);
+    // 玩家的 yaw 保持原样，pitch 同步载具的一半（MC 1.16.5 行为）
+    player->setRotation(player->yaw(), packet.pitch() * 0.5f);
+
+    // 更新位置追踪器
+    m_positionTracker.updatePosition(playerId, packetPos.x, packetPos.y, packetPos.z, packet.yaw(), packet.pitch(), vehicle->onGround());
 
     return PacketHandleResult::Success;
 }
@@ -298,6 +459,85 @@ PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* da
         playerId,
         static_cast<i32>(packet.action()),
         packet.auxData());
+
+    // 验证服务器接口
+    if (m_server == nullptr) {
+        spdlog::trace("PacketHandler: Server not set, cannot process entity action");
+        return PacketHandleResult::Success;
+    }
+
+    // 获取玩家实体
+    ServerWorld& world = m_server->world();
+    ServerPlayerEntityManager& entityManager = m_server->playerEntityManager();
+    Player* player = entityManager.getPlayerEntity(playerId, world);
+
+    if (player == nullptr) {
+        spdlog::trace("PacketHandler: Player {} entity not found for entity action", playerId);
+        return PacketHandleResult::Success;
+    }
+
+    switch (packet.action()) {
+        case network::EntityActionType::PressShiftKey:
+            // MC 1.16.5: 按下潜行键
+            player->setSneaking(true);
+            // 如果正在骑乘，触发下马
+            if (player->isRiding()) {
+                player->stopRiding();
+                spdlog::trace("PacketHandler: Player {} dismounted from vehicle", playerId);
+            }
+            break;
+
+        case network::EntityActionType::ReleaseShiftKey:
+            // MC 1.16.5: 释放潜行键
+            player->setSneaking(false);
+            break;
+
+        case network::EntityActionType::StartRidingJump:
+            // MC 1.16.5: 开始马跳跃蓄力
+            if (player->isRiding()) {
+                EntityId vehicleId = player->getVehicle();
+                Entity* vehicle = world.getEntity(vehicleId);
+                if (vehicle != nullptr) {
+                    auto* jumpingMount = dynamic_cast<entity::IJumpingMount*>(vehicle);
+                    if (jumpingMount != nullptr && jumpingMount->canJump()) {
+                        i32 jumpPower = packet.auxData();
+                        jumpingMount->startJumping(jumpPower);
+                        spdlog::trace("PacketHandler: Player {} started riding jump with power {}", playerId, jumpPower);
+                    }
+                }
+            }
+            break;
+
+        case network::EntityActionType::StopRidingJump:
+            // MC 1.16.5: 停止马跳跃蓄力（释放跳跃键）
+            if (player->isRiding()) {
+                EntityId vehicleId = player->getVehicle();
+                Entity* vehicle = world.getEntity(vehicleId);
+                if (vehicle != nullptr) {
+                    auto* jumpingMount = dynamic_cast<entity::IJumpingMount*>(vehicle);
+                    if (jumpingMount != nullptr) {
+                        jumpingMount->stopJumping();
+                        spdlog::trace("PacketHandler: Player {} stopped riding jump", playerId);
+                    }
+                }
+            }
+            break;
+
+        case network::EntityActionType::StartSprinting:
+            // MC 1.16.5: 开始疾跑
+            player->setSprinting(true);
+            break;
+
+        case network::EntityActionType::StopSprinting:
+            // MC 1.16.5: 停止疾跑
+            player->setSprinting(false);
+            break;
+
+        default:
+            spdlog::trace("PacketHandler: Unhandled entity action {} for player {}",
+                static_cast<i32>(packet.action()), playerId);
+            break;
+    }
 
     return PacketHandleResult::Success;
 }
@@ -401,43 +641,66 @@ PacketHandleResult PacketHandler::handleUseEntity(u32 sessionId, const u8* data,
         return PacketHandleResult::Error;
     }
 
-    // TODO: 获取玩家实体和目标实体
-    // auto* player = m_playerManager.getPlayerEntity(playerId);
-    // auto* world = player ? player->getWorld() : nullptr;
-    // if (!player || !world) {
-    //     return PacketHandleResult::Ignore;
-    // }
+    // 验证服务器接口
+    if (m_server == nullptr) {
+        spdlog::trace("PacketHandler: Server not set, cannot process use entity");
+        return PacketHandleResult::Success;
+    }
 
-    // Entity* target = world->getEntity(packet.entityId());
-    // if (!target) {
-    //     spdlog::debug("PacketHandler: Target entity {} not found", packet.entityId());
-    //     return PacketHandleResult::Ignore;
-    // }
+    // 获取玩家实体和世界
+    ServerWorld& world = m_server->world();
+    ServerPlayerEntityManager& entityManager = m_server->playerEntityManager();
+    Player* player = entityManager.getPlayerEntity(playerId, world);
 
-    // 距离检查：玩家与实体距离必须小于 36.0 (6格的平方)
-    // f32 distanceSq = player->distanceSq(*target);
-    // if (distanceSq >= 36.0f) {
-    //     spdlog::debug("PacketHandler: Player {} too far from entity {}", playerId, packet.entityId());
-    //     return PacketHandleResult::Ignore;
-    // }
+    if (player == nullptr) {
+        spdlog::trace("PacketHandler: Player {} entity not found for use entity", playerId);
+        return PacketHandleResult::Success;
+    }
+
+    // 获取目标实体
+    Entity* target = world.getEntity(packet.entityId());
+    if (target == nullptr) {
+        spdlog::debug("PacketHandler: Target entity {} not found", packet.entityId());
+        return PacketHandleResult::Ignore;
+    }
+
+    // MC 1.16.5: 距离检查 - 玩家与实体距离必须小于 36.0 (6格的平方)
+    // 注意：创造模式可以跳过距离检查
+    if (!player->isCreative()) {
+        f32 distanceSq = player->distanceSqTo(*target);
+        constexpr f32 MAX_INTERACTION_DISTANCE_SQ = 36.0f;
+        if (distanceSq >= MAX_INTERACTION_DISTANCE_SQ) {
+            spdlog::debug("PacketHandler: Player {} too far from entity {} (distance={:.2f})",
+                playerId, packet.entityId(), std::sqrt(distanceSq));
+            return PacketHandleResult::Ignore;
+        }
+    }
 
     // 根据交互类型处理
+    ActionResultType actionResult = ActionResultType::Pass;
+
     switch (packet.action()) {
         case network::UseEntityAction::Interact:
-            // player->interactOn(*target, packet.hand());
+            // MC 1.16.5: 右键交互（不指定具体位置）
             spdlog::trace("PacketHandler: Player {} INTERACT entity {} hand={}",
                 playerId,
                 packet.entityId(),
                 static_cast<int>(packet.hand()));
+            actionResult = player->interactOn(*target, packet.hand());
             break;
 
         case network::UseEntityAction::Attack:
-            // player->attack(*target);
+            // MC 1.16.5: 左键攻击
             spdlog::trace("PacketHandler: Player {} ATTACK entity {}", playerId, packet.entityId());
+            player->attack(*target);
+            // 攻击后触发挥手动画
+            player->swing(packet.hand() == Hand::MainHand ? Hand::MainHand : Hand::OffHand);
+            actionResult = ActionResultType::Success;
             break;
 
         case network::UseEntityAction::InteractAt:
-            // TODO: entity->applyPlayerInteraction(player, packet.hitPosition(), packet.hand())
+            // MC 1.16.5: 右键交互（指定具体位置）
+            // 参考: PlayerEntity.interactOn() 和 Entity.applyPlayerInteraction()
             spdlog::trace("PacketHandler: Player {} INTERACT_AT entity {} pos=({},{},{}) hand={}",
                 playerId,
                 packet.entityId(),
@@ -445,10 +708,24 @@ PacketHandleResult PacketHandler::handleUseEntity(u32 sessionId, const u8* data,
                 packet.hitY(),
                 packet.hitZ(),
                 static_cast<int>(packet.hand()));
+            // TODO: 实现指定位置的交互
+            // 需要在 Entity 类中添加 applyPlayerInteraction(player, hitPosition, hand) 方法
+            // 目前使用 interactOn 作为简化实现
+            actionResult = player->interactOn(*target, packet.hand());
             break;
     }
 
-    // TODO: 成功交互后触发成就和挥手动画
+    // MC 1.16.5: 成功交互后触发成就和挥手动画
+    if (actionResult == ActionResultType::Success || actionResult == ActionResultType::Consume) {
+        // 挥手动画
+        if (packet.action() != network::UseEntityAction::Attack) {
+            // 攻击已经触发了挥手，这里只处理其他交互
+            player->swing(packet.hand());
+        }
+
+        // TODO: 触发成就
+        // CriterionTriggers.PLAYER_INTERACTED_WITH_ENTITY.trigger(player, target, hand);
+    }
 
     return PacketHandleResult::Success;
 }

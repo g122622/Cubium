@@ -38,6 +38,10 @@ class KeepAlivePacket;
 class ChatMessagePacket;
 } // namespace mc::network
 
+namespace mc::server {
+class IServer;
+}
+
 namespace mc::server::core {
 
 // 前向声明
@@ -233,6 +237,22 @@ public:
      */
     void setOnChat(ChatCallback callback) { m_onChat = std::move(callback); }
 
+    /**
+     * @brief 设置服务器接口指针
+     *
+     * 用于访问玩家实体管理器和世界等。
+     * 必须在处理数据包之前设置。
+     *
+     * @param server 服务器接口指针
+     */
+    void setServer(IServer* server) { m_server = server; }
+
+    /**
+     * @brief 获取服务器接口指针
+     * @return 服务器接口指针，未设置返回 nullptr
+     */
+    [[nodiscard]] IServer* getServer() const { return m_server; }
+
 private:
     PlayerManager& m_playerManager;
     ConnectionManager& m_connectionManager;
@@ -241,6 +261,9 @@ private:
     PositionTracker& m_positionTracker;
     TimeManager& m_timeManager;
     const ServerCoreConfig& m_config;
+
+    // 服务器接口（用于访问玩家实体和世界）
+    IServer* m_server = nullptr;
 
     // 回调
     LoginCallback m_onLoginSuccess;
