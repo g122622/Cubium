@@ -47,6 +47,7 @@
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
@@ -86,6 +87,13 @@ void ClientApplication::initializeCoreRegistries()
         MC_TRACE_EVENT("client.initialization", "InitializeVanillaBlockItems");
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         spdlog::info("Block items initialized");
+    }
+
+    // 初始化物品标签（必须在所有物品注册后）
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeItemTags");
+        item::tag::ItemTags::initialize();
+        spdlog::info("Item tags initialized");
     }
 
     // 初始化发射器行为注册表

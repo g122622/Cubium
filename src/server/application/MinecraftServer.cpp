@@ -31,6 +31,7 @@
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/network/packet/CommandTreePacket.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
@@ -428,6 +429,10 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     // 初始化方块物品注册表
     BlockItemRegistry::instance().initializeVanillaBlockItems();
     spdlog::info("Block items initialized");
+
+    // 初始化物品标签（必须在所有物品注册后）
+    item::tag::ItemTags::initialize();
+    spdlog::info("Item tags initialized");
 
     // 初始化发射器行为注册表
     blocks::DispenseItemBehaviorRegistry::instance().initDefaultBehaviors();

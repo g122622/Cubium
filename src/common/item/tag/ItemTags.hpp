@@ -37,9 +37,28 @@ namespace item::tag {
  * @brief 物品标签注册表
  *
  * 负责集中管理 ItemTag 的创建、查询和遍历。
+ * 参考: net.minecraft.tags.ItemTags
  */
 class ItemTags {
 public:
+    // ========== 内置物品标签 ==========
+
+    /**
+     * @brief 花朵标签
+     *
+     * 包含所有可用于蜜蜂繁殖和授粉的花朵物品。
+     * 参考 MC 1.16.5: ItemTags.FLOWERS
+     */
+    static ItemTag& FLOWERS();
+
+    /**
+     * @brief 初始化所有内置物品标签
+     *
+     * 必须在 ItemRegistry 初始化之后调用。
+     * 注册所有花朵物品到 FLOWERS 标签。
+     */
+    static void initialize();
+
     /**
      * @brief 注册或获取指定ID的标签。
      * @param id 标签ID。
@@ -68,7 +87,10 @@ public:
     static void forEachTag(std::function<void(ItemTag&)> callback);
 
 private:
+    ItemTags() = delete;
+
     static std::unordered_map<ResourceLocation, std::unique_ptr<ItemTag>>& tags();
+    static bool s_initialized;
 };
 
 } // namespace item::tag

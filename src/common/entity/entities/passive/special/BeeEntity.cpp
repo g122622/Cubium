@@ -23,7 +23,9 @@
 
 #include "BeeEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../item/core/Item.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/tag/ItemTags.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
@@ -188,20 +190,29 @@ void BeeEntity::setFlowerPos(const BlockPos& pos)
 
 bool BeeEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // TODO: 检查是否是花朵
-    // return itemStack.getItem().isIn(ItemTags::FLOWERS);
-    (void)itemStack;
-    return false;
+    // MC 1.16.5: 检查物品是否在花朵标签中
+    // 参考: BeeEntity.isBreedingItem(ItemStack stack)
+    // return stack.getItem().isIn(ItemTags.FLOWERS);
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+    return item->isIn(item::tag::ItemTags::FLOWERS());
 }
 
-std::unique_ptr<AnimalEntity> BeeEntity::spawnBaby(AnimalEntity& partner)
+std::unique_ptr<AnimalEntity> BeeEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
-    // TODO: 创建小蜜蜂
-    // auto baby = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
-    // baby->setChild(true);
-    // return baby;
-    (void)partner;
-    return nullptr;
+    // MC 1.16.5: 创建小蜜蜂
+    // 参考: BeeEntity.createChild(ServerWorld, AgeableEntity)
+    auto baby = std::make_unique<BeeEntity>(LegacyEntityType::Unknown, 0);
+
+    // 设置为幼体
+    baby->setChild(true);
+
+    // 设置位置（在父体位置附近）
+    baby->setPosition(x(), y(), z());
+
+    return baby;
 }
 
 // ============================================================================
