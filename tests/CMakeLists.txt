@@ -1397,6 +1397,11 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/network/ScoreboardPackets.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
+        # Boss 栏系统
+        ${CMAKE_SOURCE_DIR}/src/server/bossbar/BossInfo.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfo.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfoManager.cpp
 )
 
 target_link_libraries(mc_command_tests

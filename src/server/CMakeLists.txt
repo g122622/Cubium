@@ -136,6 +136,11 @@ add_executable(minecraft-server
     command/commands/TriggerCommand.cpp
     # 菜单系统
     menu/CraftingMenu.cpp
+    # Boss栏系统
+    bossbar/BossInfo.cpp
+    bossbar/ServerBossInfo.cpp
+    bossbar/CustomServerBossInfo.cpp
+    bossbar/CustomServerBossInfoManager.cpp
 )
 
 target_link_libraries(minecraft-server

@@ -59,7 +59,7 @@ public:
     /**
      * @brief 析构函数
      */
-    ~CustomServerBossInfoManager();
+    virtual ~CustomServerBossInfoManager();
 
     // 禁止拷贝
     CustomServerBossInfoManager(const CustomServerBossInfoManager&) = delete;
