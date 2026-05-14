@@ -50,6 +50,8 @@ void printBanner()
     std::cout << "  Minecraft Reborn Client v" << MC_VERSION_MAJOR << "." << MC_VERSION_MINOR << "." << MC_VERSION_PATCH
               << std::endl;
     std::cout << "  ========================================\n" << std::endl;
+
+    // TODO 希望输出构建信息（构建时间、Git提交哈希等），以及构建机器信息、编译器名称和版本等
 }
 
 void printHelp()
