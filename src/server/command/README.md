@@ -889,7 +889,17 @@ public:
 **用法：**
 
 - `/scoreboard objectives <add|remove|list|setdisplay> ...` - 管理目标
-- `/scoreboard players <add|remove|set|reset|get|list> ...` - 管理分数
+- `/scoreboard players <add|remove|set|reset|get|list|enable> ...` - 管理分数
+- `/scoreboard players enable <target> <objective>` - 启用触发器目标（解锁分数）
+- `/scoreboard players list <target>` - 列出玩家的所有分数
+
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- `enable` 子命令：为玩家启用 trigger 类型目标，解锁分数使其可被 `/trigger` 命令修改
+- `list` 子命令：列出指定玩家在所有目标上的分数
+- 参考 MC 1.16.5 ScoreboardCommand.java
 
 **权限等级：** 2
 
@@ -1033,15 +1043,24 @@ public:
 
 #### TriggerCommand - /trigger 命令
 
-修改触发器计分板目标。
+修改触发器计分板目标。触发器是特殊类型的计分板目标，允许普通玩家修改自己的分数。
 
 **用法：**
 
-- `/trigger <objective>` - 触发目标
+- `/trigger <objective>` - 触发目标（分数 +1）
 - `/trigger <objective> add <value>` - 增加值
 - `/trigger <objective> set <value>` - 设置值
 
-**权限等级：** 0（所有玩家可用）
+**实现状态：** ✅ 完整实现
+
+**实现细节：**
+
+- 只有 trigger 类型目标（`TriggerCriteria`）才能使用此命令
+- 玩家必须先被管理员通过 `/scoreboard players enable` 启用（primed）才能触发
+- 触发后分数自动锁定，需要再次启用才能继续修改
+- 参考 MC 1.16.5 TriggerCommand.java
+
+**权限等级：** 0（所有玩家可用，但需要管理员先启用）
 
 #### WorldBorderCommand - /worldborder 命令
 

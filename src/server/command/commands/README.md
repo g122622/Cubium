@@ -25,6 +25,7 @@ src/server/command/commands/
 ├── StopCommand.hpp / StopCommand.cpp
 ├── TeleportCommand.hpp / TeleportCommand.cpp
 ├── TimeCommand.hpp / TimeCommand.cpp
+├── TriggerCommand.hpp / TriggerCommand.cpp
 └── WeatherCommand.hpp / WeatherCommand.cpp
 ```
 
@@ -87,6 +88,18 @@ src/server/command/commands/
     - 支持的属性：color, friendlyFire, seeFriendlyInvisibles, prefix, suffix, displayName, nametagVisibility, deathMessageVisibility, collisionRule
 - `ScoreboardCommand.*`：记分板目标管理。
   - 通过 `IServer::scoreboard()` 获取服务端记分板实例
+  - `/scoreboard objectives <add|remove|list|setdisplay> ...`：管理目标
+  - `/scoreboard players <add|remove|set|reset|get|list|enable> ...`：管理玩家分数
+  - `enable` 子命令：启用触发器目标，解锁分数使其可被 `/trigger` 命令修改
+  - `list` 子命令：列出指定玩家在所有目标上的分数
+- `TriggerCommand.*`：触发器命令实现。
+  - `/trigger <objective>`：触发目标（分数 +1）
+  - `/trigger <objective> add <value>`：增加分数
+  - `/trigger <objective> set <value>`：设置分数
+  - 权限等级 0（所有玩家可用）
+  - 只有 trigger 类型目标可用
+  - 玩家需先被 `/scoreboard players enable` 启用才能触发
+  - 触发后分数自动锁定，需再次启用才能修改
 
 ## 模块关系
 
@@ -129,6 +142,14 @@ ClearCommand::registerTo(dispatcher);
 
 - `tests/server/command/CommandRegistryTest.cpp`：覆盖命令注册、解析、执行和部分具体命令行为。
 - `tests/server/command/ExecuteCommandTest.cpp`：覆盖 /execute 命令的注册、权限检查、各子命令执行。
+- `tests/server/command/TriggerCommandTest.cpp`：覆盖 /trigger 命令和触发器机制。
+  - 命令注册验证
+  - 目标不存在、非触发器类型、未 primed 测试
+  - 成功激活、add、set 测试
+  - 触发器已使用（锁定）测试
+  - 通过 `/scoreboard players enable` 重新启用测试
+  - 控制台无法使用测试
+  - 分数锁定机制测试
 
 ## Mermaid 图表
 

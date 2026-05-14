@@ -91,6 +91,56 @@ bool exists = mc::scoreboard::ScoreCriteriaRegistry::instance().hasCriteria("dea
 | `teamkill.{color}` | TeamKillCriteria | 否 | 击杀指定颜色队伍玩家 |
 | `killedByTeam.{color}` | TeamKillCriteria | 否 | 被指定颜色队伍玩家击杀 |
 
+## 触发器系统
+
+触发器（Trigger）是一种特殊的判据类型，允许普通玩家修改自己的分数。
+
+### 工作流程
+
+1. **创建目标**：管理员使用 `/scoreboard objectives add <name> trigger` 创建 trigger 类型目标
+2. **启用触发器**：管理员使用 `/scoreboard players enable <player> <objective>` 为玩家启用触发器
+   - 这会创建一个初始分数（如果不存在）并解锁分数
+3. **玩家触发**：玩家使用 `/trigger <objective>` 命令修改自己的分数
+   - `/trigger <objective>` - 分数 +1
+   - `/trigger <objective> add <value>` - 增加指定值
+   - `/trigger <objective> set <value>` - 设置为指定值
+4. **自动锁定**：触发后分数自动锁定，需要管理员再次启用才能继续修改
+
+### 分数锁定机制
+
+`Score` 类提供了锁定机制：
+
+```cpp
+// 检查是否锁定
+bool locked = score->isLocked();
+
+// 锁定分数
+score->setLocked(true);
+
+// 解锁分数（用于启用触发器）
+score->setLocked(false);
+```
+
+### TriggerCriteria
+
+```cpp
+#include "scoreboard/criteria/TriggerCriteria.hpp"
+
+// 判据名称常量
+constexpr const char* NAME = "trigger";
+
+// 检查目标是否为 trigger 类型
+if (objective->getCriteria().getName() == mc::scoreboard::TriggerCriteria::NAME) {
+    // 可以用作触发器
+}
+```
+
+### 与命令系统的集成
+
+- `/trigger` 命令由 `TriggerCommand` 实现
+- `/scoreboard players enable` 由 `ScoreboardCommand::enableTrigger()` 实现
+- 详细实现见 `src/server/command/commands/TriggerCommand.cpp`
+
 ## 显示槽位
 
 ```cpp
