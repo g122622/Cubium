@@ -231,9 +231,10 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     }
 
     if (!mesh || mesh->indexCount == 0) {
-        // 恢复实体纹理图集
+        // 恢复实体纹理图集（如果为 ItemEntity）
+        // 必须在 early return 前恢复，否则后续实体会使用错误的纹理
         if (isItemEntity && m_textureAtlas && m_textureAtlas->isBuilt()) {
-            // TODO：需要在下一帧渲染前恢复，或在此处恢复
+            m_pipeline->setTextureAtlas(m_textureAtlas->imageView(), m_textureAtlas->sampler());
         }
         return;
     }
