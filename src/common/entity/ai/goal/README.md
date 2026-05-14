@@ -390,9 +390,13 @@ bool isPreemptedBy(const PrioritizedGoal& other) const {
 1. 概率检查决定是否尝试吃草
 2. 检测当前位置的草/高草丛或下方的草方块
 3. 播放吃草动画（40 ticks）
-4. 第 4 tick 时检查 mobGriefing 游戏规则：
-   - 如果 `mobGriefing = true`：将草方块转为泥土，或移除草/高草丛
-   - 如果 `mobGriefing = false`：只调用 eatGrassBonus 回调，不破坏方块
+4. 第 4 tick 时执行吃草动作：
+   - 检查 `mobGriefing` 游戏规则
+   - 如果 `mobGriefing=true`：
+     - 草方块：播放破坏效果，转换为泥土
+     - 草/高草丛：移除（不掉落物品）
+   - 如果 `mobGriefing=false`：不改变方块
+   - 无论规则如何，都调用 `eatGrassBonus` 回调
 5. 调用回调函数通知实体（如羊重新长毛、幼体加速成长）
 
 **互斥标志**: `Move`, `Look`, `Jump`
@@ -402,6 +406,11 @@ bool isPreemptedBy(const PrioritizedGoal& other) const {
 - `EAT_TICK`: 执行吃草动作的时机 (第 4 tick)
 - `CHILD_CHANCE`: 幼年动物触发概率倒数 (50)
 - `ADULT_CHANCE`: 成年动物触发概率倒数 (1000)
+
+**游戏规则检查**:
+- 检查 `GameRuleKeys::MOB_GRIEFING`
+- 参考 MC 1.16.5: `ForgeEventFactory.getMobGriefingEvent(world, entity)`
+- 使用 `world->getGameRules().getBoolean(GameRuleKeys::MOB_GRIEFING)`
 
 **使用示例**:
 ```cpp

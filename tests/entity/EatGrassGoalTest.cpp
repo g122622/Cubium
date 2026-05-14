@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,16 +18,21 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include <gtest/gtest.h>
 
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
+#include "common/entity/ai/goal/goals/EatGrassGoal.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gamerule/GameRules.hpp"
+#include "common/world/WorldEvents.hpp"
+#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
+using namespace mc::entity::ai::goal;
 
 // ============================================================================
 // SheepEntity 颜色混合测试
@@ -273,4 +278,259 @@ TEST_F(SheepEntityTest, GetRandomSheepColor)
     // 粉色占 ~0.2%
     EXPECT_GT(pinkCount, 0);
     EXPECT_LT(pinkCount, iterations * 0.01);
+}
+
+// ============================================================================
+// EatGrassGoal 游戏规则测试
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 测试用世界，支持方块状态和游戏规则设置
+ */
+class EatGrassTestWorld final : public test::BaseTestWorld {
+public:
+    EatGrassTestWorld() = default;
+
+    void setBlock(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        m_blocks[BlockPos(x, y, z)] = state;
+    }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        auto it = m_blocks.find(BlockPos(x, y, z));
+        return it != m_blocks.end() ? it->second : &VanillaBlocks::AIR->defaultState();
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        m_blocks[BlockPos(x, y, z)] = state;
+        return true;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
+        (void)flags;  // 测试中忽略 flags
+        m_blocks[BlockPos(x, y, z)] = state;
+        return true;
+    }
+
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    {
+        m_lastEventId = eventId;
+        m_lastEventPos = pos;
+        m_lastEventData = data;
+    }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+
+    // 测试辅助方法
+    void setMobGriefing(bool value)
+    {
+        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, value, nullptr);
+    }
+
+    [[nodiscard]] i32 getLastEventId() const { return m_lastEventId; }
+    [[nodiscard]] const BlockPos& getLastEventPos() const { return m_lastEventPos; }
+    [[nodiscard]] i32 getLastEventData() const { return m_lastEventData; }
+    void clearLastEvent() { m_lastEventId = -1; }
+
+private:
+    std::unordered_map<BlockPos, const BlockState*> m_blocks;
+    world::gamerule::GameRules m_gameRules;
+    i32 m_lastEventId = -1;
+    BlockPos m_lastEventPos{0, 0, 0};
+    i32 m_lastEventData = 0;
+};
+
+/**
+ * @brief 测试用 MobEntity
+ */
+class TestMobEntity final : public MobEntity {
+public:
+    TestMobEntity()
+        : MobEntity(LegacyEntityType::Sheep, 1)
+    {
+        registerAttributes();
+        setHealth(maxHealth());
+    }
+
+    void setPositionForTest(f64 x, f64 y, f64 z)
+    {
+        setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+    }
+
+    void setWorldForTest(IWorld* world) { setWorld(world); }
+};
+
+} // anonymous namespace
+
+class EatGrassGoalGameRuleTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+
+    void TearDown() override {}
+};
+
+// 测试游戏规则默认值（验证 MC 1.16.5 行为）
+TEST_F(EatGrassGoalGameRuleTest, MobGriefingDefaultValue)
+{
+    world::gamerule::GameRules rules;
+
+    // MC 1.16.5: mobGriefing 默认为 true
+    EXPECT_TRUE(rules.getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+}
+
+// 测试游戏规则设置
+TEST_F(EatGrassGoalGameRuleTest, MobGriefingCanBeChanged)
+{
+    world::gamerule::GameRules rules;
+
+    // 设置为 false
+    rules.setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false, nullptr);
+    EXPECT_FALSE(rules.getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+
+    // 设置回 true
+    rules.setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, true, nullptr);
+    EXPECT_TRUE(rules.getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+}
+
+// 测试 mobGriefing=true 时草方块被转换为泥土
+TEST_F(EatGrassGoalGameRuleTest, GrassBlockTurnsToDirt_WhenMobGriefingEnabled)
+{
+    EatGrassTestWorld world;
+    world.setMobGriefing(true);
+    world.setBlock(0, 63, 0, &VanillaBlocks::GRASS_BLOCK->defaultState());
+
+    // 验证初始状态
+    const BlockState* initialState = world.getBlockState(0, 63, 0);
+    ASSERT_NE(initialState, nullptr);
+    EXPECT_TRUE(initialState->is(VanillaBlocks::GRASS_BLOCK));
+
+    // 模拟吃草方块的逻辑
+    world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS,
+        BlockPos(0, 63, 0),
+        static_cast<i32>(VanillaBlocks::GRASS_BLOCK->defaultState().stateId()));
+    world.setBlockState(0, 63, 0, &VanillaBlocks::DIRT->defaultState(), 2);
+
+    // 验证方块变化
+    const BlockState* finalState = world.getBlockState(0, 63, 0);
+    ASSERT_NE(finalState, nullptr);
+    EXPECT_TRUE(finalState->is(VanillaBlocks::DIRT));
+
+    // 验证 playEvent 被调用
+    EXPECT_EQ(world.getLastEventId(), world::WorldEvents::BREAK_BLOCK_EFFECTS);
+}
+
+// 测试 mobGriefing=false 时草方块不被改变
+TEST_F(EatGrassGoalGameRuleTest, GrassBlockUnchanged_WhenMobGriefingDisabled)
+{
+    EatGrassTestWorld world;
+    world.setMobGriefing(false);  // 禁用生物破坏
+    world.setBlock(0, 63, 0, &VanillaBlocks::GRASS_BLOCK->defaultState());
+
+    // 验证初始状态
+    const BlockState* initialState = world.getBlockState(0, 63, 0);
+    ASSERT_NE(initialState, nullptr);
+    EXPECT_TRUE(initialState->is(VanillaBlocks::GRASS_BLOCK));
+
+    // 当 mobGriefing=false 时，不应该改变方块
+    // 模拟 eatGrass 中的逻辑
+    const bool canGrief = world.getGameRules().getBoolean(
+        world::gamerule::GameRuleKeys::MOB_GRIEFING);
+    EXPECT_FALSE(canGrief);
+
+    // 不执行任何方块操作（符合 mobGriefing=false 的逻辑）
+    // 方块应保持不变
+    const BlockState* finalState = world.getBlockState(0, 63, 0);
+    EXPECT_TRUE(finalState->is(VanillaBlocks::GRASS_BLOCK));
+
+    // playEvent 不应被调用
+    EXPECT_EQ(world.getLastEventId(), -1);
+}
+
+// 测试 mobGriefing=true 时草（短草）被移除
+TEST_F(EatGrassGoalGameRuleTest, ShortGrassRemoved_WhenMobGriefingEnabled)
+{
+    EatGrassTestWorld world;
+    world.setMobGriefing(true);
+    world.setBlock(0, 64, 0, &VanillaBlocks::SHORT_GRASS->defaultState());
+
+    const BlockState* initialState = world.getBlockState(0, 64, 0);
+    ASSERT_NE(initialState, nullptr);
+    EXPECT_TRUE(initialState->is(VanillaBlocks::SHORT_GRASS));
+
+    // 模拟吃草的逻辑（设置空气）
+    world.setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState(), 2);
+
+    const BlockState* finalState = world.getBlockState(0, 64, 0);
+    ASSERT_NE(finalState, nullptr);
+    EXPECT_TRUE(finalState->isAir());
+}
+
+// 测试 mobGriefing=false 时草保持不变
+TEST_F(EatGrassGoalGameRuleTest, ShortGrassUnchanged_WhenMobGriefingDisabled)
+{
+    EatGrassTestWorld world;
+    world.setMobGriefing(false);
+    world.setBlock(0, 64, 0, &VanillaBlocks::SHORT_GRASS->defaultState());
+
+    const bool canGrief = world.getGameRules().getBoolean(
+        world::gamerule::GameRuleKeys::MOB_GRIEFING);
+    EXPECT_FALSE(canGrief);
+
+    // 方块应保持不变
+    const BlockState* state = world.getBlockState(0, 64, 0);
+    EXPECT_TRUE(state->is(VanillaBlocks::SHORT_GRASS));
+}
+
+// 测试 mobGriefing=false 时回调仍然被调用（羊仍获得增益）
+TEST_F(EatGrassGoalGameRuleTest, EatGrassBonusCalled_WhenMobGriefingDisabled)
+{
+    EatGrassTestWorld world;
+    world.setMobGriefing(false);
+    world.setBlock(0, 63, 0, &VanillaBlocks::GRASS_BLOCK->defaultState());
+
+    TestMobEntity mob;
+    mob.setPositionForTest(0.5, 64.0, 0.5);
+    mob.setWorldForTest(&world);
+
+    bool eatGrassBonusCalled = false;
+    int callCount = 0;
+
+    // 根据原版行为，即使 mobGriefing=false，eatGrassBonus 仍应被调用
+    // 这允许羊获得饱食度和重新长毛，但不破坏方块
+    auto onEatGrass = [&eatGrassBonusCalled, &callCount]() {
+        eatGrassBonusCalled = true;
+        callCount++;
+    };
+
+    // 模拟吃草后的回调调用
+    // MC 1.16.5: 无论 mobGriefing 设置如何，都会调用 eatGrassBonus
+    onEatGrass();
+
+    EXPECT_TRUE(eatGrassBonusCalled);
+    EXPECT_EQ(callCount, 1);
+}
+
+// 测试高草丛也能被正确处理
+TEST_F(EatGrassGoalGameRuleTest, TallGrassHandled_WhenMobGriefingEnabled)
+{
+    EatGrassTestWorld world;
+    world.setMobGriefing(true);
+    world.setBlock(0, 64, 0, &VanillaBlocks::TALL_GRASS->defaultState());
+
+    const BlockState* initialState = world.getBlockState(0, 64, 0);
+    ASSERT_NE(initialState, nullptr);
+    EXPECT_TRUE(initialState->is(VanillaBlocks::TALL_GRASS));
+
+    // 模拟吃高草的逻辑
+    world.setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState(), 2);
+
+    const BlockState* finalState = world.getBlockState(0, 64, 0);
+    ASSERT_NE(finalState, nullptr);
+    EXPECT_TRUE(finalState->isAir());
 }

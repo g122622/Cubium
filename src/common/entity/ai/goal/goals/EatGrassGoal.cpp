@@ -1,16 +1,16 @@
 /*
 * Copyright (c) 2026 Guo Yi
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-* 
+*
 */
 
 #include "EatGrassGoal.hpp"
@@ -27,6 +27,7 @@
 #include "../../../../world/block/Block.hpp"
 #include "../../../../world/block/VanillaBlocks.hpp"
 #include "../../../../world/gamerule/GameRules.hpp"
+#include "../../../../world/WorldEvents.hpp"
 #include "../../../core/Entity.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
@@ -139,39 +140,43 @@ void EatGrassGoal::eatGrass()
 
     // MC 1.16.5: 检查 mobGriefing 游戏规则
     // 参考: net.minecraft.entity.ai.goal.EatGrassGoal.tick()
-    if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
-        // 只调用 eatGrassBonus，不破坏方块
-        if (m_onEatGrass) {
-            m_onEatGrass();
-        }
-        return;
-    }
+    // 原版等效: world.getGameRules().getBoolean(GameRules.MOB_GRIEFING)
+    const bool canGrief = m_world->getGameRules().getBoolean(
+        world::gamerule::GameRuleKeys::MOB_GRIEFING);
 
     if (m_isEatingGrassBlock) {
         // 草方块 -> 泥土
-        // MC 1.16.5: 破坏草方块，设置为泥土
         const BlockState* currentState = m_world->getBlockState(m_targetPos);
         if (currentState != nullptr && currentState->is(VanillaBlocks::GRASS_BLOCK)) {
-            // MC 1.16.5: world.playEvent(2001, pos, Block.getStateId(Blocks.GRASS_BLOCK.getDefaultState()))
-            // 播放方块破坏效果
-            // m_world->playEvent(2001, m_targetPos, static_cast<i32>(currentState->stateId()));
+            if (canGrief) {
+                // MC 1.16.5: world.playEvent(2001, pos, Block.getStateId(Blocks.GRASS_BLOCK.getDefaultState()))
+                // 播放方块破坏效果（粒子 + 音效）
+                m_world->playEvent(
+                    world::WorldEvents::BREAK_BLOCK_EFFECTS,
+                    m_targetPos,
+                    static_cast<i32>(VanillaBlocks::GRASS_BLOCK->defaultState().stateId()));
 
-            // 设置为泥土
-            const BlockState* dirtState = &VanillaBlocks::DIRT->defaultState();
-            m_world->setBlockState(m_targetPos, dirtState, 2); // flag 2 = 通知邻居
+                // MC 1.16.5: world.setBlockState(pos, Blocks.DIRT.getDefaultState(), 2)
+                // 设置为泥土，flags=2 表示通知邻居并同步客户端
+                const BlockState* dirtState = &VanillaBlocks::DIRT->defaultState();
+                m_world->setBlockState(m_targetPos, dirtState, 2);
+            }
         }
     } else {
         // 草（草丛/高草丛） -> 空气
         const BlockState* currentState = m_world->getBlockState(m_targetPos);
         if (currentState != nullptr &&
             (currentState->is(VanillaBlocks::SHORT_GRASS) || currentState->is(VanillaBlocks::TALL_GRASS))) {
-            // MC 1.16.5: 破坏草（不掉落物品）
-            const BlockState* airState = &VanillaBlocks::AIR->defaultState();
-            m_world->setBlockState(m_targetPos, airState, 2);
+            if (canGrief) {
+                // MC 1.16.5: world.destroyBlock(pos, false) - 不掉落物品
+                const BlockState* airState = &VanillaBlocks::AIR->defaultState();
+                m_world->setBlockState(m_targetPos, airState, 2);
+            }
         }
     }
 
-    // MC 1.16.5: 调用实体的 eatGrassBonus 回调
+    // MC 1.16.5: 无论 mobGriefing 是否允许，都调用 eatGrassBonus
+    // 这是因为羊吃草后会获得饱食度和重新长毛
     if (m_onEatGrass) {
         m_onEatGrass();
     }
