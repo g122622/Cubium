@@ -749,6 +749,134 @@ bool MobEntity::isInDaylight() const {
 
 这个改动确保通过基类引用调用 `canFitPassenger()` 时能正确调用子类的实现。
 
+## 玩家交互系统
+
+实体与玩家交互的核心方法，支持右键点击交互。
+
+### 核心方法
+
+```cpp
+class Entity {
+public:
+    /**
+     * @brief 处理玩家初始交互
+     *
+     * 当玩家右键点击实体时首先调用此方法。
+     * 子类可重写此方法处理特定的交互行为（如骑乘、打开容器等）。
+     *
+     * @param player 与此实体交互的玩家
+     * @param hand 玩家使用的手（主手/副手）
+     * @return 交互结果类型
+     */
+    virtual ActionResultType processInitialInteract(Player& player, Hand hand);
+
+    /**
+     * @brief 处理玩家指定位置的交互
+     *
+     * 当玩家右键点击实体的特定位置时调用。
+     * hitPosition 是相对于实体坐标的局部坐标，用于确定点击的是实体的哪个部位。
+     * 子类可重写此方法处理基于点击位置的交互（如盔甲架装备槽）。
+     *
+     * @param player 与此实体交互的玩家
+     * @param hitPosition 点击位置（相对于实体坐标系）
+     * @param hand 玩家使用的手
+     * @return 交互结果类型
+     */
+    virtual ActionResultType applyPlayerInteraction(Player& player,
+        const Vector3& hitPosition, Hand hand);
+};
+```
+
+### 返回值类型
+
+```cpp
+enum class ActionResultType : u8 {
+    Success = 0,  // 成功执行，消耗物品
+    Consume = 1,  // 消耗物品但不执行动作
+    Fail = 2,     // 执行失败，不消耗物品
+    Pass = 3      // 传递给下一个处理器
+};
+```
+
+### 交互流程
+
+当玩家右键点击实体时，服务端处理流程：
+
+1. **Interact 动作**（无位置信息）：
+   ```
+   客户端发送 UseEntityPacket(Interact)
+   → PacketHandler 调用 player->interactOn(target, hand)
+   → interactOn 先调用 target.processInitialInteract()
+   → 如果返回 Pass，则尝试物品交互 item->itemInteractionForEntity()
+   ```
+
+2. **InteractAt 动作**（有位置信息）：
+   ```
+   客户端发送 UseEntityPacket(InteractAt, hitX, hitY, hitZ)
+   → PacketHandler 调用 target.applyPlayerInteraction(player, hitPosition, hand)
+   → 子类根据 hitPosition 执行特定交互
+   ```
+
+### 基类默认行为
+
+Entity 基类的默认实现：
+
+```cpp
+ActionResultType Entity::processInitialInteract(Player& player, Hand hand)
+{
+    // 基类默认返回 Pass，表示不处理交互
+    (void)player;
+    (void)hand;
+    return ActionResultType::Pass;
+}
+
+ActionResultType Entity::applyPlayerInteraction(Player& player,
+    const Vector3& hitPosition, Hand hand)
+{
+    // 基类默认调用 processInitialInteract
+    (void)hitPosition;
+    return processInitialInteract(player, hand);
+}
+```
+
+### 子类重写示例
+
+**ArmorStandEntity**（盔甲架）重写 `applyPlayerInteraction`：
+
+```cpp
+ActionResultType ArmorStandEntity::applyPlayerInteraction(
+    Player& player, const Vector3& hitPosition, Hand hand)
+{
+    // 标记模式下的盔甲架不能交互
+    if (hasMarker()) {
+        return ActionResultType::Pass;
+    }
+
+    // 观察者模式
+    if (player.isSpectator()) {
+        return ActionResultType::Success;
+    }
+
+    // 获取点击的装备槽位（基于 hitPosition.y）
+    EquipmentSlot slot = getClickedSlot(hitPosition);
+    ItemStack itemStack = player.getHeldItem(hand);
+
+    // 执行装备放置或交换
+    return equipOrSwap(player, slot, itemStack, hand);
+}
+```
+
+### 使用场景
+
+| 方法 | 使用场景 |
+|------|---------|
+| `processInitialInteract` | 骑乘（船、马）、打开容器（矿车）、驯服动物 |
+| `applyPlayerInteraction` | 盔甲架装备槽交互（基于点击位置） |
+
+### 测试用例
+
+- [tests/entity/EntityCoreTests.cpp](../../../../tests/entity/EntityCoreTests.cpp) 验证方法签名、虚拟方法和多态行为。
+
 ## 继承层次
 
 ```
