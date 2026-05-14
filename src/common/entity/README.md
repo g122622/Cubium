@@ -316,6 +316,7 @@ src/common/entity/
 - **实体标签**：命令系统和数据包谓词使用的标签系统
 - **发光效果**：`isGlowing()` / `setGlowing()` 发光状态管理
 - **队伍系统**：`getTeam()` 获取实体所属队伍（虚拟方法，默认返回 nullptr）
+- **玩家交互**：`processInitialInteract()` / `applyPlayerInteraction()` 玩家右键交互处理
 
 ```cpp
 // 创建实体

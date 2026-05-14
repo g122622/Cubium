@@ -457,7 +457,7 @@ src/common/
 
 ### entity/
 实体系统，包含所有游戏实体的基类和实现：
-- **Entity.hpp**: 实体基类，位置、速度、旋转
+- **Entity.hpp**: 实体基类，位置、速度、旋转、玩家交互（processInitialInteract、applyPlayerInteraction）
 - **ai/**: AI 系统 (控制器、目标、寻路)
 - **animal/**: 动物实体 (猪、牛、羊、鸡)
 - **attribute/**: 属性系统 (生命值、移动速度等)
