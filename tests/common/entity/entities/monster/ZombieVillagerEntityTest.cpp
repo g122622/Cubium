@@ -75,7 +75,9 @@ public:
     }
 
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+
+    void setDifficulty(Difficulty difficulty) { m_difficulty = difficulty; }
 
     EntityId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -105,6 +107,7 @@ private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
     u64 m_currentTick = 0;
+    Difficulty m_difficulty = Difficulty::Normal;
 };
 
 /**
@@ -222,6 +225,68 @@ TEST_F(ZombieVillagerEntityTest, SetConversionTime)
 
     EXPECT_FALSE(m_zombieVillager->isConverting());
     EXPECT_EQ(m_zombieVillager->getConversionTime(), 0);
+}
+
+// ============================================================================
+// 难度影响力量效果测试
+// ============================================================================
+
+TEST_F(ZombieVillagerEntityTest, StrengthEffectOnEasyDifficulty)
+{
+    // 简单难度：无力量效果
+    m_world->setDifficulty(Difficulty::Easy);
+
+    m_zombieVillager->startConverting("test-uuid", 3600);
+
+    // 简单难度下 strengthLevel = max(1 - 1, 0) = 0，不应有力量效果
+    EXPECT_EQ(m_zombieVillager->getEffectLevel(entity::effect::EffectType::Strength), 0);
+}
+
+TEST_F(ZombieVillagerEntityTest, StrengthEffectOnNormalDifficulty)
+{
+    // 普通难度：力量 I
+    m_world->setDifficulty(Difficulty::Normal);
+
+    m_zombieVillager->startConverting("test-uuid", 3600);
+
+    // 普通难度下 strengthLevel = max(2 - 1, 0) = 1，应有力量 I
+    EXPECT_EQ(m_zombieVillager->getEffectLevel(entity::effect::EffectType::Strength), 1);
+}
+
+TEST_F(ZombieVillagerEntityTest, StrengthEffectOnHardDifficulty)
+{
+    // 困难难度：力量 II
+    m_world->setDifficulty(Difficulty::Hard);
+
+    m_zombieVillager->startConverting("test-uuid", 3600);
+
+    // 困难难度下 strengthLevel = max(3 - 1, 0) = 2，应有力量 II
+    EXPECT_EQ(m_zombieVillager->getEffectLevel(entity::effect::EffectType::Strength), 2);
+}
+
+TEST_F(ZombieVillagerEntityTest, StrengthEffectOnPeacefulDifficulty)
+{
+    // 和平难度：无力量效果（虽然僵尸村民不会在和平模式生成）
+    m_world->setDifficulty(Difficulty::Peaceful);
+
+    m_zombieVillager->startConverting("test-uuid", 3600);
+
+    // 和平难度下 strengthLevel = max(0 - 1, 0) = 0，不应有力量效果
+    EXPECT_EQ(m_zombieVillager->getEffectLevel(entity::effect::EffectType::Strength), 0);
+}
+
+TEST_F(ZombieVillagerEntityTest, StrengthEffectDurationMatchesConversionTime)
+{
+    // 测试力量效果持续时间等于治愈时间
+    m_world->setDifficulty(Difficulty::Normal);
+
+    const i32 conversionTime = 5000;
+    m_zombieVillager->startConverting("test-uuid", conversionTime);
+
+    // 验证力量效果持续时间
+    const auto* effect = m_zombieVillager->getEffect(entity::effect::EffectType::Strength);
+    ASSERT_NE(effect, nullptr);
+    EXPECT_EQ(effect->duration(), conversionTime);
 }
 
 TEST_F(ZombieVillagerEntityTest, ConversionProgress)
