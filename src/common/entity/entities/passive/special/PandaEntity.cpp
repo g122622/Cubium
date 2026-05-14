@@ -23,9 +23,11 @@
 
 #include "PandaEntity.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/math/MathUtils.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
@@ -37,6 +39,11 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../utils/ItemDropHelper.hpp"
+#include "../../../core/MobEntity.hpp"
+#include "../../../../world/gamerule/GameRules.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 namespace mc {
 
@@ -151,9 +158,16 @@ void PandaEntity::tick()
 
     if (m_sneezing && m_sneezeTimer > 0) {
         m_sneezeTimer--;
+
+        // MC 1.16.5: 第1 tick播放预喷嚏音效
+        if (m_sneezeTimer == 19) {
+            playPreSneezeSound();
+        }
+
         if (m_sneezeTimer <= 0) {
             m_sneezing = false;
-            // TODO: 生成粘液球
+            // 打喷嚏完成，执行效果
+            onSneezeComplete();
         }
     }
 
@@ -244,9 +258,74 @@ void PandaEntity::playSneezeSound()
     playSound(SoundEvents::ENTITY_PANDA_SNEEZE, 1.0f, 1.0f);
 }
 
+void PandaEntity::playPreSneezeSound()
+{
+    playSound(SoundEvents::ENTITY_PANDA_PRE_SNEEZE, 1.0f, 1.0f);
+}
+
 void PandaEntity::playBiteSound()
 {
     playSound(SoundEvents::ENTITY_PANDA_BITE, 1.0f, 1.0f);
+}
+
+void PandaEntity::onSneezeComplete()
+{
+    // MC 1.16.5: PandaEntity.onSneeze()
+
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 1. 播放喷嚏音效
+    playSneezeSound();
+
+    // 2. 生成喷嚏粒子
+    // MC 1.16.5: 粒子位置在熊猫头部前方
+    // 位置计算：根据朝向偏移
+    f32 renderYawOffset = m_yaw; // 使用yaw作为朝向
+    f32 yawRad = math::toRadians(renderYawOffset);
+    f32 sinYaw = std::sin(yawRad);
+    f32 cosYaw = std::cos(yawRad);
+
+    // 粒子位置：熊猫眼睛高度前方
+    f32 particleX = static_cast<f32>(x()) - (width() + 1.0f) * 0.5f * sinYaw;
+    f32 particleY = static_cast<f32>(y()) + eyeHeight() - 0.1f;
+    f32 particleZ = static_cast<f32>(z()) + (width() + 1.0f) * 0.5f * cosYaw;
+
+    // 使用熊猫当前运动速度作为粒子速度
+    Vector3 vel = velocity();
+    m_world->addParticle(
+        client::renderer::trident::particle::ParticleTypeId::Sneeze,
+        Vector3(particleX, particleY, particleZ),
+        Vector3(vel.x, 0.0f, vel.z));
+
+    // 3. 让周围10格内的成年熊猫跳跃
+    // MC 1.16.5: 获取周围10格内的熊猫
+    AxisAlignedBB searchBox = boundingBox().expand(10.0f, 10.0f, 10.0f);
+    std::vector<Entity*> nearbyEntities = m_world->getEntitiesInAABB(searchBox, this);
+
+    for (Entity* entity : nearbyEntities) {
+        // 检查是否是熊猫
+        auto* panda = dynamic_cast<PandaEntity*>(entity);
+        if (panda != nullptr && !panda->isChild() && panda->onGround() && !panda->isInWater()) {
+            // 成年熊猫跳起来
+            panda->jump();
+        }
+    }
+
+    // 4. 1/700概率掉落粘液球（需要游戏规则 doMobLoot）
+    // MC 1.16.5: if (!this.world.isRemote && this.rand.nextInt(700) == 0 && this.world.getGameRules().getBoolean(GameRules.DO_MOB_LOOT))
+    if (!m_world->isClientSide()) {
+        const auto& gameRules = m_world->getGameRules();
+        if (gameRules.getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT)) {
+            math::Random rng = getRandom();
+            if (rng.nextInt(700) == 0) {
+                // 使用 ItemDropHelper 在熊猫位置掉落粘液球
+                ItemStack slimeBall(*Items::SLIME_BALL, 1);
+                ItemDropHelper::spawnItemAtEntity(this, slimeBall, 0.5f, rng);
+            }
+        }
+    }
 }
 
 } // namespace mc

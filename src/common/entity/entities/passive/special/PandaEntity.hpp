@@ -231,9 +231,28 @@ public:
     void playSneezeSound();
 
     /**
+     * @brief 播放预喷嚏音效
+     */
+    void playPreSneezeSound();
+
+    /**
      * @brief 播放咬音效
      */
     void playBiteSound();
+
+private:
+    /**
+     * @brief 打喷嚏完成时调用
+     *
+     * 执行以下操作：
+     * - 播放喷嚏音效
+     * - 生成喷嚏粒子
+     * - 让周围成年熊猫跳跃
+     * - 1/700 概率掉落粘液球（需 doMobLoot 游戏规则）
+     *
+     * 参考 MC 1.16.5: PandaEntity.onSneeze()
+     */
+    void onSneezeComplete();
 
 protected:
     // ========== AI 目标注册 ==========
