@@ -24,47 +24,54 @@
 #pragma once
 
 #include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 
 namespace mc {
 
-class IWorld;
+class BlockItemUseContext;
 
 namespace blocks {
 
 /**
- * @brief 末地传送门方块
+ * @brief 末地传送门框架方块
  *
- * 进入后传送到末地的传送门方块。
- * 由末地传送门框架组成，放满末影之眼后激活。
+ * 用于构建末地传送门的框架方块。
+ * 可以放入末影之眼。
  *
- * 状态属性：无
+ * 状态属性：
+ * - EYE: 是否有眼
+ * - FACING: 朝向（水平）
  *
- * 参考: net.minecraft.block.EndPortalBlock
+ * 参考: net.minecraft.block.EndPortalFrameBlock
  */
-class EndPortalBlock : public Block {
+class EndPortalFrameBlock : public Block {
 public:
-    explicit EndPortalBlock(const BlockProperties& properties);
-    ~EndPortalBlock() override = default;
+    explicit EndPortalFrameBlock(const BlockProperties& properties);
+    ~EndPortalFrameBlock() override = default;
 
-    // ========== 实体交互 ==========
+    // ========== 状态属性 ==========
 
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
+    [[nodiscard]] bool hasEye(const BlockState& state) const;
+    [[nodiscard]] Direction getFacing(const BlockState& state) const;
+
+    // ========== 放置逻辑 ==========
+
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    // ========== 旋转 ==========
+
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
     // ========== 形状 ==========
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
-
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return false;
-    }
-
 private:
-    CollisionShape m_shape;
+    CollisionShape m_frameShape;
+    CollisionShape m_frameWithEyeShape;
 };
 
 } // namespace blocks

@@ -21,51 +21,39 @@
 * 
 */
 
-#pragma once
-
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../Block.hpp"
+#include "EndGatewayBlock.hpp"
+#include "../../../IWorld.hpp"
 
 namespace mc {
-
-class IWorld;
-
 namespace blocks {
 
-/**
- * @brief 末地传送门方块
- *
- * 进入后传送到末地的传送门方块。
- * 由末地传送门框架组成，放满末影之眼后激活。
- *
- * 状态属性：无
- *
- * 参考: net.minecraft.block.EndPortalBlock
- */
-class EndPortalBlock : public Block {
-public:
-    explicit EndPortalBlock(const BlockProperties& properties);
-    ~EndPortalBlock() override = default;
+EndGatewayBlock::EndGatewayBlock(const BlockProperties& properties)
+    : Block(properties)
+{
+    m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+}
 
-    // ========== 实体交互 ==========
+void EndGatewayBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(entity);
+    // TODO: 折跃门传送逻辑
+}
 
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
+const CollisionShape& EndGatewayBlock::getShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    return m_shape;
+}
 
-    // ========== 形状 ==========
-
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
-
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return false;
-    }
-
-private:
-    CollisionShape m_shape;
-};
+const CollisionShape& EndGatewayBlock::getCollisionShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    static CollisionShape emptyShape = CollisionShape::empty();
+    return emptyShape;
+}
 
 } // namespace blocks
 } // namespace mc

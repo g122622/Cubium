@@ -132,7 +132,7 @@ f64 VoxelShape::min(Axis axis) const
     const i32 first = m_shape->firstFull(axis);
     const i32 size = m_shape->getSize(axis);
     if (first >= size) {
-        return std::numeric_limits<f64>::infinity();
+        return Shapes::LARGE_COORDINATE;
     }
     return get(axis, first);
 }
@@ -141,7 +141,7 @@ f64 VoxelShape::max(Axis axis) const
 {
     const i32 last = m_shape->lastFull(axis);
     if (last <= 0) {
-        return -std::numeric_limits<f64>::infinity();
+        return -Shapes::LARGE_COORDINATE;
     }
     return get(axis, last);
 }
@@ -482,7 +482,7 @@ f64 VoxelShape::min(Axis axis, f64 coord1, f64 coord2) const
 
     const i32 first = m_shape->firstFull(axis, index1, index2);
     if (first >= m_shape->getSize(axis)) {
-        return std::numeric_limits<f64>::infinity();
+        return Shapes::LARGE_COORDINATE;
     }
     return get(axis, first);
 }
@@ -497,7 +497,7 @@ f64 VoxelShape::max(Axis axis, f64 coord1, f64 coord2) const
 
     const i32 last = m_shape->lastFull(axis, index1, index2);
     if (last <= 0) {
-        return -std::numeric_limits<f64>::infinity();
+        return -Shapes::LARGE_COORDINATE;
     }
     return get(axis, last);
 }

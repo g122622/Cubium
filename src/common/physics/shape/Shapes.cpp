@@ -57,9 +57,9 @@ void Shapes::ensureInitialized()
 
     // 创建无限大形状
     s_infinity = VoxelShape(std::make_shared<DiscreteVoxelShape>(1, 1, 1),
-        {-std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity()},
-        {-std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity()},
-        {-std::numeric_limits<f64>::infinity(), std::numeric_limits<f64>::infinity()});
+        {-LARGE_COORDINATE, LARGE_COORDINATE},
+        {-LARGE_COORDINATE, LARGE_COORDINATE},
+        {-LARGE_COORDINATE, LARGE_COORDINATE});
     s_infinity.m_shape->fill(0, 0, 0);
 
     s_initialized = true;

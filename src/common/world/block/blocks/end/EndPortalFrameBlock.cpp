@@ -1,0 +1,88 @@
+/*
+* Copyright (c) 2026 Guo Yi
+* 
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+* 
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+* 
+*/
+
+#include "EndPortalFrameBlock.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../util/Direction.hpp"
+
+namespace mc {
+namespace blocks {
+
+EndPortalFrameBlock::EndPortalFrameBlock(const BlockProperties& properties)
+    : Block(properties)
+{
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::EYE())
+            .add(BlockStateProperties::HORIZONTAL_FACING())
+            .create([this](const Block& block, std::unordered_map<const IProperty*, size_t> values, u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), id);
+            });
+    createBlockState(std::move(container));
+
+    setDefaultState(defaultState()
+            .with(BlockStateProperties::EYE(), false)
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
+
+    m_frameShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.8125f, 1.0f);
+    m_frameWithEyeShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+}
+
+bool EndPortalFrameBlock::hasEye(const BlockState& state) const
+{
+    return state.get(BlockStateProperties::EYE());
+}
+
+Direction EndPortalFrameBlock::getFacing(const BlockState& state) const
+{
+    return state.get(BlockStateProperties::HORIZONTAL_FACING());
+}
+
+BlockState EndPortalFrameBlock::getStateForPlacement(BlockItemUseContext& context)
+{
+    Direction facing = context.horizontalDirection();
+    return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+}
+
+const BlockState& EndPortalFrameBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    Direction newFacing = Directions::rotateDirection(facing, rotation);
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
+}
+
+const BlockState& EndPortalFrameBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    Rotation rotation = Directions::mirrorToRotation(mirror, facing);
+    Direction newFacing = Directions::rotateDirection(facing, rotation);
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
+}
+
+const CollisionShape& EndPortalFrameBlock::getShape(const BlockState& state) const
+{
+    return hasEye(state) ? m_frameWithEyeShape : m_frameShape;
+}
+
+} // namespace blocks
+} // namespace mc

@@ -23,39 +23,46 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../Block.hpp"
 
 namespace mc {
 
 class IWorld;
+class BlockItemUseContext;
 
 namespace blocks {
 
 /**
- * @brief 末地传送门方块
+ * @brief 龙蛋方块
  *
- * 进入后传送到末地的传送门方块。
- * 由末地传送门框架组成，放满末影之眼后激活。
+ * 末影龙死亡后掉落的方块，点击会传送。
  *
- * 状态属性：无
- *
- * 参考: net.minecraft.block.EndPortalBlock
+ * 参考: net.minecraft.block.DragonEggBlock
  */
-class EndPortalBlock : public Block {
+class DragonEggBlock : public Block {
 public:
-    explicit EndPortalBlock(const BlockProperties& properties);
-    ~EndPortalBlock() override = default;
+    explicit DragonEggBlock(const BlockProperties& properties);
+    ~DragonEggBlock() override = default;
 
-    // ========== 实体交互 ==========
+    // ========== 放置逻辑 ==========
 
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    // ========== 交互 ==========
+
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     // ========== 形状 ==========
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
     [[nodiscard]] bool isOpaque(const BlockState& state) const override
     {
@@ -64,6 +71,11 @@ public:
     }
 
 private:
+    /**
+     * @brief 传送龙蛋到新位置
+     */
+    void teleport(IWorld& world, const BlockPos& pos, const BlockState& state);
+
     CollisionShape m_shape;
 };
 

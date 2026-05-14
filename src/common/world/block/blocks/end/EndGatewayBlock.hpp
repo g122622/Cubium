@@ -33,19 +33,18 @@ class IWorld;
 namespace blocks {
 
 /**
- * @brief 末地传送门方块
+ * @brief 末地折跃门方块
  *
- * 进入后传送到末地的传送门方块。
- * 由末地传送门框架组成，放满末影之眼后激活。
+ * 在末地城和主岛之间传送的方块。
  *
  * 状态属性：无
  *
- * 参考: net.minecraft.block.EndPortalBlock
+ * 参考: net.minecraft.block.EndGatewayBlock
  */
-class EndPortalBlock : public Block {
+class EndGatewayBlock : public Block {
 public:
-    explicit EndPortalBlock(const BlockProperties& properties);
-    ~EndPortalBlock() override = default;
+    explicit EndGatewayBlock(const BlockProperties& properties);
+    ~EndGatewayBlock() override = default;
 
     // ========== 实体交互 ==========
 

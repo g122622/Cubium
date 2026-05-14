@@ -24,38 +24,55 @@
 #pragma once
 
 #include "../../../../physics/collision/CollisionShape.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
+#include <array>
 
 namespace mc {
 
 class IWorld;
+class IBlockReader;
+class BlockItemUseContext;
 
 namespace blocks {
 
 /**
- * @brief 末地传送门方块
+ * @brief 紫颂花方块
  *
- * 进入后传送到末地的传送门方块。
- * 由末地传送门框架组成，放满末影之眼后激活。
+ * 紫颂植物的顶部，可以生长。
  *
- * 状态属性：无
+ * 状态属性：
+ * - AGE_0_5: 生长阶段
  *
- * 参考: net.minecraft.block.EndPortalBlock
+ * 参考: net.minecraft.block.ChorusFlowerBlock
  */
-class EndPortalBlock : public Block {
+class ChorusFlowerBlock : public Block {
 public:
-    explicit EndPortalBlock(const BlockProperties& properties);
-    ~EndPortalBlock() override = default;
+    explicit ChorusFlowerBlock(const BlockProperties& properties);
+    ~ChorusFlowerBlock() override = default;
 
-    // ========== 实体交互 ==========
+    // ========== 状态属性 ==========
 
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) override;
+    [[nodiscard]] i32 getAge(const BlockState& state) const;
+    [[nodiscard]] BlockState withAge(i32 age) const;
+    [[nodiscard]] i32 getMaxAge() const { return 5; }
+
+    // ========== 放置逻辑 ==========
+
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
+    // ========== 生长逻辑 ==========
+
+    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    [[nodiscard]] bool ticksRandomly() const override { return true; }
 
     // ========== 形状 ==========
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
     [[nodiscard]] bool isOpaque(const BlockState& state) const override
     {
@@ -64,7 +81,7 @@ public:
     }
 
 private:
-    CollisionShape m_shape;
+    std::array<CollisionShape, 6> m_shapesByAge;
 };
 
 } // namespace blocks

@@ -51,6 +51,7 @@ public:
     /// 浮点数比较精度
     static constexpr f64 EPSILON = 1.0E-7;
     static constexpr f64 BIG_EPSILON = 1.0E-6;
+    static constexpr f64 LARGE_COORDINATE = 1.0E30;
 
     // ========================================================================
     // 基础形状

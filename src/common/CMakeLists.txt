@@ -551,6 +551,11 @@ add_library(mc_common STATIC
 
     # World - Block - End
     world/block/blocks/end/EndPortalBlock.cpp
+    world/block/blocks/end/EndPortalFrameBlock.cpp
+    world/block/blocks/end/EndGatewayBlock.cpp
+    world/block/blocks/end/ChorusPlantBlock.cpp
+    world/block/blocks/end/ChorusFlowerBlock.cpp
+    world/block/blocks/end/DragonEggBlock.cpp
 
     # World - Block - Special
     world/block/blocks/special/SpecialBlocks.cpp
