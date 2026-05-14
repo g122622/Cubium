@@ -89,14 +89,16 @@ bool NetherPortalBlock::isValidPosition(const BlockState& state, IBlockReader& w
     // 检查上下方向
     const BlockState* upState = world.getBlockState(pos.up());
     const BlockState* downState = world.getBlockState(pos.down());
-    if (isConnectedToPortal(*upState) || isConnectedToPortal(*downState)) {
+    if ((upState != nullptr && isConnectedToPortal(*upState)) ||
+        (downState != nullptr && isConnectedToPortal(*downState))) {
         return true;
     }
 
     // 检查宽度方向（X轴传送门检查东西，Z轴传送门检查南北）
     const BlockState* widthPosState = world.getBlockState(pos.offset(widthDir));
     const BlockState* widthNegState = world.getBlockState(pos.offset(Directions::opposite(widthDir)));
-    if (isConnectedToPortal(*widthPosState) || isConnectedToPortal(*widthNegState)) {
+    if ((widthPosState != nullptr && isConnectedToPortal(*widthPosState)) ||
+        (widthNegState != nullptr && isConnectedToPortal(*widthNegState))) {
         return true;
     }
 
@@ -104,7 +106,8 @@ bool NetherPortalBlock::isValidPosition(const BlockState& state, IBlockReader& w
     // 深度方向应该是框架方块
     const BlockState* depthPosState = world.getBlockState(pos.offset(depthDir));
     const BlockState* depthNegState = world.getBlockState(pos.offset(Directions::opposite(depthDir)));
-    if (isConnectedToPortal(*depthPosState) || isConnectedToPortal(*depthNegState)) {
+    if ((depthPosState != nullptr && isConnectedToPortal(*depthPosState)) ||
+        (depthNegState != nullptr && isConnectedToPortal(*depthNegState))) {
         return true;
     }
 

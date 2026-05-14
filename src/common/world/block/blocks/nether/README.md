@@ -170,10 +170,35 @@ BlockState SoulFireBlock::updatePostPlacement(...);
 
 ### 下界传送门
 
+**状态属性**:
+```cpp
+- HORIZONTAL_AXIS: Axis (X, Z)  // 传送门轴向
+```
+
+**核心机制**:
 1. 由黑曜石框架组成
 2. 通过点火激活
 3. 实体碰撞后传送
 4. 水平轴向（X 或 Z）
+
+**位置有效性检查** (`isValidPosition`):
+- 检查传送门方块六个方向是否有传送门方块或黑曜石框架
+- 上/下方向检查：传送门方块或黑曜石
+- 宽度方向（X轴传送门检查东西，Z轴传送门检查南北）：传送门方块或黑曜石
+- 深度方向（X轴传送门检查南北，Z轴传送门检查东西）：传送门方块或黑曜石
+- 如果没有任何连接，传送门方块将变为空气
+
+**邻居更新** (`updatePostPlacement`):
+- 当邻居方块改变时，检查传送门是否仍然有效
+- 无效时传送门方块变为空气
+
+**辅助方法**:
+```cpp
+// 检查方块状态是否连接到传送门（传送门方块或黑曜石）
+[[nodiscard]] bool isConnectedToPortal(const BlockState& state) const;
+```
+
+**参考**: MC 1.16.5 `net.minecraft.block.NetherPortalBlock`
 
 ### 下界疣生长
 

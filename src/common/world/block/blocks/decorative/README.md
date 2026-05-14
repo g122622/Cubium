@@ -225,6 +225,50 @@ public:
 
 **测试**: `tests/common/world/block/blocks/decorative/ScaffoldingBlockTest.cpp`
 
+### CampfireBlock.hpp/cpp
+
+**职责**：营火方块。
+
+**状态属性**:
+```cpp
+- LIT: bool           // 是否点燃
+- SIGNAL_FIRE: bool   // 是否为信号火（添加烟雾高度）
+- WATERLOGGED: bool   // 是否被水淹没
+```
+
+**重要说明**（MC 1.16.5 对齐）:
+- 营火 **没有** AGE 属性
+- 营火 **不会** 因为雨天而熄灭（这是 FireBlock 的行为）
+- 营火的熄灭方式只有：
+  1. 水接触（含水）
+  2. 铲子右键
+  3. 喷溅型水瓶
+
+**光照等级**:
+- 普通营火：15（点燃时）
+- 灵魂营火：10（点燃时）
+
+**特性**:
+- 实现 `IWaterLoggable` 接口支持含水功能
+- 点燃时发出光照，熄灭时不发光
+- 含水时自动熄灭
+
+**核心方法**:
+| 方法 | 功能 |
+|------|------|
+| `isLit()` | 检查是否点燃 |
+| `isSignalFire()` | 检查是否为信号火 |
+| `light()` | 点燃营火 |
+| `extinguish()` | 熄灭营火（播放音效） |
+| `getLightLevel()` | 获取动态光照等级 |
+| `getFluidState()` | 获取流体状态（含水支持） |
+
+**衍生方块**:
+- CAMPFIRE（普通营火）
+- SOUL_CAMPFIRE（灵魂营火）
+
+**参考**: MC 1.16.5 `net.minecraft.block.CampfireBlock`
+
 ## 依赖项
 
 ### 内部依赖
