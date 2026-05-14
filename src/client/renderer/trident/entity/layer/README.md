@@ -59,7 +59,10 @@ public:
 
 ### 装备层 (equipment/)
 - **ArmorLayer**: 盔甲渲染，支持皮革染色
-- **HeldItemLayer**: 手持物品渲染
+- **HeldItemLayer**: 手持物品渲染，支持手臂动画跟随
+  - 通过 `BipedModel::translateHand()` 获取手臂变换矩阵
+  - 物品正确跟随手臂动画旋转和平移
+  - 参考 MC 1.16.5 `HeldItemLayer.func_229135_a_`
 - **HeadLayer**: 头部物品渲染（头盔、南瓜等）
 
 ### 外观层 (cosmetic/)

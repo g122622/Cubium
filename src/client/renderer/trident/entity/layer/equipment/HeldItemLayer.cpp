@@ -216,7 +216,7 @@ const ItemStack* HeldItemLayer<TEntity, TModel>::getHeldItem(const TEntity& enti
 }
 
 template <typename TEntity, typename TModel>
-void HeldItemLayer<TEntity, TModel>::computeItemTransform(
+void HeldItemLayer<TEntity, TModel>::computeItemTransformStatic(
     const TModel* model, mc::HandSide handSide, std::array<f64, 16>& outMatrix)
 {
     // 初始化为单位矩阵
@@ -311,6 +311,14 @@ void HeldItemLayer<TEntity, TModel>::computeItemTransform(
     // - 参考 MC 1.16.5 HeldItemLayer.func_229135_a_
     // - BipedModel::translateHand 方法获取手臂的实际旋转角度
     // - 物品变换现在正确包含手臂的旋转点和旋转角度
+}
+
+template <typename TEntity, typename TModel>
+void HeldItemLayer<TEntity, TModel>::computeItemTransform(
+    const TModel* model, mc::HandSide handSide, std::array<f64, 16>& outMatrix)
+{
+    // 委托给静态方法
+    computeItemTransformStatic(model, handSide, outMatrix);
 }
 
 // 显式实例化常用类型

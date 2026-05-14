@@ -84,6 +84,37 @@ protected:
 };
 ```
 
+#### translateHand 方法
+
+用于手持物品渲染，获取手臂的变换矩阵：
+
+```cpp
+void translateHand(HandSide handSide, std::array<f64, 16>& outMatrix) const;
+```
+
+**参数：**
+- `handSide`：手侧（`HandSide::Left` 或 `HandSide::Right`）
+- `outMatrix`：输出变换矩阵（4x4 行主序）
+
+**功能：**
+- 返回手臂的旋转点和旋转角度的组合变换矩阵
+- 参考 MC 1.16.5 `BipedModel.translateHand`
+- 用于 `HeldItemLayer` 计算手持物品的最终位置
+
+**使用示例：**
+```cpp
+// 在 HeldItemLayer 中使用
+std::array<f64, 16> armMatrix;
+model->translateHand(HandSide::Right, armMatrix);
+// 组合物品固定变换后得到最终矩阵
+```
+
+**变换顺序：**
+1. 平移到旋转点
+2. 应用 Z 轴旋转
+3. 应用 Y 轴旋转
+4. 应用 X 轴旋转
+
 ### QuadrupedModel
 
 四足动物模型基类，用于猪、牛、羊等。

@@ -298,6 +298,8 @@ add_executable(mc_tests
     client/renderer/ChunkRendererStagingLayoutTest.cpp
     client/renderer/entity/AnimalModelTests.cpp
     client/renderer/entity/BipedModelTest.cpp
+    # BipedModel::translateHand 测试
+    client/renderer/entity/BipedModelTranslateHandTest.cpp
     # PlayerModel 手臂渲染测试
     client/renderer/entity/PlayerModelTest.cpp
     client/renderer/entity/ArmorLayerVisibilityTest.cpp

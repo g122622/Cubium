@@ -154,6 +154,23 @@ protected:
         const TModel* model, mc::HandSide handSide, std::array<f64, 16>& outMatrix);
 
     /**
+     * @brief 静态方法：计算手持物品变换矩阵（供测试使用）
+     *
+     * 参考 MC 1.16.5 HeldItemLayer.func_229135_a_
+     * 物品变换由以下步骤组成：
+     * 1. 调用 model.translateHand() 获取手臂的变换矩阵
+     * 2. 应用 X 轴 -90° 旋转
+     * 3. 应用 Y 轴 180° 旋转
+     * 4. 应用手部偏移
+     *
+     * @param model 模型（用于获取手臂变换，可以为空）
+     * @param handSide 手侧（左手或右手）
+     * @param outMatrix 输出变换矩阵
+     */
+    static void computeItemTransformStatic(
+        const TModel* model, mc::HandSide handSide, std::array<f64, 16>& outMatrix);
+
+    /**
      * @brief 获取关联的模型
      */
     [[nodiscard]] TModel* getParentModel() { return m_renderer ? &m_renderer->getModel() : nullptr; }
