@@ -36,7 +36,14 @@ void VillagerRenderer::initLayers()
 {
     // MC 1.16.5 VillagerRenderer 添加 VillagerLevelPendantLayer
     // 该层负责渲染类型层、职业层和等级徽章层
-    addLayer<layer::entity::VillagerLayer<::mc::entity::VillagerEntity, model::animal::VillagerModel>>(*this, "villager");
+    m_villagerLayer = addLayer<layer::entity::VillagerLayer<::mc::entity::VillagerEntity, model::animal::VillagerModel>>(*this, "villager");
+}
+
+void VillagerRenderer::setTextureAtlas(const pipeline::EntityTextureAtlas* atlas)
+{
+    if (m_villagerLayer) {
+        m_villagerLayer->setTextureAtlas(atlas);
+    }
 }
 
 ResourceLocation VillagerRenderer::getEntityTexture(::mc::entity::VillagerEntity& entity)

@@ -114,12 +114,16 @@ public:
      * @tparam TLayer 层渲染器类型
      * @tparam TArgs 构造函数参数类型
      * @param args 构造函数参数
+     * @return 指向添加的层渲染器的指针
      */
     template <typename TLayer, typename... TArgs>
-    void addLayer(TArgs&&... args)
+    TLayer* addLayer(TArgs&&... args)
     {
         static_assert(std::is_base_of_v<LayerRendererType, TLayer>, "TLayer must derive from LayerRenderer<TEntity>");
-        m_layers.push_back(std::make_unique<TLayer>(std::forward<TArgs>(args)...));
+        auto layer = std::make_unique<TLayer>(std::forward<TArgs>(args)...);
+        TLayer* ptr = layer.get();
+        m_layers.push_back(std::move(layer));
+        return ptr;
     }
 
     /**

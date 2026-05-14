@@ -11,6 +11,7 @@
 | `WolfCollarLayer.hpp/cpp` | 狼项圈层渲染器 |
 | `ArrowLayer.hpp/cpp` | 箭矢附着层渲染器 |
 | `HeldBlockLayer.hpp/cpp` | 持有方块层渲染器（末影人） |
+| `VillagerLayer.hpp` | 村民多层纹理层渲染器 |
 
 ## SaddleLayer
 
@@ -144,6 +145,96 @@ template class HeldBlockLayer<::mc::LivingEntity>;
 template class HeldBlockLayer<::mc::EndermanEntity>;
 ```
 
+## VillagerLayer
+
+渲染村民多层纹理，参考 MC 1.16.5 VillagerLevelPendantLayer：
+
+### 多层纹理结构
+
+村民纹理由多层叠加组成：
+1. **基础纹理** (`villager.png`) - 由主渲染器渲染，包含身体和头部基础
+2. **类型层** (`type/{type}.png`) - 根据生物群系叠加不同外观
+3. **职业层** (`profession/{profession}.png`) - 根据职业叠加装备和服饰
+4. **等级徽章层** (`profession_level/{badge}.png`) - 显示交易等级徽章
+
+### 渲染规则（MC 1.16.5）
+
+- **类型层**：始终渲染（非隐身时）
+- **职业层**：职业 != NONE 且 非儿童 时渲染
+- **等级徽章层**：职业 != NONE 且 职业 != NITWIT 且 非儿童 时渲染
+
+### 类型映射
+
+| 枚举值 | 类型名称 |
+|--------|----------|
+| Desert (0) | desert |
+| Jungle (1) | jungle |
+| Plains (2) | plains |
+| Savanna (3) | savanna |
+| Snow (4) | snow |
+| Swamp (5) | swamp |
+| Taiga (6) | taiga |
+
+### 职业映射
+
+| 枚举值 | 职业名称 |
+|--------|----------|
+| None (0) | none |
+| Armorer (1) | armorer |
+| Butcher (2) | butcher |
+| ... | ... |
+| Weaponsmith (14) | weaponsmith |
+
+### 等级徽章映射
+
+| 等级 | 徽章名称 |
+|------|----------|
+| 1 | stone (新手) |
+| 2 | iron (学徒) |
+| 3 | gold (老手) |
+| 4 | emerald (专家) |
+| 5 | diamond (大师) |
+
+### 实现架构
+
+```cpp
+template<typename TEntity, typename TModel>
+class VillagerLayer : public layer::core::LayerRenderer<TEntity> {
+public:
+    void renderPipeline(TEntity& entity, VkCommandBuffer cmd,
+        const AnimationContext& context, EntityPipeline& pipeline) override;
+
+    void setTextureAtlas(const pipeline::EntityTextureAtlas* atlas);
+
+private:
+    // 静态网格缓存（按纹理路径索引）
+    static std::unordered_map<std::string, std::unique_ptr<pipeline::EntityMesh>> s_meshCache;
+    static std::shared_mutex s_meshCacheMutex;
+
+    pipeline::EntityMesh* getOrCreateMeshForTexture(
+        EntityPipeline& pipeline, TModel& model, const ResourceLocation& textureLoc);
+};
+```
+
+### UV重映射
+
+VillagerLayer 使用纹理图集UV重映射实现多层纹理：
+
+1. 模型生成网格时使用局部UV坐标（0-1范围）
+2. 每层渲染时，根据纹理图集中的位置重映射UV坐标
+3. 使用静态缓存避免重复创建网格
+
+```cpp
+void remapUVs(std::vector<ModelVertex>& vertices, const TextureRegion& region) {
+    const f64 du = region.u1 - region.u0;
+    const f64 dv = region.v1 - region.v0;
+    for (auto& vertex : vertices) {
+        vertex.texCoord.x = region.u0 + vertex.texCoord.x * du;
+        vertex.texCoord.y = region.v0 + vertex.texCoord.y * dv;
+    }
+}
+```
+
 ## 参考
 
 - MC 1.16.5 SaddleLayer
@@ -151,3 +242,4 @@ template class HeldBlockLayer<::mc::EndermanEntity>;
 - MC 1.16.5 WolfCollarLayer
 - MC 1.16.5 ArrowLayer/StuckInBodyLayer
 - MC 1.16.5 HeldBlockLayer/EndermanLayer
+- MC 1.16.5 VillagerLevelPendantLayer

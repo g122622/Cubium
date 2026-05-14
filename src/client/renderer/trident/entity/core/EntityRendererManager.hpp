@@ -188,6 +188,13 @@ public:
     [[nodiscard]] pipeline::EntityTextureAtlas* itemTextureAtlas() { return m_itemTextureAtlas; }
 
     /**
+     * @brief 获取实体纹理图集（只读）
+     *
+     * 用于层渲染器访问纹理UV区域信息。
+     */
+    [[nodiscard]] const pipeline::EntityTextureAtlas* textureAtlas() const { return m_textureAtlas; }
+
+    /**
      * @brief 设置相机描述符集
      * @param descriptorSet 相机描述符集（set = 0）
      */

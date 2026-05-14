@@ -32,7 +32,10 @@
 
 namespace mc::client::renderer::entity {
 class EntityRendererManager;
+namespace pipeline {
+class EntityTextureAtlas;
 }
+} // namespace mc::client::renderer::entity
 
 namespace mc::client::renderer::entity::renderer::animal {
 
@@ -61,11 +64,24 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::entity::VillagerEntity& entity) override;
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::entity::VillagerEntity& entity) const override;
 
+    /**
+     * @brief 设置纹理图集
+     *
+     * 用于层渲染器访问纹理UV区域信息。
+     * 必须在渲染前调用。
+     *
+     * @param atlas 纹理图集指针
+     */
+    void setTextureAtlas(const pipeline::EntityTextureAtlas* atlas);
+
 private:
     /**
      * @brief 初始化层渲染器
      */
     void initLayers();
+
+    /// 村民层渲染器（用于设置纹理图集）
+    layer::entity::VillagerLayer<::mc::entity::VillagerEntity, model::animal::VillagerModel>* m_villagerLayer = nullptr;
 };
 
 /**
