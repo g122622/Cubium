@@ -21,6 +21,7 @@
 #include "common/world/border/WorldBorder.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
+#include "common/TestWorldHelper.hpp"
 
 #include <map>
 #include <memory>

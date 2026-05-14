@@ -9,6 +9,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/TestWorldHelper.hpp"
 
 namespace mc {
 namespace {
@@ -17,27 +18,11 @@ namespace {
 // Test World for FollowSchoolLeaderGoal
 // ============================================================================
 
-class TestFishWorld final : public IWorld {
+class TestFishWorld final : public test::BaseTestWorld {
 public:
     void setEntities(std::vector<Entity*> entities) {
         m_entities = std::move(entities);
     }
-
-    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity* except) const override {
         std::vector<Entity*> result;
@@ -67,13 +52,6 @@ public:
         return result;
     }
 
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
     [[nodiscard]] bool isWaterAt(const BlockPos&) const override { return true; }
     [[nodiscard]] bool isLavaAt(const BlockPos&) const override { return false; }
 
@@ -84,24 +62,8 @@ public:
         throw std::runtime_error("TestFishWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] math::Random& getRandom() override {
-        return m_random;
-    }
-    [[nodiscard]] const math::Random& getRandom() const override {
-        return m_random;
-    }
-
-    // WorldBorder interface (stubbed for tests)
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("TestFishWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("TestFishWorld::worldBorder not implemented");
-    }
-
 private:
     std::vector<Entity*> m_entities;
-    mutable math::Random m_random{12345};  // 固定种子用于测试
 };
 
 TEST(AbstractGroupFishEntityTest, FollowerJoinAndLeaveUpdatesLeaderState)
@@ -245,7 +207,7 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldContinueExecutingWhenInRange) {
     follower->joinGroup(*leader);
 
     entity::ai::goal::FollowSchoolLeaderGoal goal(follower.get());
-    goal.shouldExecute();  // 触发初始化
+    static_cast<void>(goal.shouldExecute());  // 触发初始化
 
     EXPECT_TRUE(follower->inRangeOfGroupLeader());
     EXPECT_TRUE(goal.shouldContinueExecuting());
@@ -265,7 +227,7 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldNotContinueExecutingWhenOutOfRange) {
     follower->joinGroup(*leader);
 
     entity::ai::goal::FollowSchoolLeaderGoal goal(follower.get());
-    goal.shouldExecute();
+    static_cast<void>(goal.shouldExecute());
 
     EXPECT_FALSE(follower->inRangeOfGroupLeader());
     EXPECT_FALSE(goal.shouldContinueExecuting());
@@ -286,7 +248,7 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldLeaveGroupOnReset) {
     EXPECT_EQ(leader->getGroupSize(), 2);
 
     entity::ai::goal::FollowSchoolLeaderGoal goal(follower.get());
-    goal.shouldExecute();
+    static_cast<void>(goal.shouldExecute());
     goal.resetTask();
 
     // resetTask 后应该离开群体
@@ -366,7 +328,7 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldRespectMaxGroupSize) {
     // 满员后不应该再加入
     entity::ai::goal::FollowSchoolLeaderGoal goal(extraFollower.get());
     for (int i = 0; i < 250; ++i) {
-        goal.shouldExecute();
+        static_cast<void>(goal.shouldExecute());
     }
 
     // 群体已满，extraFollower 无法加入

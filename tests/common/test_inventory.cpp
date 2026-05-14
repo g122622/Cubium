@@ -23,6 +23,7 @@
 #include "../src/common/world/blockentity/core/SimpleInventory.hpp"
 #include "../src/common/item/enchantment/EnchantmentRegistry.hpp"
 #include "../src/common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/TestWorldHelper.hpp"
 
 #include <array>
 
@@ -39,33 +40,10 @@ public:
     }
 };
 
-class ArmorTestWorld final : public IWorld {
+class ArmorTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override {
-        return fluid::Fluid::getFluidState(0);
-    }
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 0; }
     [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
-    [[nodiscard]] bool isClientSide() override { return false; }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
@@ -76,22 +54,6 @@ public:
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("ArmorTestWorld::tickManager not implemented");
-    }
-
-    // Random interface (stubbed for tests)
-    [[nodiscard]] math::Random& getRandom() override {
-        throw std::runtime_error("ArmorTestWorld::getRandom not implemented");
-    }
-    [[nodiscard]] const math::Random& getRandom() const override {
-        throw std::runtime_error("ArmorTestWorld::getRandom not implemented");
-    }
-
-    // WorldBorder interface (stubbed for tests)
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("ArmorTestWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("ArmorTestWorld::worldBorder not implemented");
     }
 
 private:
@@ -1159,7 +1121,7 @@ TEST_F(PlayerInventoryNewMethodsTest, GetDestroySpeedReturnsCorrectValue) {
     // 有物品时返回物品的挖掘速度
     // 注意：需要实际的 BlockState 来测试挖掘速度
     // 这里只测试方法不会崩溃
-    EXPECT_NO_THROW(m_inventory->getDestroySpeed(VanillaBlocks::AIR->defaultState()));
+    EXPECT_NO_THROW(static_cast<void>(m_inventory->getDestroySpeed(VanillaBlocks::AIR->defaultState())));
 }
 
 TEST_F(PlayerInventoryNewMethodsTest, PlaceItemBackInInventoryMergesExistingStacks) {

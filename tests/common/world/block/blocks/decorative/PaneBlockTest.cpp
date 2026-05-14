@@ -17,6 +17,7 @@
 #include "util/math/Vector3.hpp"
 #include "util/math/random/Random.hpp"
 #include "core/Constants.hpp"
+#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -26,7 +27,7 @@ using namespace mc::blocks;
 
 namespace {
 
-class PaneTestWorld final : public IWorld {
+class PaneTestWorld final : public test::BaseTestWorld {
 public:
     PaneTestWorld() = default;
 
@@ -67,33 +68,7 @@ public:
         return fluid::Fluid::getFluidState(0);
     }
 
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override {
-        return {};
-    }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override {
-        return {};
-    }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override {
-        return {};
-    }
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
     [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
     [[nodiscard]] bool isRaining() const override { return false; }
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
 
@@ -112,22 +87,6 @@ public:
         return *m_tickManagerPtr;
     }
 
-    // Random interface
-    [[nodiscard]] math::Random& getRandom() override {
-        return m_random;
-    }
-    [[nodiscard]] const math::Random& getRandom() const override {
-        return m_random;
-    }
-
-    // WorldBorder interface (stubbed for tests)
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("PaneTestWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("PaneTestWorld::worldBorder not implemented");
-    }
-
 private:
     [[nodiscard]] static i64 packPos(i32 x, i32 y, i32 z) {
         return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ static_cast<i64>(z & 0x1FFFFF);
@@ -136,7 +95,6 @@ private:
     std::unordered_map<i64, const BlockState*> m_blocks;
     u64 m_seed = 0;
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
-    math::Random m_random{12345};  // 固定种子的随机数生成器
 };
 
 BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Direction face, f32 playerYaw) {

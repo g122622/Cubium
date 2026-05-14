@@ -16,6 +16,7 @@
 #include "entity/inventory/ContainerTypes.hpp"
 #include "core/Types.hpp"
 #include "core/Constants.hpp"
+#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -38,7 +39,7 @@ namespace {
  * - openContainer() 用于测试容器打开
  * - getBlockState() / getBlockEntity() 用于方块和方块实体访问
  */
-class EnchantingTableTestWorld final : public IWorld {
+class EnchantingTableTestWorld final : public test::BaseTestWorld {
 public:
     explicit EnchantingTableTestWorld(bool isClient = false)
         : m_isClient(isClient)
@@ -112,54 +113,16 @@ public:
 
     // ========== IWorld 存根方法 ==========
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
     [[nodiscard]] world::tick::TickManager& tickManager() override {
-        static world::tick::TickManager dummy(*static_cast<IWorld*>(nullptr));
-        return dummy;
+        throw std::runtime_error("EnchantingTableTestWorld::tickManager not implemented");
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
-        static world::tick::TickManager dummy(*const_cast<EnchantingTableTestWorld*>(this));
-        return dummy;
-    }
-    [[nodiscard]] math::Random& getRandom() override {
-        static math::Random rng(0);
-        return rng;
-    }
-    [[nodiscard]] const math::Random& getRandom() const override {
-        static math::Random rng(0);
-        return rng;
-    }
-
-    // WorldBorder interface (stubbed for tests)
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("EnchantingTableTestWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("EnchantingTableTestWorld::worldBorder not implemented");
+        throw std::runtime_error("EnchantingTableTestWorld::tickManager not implemented");
     }
 
 private:

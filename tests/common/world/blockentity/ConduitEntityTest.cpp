@@ -13,6 +13,7 @@
 #include "common/util/UuidUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/command/ICommandSource.hpp"
+#include "common/TestWorldHelper.hpp"
 #include <unordered_set>
 #include <unordered_map>
 
@@ -21,7 +22,7 @@ using namespace mc;
 // ============================================================================
 // ConduitTestWorld - Mock World for ConduitEntity Tests
 // ============================================================================
-class ConduitTestWorld final : public IWorld {
+class ConduitTestWorld final : public test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
@@ -44,19 +45,7 @@ public:
         return setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
     [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override {
         return m_entitiesInAabb;
@@ -65,14 +54,6 @@ public:
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override {
         return m_entitiesInRange;
     }
-
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
 
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override {
         const auto it = m_blockEntities.find(pos);
@@ -103,22 +84,11 @@ public:
         throw std::runtime_error("ConduitTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
-
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("ConduitTestWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("ConduitTestWorld::worldBorder not implemented");
-    }
-
 private:
     std::unordered_map<BlockPos, const BlockState*> m_statesByPos;
     std::unordered_map<BlockPos, BlockEntity*> m_blockEntities;
     std::vector<Entity*> m_entitiesInAabb;
     std::vector<Entity*> m_entitiesInRange;
-    mutable math::Random m_random{12345};
 };
 
 // ============================================================================

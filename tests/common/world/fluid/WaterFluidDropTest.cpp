@@ -18,6 +18,7 @@
 #include "common/item/Items.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
+#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -64,11 +65,10 @@ private:
 /**
  * @brief 测试用 IWorld 实现，支持掉落测试
  */
-class WaterFluidTestWorld : public IWorld {
+class WaterFluidTestWorld : public test::BaseTestWorld {
 public:
     WaterFluidTestWorld()
-        : m_random(12345)
-        , m_entityManager()
+        : m_entityManager()
     {
         // 初始化掉落表管理器
         m_lootTableManager = std::make_unique<MockLootTableManager>();
@@ -100,29 +100,7 @@ public:
         return fluid::Fluid::getFluidState(fluid::FluidRegistry::EMPTY_ID);
     }
 
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
-        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
-    }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 12345; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
-    [[nodiscard]] bool isClientSide() override { return false; }
 
     // ========== TickManager 接口 ==========
 
@@ -134,18 +112,6 @@ public:
     }
 
     // ========== Random 接口 ==========
-
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
-
-    // ========== WorldBorder 接口 ==========
-
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("WaterFluidTestWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("WaterFluidTestWorld::worldBorder not implemented");
-    }
 
     // ========== Entity 管理 ==========
 
@@ -192,7 +158,6 @@ private:
     }
 
     std::unordered_map<i64, const BlockState*> m_blocks;
-    math::Random m_random;
     EntityManager m_entityManager;
     std::unique_ptr<MockLootTableManager> m_lootTableManager;
 };

@@ -10,6 +10,7 @@
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -47,50 +48,17 @@ public:
 };
 
 // 简化的测试世界
-class DespawnTestWorld : public IWorld {
+class DespawnTestWorld : public test::BaseTestWorld {
 public:
-    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
     [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
     [[nodiscard]] bool isUltraWarm() const override { return false; }
-    [[nodiscard]] u64 seed() const override { return 12345; }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
-    [[nodiscard]] bool isClientSide() override { return false; }
 
     // TickManager 接口
     [[nodiscard]] world::tick::TickManager& tickManager() override {
         throw std::runtime_error("DespawnTestWorld::tickManager not implemented");
     }
-    [[nodiscard]] math::Random& getRandom() override {
-        throw std::runtime_error("DespawnTestWorld::getRandom not implemented");
-    }
-
-    // WorldBorder interface (stubbed for tests)
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("DespawnTestWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("DespawnTestWorld::worldBorder not implemented");
-    }
-
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
     void setDifficulty(Difficulty diff) { m_difficulty = diff; }
 

@@ -322,7 +322,7 @@ void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks) {
     size_t count = 0;
     auto it = m_pendingTicksTree.begin();
     while (it != m_pendingTicksTree.end() && count < maxTicks) {
-        const ScheduledTick<T>& tick = *it;
+        const ScheduledTick<T> tick = *it;
 
         if (tick.scheduledTick > currentTick) {
             break;

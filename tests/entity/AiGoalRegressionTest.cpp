@@ -14,6 +14,7 @@
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
+#include "common/TestWorldHelper.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -23,7 +24,7 @@ using namespace mc::entity::ai::goal;
 
 namespace {
 
-class TestGoalWorld final : public IWorld {
+class TestGoalWorld final : public test::BaseTestWorld {
 public:
     void setEntities(std::vector<Entity*> entities) {
         m_entities = std::move(entities);
@@ -44,22 +45,6 @@ public:
     void setLavaBlock(i32 x, i32 y, i32 z) {
         m_lavaBlocks.push_back(BlockPos(x, y, z));
     }
-
-    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity* except) const override {
         std::vector<Entity*> result;
@@ -89,14 +74,6 @@ public:
         return result;
     }
 
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
-
     [[nodiscard]] bool isWaterAt(const BlockPos& pos) const override {
         if (m_allWater) {
             return true;
@@ -122,21 +99,6 @@ public:
     }
 
     // Random interface (stubbed for tests)
-    [[nodiscard]] math::Random& getRandom() override {
-        throw std::runtime_error("TestGoalWorld::getRandom not implemented");
-    }
-    [[nodiscard]] const math::Random& getRandom() const override {
-        throw std::runtime_error("TestGoalWorld::getRandom not implemented");
-    }
-
-    // WorldBorder interface (stubbed for tests)
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("TestGoalWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("TestGoalWorld::worldBorder not implemented");
-    }
-
 private:
     [[nodiscard]] static bool contains(const std::vector<BlockPos>& blocks, i32 x, i32 y, i32 z) {
         const auto it = std::find_if(blocks.begin(), blocks.end(), [x, y, z](const BlockPos& pos) {

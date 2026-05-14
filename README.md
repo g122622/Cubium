@@ -30,12 +30,11 @@ $env:VCPKG_ROOT = "D:\tools\vcpkg" #  改成你自己的 vcpkg 路径
 # 配置项目
 # Windows
 cmake --preset windows-clang-relwithdebinfo
-
 # MacOS / Linux
 cmake -S . -B build
 
 # 编译
- cmake --build build-clang --config RelWithDebInfo
+cmake --build --preset windows-clang-relwithdebinfo
 
 # 注：即使在开发过程中，也要尽量使用RelWithDebInfo构建，因为Debug运行非常慢，除非必要否则不要用。
 # 这行命令除了编译cpp代码之外，还会编译着色器

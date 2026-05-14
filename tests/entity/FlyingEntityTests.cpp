@@ -9,6 +9,7 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/core/Constants.hpp"
+#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 using namespace mc::entity::attribute;
@@ -29,7 +30,7 @@ public:
 /**
  * @brief 测试用存根世界
  */
-class StubWorld final : public IWorld {
+class StubWorld final : public test::BaseTestWorld {
 public:
     void setInWater(bool inWater) { m_inWater = inWater; }
     void setInLava(bool inLava) { m_inLava = inLava; }
@@ -69,28 +70,6 @@ public:
         return {AxisAlignedBB(-10.0f, -1.0f, -10.0f, 10.0f, 0.0f, 10.0f)};
     }
 
-    // IWorld 接口存根实现
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
-        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
-    }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
     [[nodiscard]] world::tick::TickManager& tickManager() override {
@@ -99,21 +78,6 @@ public:
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("StubWorld::tickManager not implemented");
     }
-    [[nodiscard]] math::Random& getRandom() override {
-        throw std::runtime_error("StubWorld::getRandom not implemented");
-    }
-    [[nodiscard]] const math::Random& getRandom() const override {
-        throw std::runtime_error("StubWorld::getRandom not implemented");
-    }
-
-    // WorldBorder interface (stubbed for tests)
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("StubWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("StubWorld::worldBorder not implemented");
-    }
-
 private:
     bool m_inWater = false;
     bool m_inLava = false;

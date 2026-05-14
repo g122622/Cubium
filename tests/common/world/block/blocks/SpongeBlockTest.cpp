@@ -18,6 +18,7 @@
 #include "core/Constants.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "sound/SoundCategory.hpp"
+#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -33,7 +34,7 @@ namespace {
  *
  * 提供最小化的 IWorld 实现，用于测试海绵吸水功能。
  */
-class SpongeTestWorld final : public IWorld {
+class SpongeTestWorld final : public test::BaseTestWorld {
 public:
     SpongeTestWorld() = default;
 
@@ -89,29 +90,8 @@ public:
         return fluid::Fluid::getFluidState(0);
     }
 
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
-        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
-    }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
     [[nodiscard]] DimensionId dimension() const override { return m_ultraWarm ? DimensionId(-1) : DimensionId(0); }
     [[nodiscard]] u64 seed() const override { return m_seed; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
     [[nodiscard]] bool isRaining() const override { return false; }
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
 
@@ -127,16 +107,6 @@ public:
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         const_cast<SpongeTestWorld*>(this)->ensureTickManager();
         return *m_tickManagerPtr;
-    }
-
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
-
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("SpongeTestWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("SpongeTestWorld::worldBorder not implemented");
     }
 
     // 记录的方法
@@ -172,8 +142,6 @@ private:
     u64 m_seed = 12345;
     bool m_ultraWarm = false;
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
-    math::Random m_random{12345};
-
     // 记录的事件
     std::vector<std::tuple<i32, BlockPos, i32>> m_playedEvents;
     std::vector<std::tuple<ResourceLocation, sound::SoundCategory, Vector3, f32, f32>> m_playedSounds;

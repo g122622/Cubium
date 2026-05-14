@@ -217,8 +217,8 @@ public:
     /**
      * @brief 获取主区块
      */
-    [[nodiscard]] IChunk* getMainChunk() { return m_chunks[centerIndex()]; }
-    [[nodiscard]] const IChunk* getMainChunk() const { return m_chunks[centerIndex()]; }
+    [[nodiscard]] IChunk* getMainChunk() { return m_chunks[static_cast<std::size_t>(centerIndex())]; }
+    [[nodiscard]] const IChunk* getMainChunk() const { return m_chunks[static_cast<std::size_t>(centerIndex())]; }
 
     /**
      * @brief 获取指定相对位置的区块（生成区域特有方法）
@@ -244,12 +244,12 @@ public:
     /**
      * @brief 获取方块状态（IWorld 接口）
      */
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const;
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override;
 
     /**
      * @brief 获取方块（BlockPos 版本）
      */
-    [[nodiscard]] const BlockState* getBlockState(const BlockPos& pos) const {
+    [[nodiscard]] const BlockState* getBlockState(const BlockPos& pos) const override {
         return getBlockState(pos.x, pos.y, pos.z);
     }
 

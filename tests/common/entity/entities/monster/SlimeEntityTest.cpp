@@ -12,6 +12,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -25,7 +26,7 @@ namespace {
  *
  * 提供史莱姆测试所需的最小 IWorld 接口实现
  */
-class SlimeTestWorld final : public IWorld {
+class SlimeTestWorld final : public test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
         const auto it = m_blocks.find(BlockPos(x, y, z));
@@ -45,28 +46,6 @@ public:
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
-
     EntityId spawnEntity(std::unique_ptr<Entity> entity) override {
         // 记录生成的史莱姆
         if (auto* slime = dynamic_cast<SlimeEntity*>(entity.get())) {
@@ -78,24 +57,11 @@ public:
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
 
-    // Random interface (stubbed for tests)
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
-
-    // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override {
         throw std::runtime_error("SlimeTestWorld::tickManager not implemented");
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("SlimeTestWorld::tickManager not implemented");
-    }
-
-    // WorldBorder interface (stubbed for tests)
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("SlimeTestWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("SlimeTestWorld::worldBorder not implemented");
     }
 
     // 测试辅助方法
@@ -112,7 +78,6 @@ private:
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
     std::vector<i32> m_spawnedSlimeSizes;
     size_t m_spawnedSlimeCount = 0;
-    math::Random m_random{12345};  // 固定种子以便测试可重复
 };
 
 class SlimeEntityTest : public ::testing::Test {
@@ -418,9 +383,9 @@ TEST_F(SlimeEntityTest, ExperienceValue_EqualsSize) {
  *
  * 扩展 SlimeTestWorld，添加客户端模式支持和粒子记录功能。
  */
-class ParticleTestWorld final : public IWorld {
+class ParticleTestWorld final : public test::BaseTestWorld {
 public:
-    ParticleTestWorld() : m_isClientSide(false), m_random(12345) {}
+    ParticleTestWorld() = default;
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override {
         const auto it = m_blocks.find(BlockPos(x, y, z));
@@ -440,27 +405,6 @@ public:
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-
     // 客户端/服务端模式控制
     [[nodiscard]] bool isClientSide() override { return m_isClientSide; }
     void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
@@ -476,18 +420,6 @@ public:
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("ParticleTestWorld::tickManager not implemented");
-    }
-
-    // Random interface
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
-
-    // WorldBorder interface
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("ParticleTestWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("ParticleTestWorld::worldBorder not implemented");
     }
 
     // 粒子生成记录
@@ -524,8 +456,7 @@ private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
     std::vector<ParticleInfo> m_particles;
-    bool m_isClientSide;
-    math::Random m_random;
+    bool m_isClientSide = false;
 };
 
 class SlimeParticleTest : public ::testing::Test {

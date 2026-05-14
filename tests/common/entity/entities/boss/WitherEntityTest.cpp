@@ -22,6 +22,7 @@
 #include "common/world/border/WorldBorder.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/core/Types.hpp"
+#include "common/TestWorldHelper.hpp"
 
 namespace mc {
 namespace {
@@ -29,7 +30,7 @@ namespace {
 /**
  * @brief 测试用 Mock World 类
  */
-class WitherTestWorld final : public IWorld {
+class WitherTestWorld final : public test::BaseTestWorld {
 public:
     WitherTestWorld() {
         // 初始化方块
@@ -61,56 +62,8 @@ public:
         return getBlockState(pos.x, pos.y, pos.z);
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override {
-        return nullptr;
-    }
-
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override {
-        return nullptr;
-    }
-
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override {
-        return false;
-    }
-
-    [[nodiscard]] i32 getHeight(i32, i32) const override {
-        return 64;
-    }
-
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override {
-        return 15;
-    }
-
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override {
-        return 15;
-    }
-
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override {
-        return false;
-    }
-
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override {
-        return {};
-    }
-
     [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override {
         return true;
-    }
-
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override {
-        return false;
-    }
-
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override {
-        return {};
-    }
-
-    [[nodiscard]] PhysicsEngine* physicsEngine() override {
-        return nullptr;
-    }
-
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override {
-        return nullptr;
     }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB& aabb, const Entity* exclude) const override {
@@ -155,14 +108,6 @@ public:
         return id;
     }
 
-    [[nodiscard]] DimensionId dimension() const override {
-        return DimensionId(0);
-    }
-
-    [[nodiscard]] u64 seed() const override {
-        return 12345;
-    }
-
     [[nodiscard]] u64 currentTick() const override {
         return m_currentTick;
     }
@@ -175,24 +120,8 @@ public:
         return 6000;
     }
 
-    [[nodiscard]] bool isHardcore() const override {
-        return false;
-    }
-
     [[nodiscard]] Difficulty difficulty() const override {
         return Difficulty::Normal;
-    }
-
-    [[nodiscard]] bool isClientSide() override {
-        return false;
-    }
-
-    [[nodiscard]] math::Random& getRandom() override {
-        return m_random;
-    }
-
-    [[nodiscard]] const math::Random& getRandom() const override {
-        return m_random;
     }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override {
@@ -203,20 +132,11 @@ public:
         throw std::runtime_error("WitherTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("WitherTestWorld::worldBorder not implemented");
-    }
-
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("WitherTestWorld::worldBorder not implemented");
-    }
-
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<std::unique_ptr<Entity>> m_entities;
     EntityId m_nextEntityId = EntityId(1);
     u64 m_currentTick = 0;
-    mutable math::Random m_random{12345};
 };
 
 /**

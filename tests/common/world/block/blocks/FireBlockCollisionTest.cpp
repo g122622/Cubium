@@ -11,6 +11,7 @@
 #include "entity/core/EntityType.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "core/Constants.hpp"
+#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 using namespace mc::blocks;
@@ -80,7 +81,7 @@ private:
 /**
  * @brief 火焰测试用世界
  */
-class FireTestWorld final : public IWorld {
+class FireTestWorld final : public test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
@@ -103,28 +104,6 @@ public:
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
-    [[nodiscard]] u64 seed() const override { return 12345; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
     [[nodiscard]] bool isUltraWarm() const override { return false; }
 
     void setBlockAt(const BlockPos& pos, const BlockState* state) {
@@ -140,12 +119,6 @@ public:
         return *m_tickManagerPtr;
     }
 
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
-
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
-
 private:
     void ensureTickManager() const {
         if (!m_tickManagerPtr) {
@@ -155,8 +128,6 @@ private:
 
     std::map<BlockPos, const BlockState*> m_blocks;
     mutable std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
-    math::Random m_random{12345};
-    world::border::WorldBorder m_worldBorder;
 };
 
 class FireBlockCollisionTest : public ::testing::Test {

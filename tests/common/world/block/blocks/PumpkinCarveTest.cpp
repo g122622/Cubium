@@ -30,6 +30,7 @@
 #include "util/math/random/Random.hpp"
 #include "core/Constants.hpp"
 #include "core/BlockRaycastResult.hpp"
+#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -45,7 +46,7 @@ namespace {
  *
  * 提供 PumpkinCarve 测试所需的最小 IWorld 接口实现
  */
-class PumpkinCarveTestWorld final : public IWorld {
+class PumpkinCarveTestWorld final : public test::BaseTestWorld {
 public:
     PumpkinCarveTestWorld() {
         // 初始化 VanillaBlocks
@@ -85,28 +86,8 @@ public:
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
-        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
-    }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 12345; }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
     [[nodiscard]] bool isClientSide() override { return m_isClientSide; }
     [[nodiscard]] bool isRaining() const override { return false; }
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
@@ -144,18 +125,6 @@ public:
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         static world::tick::TickManager dummy(*const_cast<PumpkinCarveTestWorld*>(this));
         return dummy;
-    }
-
-    // Random interface
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
-
-    // WorldBorder interface (stubbed for tests)
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("PumpkinCarveTestWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("PumpkinCarveTestWorld::worldBorder not implemented");
     }
 
     // 测试辅助方法
@@ -202,7 +171,6 @@ private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
     std::vector<Entity*> m_spawnedEntityPtrs;
-    math::Random m_random{12345};
     u64 m_currentTick = 0;
     bool m_isClientSide = false;
     bool m_soundPlayed = false;

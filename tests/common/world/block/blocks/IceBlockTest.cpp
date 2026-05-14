@@ -9,6 +9,7 @@
 #include "world/tick/manager/TickManager.hpp"
 #include "core/Constants.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
+#include "common/TestWorldHelper.hpp"
 
 #include <map>
 #include <memory>
@@ -20,7 +21,7 @@ using namespace mc::blocks;
 
 namespace {
 
-class IceTestWorld final : public IWorld {
+class IceTestWorld final : public test::BaseTestWorld {
 public:
     IceTestWorld() = default;
 
@@ -57,8 +58,6 @@ public:
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
 
@@ -70,22 +69,7 @@ public:
         return sampleLight(m_skyLight, x, y, z);
     }
 
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
-    [[nodiscard]] u64 seed() const override { return 12345; }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
     [[nodiscard]] bool isUltraWarm() const override { return m_isUltraWarm; }
 
     void setUltraWarm(bool value) { m_isUltraWarm = value; }
@@ -112,22 +96,6 @@ public:
         return *m_tickManagerPtr;
     }
 
-    // Random interface
-    [[nodiscard]] math::Random& getRandom() override {
-        return m_random;
-    }
-    [[nodiscard]] const math::Random& getRandom() const override {
-        return m_random;
-    }
-
-    // WorldBorder interface (stubbed for tests)
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("IceTestWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("IceTestWorld::worldBorder not implemented");
-    }
-
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
 
     void advanceTick() {
@@ -150,7 +118,6 @@ private:
     std::map<BlockPos, u8> m_blockLight;
     std::map<BlockPos, u8> m_skyLight;
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
-    math::Random m_random{12345};  // 固定种子的随机数生成器
     u64 m_currentTick = 0;          // 当前游戏刻
     bool m_isUltraWarm = false;
 };

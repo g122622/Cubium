@@ -11,6 +11,7 @@
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
+#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 
@@ -19,7 +20,7 @@ namespace {
 /**
  * @brief 测试用 Mock World，支持亮度、方块状态等
  */
-class PathWeightTestWorld final : public IWorld {
+class PathWeightTestWorld final : public test::BaseTestWorld {
 public:
     void setBrightness(f32 brightness) { m_brightness = brightness; }
     void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) {
@@ -39,16 +40,6 @@ public:
         return nullptr;
     }
 
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
-
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override {
-        return fluid::Fluid::getFluidState(0);
-    }
-
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return static_cast<u8>(m_brightness * 15.0f); }
 
     [[nodiscard]] f32 getBrightness(const BlockPos& pos) const override {
@@ -56,47 +47,12 @@ public:
         return m_brightness;
     }
 
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
-        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
-    }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
-
     // TickManager interface
     [[nodiscard]] world::tick::TickManager& tickManager() override {
         throw std::runtime_error("PathWeightTestWorld::tickManager not implemented");
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("PathWeightTestWorld::tickManager not implemented");
-    }
-
-    // Random interface
-    [[nodiscard]] math::Random& getRandom() override {
-        throw std::runtime_error("PathWeightTestWorld::getRandom not implemented");
-    }
-    [[nodiscard]] const math::Random& getRandom() const override {
-        throw std::runtime_error("PathWeightTestWorld::getRandom not implemented");
-    }
-
-    // WorldBorder interface
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("PathWeightTestWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("PathWeightTestWorld::worldBorder not implemented");
     }
 
 private:

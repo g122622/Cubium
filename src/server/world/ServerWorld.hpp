@@ -528,8 +528,8 @@ public:
 
     // ========== Tick管理 ==========
 
-    [[nodiscard]] world::tick::TickManager& tickManager() { return *m_tickManager; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const { return *m_tickManager; }
+    [[nodiscard]] world::tick::TickManager& tickManager() override { return *m_tickManager; }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return *m_tickManager; }
 
     // ========== StarLightLightingProvider 接口实现 ==========
 

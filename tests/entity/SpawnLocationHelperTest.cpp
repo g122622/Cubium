@@ -10,13 +10,14 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/TestWorldHelper.hpp"
 
 #include <unordered_map>
 
 namespace mc {
 namespace {
 
-class SpawnLocationTestWorld : public IWorld {
+class SpawnLocationTestWorld : public test::BaseChunkBackedTestWorld {
 public:
     SpawnLocationTestWorld() = default;
 
@@ -44,17 +45,6 @@ public:
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const override
-    {
-        const auto it = m_chunks.find(ChunkPos(x, z));
-        return it != m_chunks.end() ? it->second.get() : nullptr;
-    }
-
-    [[nodiscard]] bool hasChunk(ChunkCoord x, ChunkCoord z) const override
-    {
-        return m_chunks.find(ChunkPos(x, z)) != m_chunks.end();
-    }
-
     [[nodiscard]] i32 getHeight(i32 x, i32 z) const override
     {
         const ChunkData* chunk = getChunk(x >> 4, z >> 4);
@@ -70,35 +60,6 @@ public:
         }
 
         return 0;
-    }
-
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
-    [[nodiscard]] u64 seed() const override { return 12345; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
-
-    ChunkData& ensureChunk(ChunkCoord x, ChunkCoord z)
-    {
-        const ChunkPos chunkPos(x, z);
-        auto it = m_chunks.find(chunkPos);
-        if (it == m_chunks.end()) {
-            it = m_chunks.emplace(chunkPos, std::make_unique<ChunkData>(x, z)).first;
-        }
-        return *it->second;
     }
 
     void fillBiome(ChunkData& chunk, BiomeId biomeId)
@@ -120,29 +81,11 @@ public:
         throw std::runtime_error("SpawnLocationTestWorld::tickManager not implemented");
     }
 
-    // Random interface (stubbed for tests)
-    [[nodiscard]] math::Random& getRandom() override {
-        throw std::runtime_error("SpawnLocationTestWorld::getRandom not implemented");
-    }
-    [[nodiscard]] const math::Random& getRandom() const override {
-        throw std::runtime_error("SpawnLocationTestWorld::getRandom not implemented");
-    }
-
-    // WorldBorder interface (stubbed for tests)
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("SpawnLocationTestWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("SpawnLocationTestWorld::worldBorder not implemented");
-    }
-
 private:
     [[nodiscard]] const BlockState* getAirState() const
     {
         return &VanillaBlocks::AIR->defaultState();
     }
-
-    std::unordered_map<ChunkPos, std::unique_ptr<ChunkData>> m_chunks;
 };
 
 class SpawnLocationHelperTest : public ::testing::Test {

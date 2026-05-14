@@ -13,6 +13,7 @@
 #include "common/core/Constants.hpp"
 #include <cmath>
 #include "common/resource/ResourceLocation.hpp"
+#include "common/TestWorldHelper.hpp"
 
 namespace mc {
 namespace {
@@ -44,7 +45,7 @@ protected:
     std::unique_ptr<Player> m_player;
 };
 
-class GroundSupportWorld final : public IWorld {
+class GroundSupportWorld final : public test::BaseTestWorld {
 public:
     void setSupportEnabled(bool enabled) { m_supportEnabled = enabled; }
 
@@ -67,14 +68,6 @@ public:
         return nullptr;
     }
 
-    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override {
         if (!m_supportEnabled) {
             return false;
@@ -93,21 +86,6 @@ public:
         return {AxisAlignedBB(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f)};
     }
 
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override { return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT; }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return 0; }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
-
     void playSound(const ResourceLocation& soundEventId,
                    sound::SoundCategory category,
                    const Vector3& position,
@@ -122,22 +100,6 @@ public:
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("GroundSupportWorld::tickManager not implemented");
-    }
-
-    // Random interface (stubbed for tests)
-    [[nodiscard]] math::Random& getRandom() override {
-        throw std::runtime_error("GroundSupportWorld::getRandom not implemented");
-    }
-    [[nodiscard]] const math::Random& getRandom() const override {
-        throw std::runtime_error("GroundSupportWorld::getRandom not implemented");
-    }
-
-    // WorldBorder interface (stubbed for tests)
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("GroundSupportWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("GroundSupportWorld::worldBorder not implemented");
     }
 
 private:

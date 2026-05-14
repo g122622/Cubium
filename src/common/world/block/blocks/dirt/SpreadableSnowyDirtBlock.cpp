@@ -8,6 +8,7 @@
 #include "../../../../util/property/StateContainer.hpp"
 #include "../../../../core/Constants.hpp"
 #include "../ice/SnowBlock.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc::blocks {
 
@@ -136,7 +137,7 @@ bool SpreadableSnowyDirtBlock::isSnowyConditions(
     const BlockState& state) {
 
     // 参考: MC 1.16.5 SpreadableSnowyDirtBlock.isSnowyConditions()
-    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    BlockPos abovePos = pos.up();
     const BlockState* aboveState = world.getBlockState(abovePos);
 
     if (aboveState == nullptr || aboveState->isAir()) {

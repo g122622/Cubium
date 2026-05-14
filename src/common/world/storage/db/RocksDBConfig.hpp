@@ -165,7 +165,7 @@ struct RocksDBConfig {
         // 统计
         if (enableStatistics) {
             options.statistics = rocksdb::CreateDBStatistics();
-            options.stats_dump_period_sec = statisticsDumpPeriodMs / 1000;
+            options.stats_dump_period_sec = static_cast<unsigned int>(statisticsDumpPeriodMs / 1000);
         }
 
         return options;

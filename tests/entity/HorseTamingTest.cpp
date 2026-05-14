@@ -12,6 +12,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/TestWorldHelper.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -22,7 +23,7 @@ namespace {
 /**
  * @brief 测试用 Mock World，支持广播实体状态
  */
-class HorseTamingTestWorld final : public IWorld {
+class HorseTamingTestWorld final : public test::BaseTestWorld {
 public:
     void setBlock(i32 x, i32 y, i32 z, const BlockState* state) {
         m_blocks[BlockPos(x, y, z)] = state;
@@ -41,56 +42,19 @@ public:
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override {
-        return fluid::Fluid::getFluidState(0);
-    }
-
     [[nodiscard]] f32 getBrightness(const BlockPos& /*pos*/) const override {
         return 1.0f;
     }
 
-    // Stub implementations
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
-    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
-    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
-        return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
-    }
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override { return {}; }
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return {}; }
-    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
-    [[nodiscard]] u64 seed() const override { return 0; }
-    [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] i64 dayTime() const override { return 0; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
 
     EntityId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
-
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override {
         throw std::runtime_error("HorseTamingTestWorld::tickManager not implemented");
     }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("HorseTamingTestWorld::tickManager not implemented");
-    }
-
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("HorseTamingTestWorld::worldBorder not implemented");
-    }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("HorseTamingTestWorld::worldBorder not implemented");
     }
 
     // 实体状态广播追踪
@@ -111,7 +75,6 @@ public:
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_blocks;
-    math::Random m_random{12345};
     EntityId m_lastBroadcastEntityId{0};
     u8 m_lastBroadcastStatus = 0;
     i32 m_broadcastCount = 0;

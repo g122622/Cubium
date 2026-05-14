@@ -22,6 +22,7 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
+#include "common/TestWorldHelper.hpp"
 
 #include <unordered_map>
 #include <memory>
@@ -33,9 +34,9 @@ namespace test {
 /**
  * @brief 用于 TNTBlock 测试的 Mock World 实现
  */
-class TNTBlockTestWorld final : public IWorld {
+class TNTBlockTestWorld final : public ::mc::test::BaseTestWorld {
 public:
-    TNTBlockTestWorld() : m_random(12345) {}
+    TNTBlockTestWorld() = default;
 
     // ========== 方块访问 ==========
 
@@ -56,88 +57,11 @@ public:
         return true;
     }
 
-    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override {
-        return fluid::Fluid::getFluidState(0);
-    }
-
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override {
-        return nullptr;
-    }
-
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override {
-        return false;
-    }
-
-    [[nodiscard]] i32 getHeight(i32, i32) const override {
-        return 64;
-    }
-
-    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override {
-        return 15;
-    }
-
-    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override {
-        return 15;
-    }
-
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override {
-        return false;
-    }
-
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override {
-        return {};
-    }
-
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override {
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
-
-    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override {
-        return false;
-    }
-
-    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override {
-        return {};
-    }
-
-    [[nodiscard]] PhysicsEngine* physicsEngine() override {
-        return nullptr;
-    }
-
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override {
-        return nullptr;
-    }
-
-    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override {
-        return {};
-    }
-
-    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override {
-        return {};
-    }
-
-    [[nodiscard]] DimensionId dimension() const override {
-        return static_cast<DimensionId>(0);
-    }
-
-    [[nodiscard]] u64 seed() const override {
-        return 12345;
-    }
-
     [[nodiscard]] u64 currentTick() const override {
         return m_currentTick;
-    }
-
-    [[nodiscard]] i64 dayTime() const override {
-        return 0;
-    }
-
-    [[nodiscard]] bool isHardcore() const override {
-        return false;
-    }
-
-    [[nodiscard]] Difficulty difficulty() const override {
-        return Difficulty::Easy;
     }
 
     [[nodiscard]] bool isClientSide() override {
@@ -195,22 +119,6 @@ public:
 
     [[nodiscard]] const world::tick::TickManager& tickManager() const override {
         throw std::runtime_error("TNTBlockTestWorld::tickManager not implemented");
-    }
-
-    [[nodiscard]] math::Random& getRandom() override {
-        return m_random;
-    }
-
-    [[nodiscard]] const math::Random& getRandom() const override {
-        return m_random;
-    }
-
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override {
-        throw std::runtime_error("TNTBlockTestWorld::worldBorder not implemented");
-    }
-
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override {
-        throw std::runtime_error("TNTBlockTestWorld::worldBorder not implemented");
     }
 
     // 测试辅助方法
@@ -282,7 +190,6 @@ public:
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
-    math::Random m_random;
     u64 m_currentTick = 0;
     bool m_isClientSide = false;
 

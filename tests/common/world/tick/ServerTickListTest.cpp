@@ -5,8 +5,36 @@
 #include "common/world/tick/list/EmptyTickList.hpp"
 #include "common/world/tick/list/ServerTickList.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/TestWorldHelper.hpp"
+
+#include <stdexcept>
 
 using namespace mc::world::tick;
+
+namespace {
+
+class MockTickTarget {
+public:
+    explicit MockTickTarget(int value)
+        : id(value) {}
+
+    int id;
+};
+
+class ServerTickListTestWorld final : public mc::test::BaseTestWorld {
+public:
+    [[nodiscard]] bool isUltraWarm() const override { return false; }
+    [[nodiscard]] mc::world::tick::TickManager& tickManager() override { throw std::runtime_error("unused"); }
+    [[nodiscard]] const mc::world::tick::TickManager& tickManager() const override { throw std::runtime_error("unused"); }
+    [[nodiscard]] bool hasChunk(mc::ChunkCoord, mc::ChunkCoord) const override { return true; }
+};
+
+} // namespace
 
 // ============================================================================
 // TickPriority Tests
@@ -41,17 +69,11 @@ TEST(TickPriorityTest, ToIntReturnsCorrectValue) {
 // ScheduledTick Tests
 // ============================================================================
 
-class MockTarget {
-public:
-    int id;
-    MockTarget(int i) : id(i) {}
-};
-
 TEST(ScheduledTickTest, Construction) {
     mc::BlockPos pos(10, 20, 30);
-    MockTarget target(1);
+    MockTickTarget target(1);
 
-    ScheduledTick<MockTarget> tick(pos, &target, 100, TickPriority::Normal, 1);
+    ScheduledTick<MockTickTarget> tick(pos, &target, 100, TickPriority::Normal, 1);
 
     EXPECT_EQ(tick.position.x, 10);
     EXPECT_EQ(tick.position.y, 20);
@@ -63,43 +85,43 @@ TEST(ScheduledTickTest, Construction) {
 }
 
 TEST(ScheduledTickTest, ComparisonOrdersByScheduledTick) {
-    MockTarget target(1);
+    MockTickTarget target(1);
 
-    ScheduledTick<MockTarget> tick1(mc::BlockPos(0, 0, 0), &target, 10, TickPriority::Normal, 1);
-    ScheduledTick<MockTarget> tick2(mc::BlockPos(0, 0, 0), &target, 20, TickPriority::Normal, 2);
+    ScheduledTick<MockTickTarget> tick1(mc::BlockPos(0, 0, 0), &target, 10, TickPriority::Normal, 1);
+    ScheduledTick<MockTickTarget> tick2(mc::BlockPos(0, 0, 0), &target, 20, TickPriority::Normal, 2);
 
     EXPECT_TRUE(tick1 < tick2);
     EXPECT_FALSE(tick2 < tick1);
 }
 
 TEST(ScheduledTickTest, ComparisonOrdersByPriorityWhenSameTick) {
-    MockTarget target(1);
+    MockTickTarget target(1);
 
-    ScheduledTick<MockTarget> tick1(mc::BlockPos(0, 0, 0), &target, 100, TickPriority::High, 1);
-    ScheduledTick<MockTarget> tick2(mc::BlockPos(0, 0, 0), &target, 100, TickPriority::Normal, 2);
+    ScheduledTick<MockTickTarget> tick1(mc::BlockPos(0, 0, 0), &target, 100, TickPriority::High, 1);
+    ScheduledTick<MockTickTarget> tick2(mc::BlockPos(0, 0, 0), &target, 100, TickPriority::Normal, 2);
 
     EXPECT_TRUE(tick1 < tick2);  // High优先级 < Normal优先级
     EXPECT_FALSE(tick2 < tick1);
 }
 
 TEST(ScheduledTickTest, ComparisonOrdersByIdWhenSameTickAndPriority) {
-    MockTarget target(1);
+    MockTickTarget target(1);
 
-    ScheduledTick<MockTarget> tick1(mc::BlockPos(0, 0, 0), &target, 100, TickPriority::Normal, 1);
-    ScheduledTick<MockTarget> tick2(mc::BlockPos(0, 0, 0), &target, 100, TickPriority::Normal, 2);
+    ScheduledTick<MockTickTarget> tick1(mc::BlockPos(0, 0, 0), &target, 100, TickPriority::Normal, 1);
+    ScheduledTick<MockTickTarget> tick2(mc::BlockPos(0, 0, 0), &target, 100, TickPriority::Normal, 2);
 
     EXPECT_TRUE(tick1 < tick2);
     EXPECT_FALSE(tick2 < tick1);
 }
 
 TEST(ScheduledTickTest, EqualityBasedOnPositionAndTarget) {
-    MockTarget target1(1);
-    MockTarget target2(2);
+    MockTickTarget target1(1);
+    MockTickTarget target2(2);
 
-    ScheduledTick<MockTarget> tick1(mc::BlockPos(0, 0, 0), &target1, 10, TickPriority::Normal, 1);
-    ScheduledTick<MockTarget> tick2(mc::BlockPos(0, 0, 0), &target1, 20, TickPriority::High, 2);  // Same pos and target
-    ScheduledTick<MockTarget> tick3(mc::BlockPos(1, 0, 0), &target1, 10, TickPriority::Normal, 3);  // Different pos
-    ScheduledTick<MockTarget> tick4(mc::BlockPos(0, 0, 0), &target2, 10, TickPriority::Normal, 4);  // Different target
+    ScheduledTick<MockTickTarget> tick1(mc::BlockPos(0, 0, 0), &target1, 10, TickPriority::Normal, 1);  // Same pos and target
+    ScheduledTick<MockTickTarget> tick2(mc::BlockPos(0, 0, 0), &target1, 20, TickPriority::High, 2);    // Same pos and target
+    ScheduledTick<MockTickTarget> tick3(mc::BlockPos(1, 0, 0), &target1, 10, TickPriority::Normal, 3);  // Different pos
+    ScheduledTick<MockTickTarget> tick4(mc::BlockPos(0, 0, 0), &target2, 10, TickPriority::Normal, 4);  // Different target
 
     EXPECT_TRUE(tick1 == tick2);  // Same position and target
     EXPECT_FALSE(tick1 == tick3);  // Different position
@@ -107,10 +129,10 @@ TEST(ScheduledTickTest, EqualityBasedOnPositionAndTarget) {
 }
 
 TEST(ScheduledTickTest, HashCodeConsistency) {
-    MockTarget target(1);
+    MockTickTarget target(1);
 
-    ScheduledTick<MockTarget> tick1(mc::BlockPos(0, 0, 0), &target, 10, TickPriority::Normal, 1);
-    ScheduledTick<MockTarget> tick2(mc::BlockPos(0, 0, 0), &target, 20, TickPriority::High, 2);
+    ScheduledTick<MockTickTarget> tick1(mc::BlockPos(0, 0, 0), &target, 10, TickPriority::Normal, 1);
+    ScheduledTick<MockTickTarget> tick2(mc::BlockPos(0, 0, 0), &target, 20, TickPriority::High, 2);
 
     // Same position and target should have same hash
     EXPECT_EQ(tick1.hashCode(), tick2.hashCode());
@@ -121,9 +143,9 @@ TEST(ScheduledTickTest, HashCodeConsistency) {
 // ============================================================================
 
 TEST(EmptyTickListTest, AllOperationsReturnFalse) {
-    EmptyTickList<MockTarget>& tickList = EmptyTickList<MockTarget>::get();
+    EmptyTickList<MockTickTarget>& tickList = EmptyTickList<MockTickTarget>::get();
 
-    MockTarget target(1);
+    MockTickTarget target(1);
     mc::BlockPos pos(0, 0, 0);
 
     EXPECT_FALSE(tickList.isTickScheduled(pos, target));
@@ -132,9 +154,9 @@ TEST(EmptyTickListTest, AllOperationsReturnFalse) {
 }
 
 TEST(EmptyTickListTest, ScheduleDoesNothing) {
-    EmptyTickList<MockTarget>& tickList = EmptyTickList<MockTarget>::get();
+    EmptyTickList<MockTickTarget>& tickList = EmptyTickList<MockTickTarget>::get();
 
-    MockTarget target(1);
+    MockTickTarget target(1);
     mc::BlockPos pos(0, 0, 0);
 
     // Should not throw or do anything
@@ -146,8 +168,8 @@ TEST(EmptyTickListTest, ScheduleDoesNothing) {
 }
 
 TEST(EmptyTickListTest, SingletonPattern) {
-    EmptyTickList<MockTarget>& list1 = EmptyTickList<MockTarget>::get();
-    EmptyTickList<MockTarget>& list2 = EmptyTickList<MockTarget>::get();
+    EmptyTickList<MockTickTarget>& list1 = EmptyTickList<MockTickTarget>::get();
+    EmptyTickList<MockTickTarget>& list2 = EmptyTickList<MockTickTarget>::get();
 
     EXPECT_EQ(&list1, &list2);
 }
@@ -165,4 +187,37 @@ TEST(ServerTickListTest, Construction) {
 
     // This test would require mocking ServerWorld, which is complex
     // For full integration tests, see the integration test suite
+}
+
+TEST(ServerTickListTest, TickRemovesEntryFromPendingSetBeforeExecution) {
+    ServerTickListTestWorld world;
+    MockTickTarget target(1);
+    size_t executionCount = 0;
+
+    ServerTickList<MockTickTarget> tickList(
+        world,
+        [](MockTickTarget&) { return false; },
+        [](MockTickTarget&) -> const mc::ResourceLocation& {
+            static const mc::ResourceLocation id("test", "mock_target");
+            return id;
+        },
+        [](const mc::ResourceLocation&) -> MockTickTarget* { return nullptr; },
+        [&executionCount](mc::IWorld&, const mc::BlockPos&, MockTickTarget&) {
+            ++executionCount;
+        });
+
+    const mc::BlockPos pos(64, 62, 87);
+    tickList.setCurrentTick(20);
+    tickList.scheduleTick(pos, target, 1, TickPriority::Normal);
+
+    EXPECT_TRUE(tickList.isTickScheduled(pos, target));
+    EXPECT_EQ(tickList.pendingCount(), 1);
+
+    tickList.tick(21, 65536);
+
+    EXPECT_EQ(executionCount, 1);
+    EXPECT_FALSE(tickList.isTickScheduled(pos, target));
+    EXPECT_FALSE(tickList.isTickPending(pos, target));
+    EXPECT_EQ(tickList.pendingCount(), 0);
+    EXPECT_EQ(tickList.executedThisTickCount(), 1);
 }
