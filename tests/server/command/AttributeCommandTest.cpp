@@ -74,6 +74,7 @@ class ServerChunkManager;
 class EntityTracker;
 class ItemPickupManager;
 class WeatherManager;
+class ServerScoreboard;
 } // namespace mc::server
 
 namespace mc::server::sync {
@@ -89,7 +90,6 @@ class ContainerManager;
 } // namespace mc::server::interaction
 
 namespace mc::command {
-namespace {
 
 /**
  * @brief 命令测试使用的假连接。
@@ -179,6 +179,8 @@ public:
     [[nodiscard]] const server::core::BannedIpList& bannedIpList() const override { return m_bannedIpList; }
     [[nodiscard]] server::core::OpListManager& opListManager() override { return m_opListManager; }
     [[nodiscard]] const server::core::OpListManager& opListManager() const override { return m_opListManager; }
+    [[nodiscard]] server::ServerScoreboard& scoreboard() override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::ServerScoreboard& scoreboard() const override { throw std::logic_error("unused"); }
 
     [[nodiscard]] ServerDimensionManager& dimensionManager() override { throw std::logic_error("unused"); }
     [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { throw std::logic_error("unused"); }
@@ -575,5 +577,4 @@ TEST_F(AttributeCommandTest, HorseJumpStrengthAttribute)
     EXPECT_EQ(result.value(), 0);
 }
 
-} // namespace
 } // namespace mc::command

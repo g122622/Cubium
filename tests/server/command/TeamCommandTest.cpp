@@ -98,7 +98,6 @@ class ContainerManager;
 } // namespace mc::server::interaction
 
 namespace mc::command {
-namespace {
 
 /**
 * @brief 命令测试使用的假连接。
@@ -657,5 +656,4 @@ TEST_F(TeamCommandTest, ModifyTeamCollisionRule)
     EXPECT_EQ(team->getCollisionRule(), scoreboard::TeamCollisionRule::PushOwnTeam);
 }
 
-} // namespace
 } // namespace mc::command

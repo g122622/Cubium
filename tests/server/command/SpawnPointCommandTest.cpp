@@ -54,6 +54,7 @@
 #include "server/core/TimeManager.hpp"
 #include "server/core/WhitelistManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
+#include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
@@ -75,6 +76,7 @@ class ServerChunkManager;
 class EntityTracker;
 class ItemPickupManager;
 class WeatherManager;
+class ServerScoreboard;
 } // namespace mc::server
 
 namespace mc::server::sync {
@@ -90,7 +92,6 @@ class ContainerManager;
 } // namespace mc::server::interaction
 
 namespace mc::command {
-namespace {
 
 /**
  * @brief 命令测试使用的假连接。
@@ -262,6 +263,9 @@ public:
     {
         throw std::logic_error("unused");
     }
+
+    [[nodiscard]] server::ServerScoreboard& scoreboard() override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::ServerScoreboard& scoreboard() const override { throw std::logic_error("unused"); }
 
     [[nodiscard]] CommandRegistry& commandRegistry() override { return m_commandRegistry; }
     [[nodiscard]] const CommandRegistry& commandRegistry() const override { return m_commandRegistry; }
@@ -579,5 +583,4 @@ TEST_F(SpawnPointCommandTest, SpawnPointHasNoAlias)
     EXPECT_TRUE(result.success());
 }
 
-} // namespace
 } // namespace mc::command

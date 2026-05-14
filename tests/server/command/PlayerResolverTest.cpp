@@ -95,7 +95,6 @@ class ContainerManager;
 } // namespace mc::server::interaction
 
 namespace mc::command {
-namespace {
 
 /**
  * @brief 测试用假连接。
@@ -343,7 +342,6 @@ private:
     std::vector<std::shared_ptr<FakeConnection>> m_connections;
 };
 
-} // namespace
 } // namespace mc::command
 
 // 全局命名空间中引入需要的类型

@@ -78,6 +78,7 @@ class ServerChunkManager;
 class EntityTracker;
 class ItemPickupManager;
 class WeatherManager;
+class ServerScoreboard;
 } // namespace mc::server
 
 namespace mc::server::sync {
@@ -93,7 +94,6 @@ class ContainerManager;
 } // namespace mc::server::interaction
 
 namespace mc::command {
-namespace {
 
 /**
  * @brief 命令测试使用的假连接，记录发送的数据。
@@ -271,6 +271,9 @@ public:
 
     [[nodiscard]] CommandRegistry& commandRegistry() override { return m_commandRegistry; }
     [[nodiscard]] const CommandRegistry& commandRegistry() const override { return m_commandRegistry; }
+
+    [[nodiscard]] server::ServerScoreboard& scoreboard() override { throw std::logic_error("unused"); }
+    [[nodiscard]] const server::ServerScoreboard& scoreboard() const override { throw std::logic_error("unused"); }
 
     [[nodiscard]] i32 viewDistance() const override { return m_config.viewDistance; }
     [[nodiscard]] i32 maxPlayers() const override { return m_config.maxPlayers; }
@@ -548,5 +551,4 @@ TEST_F(TellRawCommandTest, TellRawCommandWithLowPermission)
     EXPECT_FALSE(result.success());
 }
 
-} // namespace
 } // namespace mc::command
