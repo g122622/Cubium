@@ -30,8 +30,12 @@
 #include "common/perfetto/PerfettoManager.hpp"
 
 #ifdef _WIN32
-#include <DbgHelp.h>
+// clang-format off
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <Windows.h>
+#include <DbgHelp.h>
+// clang-format on
 #pragma comment(lib, "dbghelp.lib")
 #elif defined(__linux__) || defined(__APPLE__)
 #include <cxxabi.h>

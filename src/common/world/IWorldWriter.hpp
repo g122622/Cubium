@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../core/Types.hpp"
+#include "block/BlockPos.hpp"
 
 namespace mc {
 

@@ -25,6 +25,7 @@
 
 #include "ReactiveState.hpp"
 #include <algorithm>
+#include <chrono>
 #include <unordered_set>
 
 namespace mc::client::ui::kagero::state {

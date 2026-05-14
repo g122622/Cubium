@@ -26,10 +26,12 @@
 
 // 平台特定头文件
 #ifdef _WIN32
+// clang-format off
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include <Psapi.h>
 #include <Windows.h>
+#include <Psapi.h>
+// clang-format on
 #include <intrin.h>
 #elif defined(__linux__)
 #include <fstream>
