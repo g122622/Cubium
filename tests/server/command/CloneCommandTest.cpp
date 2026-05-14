@@ -260,9 +260,6 @@ public:
     [[nodiscard]] CommandRegistry& commandRegistry() override { return m_commandRegistry; }
     [[nodiscard]] const CommandRegistry& commandRegistry() const override { return m_commandRegistry; }
 
-    [[nodiscard]] server::ServerScoreboard& scoreboard() override { throw std::logic_error("unused"); }
-    [[nodiscard]] const server::ServerScoreboard& scoreboard() const override { throw std::logic_error("unused"); }
-
     [[nodiscard]] i32 viewDistance() const override { return m_config.viewDistance; }
     [[nodiscard]] i32 maxPlayers() const override { return m_config.maxPlayers; }
     [[nodiscard]] u64 seed() const override { return m_config.seed; }

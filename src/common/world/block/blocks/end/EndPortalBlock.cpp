@@ -421,20 +421,65 @@ BlockState ChorusFlowerBlock::getStateForPlacement(BlockItemUseContext& context)
 
 bool ChorusFlowerBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-
     MC_UNUSED(state);
 
-    // 检查下方
+    // 参考 MC 1.16.5 ChorusFlowerBlock.isValidPosition
+    // 检查下方方块
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
 
-    if (belowState == nullptr) {
-        return false;
+    // 下方为 null 视为空气
+    if (belowState == nullptr || belowState->isAir()) {
+        // 下方是空气时，检查水平方向的支撑
+        // 必须恰好有一个水平方向是紫颂植物，其他方向必须是空气
+        bool foundChorusPlant = false;
+
+        for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West}) {
+            BlockPos adjPos = pos.offset(dir);
+            const BlockState* adjState = world.getBlockState(adjPos);
+
+            if (adjState == nullptr) {
+                // 空气或越界，视为空气
+                continue;
+            }
+
+            if (adjState->is(VanillaBlocks::CHORUS_PLANT)) {
+                // 已经找到一个紫颂植物
+                if (foundChorusPlant) {
+                    // 第二个紫颂植物，位置无效
+                    return false;
+                }
+                foundChorusPlant = true;
+            } else if (!adjState->isAir()) {
+                // 非空气且非紫颂植物的方块，位置无效
+                return false;
+            }
+        }
+
+        // 必须恰好有一个水平方向的紫颂植物作为支撑
+        return foundChorusPlant;
     }
 
-    // 需要在紫颂植物上或末地石上
-    // TODO: 检查特定方块
-    return belowState->isSolid();
+    // 下方不是空气，检查是否是有效支撑
+    const Block& belowBlock = belowState->getBlock();
+
+    // 情况1: 下方是紫颂植物 - 可以放置
+    if (belowState->is(VanillaBlocks::CHORUS_PLANT)) {
+        return true;
+    }
+
+    // 情况2: 下方是末地石 - 可以放置（作为生长基底）
+    if (belowState->is(VanillaBlocks::END_STONE)) {
+        return true;
+    }
+
+    // 情况3: 下方是紫颂花 - 可以放置（水平分支生长时）
+    if (&belowBlock == VanillaBlocks::CHORUS_FLOWER) {
+        return true;
+    }
+
+    // 情况4: 下方是其他非空气方块 - 无法放置
+    return false;
 }
 
 void ChorusFlowerBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)

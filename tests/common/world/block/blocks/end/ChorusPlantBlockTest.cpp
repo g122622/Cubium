@@ -661,3 +661,190 @@ TEST_F(ChorusPlantBlockTest, UpdatePostPlacement_UpdatesAllDirections)
         initialState, Direction::West, plantState, world6, BlockPos(0, 64, 0), BlockPos(-1, 64, 0));
     EXPECT_TRUE(westState.get(BlockStateProperties::WEST()));
 }
+
+// ============================================================================
+// ChorusFlowerBlock 测试
+// 测试 isValidPosition 方法的各种场景
+// ============================================================================
+
+TEST_F(ChorusPlantBlockTest, ChorusFlower_IsValidPosition_OnChorusPlant)
+{
+    // 情况1：下方是紫颂植物 - 应该可以放置
+    ChorusPlantTestWorld world;
+    const BlockState& plantState = VanillaBlocks::CHORUS_PLANT->defaultState();
+    world.setBlockAt(BlockPos(0, 63, 0), &plantState);
+
+    const BlockState& flowerState = VanillaBlocks::CHORUS_FLOWER->defaultState();
+
+    EXPECT_TRUE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
+            ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+}
+
+TEST_F(ChorusPlantBlockTest, ChorusFlower_IsValidPosition_OnEndStone)
+{
+    // 情况2：下方是末地石 - 应该可以放置（作为生长基底）
+    ChorusPlantTestWorld world;
+    const BlockState& endStoneState = VanillaBlocks::END_STONE->defaultState();
+    world.setBlockAt(BlockPos(0, 63, 0), &endStoneState);
+
+    const BlockState& flowerState = VanillaBlocks::CHORUS_FLOWER->defaultState();
+
+    EXPECT_TRUE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
+            ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+}
+
+TEST_F(ChorusPlantBlockTest, ChorusFlower_IsValidPosition_OnChorusFlower)
+{
+    // 情况3：下方是紫颂花 - 应该可以放置（水平分支生长）
+    ChorusPlantTestWorld world;
+    const BlockState& flowerState = VanillaBlocks::CHORUS_FLOWER->defaultState();
+    world.setBlockAt(BlockPos(0, 63, 0), &flowerState);
+
+    EXPECT_TRUE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
+            ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+}
+
+TEST_F(ChorusPlantBlockTest, ChorusFlower_IsValidPosition_OnRegularBlock)
+{
+    // 情况4：下方是普通方块（非空气） - 应该无法放置
+    ChorusPlantTestWorld world;
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    world.setBlockAt(BlockPos(0, 63, 0), &stoneState);
+
+    const BlockState& flowerState = VanillaBlocks::CHORUS_FLOWER->defaultState();
+
+    EXPECT_FALSE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
+            ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+}
+
+TEST_F(ChorusPlantBlockTest, ChorusFlower_IsValidPosition_OnAirWithHorizontalSupport)
+{
+    // 情况5：下方是空气，恰好有一个水平方向的紫颂植物支撑
+    ChorusPlantTestWorld world;
+    const BlockState& plantState = VanillaBlocks::CHORUS_PLANT->defaultState();
+
+    // 北方有一个紫颂植物
+    world.setBlockAt(BlockPos(0, 64, -1), &plantState);
+
+    const BlockState& flowerState = VanillaBlocks::CHORUS_FLOWER->defaultState();
+
+    // 位置 (0, 64, 0) 下方是空气，北方有紫颂植物，应该可以放置
+    EXPECT_TRUE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
+            ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+}
+
+TEST_F(ChorusPlantBlockTest, ChorusFlower_IsValidPosition_OnAirWithMultipleHorizontalSupports)
+{
+    // 情况6：下方是空气，有多个水平方向的紫颂植物 - 应该无法放置
+    ChorusPlantTestWorld world;
+    const BlockState& plantState = VanillaBlocks::CHORUS_PLANT->defaultState();
+
+    // 北方和南方都有紫颂植物
+    world.setBlockAt(BlockPos(0, 64, -1), &plantState);
+    world.setBlockAt(BlockPos(0, 64, 1), &plantState);
+
+    const BlockState& flowerState = VanillaBlocks::CHORUS_FLOWER->defaultState();
+
+    // 位置 (0, 64, 0) 有两个水平支撑，应该无法放置
+    EXPECT_FALSE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
+            ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+}
+
+TEST_F(ChorusPlantBlockTest, ChorusFlower_IsValidPosition_OnAirWithNoHorizontalSupport)
+{
+    // 情况7：下方是空气，没有水平方向的紫颂植物支撑 - 应该无法放置
+    ChorusPlantTestWorld world;
+    // 空世界，没有任何方块
+
+    const BlockState& flowerState = VanillaBlocks::CHORUS_FLOWER->defaultState();
+
+    EXPECT_FALSE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
+            ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+}
+
+TEST_F(ChorusPlantBlockTest, ChorusFlower_IsValidPosition_OnAirWithBlockingBlock)
+{
+    // 情况8：下方是空气，有紫颂植物支撑，但其他方向有非空气方块阻挡
+    ChorusPlantTestWorld world;
+    const BlockState& plantState = VanillaBlocks::CHORUS_PLANT->defaultState();
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+
+    // 北方有紫颂植物
+    world.setBlockAt(BlockPos(0, 64, -1), &plantState);
+    // 南方有石头（阻挡）
+    world.setBlockAt(BlockPos(0, 64, 1), &stoneState);
+
+    const BlockState& flowerState = VanillaBlocks::CHORUS_FLOWER->defaultState();
+
+    // 位置 (0, 64, 0) 有非空气非紫颂植物的方块阻挡，应该无法放置
+    EXPECT_FALSE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
+            ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+}
+
+TEST_F(ChorusPlantBlockTest, ChorusFlower_IsValidPosition_AllHorizontalDirections)
+{
+    // 测试所有水平方向都可以作为支撑
+    const BlockState& plantState = VanillaBlocks::CHORUS_PLANT->defaultState();
+    const BlockState& flowerState = VanillaBlocks::CHORUS_FLOWER->defaultState();
+
+    // 北方支撑
+    {
+        ChorusPlantTestWorld world;
+        world.setBlockAt(BlockPos(0, 64, -1), &plantState);
+        EXPECT_TRUE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
+                ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+    }
+
+    // 南方支撑
+    {
+        ChorusPlantTestWorld world;
+        world.setBlockAt(BlockPos(0, 64, 1), &plantState);
+        EXPECT_TRUE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
+                ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+    }
+
+    // 东方支撑
+    {
+        ChorusPlantTestWorld world;
+        world.setBlockAt(BlockPos(1, 64, 0), &plantState);
+        EXPECT_TRUE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
+                ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+    }
+
+    // 西方支撑
+    {
+        ChorusPlantTestWorld world;
+        world.setBlockAt(BlockPos(-1, 64, 0), &plantState);
+        EXPECT_TRUE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
+                ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+    }
+}
+
+TEST_F(ChorusPlantBlockTest, ChorusFlower_IsValidPosition_ChainsOfFlowersNotAllowedHorizontally)
+{
+    // 紫颂花不能作为水平支撑（只有紫颂植物可以）
+    ChorusPlantTestWorld world;
+    const BlockState& flowerState = VanillaBlocks::CHORUS_FLOWER->defaultState();
+
+    // 水平方向放置紫颂花（不是紫颂植物）
+    world.setBlockAt(BlockPos(0, 64, -1), &flowerState);
+
+    // 下方是空气，水平方向只有紫颂花，不是有效的支撑
+    EXPECT_FALSE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
+            ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+}
+
+TEST_F(ChorusPlantBlockTest, ChorusFlower_IsValidPosition_EndStoneNotHorizontalSupport)
+{
+    // 末地石不能作为水平支撑（只能作为底部支撑）
+    ChorusPlantTestWorld world;
+    const BlockState& endStoneState = VanillaBlocks::END_STONE->defaultState();
+    const BlockState& flowerState = VanillaBlocks::CHORUS_FLOWER->defaultState();
+
+    // 水平方向放置末地石
+    world.setBlockAt(BlockPos(0, 64, -1), &endStoneState);
+
+    // 下方是空气，水平方向的末地石不是有效支撑
+    EXPECT_FALSE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
+            ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+}

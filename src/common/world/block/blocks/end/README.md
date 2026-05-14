@@ -74,7 +74,15 @@ end/
 - **行为**：
   - 随机刻时有概率生长（增加年龄）
   - 最大年龄为 5
-- **TODO**：完善 `isValidPosition` 的方块检查
+- **位置验证（isValidPosition）**：
+  - 下方是紫颂植物（ChorusPlantBlock）→ 可以放置
+  - 下方是末地石（EndStone）→ 可以放置（作为生长基底）
+  - 下方是紫颂花（ChorusFlowerBlock）→ 可以放置（水平分支生长）
+  - 下方是空气 → 检查水平四个方向：
+    - 必须恰好有一个水平方向是紫颂植物
+    - 其他三个水平方向必须是空气
+  - 下方是其他方块 → 无法放置
+- **参考**：MC 1.16.5 `net.minecraft.block.ChorusFlowerBlock`
 
 ### DragonEggBlock（龙蛋）
 
@@ -168,9 +176,7 @@ if (state.get(BlockStateProperties::EAST()))  index |= 1ULL << 5;  // bit 5
 
 ### 4. isValidPosition 的方块检查
 
-**问题**：`ChorusFlowerBlock::isValidPosition` 目前只检查 `isSolid()`，需要完善特定方块检查。
-
-**TODO**：检查下方方块是否是紫颂植物、紫颂花或末地石。
+**已解决**：`ChorusFlowerBlock::isValidPosition` 已完整实现，检查下方方块是否是紫颂植物、紫颂花、末地石或空气（水平支撑）。
 
 ## 测试用例
 
